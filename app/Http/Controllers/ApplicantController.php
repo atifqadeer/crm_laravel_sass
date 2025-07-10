@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Horsefly\Mail\GenericEmail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
+use App\Observers\ActionObserver;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
 use App\Traits\Geocode;
@@ -551,83 +552,82 @@ class ApplicantController extends Controller
     }
     public function storeShortNotes(Request $request)
     {
+        $request->validate([
+            'applicant_id' => 'required|integer|exists:applicants,id',
+            'details' => 'required|string',
+            'reason' => 'required|string',
+        ]);
+
         $user = Auth::user();
 
-        $applicant_id = $request->input('applicant_id');
-        $details = $request->input('details');
-        $notes_reason = $request->input('reason');
-        $applicant_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+        try {
+            DB::beginTransaction();
 
-        $updateData = ['applicant_notes' => $applicant_notes];
-        $movedTabTo = '';
-        switch ($notes_reason) {
-            case 'blocked': // Block applicants
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+            $applicant_id = $request->input('applicant_id');
+            $details = $request->input('details');
+            $notes_reason = $request->input('reason');
+            $applicant_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+            $updateData = ['applicant_notes' => $applicant_notes];
+            $movedTabTo = '';
+
+            switch ($notes_reason) {
+                case 'blocked':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_no_response' => false,
                         'is_blocked' => true,
                         'is_callback_enable' => false,
                         'is_temp_not_interested' => false,
                     ]));
+                    $movedTabTo = 'blocked';
+                    break;
 
-                $movedTabTo = 'blocked';
-                break;
-
-            case 'casual': // Casual notes
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'casual':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_no_response' => false,
                         'is_blocked' => false,
                         'is_callback_enable' => false,
                         'is_temp_not_interested' => false,
                     ]));
+                    $movedTabTo = 'casual';
+                    break;
 
-                $movedTabTo = 'casual';
-                break;
-
-            case 'no_response': // No response
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'no_response':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_circuit_busy' => false,
                         'is_no_response' => true,
                         'is_callback_enable' => false,
                         'is_blocked' => false,
                         'is_temp_not_interested' => false,
                     ]));
+                    $movedTabTo = 'no response';
+                    break;
 
-                $movedTabTo = 'no response';
-                break;
-
-            case 'no_job': // No job applicants
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'no_job':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_no_response' => false,
                         'is_callback_enable' => false,
                         'is_blocked' => false,
                         'is_no_job' => true,
                         'is_temp_not_interested' => false,
                     ]));
+                    $movedTabTo = 'no job';
+                    break;
 
-                $movedTabTo = 'no job';
-                break;
-
-            case 'circuit_busy': // Circuit busy
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'circuit_busy':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
+                        'is_temp_not_interested' => false,
+                        'is_callback_enable' => false,
                         'is_no_response' => false,
                         'is_circuit_busy' => true,
-                        'is_callback_enable' => false,
                         'is_blocked' => false,
                         'is_no_job' => false,
-                        'is_temp_not_interested' => false,
                     ]));
+                    $movedTabTo = 'circuit busy';
+                    break;
 
-                $movedTabTo = 'circuit busy';
-                break;
-
-            case 'not_interested': // Temp Not Interested
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'not_interested':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_temp_not_interested' => true,
                         'is_no_response' => false,
                         'is_callback_enable' => false,
@@ -635,13 +635,11 @@ class ApplicantController extends Controller
                         'is_blocked' => false,
                         'is_no_job' => false,
                     ]));
+                    $movedTabTo = 'not interested';
+                    break;
 
-                $movedTabTo = 'not interested';
-                break;
-
-            case 'callback': // Callback
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
+                case 'callback':
+                    Applicant::where('id', $applicant_id)->update(array_merge($updateData, [
                         'is_temp_not_interested' => false,
                         'is_callback_enable' => true,
                         'is_no_response' => false,
@@ -649,61 +647,56 @@ class ApplicantController extends Controller
                         'is_blocked' => false,
                         'is_no_job' => false,
                     ]));
+                    $movedTabTo = 'callback';
+                    break;
+            }
 
-                $movedTabTo = 'callback';
-                break;
+            // Save applicant note
+            $applicantNote = ApplicantNote::create([
+                'details' => $applicant_notes,
+                'applicant_id' => $applicant_id,
+                'moved_tab_to' => $movedTabTo,
+                'user_id' => $user->id,
+            ]);
 
-            case 'circuit_busy': // Circuit busy
-                Applicant::where('id', $applicant_id)
-                    ->update(array_merge($updateData, [
-                        'is_temp_not_interested' => false,
-                        'is_callback_enable' => false,
-                        'is_no_response' => false,
-                        'is_circuit_busy' => true,
-                        'is_blocked' => false,
-                        'is_no_job' => false,
-                    ]));
+            $applicantNote->update([
+                'note_uid' => md5($applicantNote->id),
+            ]);
 
-                $movedTabTo = 'circuit busy';
-                break;
-        }
-
-        $applicantNote = ApplicantNote::create([
-            'details' => $applicant_notes,
-            'applicant_id' => $applicant_id,
-            'moved_tab_to' => $movedTabTo,
-            'user_id' => $user->id
-        ]);
-
-        $applicantNote_uid = md5($applicantNote->id);
-        DB::table('applicant_notes')
-            ->where('id', $applicantNote->id)
-            ->update(['note_uid' => $applicantNote_uid]);
-
-        // Disable previous module note
-        ModuleNote::where([
-            'module_noteable_id' => $applicant_id,
-            'module_noteable_type' => 'Horsefly\Applicant'
-        ])
-            ->orderBy('id', 'desc')
+            // Disable previous module notes
+            ModuleNote::where([
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant',
+            ])
+            ->where('status', 1)
             ->update(['status' => 0]);
 
-        // Create new module note
-        $moduleNote = ModuleNote::create([
-            'details' => $applicant_notes,
-            'module_noteable_id' => $applicant_id,
-            'module_noteable_type' => 'Horsefly\Applicant',
-            'user_id' => $user->id,
-            'status' => 1,
-        ]);
+            // Add new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $applicant_notes,
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant',
+                'user_id' => $user->id,
+            ]);
 
-        // Refresh the instance to ensure it has the latest data
-        $moduleNote->refresh();
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id),
+            ]);
 
-        $moduleNote_uid = md5($moduleNote->id);
-        $moduleNote->update(['module_note_uid' => $moduleNote_uid]);
+            // Log audit
+            $applicant = Applicant::find($applicant_id)->select('applicant_name', 'id')->first();
+            $observer = new ActionObserver();
+            $observer->customApplicantAudit($applicant, 'applicant_notes');
 
-        return redirect()->to(url()->previous());
+            DB::commit();
+
+            return redirect()->to(url()->previous());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to store notes: ' . $e->getMessage());
+
+            return back()->with('error', 'Something went wrong while saving notes.');
+        }
     }
     public function downloadCv($id)
     {
@@ -811,7 +804,7 @@ class ApplicantController extends Controller
 
             // If the applicant doesn't exist, throw an exception
             if (!$applicant) {
-                throw new \Exception("Applicant not found with ID: " . $id);
+                throw new Exception("Applicant not found with ID: " . $id);
             }
 
             $postcode = $request->applicant_postcode;
@@ -827,12 +820,12 @@ class ApplicantController extends Controller
 
                         // If geocode fails, throw
                         if (!isset($result['lat']) || !isset($result['lng'])) {
-                            throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                            throw new Exception('Geolocation failed. Latitude and longitude not found.');
                         }
 
                         $applicantData['lat'] = $result['lat'];
                         $applicantData['lng'] = $result['lng'];
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Unable to locate address: ' . $e->getMessage()
@@ -846,7 +839,27 @@ class ApplicantController extends Controller
 
             // Update the applicant with the validated and formatted data
             $applicant->update($applicantData);
+
+            ModuleNote::where([
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Applicant'
+            ])
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            $moduleNote = ModuleNote::create([
+                'details' => $request->applicant_notes,
+                'module_noteable_id' => $applicant->id,
+                'module_noteable_type' => 'Horsefly\Applicant',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
+
             DB::commit();
+
             // Redirect to the applicants page with a success message
             return response()->json([
                 'success' => true,
@@ -1496,41 +1509,47 @@ class ApplicantController extends Controller
     {
         $user = Auth::user();
 
-        $applicant_id = $request->input('applicant_id');
-        $sale_id = $request->input('sale_id');
-        $details = $request->input('details');
-        $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+        try {
+            $applicant_id = $request->input('applicant_id');
+            $sale_id = $request->input('sale_id');
+            $details = $request->input('details');
+            $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        ApplicantNote::where('applicant_id', $applicant_id)
-            ->whereIn('moved_tab_to', ['no_nursing_home', 'revert_no_nursing_home'])
-            ->update(['status' => false]);
+            // Deactivate previous similar notes
+            ApplicantNote::where('applicant_id', $applicant_id)
+                ->whereIn('moved_tab_to', ['no_nursing_home', 'revert_no_nursing_home'])
+                ->where('status', 1)
+                ->update(['status' => 0]);
 
-        $applicant_note = ApplicantNote::create([
-            'user_id' => $user->id,
-            'applicant_id' => $applicant_id,
-            'details' => $notes,
-            'moved_tab_to' => 'no_nursing_home'
-        ]);
+            // Create new note
+            $applicant_note = ApplicantNote::create([
+                'user_id' => $user->id,
+                'applicant_id' => $applicant_id,
+                'details' => $notes,
+                'moved_tab_to' => 'no_nursing_home'
+            ]);
 
-        $last_inserted_note = $applicant_note->id;
-        if ($last_inserted_note > 0) {
-            $note_uid = md5($last_inserted_note);
-            ApplicantNote::where('id', $last_inserted_note)
-                ->update(['note_uid' => $note_uid]);
+            $applicant_note->update([
+                'note_uid' => md5($applicant_note->id)
+            ]);
 
-            Applicant::where('id', $applicant_id)
-                ->update(['is_in_nurse_home' => true]);
+            // Update applicant status
+            $applicant = Applicant::where('id', $applicant_id)->first();
+
+            $applicant->update(['is_in_nurse_home' => true]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mark no nursing home saved successfully!'
+                'message' => 'Marked as no nursing home experience successfully!',
             ], 200);
-        }
+        } catch (\Exception $e) {
+            Log::error('Error marking applicant as no nursing home: ' . $e->getMessage());
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Something went wrong! try it again.'
-        ], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong! Please try again.',
+            ], 500);
+        }
     }
     public function availableJobsIndex($applicant_id, $radius = null)
     {

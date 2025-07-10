@@ -20,19 +20,19 @@
      <div class="scrollbar" data-simplebar>
           <ul class="navbar-nav" id="navbar-nav">
                <li class="menu-title">Menu</li>
-                    @canany(['dashboard'])
-                         <li class="nav-item">
-                              <a class="nav-link" href="{{ route('second', ['dashboards', 'index'])}}">
-                                   <span class="nav-icon">
-                                        <i class="ri-dashboard-2-line"></i>
-                                   </span>
-                                   <span class="nav-text"> Dashboards </span>
-                              </a>
-                         </li>
-                    @endcanany
+               @canany(['dashboard'])
+                    <li class="nav-item">
+                         <a class="nav-link" href="{{ route('second', ['dashboards', 'index'])}}">
+                              <span class="nav-icon">
+                                   <i class="ri-dashboard-2-line"></i>
+                              </span>
+                              <span class="nav-text"> Dashboards </span>
+                         </a>
+                    </li>
+               @endcanany
 
-                    <!-- applicants Menu -->
-                    @canany(['applicant-index', 'applicant-create'])
+               <!-- applicants Menu -->
+               @canany(['applicant-index', 'applicant-create'])
                     <li class="nav-item">
                          <a class="nav-link menu-arrow" href="#sidebarApplicants" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarApplicants">
                               <span class="nav-icon">
@@ -55,11 +55,11 @@
                               </ul>
                          </div>
                     </li>
-                    @endcanany
-                    <!-- end applicants Menu -->
-               
-                    <!-- head office Menu -->
-                    @canany(['office-index', 'office-create'])
+               @endcanany
+               <!-- end applicants Menu -->
+          
+               <!-- head office Menu -->
+               @canany(['office-index', 'office-create'])
                     <li class="nav-item">
                          <a class="nav-link menu-arrow" href="#sidebarHeadOffices" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarHeadOffices">
                               <span class="nav-icon">
@@ -82,11 +82,11 @@
                               </ul>
                          </div>
                     </li>
-                    @endcanany
-                    <!-- end head office Menu -->
-               
-                    <!-- units Menu -->
-                    @canany(['unit-index', 'unit-create'])
+               @endcanany
+               <!-- end head office Menu -->
+          
+               <!-- units Menu -->
+               @canany(['unit-index', 'unit-create'])
                     <li class="nav-item">
                          <a class="nav-link menu-arrow" href="#sidebarUnits" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarUnits">
                               <span class="nav-icon">
@@ -96,132 +96,173 @@
                          </a>
                          <div class="collapse" id="sidebarUnits">
                               <ul class="nav sub-navbar-nav">
+                                   @canany(['unit-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('units.list')}}">List View</a>
                                    </li>
+                                   @endcanany
+                                   @canany(['unit-create'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('units.create')}}">Create Unit</a>
+                                   </li>
+                                   @endcanany
+                              </ul>
+                         </div>
+                    </li>
+               @endcanany
+               <!-- end units Menu -->
+          
+               <!-- sales Menu -->
+               @canany(['sale-index','sale-create', 'sale-direct-index', 'sale-open-index', 'sale-closed-index', 'sale-hold-index', 'sale-pending-hold-index'])
+                    <li class="nav-item">
+                         <a class="nav-link menu-arrow" href="#sidebarSales" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarSales">
+                              <span class="nav-icon">
+                                   <i class="ri-line-chart-line"></i>
+                              </span>
+                              <span class="nav-text"> Sales </span>
+                         </a>
+                         <div class="collapse" id="sidebarSales">
+                              <ul class="nav sub-navbar-nav">
+                                   @canany(['sale-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.list')}}">List View</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-create'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.create')}}">Create Sale</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-direct-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.direct')}}">Direct Sales</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-open-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.open')}}">Open Sales</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-closed-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.closed')}}">Closed Sales</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-hold-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.on-hold')}}">On Hold Sales</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['sale-pending-hold-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.pending-on-hold')}}">Pending On Hold</a>
+                                   </li>
+                                   @endcanany
+                              </ul>
+                         </div>
+                    </li>
+               @endcanany
+               <!-- end sales Menu -->
+          
+               <!-- resources Menu -->
+               @canany(['resource-direct-index', 'resource-indirect-index', 'resource-category-index', 'resource-rejected-index', 'resource-blocked-index', 'resource-crm-paid-index', 'resource-no-job-index', ])
+                    <li class="nav-item">
+                         <a class="nav-link menu-arrow" href="#sidebarResources" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarResources">
+                              <span class="nav-icon">
+                                   <i class="ri-file-list-3-line"></i>
+                              </span>
+                              <span class="nav-text"> Resources </span>
+                         </a>
+                         <div class="collapse" id="sidebarResources">
+                              <ul class="nav sub-navbar-nav">
+                                   @canany(['resource-direct-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.directIndex')}}">Direct Sales Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-indirect-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.indirectIndex')}}">Indirect Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-category-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.categoryWiseApplicantIndex')}}">Category Wise Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-rejected-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.rejectedIndex')}}">Rejected Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-blocked-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.blockedApplicantsIndex')}}">Blocked Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-crm-paid-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.crmPaidIndex')}}">CRM Paid Resources</a>
+                                   </li>
+                                   @endcanany
+                                   @canany(['resource-no-job-index'])
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.noJobIndex')}}">No Job Resources</a>
+                                   </li>
+                                   @endcanany
+                              </ul>
+                         </div>
+                    </li>
+               @endcanany
+               <!-- end resources Menu -->
+               
+               <!-- quality Menu -->
+               @canany(['quality-assurance-resource-index', 'quality-assurance-sale-index'])
+                    <li class="nav-item">
+                         <a class="nav-link menu-arrow" href="#sidebarQuality" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarQuality">
+                              <span class="nav-icon">
+                                   <i class="ri-file-list-3-line"></i>
+                              </span>
+                              <span class="nav-text"> Quality </span>
+                         </a>
+                         <div class="collapse" id="sidebarQuality">
+                              <ul class="nav sub-navbar-nav">
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('quality.resources')}}">Resources</a>
+                                   </li>
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('quality.sales')}}">Sales</a>
+                                   </li>
+                              </ul>
+                         </div>
+                    </li>
+               @endcanany
+               <!-- end quality Menu -->
+
+               {{-- Regions --}}
+               @canany(['region-resource-index', 'region-sale-index'])
+                    <li class="nav-item">
+                         <a class="nav-link menu-arrow" href="#sidebarRegions" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarQuality">
+                              <span class="nav-icon">
+                                   <i class="ri-earth-line"></i>
+                              </span>
+                              <span class="nav-text"> Regions </span>
+                         </a>
+                         <div class="collapse" id="sidebarRegions">
+                              <ul class="nav sub-navbar-nav">
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('regions.resources')}}">Resources</a>
+                                   </li>
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('regions.sales')}}">Sales</a>
                                    </li>
                               </ul>
                          </div>
                     </li> 
-                    @endcanany
-                    <!-- end units Menu -->
-              
-               <!-- sales Menu -->
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarSales" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarSales">
-                         <span class="nav-icon">
-                              <i class="ri-line-chart-line"></i>
-                         </span>
-                         <span class="nav-text"> Sales </span>
-                    </a>
-                    <div class="collapse" id="sidebarSales">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.list')}}">List View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.create')}}">Create Sale</a>
-                              </li>
-
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.direct')}}">Direct Sales</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.open')}}">Open Sales</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.closed')}}">Closed Sales</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.on-hold')}}">On Hold Sales</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('sales.pending-on-hold')}}">Pending On Hold</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> 
-               <!-- end sales Menu -->
-              
-               <!-- resources Menu -->
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarResources" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarResources">
-                         <span class="nav-icon">
-                              <i class="ri-file-list-3-line"></i>
-                         </span>
-                         <span class="nav-text"> Resources </span>
-                    </a>
-                    <div class="collapse" id="sidebarResources">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.directIndex')}}">Direct Sales Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.indirectIndex')}}">Indirect Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.categoryWiseApplicantIndex')}}">Category Wise Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.rejectedIndex')}}">Rejected Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.blockedApplicantsIndex')}}">Blocked Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.crmPaidIndex')}}">CRM Paid Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('resources.noJobIndex')}}">No Job Resources</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> 
-               <!-- end resources Menu -->
+               @endcanany
+               {{-- Regions --}}
                
-               <!-- quality Menu -->
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarQuality" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarQuality">
-                         <span class="nav-icon">
-                              <i class="ri-file-list-3-line"></i>
-                         </span>
-                         <span class="nav-text"> Quality </span>
-                    </a>
-                    <div class="collapse" id="sidebarQuality">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('quality.resources')}}">Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('quality.sales')}}">Sales</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> 
-               <!-- end quality Menu -->
-
-               {{-- Regions --}}
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarRegions" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarQuality">
-                         <span class="nav-icon">
-                              <i class="ri-earth-line"></i>
-                         </span>
-                         <span class="nav-text"> Regions </span>
-                    </a>
-                    <div class="collapse" id="sidebarRegions">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('regions.resources')}}">Resources</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('regions.sales')}}">Sales</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> 
-               {{-- Regions --}}
+               
                <li class="menu-title">CRM</li>
                <li class="nav-item">
                     <a class="nav-link" href="{{ route('crm.list')}}">

@@ -2039,92 +2039,124 @@ class ResourceController extends Controller
     }
     public function revertBlockedApplicant(Request $request)
     {
-       try {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:applicants,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
             $applicantIds = $request->input('ids');
+            $unblockedCount = 0;
 
             foreach ($applicantIds as $applicantId) {
                 $applicant = Applicant::find($applicantId);
 
-                if ($applicant && $applicant->is_blocked != false) {
+                if ($applicant && $applicant->is_blocked) {
                     $applicant->update([
                         'is_blocked' => false,
-                        'applicant_notes'=>'Applicant is unblocked reverted back'
+                        'applicant_notes' => 'Applicant has been unblocked',
                     ]);
 
+                    // Deactivate previous active notes
                     ModuleNote::where('module_noteable_id', $applicant->id)
                         ->where('module_noteable_type', 'Horsefly\Applicant')
+                        ->where('status', 1)
                         ->update(['status' => 0]);
 
-                    $molduleNote = ModuleNote::create([
+                    // Create new module note
+                    $moduleNote = ModuleNote::create([
                         'user_id' => Auth::id(),
                         'module_noteable_id' => $applicant->id,
                         'module_noteable_type' => 'Horsefly\Applicant',
-                        'details' => 'Applicant is unblocked reverted back',
-                        'status' => 1
+                        'details' => 'Applicant has been unblocked',
                     ]);
 
-                    $molduleNote_uid = md5($molduleNote->id);
-                    DB::table('module_notes')
-                        ->where('id', $molduleNote->id)
-                        ->update(['module_note_uid' => $molduleNote_uid]);
+                    $moduleNote->update([
+                        'module_note_uid' => md5($moduleNote->id),
+                    ]);
+
+                    $unblockedCount++;
                 }
             }
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Mark unblocked successfully!'
+                'message' => "$unblockedCount applicant(s) unblocked successfully.",
             ], 200);
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
+            DB::rollBack();
+
+            Log::error("Failed to revert blocked applicants: " . $exception->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong! try it again.'
-            ], 404);
+                'message' => 'Something went wrong! Please try again.',
+            ], 500);
         }
     }
     public function revertNoJobApplicant(Request $request)
     {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:applicants,id',
+        ]);
+
         try {
+            DB::beginTransaction();
+
             $applicantIds = $request->input('ids');
+            $revertedCount = 0;
 
             foreach ($applicantIds as $applicantId) {
                 $applicant = Applicant::find($applicantId);
 
-                if ($applicant && $applicant->is_no_job != false) {
+                if ($applicant && $applicant->is_no_job) {
                     $applicant->update([
                         'is_no_job' => false,
-                        'applicant_notes'=>'Applicant is no job reverted back'
+                        'applicant_notes' => 'No job applicant has been reverted.',
                     ]);
 
+                    // Soft-close previous active notes
                     ModuleNote::where('module_noteable_id', $applicant->id)
                         ->where('module_noteable_type', 'Horsefly\Applicant')
+                        ->where('status', 1)
                         ->update(['status' => 0]);
 
-                    $molduleNote = ModuleNote::create([
+                    // Create new module note
+                    $moduleNote = ModuleNote::create([
                         'user_id' => Auth::id(),
                         'module_noteable_id' => $applicant->id,
                         'module_noteable_type' => 'Horsefly\Applicant',
-                        'details' => 'Applicant is unblocked reverted back',
-                        'status' => 1
+                        'details' => 'No job applicant has been reverted.',
                     ]);
 
-                    $molduleNote_uid = md5($molduleNote->id);
-                    DB::table('module_notes')
-                        ->where('id', $molduleNote->id)
-                        ->update(['module_note_uid' => $molduleNote_uid]);
+                    $moduleNote->update([
+                        'module_note_uid' => md5($moduleNote->id),
+                    ]);
+
+                    $revertedCount++;
                 }
             }
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Reverted no job successfully!'
-            ], 200);
-        } catch (Exception $exception) {
+                'message' => "$revertedCount applicant(s) reverted from 'No Job'."
+            ]);
+        } catch (\Exception $exception) {
+            DB::rollBack();
+
+            Log::error("Failed to revert no job applicants: " . $exception->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong! try it again.'
-            ], 404);
+                'message' => 'Something went wrong! Please try again.'
+            ], 500);
         }
     }
     public function markAsNursingHomeExp(Request $request)
@@ -2136,23 +2168,47 @@ class ResourceController extends Controller
         ]);
 
         try {
-            // Get the selected applicant IDs
+            DB::beginTransaction();
+
             $selectedIds = $request->input('selectedCheckboxes');
 
-            // Update in a single query (better performance)
+            // Bulk update applicants
             $updatedCount = Applicant::whereIn('id', $selectedIds)
                 ->update(['have_nursing_home_experience' => true]);
 
+            // Disable existing module notes for those applicants
+            ModuleNote::whereIn('module_noteable_id', $selectedIds)
+                ->where('module_noteable_type', 'Horsefly\Applicant')
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            // Create new module notes
+            foreach ($selectedIds as $id) {
+                $moduleNote = ModuleNote::create([
+                    'user_id' => Auth::id(),
+                    'module_noteable_id' => $id,
+                    'module_noteable_type' => 'Horsefly\Applicant',
+                    'details' => 'Applicant has been marked as having nursing home experience',
+                ]);
+
+                $moduleNote->update([
+                    'module_note_uid' => md5($moduleNote->id)
+                ]);
+            }
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => "$updatedCount applicants marked as Nursing Home Exp!",
+                'message' => "$updatedCount applicant(s) marked as having nursing home experience.",
             ]);
         } catch (\Exception $e) {
-            Log::error("Failed to update Nursing Home Exp: " . $e->getMessage());
+            DB::rollBack();
+            Log::error("Failed to mark applicants as nursing home experience: " . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while updating records.',
+                'message' => 'An error occurred while updating applicants.',
             ], 500);
         }
     }
@@ -2165,86 +2221,119 @@ class ResourceController extends Controller
         ]);
 
         try {
-            // Get the selected applicant IDs
+            DB::beginTransaction();
+
             $selectedIds = $request->input('selectedCheckboxes');
 
-            // Update in a single query (better performance)
+            // Bulk update applicants
             $updatedCount = Applicant::whereIn('id', $selectedIds)
                 ->update(['have_nursing_home_experience' => false]);
 
+            // Disable previous active module notes
+            ModuleNote::whereIn('module_noteable_id', $selectedIds)
+                ->where('module_noteable_type', 'Horsefly\Applicant')
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            // Create new module notes
+            foreach ($selectedIds as $id) {
+                $moduleNote = ModuleNote::create([
+                    'user_id' => Auth::id(),
+                    'module_noteable_id' => $id,
+                    'module_noteable_type' => 'Horsefly\Applicant',
+                    'details' => 'Applicant has been marked as having no nursing home experience',
+                ]);
+
+                $moduleNote->update([
+                    'module_note_uid' => md5($moduleNote->id)
+                ]);
+            }
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => "$updatedCount applicants marked as No Nursing Home Exp!",
+                'message' => "$updatedCount applicant(s) marked as having no nursing home experience.",
             ]);
         } catch (\Exception $e) {
-            Log::error("Failed to update No Nursing Home Exp: " . $e->getMessage());
+            DB::rollBack();
+            Log::error("Failed to mark applicants as no nursing home experience: " . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while updating records.',
+                'message' => 'An error occurred while updating applicants.',
             ], 500);
         }
     }
     public function markApplicantNotInterestedOnSale(Request $request)
     {
-        $user = Auth::user();
+        try {
+            DB::beginTransaction();
 
-        $applicant_id = $request->input('applicant_id');
-        $sale_id = $request->input('sale_id');
-        $details = $request->input('details');
-        $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+            $user = Auth::user();
 
-        $pivotSale = ApplicantPivotSale::create([
-            'applicant_id' => $applicant_id,
-            'sale_id' => $sale_id
-        ]);
+            $applicant_id = $request->input('applicant_id');
+            $sale_id = $request->input('sale_id');
+            $details = $request->input('details');
+            $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        $last_inserted_interest = $pivotSale->id;
-        if ($last_inserted_interest) {
-            $interest_uid = md5($last_inserted_interest);
-            ApplicantPivotSale::where('id', $last_inserted_interest)
-                ->update(['pivot_uid' => $interest_uid]);
+            // Create pivot sale entry
+            $pivotSale = ApplicantPivotSale::create([
+                'applicant_id' => $applicant_id,
+                'sale_id' => $sale_id
+            ]);
 
-            $notes_for_range = NotesForRangeApplicant::create([
-                'applicants_pivot_sales_id' => $last_inserted_interest,
+            $pivotSale->update([
+                'pivot_uid' => md5($pivotSale->id)
+            ]);
+
+            // Add notes for range
+            $notesForRange = NotesForRangeApplicant::create([
+                'applicants_pivot_sales_id' => $pivotSale->id,
                 'reason' => $notes,
             ]);
-			
-            $notes_for_range_last_insert_id = $notes_for_range->id;
-            if ($notes_for_range_last_insert_id) {
-                $range_notes_uid = md5($notes_for_range_last_insert_id);
 
-                NotesForRangeApplicant::where('id', $notes_for_range_last_insert_id)
-                ->update(['range_uid' => $range_notes_uid]);
-            }
+            $notesForRange->update([
+                'range_uid' => md5($notesForRange->id)
+            ]);
+
+            // Disable previous active module notes
+            ModuleNote::where([
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant',
+                'status' => 1
+            ])->update(['status' => 0]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $notes,
+                'user_id' => $user->id,
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant'
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Applicant marked as not interested successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to mark applicant not interested: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Something went wrong. Please try again.');
         }
-        // Disable previous module note
-        ModuleNote::where([
-            'module_noteable_id' => $applicant_id,
-            'module_noteable_type' => 'Horsefly\Applicant'
-        ])
-            ->orderBy('id', 'desc')
-            ->update(['status' => false]);
-
-        // Create new module note
-        $moduleNote = ModuleNote::create([
-            'details' => $notes,
-            'user_id' => $user->id,
-            'module_noteable_id' => $applicant_id,
-            'module_noteable_type' => 'Horsefly\Applicant',
-            'status' => true,
-        ]);
-
-        // Refresh the instance to ensure it has the latest data
-        $moduleNote->refresh();
-
-        $moduleNote_uid = md5($moduleNote->id);
-        $moduleNote->update(['module_note_uid' => $moduleNote_uid]);
-
-        return redirect()->to(url()->previous());
     }
     public function markApplicantCallback(Request $request)
     {
+        $request->validate([
+            'applicant_id' => 'required|integer|exists:applicants,id',
+            'sale_id' => 'nullable|integer|exists:sales,id',
+            'details' => 'nullable|string|max:1000',
+        ]);
+
         $user = Auth::user();
 
         $applicant_id = $request->input('applicant_id');
@@ -2252,50 +2341,77 @@ class ResourceController extends Controller
         $details = $request->input('details');
         $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        ApplicantNote::where('applicant_id', $applicant_id)
-            ->whereIn('moved_tab_to', ['callback','revert_callback'])
-            ->update(['status' => false]);
+        try {
+            DB::beginTransaction();
 
-        if($sale_id){
-            $pivotSale = ApplicantPivotSale::where('applicant_id', $applicant_id)
-                ->where('sale_id', $sale_id)
-                ->first();
+            // Handle pivot sale if sale_id is given
+            if ($sale_id) {
+                $pivotSale = ApplicantPivotSale::where('applicant_id', $applicant_id)
+                    ->where('sale_id', $sale_id)
+                    ->first();
 
-            if($pivotSale){
-                NotesForRangeApplicant::where('applicants_pivot_sales_id', $pivotSale->id)
-                ->delete();
-
-                $pivotSale->delete();
+                if ($pivotSale) {
+                    // Delete range notes
+                    NotesForRangeApplicant::where('applicants_pivot_sales_id', $pivotSale->id)->delete();
+                    $pivotSale->delete();
+                }
             }
-        }
 
-        $applicant_note = ApplicantNote::create([
-            'user_id' => $user->id,
-            'applicant_id' => $applicant_id,
-            'details' => $notes,
-            'moved_tab_to' => 'callback'
-        ]);
+            // Disable previous callback/revert_callback notes
+            ApplicantNote::where('applicant_id', $applicant_id)
+                ->whereIn('moved_tab_to', ['callback', 'revert_callback'])
+                ->update(['status' => false]);
 
-        $last_inserted_note = $applicant_note->id;
-        if ($last_inserted_note > 0) {
-            $note_uid = md5($last_inserted_note);
-            ApplicantNote::where('id', $last_inserted_note)
-                ->update(['note_uid' => $note_uid]);
+            // Create new ApplicantNote
+            $applicantNote = ApplicantNote::create([
+                'user_id' => $user->id,
+                'applicant_id' => $applicant_id,
+                'details' => $notes,
+                'moved_tab_to' => 'callback',
+            ]);
 
+            $applicantNote->update([
+                'note_uid' => md5($applicantNote->id)
+            ]);
+
+            // Mark applicant as callback enabled
             Applicant::where('id', $applicant_id)
                 ->update(['is_callback_enable' => true]);
 
+            // Disable previous active module notes
+            ModuleNote::where([
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant',
+                'status' => 1
+            ])->update(['status' => 0]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $notes,
+                'user_id' => $user->id,
+                'module_noteable_id' => $applicant_id,
+                'module_noteable_type' => 'Horsefly\Applicant'
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Mark callback enabled saved successfully!'
-            ], 200);
-        }
+                'message' => 'Callback marked successfully!',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to mark applicant callback: ' . $e->getMessage());
 
-        return response()->json([
+            return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong! try it again.'
-            ], 404);
-
+                'message' => 'Something went wrong. Please try again.',
+            ], 500);
+        }
     }
     public function exportDirectApplicantsEmails(Request $request)
     {

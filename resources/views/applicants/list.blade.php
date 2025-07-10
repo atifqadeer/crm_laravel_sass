@@ -659,25 +659,21 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
         // Function to show the notes modal
         function addNotesModal(applicantID) {
-             // Open the modal and reset the form inside it
-            $('#notesModal').on('show.bs.modal', function () {
-                // Reset the form inside the modal
-                $(this).find('form')[0].reset();
-            });
+            const modalId = `notesModal_${applicantID}`;
+            const formId = `note_form_${applicantID}`;
 
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#notesModal').length === 0) {
+            // If the modal does not exist yet, append it to the DOM
+            if ($('#' + modalId).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">' +
+                    '<div class="modal fade" id="' + modalId +'" tabindex="-1" aria-labelledby="'+ modalId + 'Label" aria-hidden="true">'+
                         '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="notesModalLabel">Add Notes</h5>' +
+                                    '<h5 class="modal-title" id="'+ modalId + 'Label">Add Notes</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
                                 '<div class="modal-body">' +
-                                    '<form class="form-horizontal" id="note_form' + applicantID + '">' +
-                                        '<input type="hidden" name="_token" value="">' +
+                                    '<form class="form-horizontal" id="' + formId + '">' +
                                         '<input type="hidden" name="request_from_applicants" value="1">'+
                                         '<input type="hidden" name="module" value="Applicant">' +
                                         '<input type="hidden" name="module_key" value="'+ applicantID +'">'+
@@ -812,8 +808,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                     '</form>'+
                                 '</div>'+
                                 '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="submit" data-note_key="214232" class="btn btn-primary" form="note_form' + applicantID + '">Save</button>' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
+                                    '<button type="submit" data-note_key="214232" class="btn btn-primary" form="' + formId + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -821,11 +817,16 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 );
             }
 
-            // Show the modal
-            $('#notesModal').modal('show');
+            // Reset the form every time the modal is shown
+            $('#' + modalId).on('shown.bs.modal', function () {
+                $(this).find('form')[0].reset();
+            });
 
-            // Handle the save button click for form submission
-             $('#note_form' + applicantID).off('submit').on('submit', function(event) {
+            // Open the modal
+            $('#' + modalId).modal('show');
+
+            // Handle the form submission
+            $('#' + formId).off('submit').on('submit', function (event) {
                 event.preventDefault(); // Prevent the default form submission
 
                 const form = $(this);
@@ -839,10 +840,14 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     url: '{{ route("moduleNotes.store") }}', // Replace with your endpoint
                     type: 'POST',
                     data: dataWithToken, // Send the serialized data with the CSRF token
-                    success: function(response) {
-                        toastr.success('Notes saved successfully!');
-                        $('#notesModal').modal('hide'); // Close the modal
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
+                    success: function (response) {
+                        if (response.success) {
+                            toastr.success(response.message); // Show message from controller
+                            $('#' + modalId).modal('hide');
+                            $('#applicants_table').DataTable().ajax.reload();
+                        } else {
+                            toastr.error('Something went wrong.');
+                        }
                     },
                     error: function(xhr) {
                         alert('An error occurred while saving notes.');
@@ -1099,4 +1104,4 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
     </script>
     
 @endsection
-@endsection                        
+@endsection

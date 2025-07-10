@@ -18,32 +18,44 @@
                 <div class="row justify-content-between">
                     <div class="col-lg-12">
                         <div class="text-md-end mt-3">
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> Filters
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item" href="#">All</a>
-                                    <a class="dropdown-item" href="#">Active</a>
-                                    <a class="dropdown-item" href="#">Inactive</a>
+                            @canany(['unit-filters'])
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> Filters
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item" href="#">All</a>
+                                        <a class="dropdown-item" href="#">Active</a>
+                                        <a class="dropdown-item" href="#">Inactive</a>
+                                    </div>
                                 </div>
-                            </div>
+                            @endcanany
                             <!-- Button Dropdown -->
+                            @canany(['unit-export','unit-export-all','unit-export-emails'])
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-download-line me-1"></i> Export
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                    @canany(['unit-export-all'])
                                     <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'all']) }}">Export All Data</a>
+                                    @endcanany
+                                    @canany(['unit-export-emails'])
                                     <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'emails']) }}">Export Emails</a>
+                                    @endcanany
                                     <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
                                 </div>
                             </div>
+                            @endcanany
+                            @canany(['unit-import'])
                             <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import CSV">
                                 <i class="ri-upload-line"></i>
                             </button>
+                            @endcanany
+                            @canany(['unit-create'])
                             <a href="{{ route('units.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Unit</button></a>
+                            @endcanany
                         </div>
                     </div><!-- end col-->
                 </div>
@@ -66,7 +78,9 @@
                                 <th>Unit Name</th>
                                 <th>PostCode</th>
                                 <th>Website</th>
+                                @canany(['unit-view-note', 'unit-add-note'])
                                 <th>Notes</th>
+                                @endcanany
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -101,8 +115,50 @@
     
     <script>
         $(document).ready(function() {
+            const hasViewNotePermission = @json(auth()->user()->can('unit-view-note'));
+            const hasAddNotePermission = @json(auth()->user()->can('unit-add-note'));
+
             // Store the current filter in a variable
             var currentFilter = '';
+
+            let columns = [
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                { data: 'created_at', name: 'units.created_at' },
+                { data: 'office_name', name: 'offices.office_name' },
+                { data: 'unit_name', name: 'units.unit_name'  },
+                { data: 'unit_postcode', name: 'units.unit_postcode' },
+                { data: 'unit_website', name: 'units.unit_website' }
+            ];
+
+            if (hasViewNotePermission || hasAddNotePermission) {
+                columns.push({
+                    data: 'unit_notes', name: 'units.unit_notes', orderable: false
+                });
+            }
+            columns.push(
+                { data: 'status', name: 'units.status', orderable: false },
+                { data: 'action', name: 'action', orderable: false }
+            );
+
+            let columnDefs = [];
+
+            // Dynamically assign center alignment for columns starting from resume/applicant_experience
+            const centerAlignedIndices = [];
+            for (let i = 0; i < columns.length; i++) {
+                const key = columns[i].data;
+                if (['unit_notes', 'status', 'action'].includes(key)) {
+                    centerAlignedIndices.push(i);
+                }
+            }
+
+            centerAlignedIndices.forEach(idx => {
+                columnDefs.push({
+                    targets: idx,
+                    createdCell: function (td) {
+                        $(td).css('text-align', 'center');
+                    }
+                });
+            });
 
             // Create a loader row and append it to the table before initialization
             const loadingRow = document.createElement('tr');
@@ -127,37 +183,8 @@
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'units.created_at' },
-                    { data: 'office_name', name: 'offices.office_name' },
-                    { data: 'unit_name', name: 'units.unit_name'  },
-                    { data: 'unit_postcode', name: 'units.unit_postcode' },
-                    { data: 'unit_website', name: 'units.unit_website' },
-                    { data: 'unit_notes', name: 'units.unit_notes', orderable: false },
-                    { data: 'status', name: 'units.status', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
-                ],
-                columnDefs: [
-                    {
-                        targets: 6,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 7,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 8,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    }
-                ],
+                columns: columns,
+                columnDefs: columnDefs,
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },

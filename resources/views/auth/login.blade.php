@@ -31,7 +31,7 @@
                             <label class="form-label" for="example-email">Email</label>
                             <input type="email" id="example-email" name="email"
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
-                                   placeholder="Enter your email" value="admin@gmail.com">
+                                   placeholder="Enter your email">
                         </div>
                         <div class="mb-3">
                             {{-- <a href="{{ route('second', ['auth', 'password'])}}"
@@ -40,7 +40,7 @@
                             <label class="form-label" for="example-password">Password</label>
                             <input type="password" id="example-password"
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
-                                   placeholder="Enter your password" name="password" value="password">
+                                   placeholder="Enter your password" name="password">
                         </div>
                         <div class="mb-3">
                             <div class="form-check">

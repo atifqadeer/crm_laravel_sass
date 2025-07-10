@@ -16,6 +16,7 @@ use App\Exports\HeadOfficesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
+use App\Observers\ActionObserver;
 
 class HeadOfficeController extends Controller
 {
@@ -296,10 +297,10 @@ class HeadOfficeController extends Controller
 
         // Disable previous module note
         ModuleNote::where([
-            'module_noteable_id' => $office_id,
-            'module_noteable_type' => 'Horsefly\Office'
-        ])
-            ->orderBy('id', 'desc')
+                'module_noteable_id' => $office_id,
+                'module_noteable_type' => 'Horsefly\Office'
+            ])
+            ->where('status', 1)
             ->update(['status' => 0]);
 
         // Create new module note
@@ -308,11 +309,14 @@ class HeadOfficeController extends Controller
             'module_noteable_id' => $office_id,
             'module_noteable_type' => 'Horsefly\Office',
             'user_id' => $user->id,
-            'status' => 1,
         ]);
 
-        $moduleNote_uid = md5($moduleNote->id);
-        $moduleNote->update(['module_note_uid' => $moduleNote_uid]);
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
+
+        // Log audit
+        $office = Office::where('id', $office_id)->select('office_name', 'office_notes', 'id')->first();
+        $observer = new ActionObserver();
+        $observer->customOfficeAudit($office, 'office_notes');
 
         return redirect()->to(url()->previous());
     }

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\UnitsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
+use Illuminate\Support\Facades\Gate;
 class UnitController extends Controller
 {
     use Geocode;
@@ -240,14 +241,19 @@ class UnitController extends Controller
 
                     $name = htmlspecialchars($unit->unit_name, ENT_QUOTES, 'UTF-8');
                     $postcode = htmlspecialchars($unit->unit_postcode, ENT_QUOTES, 'UTF-8');
-
+                    $noteBtn = '';
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$unit->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
+                    if(Gate::allows('unit-view-note')){
+                    $noteBtn .= '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$unit->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
                                 <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>
-                            <a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">
+                            </a>';
+                    }
+                    if(Gate::allows('unit-add-note')){
+                    $noteBtn .= '<a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">
                                 <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
                             </a>';
+                    }
+                    return $noteBtn;
                 })
                 ->addColumn('status', function ($unit) {
                     $status = '';
@@ -271,24 +277,36 @@ class UnitController extends Controller
                     } else {
                         $status = '<span class="badge bg-secondary">Inactive</span>';
                     }
-                    return '<div class="btn-group dropstart">
+                    $html = '';
+                    $html .= '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                    ' . (int)$unit->id . ',
-                                    \'' . addslashes(htmlspecialchars($office_name)) . '\',
-                                    \'' . addslashes(htmlspecialchars($unit->unit_name)) . '\',
-                                    \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                    \'' . addslashes(htmlspecialchars($status)) . '\'
-                                )">View</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $unit->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $unit->id . ')">Manager Details</a></li>
-                                </ul>
+                                <ul class="dropdown-menu">';
+                                    if(Gate::allows('unit-edit')){
+                                        $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
+                                    }
+                                    if(Gate::allows('unit-view')){
+                                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                            ' . (int)$unit->id . ',
+                                            \'' . addslashes(htmlspecialchars($office_name)) . '\',
+                                            \'' . addslashes(htmlspecialchars($unit->unit_name)) . '\',
+                                            \'' . addslashes(htmlspecialchars($postcode)) . '\',
+                                            \'' . addslashes(htmlspecialchars($status)) . '\'
+                                        )">View</a></li>';
+                                    }
+                                    if(Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')){
+                                        $html .= '<li><hr class="dropdown-divider"></li>';
+                                    }
+                                    if(Gate::allows('unit-view-notes-history')){
+                                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $unit->id . ')">Notes History</a></li>';
+                                    }
+                                    if(Gate::allows('unit-view-manager-details')){
+                                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $unit->id . ')">Manager Details</a></li>';
+                                    }
+                                $html .= '</ul>
                             </div>';
+                        return $html;
                 })
 
                 ->rawColumns(['unit_notes', 'unit_name', 'office_name', 'status', 'action', 'website'])

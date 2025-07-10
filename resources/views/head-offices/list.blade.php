@@ -122,7 +122,7 @@
 
             // Create a loader row and append it to the table before initialization
             const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="7" class="text-center py-4">
+            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -201,7 +201,7 @@
 
                     // Check if there are no records
                     if (pageInfo.recordsTotal === 0) {
-                        $('#headOffice_table tbody').html('<tr><td colspan="7" class="text-center">Data not found</td></tr>');
+                        $('#headOffice_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                     } else {
                         // Build the custom pagination structure
                         var paginationHtml = `

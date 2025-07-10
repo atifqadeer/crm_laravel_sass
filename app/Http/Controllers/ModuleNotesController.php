@@ -21,135 +21,125 @@ use Horsefly\ModuleNote;
 use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\Sale;
+use App\Observers\ActionObserver;
 
 class ModuleNotesController extends Controller
 {
     public function store(Request $request)
     {
-        $input = $request->all();
-        $input['module'] = filter_var($input['module'], FILTER_SANITIZE_STRING);
-        $input['details'] = filter_var($input['details'], FILTER_SANITIZE_STRING);
-        $request->replace($input);
+        try {
+            $input = $request->all();
+            $input['module'] = filter_var($input['module'], FILTER_SANITIZE_STRING);
+            $input['details'] = filter_var($input['details'], FILTER_SANITIZE_STRING);
+            $request->replace($input);
 
-        $user = Auth::user();
+            $user = Auth::user();
 
-        $validator = Validator::make($request->all(), [
-            'module' => "required|in:Office,Sale,Unit,Applicant",
-            'module_key' => "required",
-            'details' => "required|string",
-        ]);
+            $validator = Validator::make($request->all(), [
+                'module' => "required|in:Office,Sale,Unit,Applicant",
+                'module_key' => "required",
+                'details' => "required|string",
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-                'message' => 'Please fix the errors in the form'
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                    'message' => 'Please fix the errors in the form'
+                ], 422);
+            }
 
-
-        $noteDetail = '';
-        if (isset($request->request_from_applicants) && $request->input('module') == 'Applicant') {
-            if ($request->has('hangup_call') && $request->input('hangup_call') == 'on') {
-                $noteDetail .= '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
-                $noteDetail .= '<strong>Call Hung up/Not Interested:</strong> ' . ($request->input('hangup_call') == 'on' ? 'Yes' : 'No') . '<br>';
-                $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
-                $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
-
-                $applicant_id = $request->input('module_key');
-                Applicant::find($applicant_id)->update([
-                    'is_temp_not_interested' => true,
-                    'is_no_job' => false
-                ]);
-            } elseif ($request->has('no_job') && $request->input('no_job') == 'on') {
-                $noteDetail .= '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
-                $noteDetail .= '<strong>No Job:</strong> ' . ($request->input('no_job') ? 'Yes' : 'No') . '<br>';
-                $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
-                $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
-
+            $noteDetail = '';
+            if (isset($request->request_from_applicants) && $request->input('module') == 'Applicant') {
                 $applicant_id = $request->input('module_key');
 
-                Applicant::where('id', $applicant_id)
-                    ->update([
+                if ($request->has('hangup_call') && $request->input('hangup_call') == 'on') {
+                    $noteDetail .= '<strong>Date:</strong> ' . now()->format('d-m-Y') . '<br>';
+                    $noteDetail .= '<strong>Call Hung up/Not Interested:</strong> Yes<br>';
+                    $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
+                    $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+
+                    Applicant::where('id', $applicant_id)->update([
+                        'is_temp_not_interested' => true,
+                        'is_no_job' => false
+                    ]);
+
+                } elseif ($request->has('no_job') && $request->input('no_job') == 'on') {
+                    $noteDetail .= '<strong>Date:</strong> ' . now()->format('d-m-Y') . '<br>';
+                    $noteDetail .= '<strong>No Job:</strong> Yes<br>';
+                    $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
+                    $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+
+                    Applicant::where('id', $applicant_id)->update([
                         'is_no_response' => false,
                         'is_temp_not_interested' => false,
                         'is_blocked' => false,
                         'is_circuit_busy' => false,
                         'is_no_job' => true,
-                        'applicant_notes' => $noteDetail,
-                        'updated_at' => Carbon::now()
+                        'applicant_notes' => $noteDetail
                     ]);
+
+                } else {
+                    $transportType = $request->has('transport_type') ? implode(', ', $request->input('transport_type')) : '';
+                    $shiftPattern = $request->has('shift_pattern') ? implode(', ', $request->input('shift_pattern')) : '';
+
+                    $noteDetail .= '<strong>Date:</strong> ' . now()->format('d-m-Y') . '<br>';
+                    $noteDetail .= '<strong>Current Employer Name:</strong> ' . htmlspecialchars($request->input('current_employer_name')) . '<br>';
+                    $noteDetail .= '<strong>PostCode:</strong> ' . htmlspecialchars($request->input('postcode')) . '<br>';
+                    $noteDetail .= '<strong>Current/Expected Salary:</strong> ' . htmlspecialchars($request->input('expected_salary')) . '<br>';
+                    $noteDetail .= '<strong>Qualification:</strong> ' . htmlspecialchars($request->input('qualification')) . '<br>';
+                    $noteDetail .= '<strong>Transport Type:</strong> ' . htmlspecialchars($transportType) . '<br>';
+                    $noteDetail .= '<strong>Shift Pattern:</strong> ' . htmlspecialchars($shiftPattern) . '<br>';
+                    $noteDetail .= '<strong>Nursing Home:</strong> ' . ($request->has('nursing_home') ? 'Yes' : 'No') . '<br>';
+                    $noteDetail .= '<strong>Alternate Weekend:</strong> ' . ($request->has('alternate_weekend') ? 'Yes' : 'No') . '<br>';
+                    $noteDetail .= '<strong>Interview Availability:</strong> ' . ($request->has('interview_availability') ? 'Available' : 'Not Available') . '<br>';
+                    $noteDetail .= '<strong>No Job:</strong> ' . ($request->has('no_job') ? 'Yes' : 'No') . '<br>';
+                    $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
+                    $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+                }
+
             } else {
-                $transportType = '';
-                $shiftPattern = '';
-
-                // Format transport_type and shift_pattern if needed
-                if ($request->has('transport_type')) {
-                    $transportType = implode(', ', $request->input('transport_type'));
-                }
-                if ($request->has('shift_pattern')) {
-                    $shiftPattern = implode(', ', $request->input('shift_pattern'));
-                }
-                $noteDetail .= '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
-                $noteDetail .= '<strong>Current Employer Name:</strong> ' . htmlspecialchars($request->input('current_employer_name')) . '<br>';
-                $noteDetail .= '<strong>PostCode:</strong> ' . htmlspecialchars($request->input('postcode')) . '<br>';
-                $noteDetail .= '<strong>Current/Expected Salary:</strong> ' . htmlspecialchars($request->input('expected_salary')) . '<br>';
-                $noteDetail .= '<strong>Qualification:</strong> ' . htmlspecialchars($request->input('qualification')) . '<br>';
-                $noteDetail .= '<strong>Transport Type:</strong> ' . htmlspecialchars($transportType) . '<br>';
-                $noteDetail .= '<strong>Shift Pattern:</strong> ' . htmlspecialchars($shiftPattern) . '<br>';
-                $noteDetail .= '<strong>Nursing Home:</strong> ' . ($request->has('nursing_home') && $request->input('nursing_home') == 'on' ? 'Yes' : 'No') . '<br>';
-                $noteDetail .= '<strong>Alternate Weekend:</strong> ' . ($request->has('alternate_weekend') && $request->input('alternate_weekend') == 'on' ? 'Yes' : 'No') . '<br>';
-                $noteDetail .= '<strong>Interview Availability:</strong> ' . ($request->has('interview_availability') && $request->input('interview_availability') == 'on' ? 'Available' : 'Not Available') . '<br>';
-                $noteDetail .= '<strong>No Job:</strong> ' . ($request->input('no_job') && $request->input('no_job') == 'on' ? 'Yes' : 'No') . '<br>';
-                $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
-                $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+                $noteDetail .= $request->input('details') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
             }
-        } else {
-            $noteDetail .= $request->input('details') . ' --- By:' . $user->name . ' Date: ' . Carbon::now()->format('d-m-Y');
-        }
 
-        $html = '<div class="alert alert-danger border-0 alert-dismissible">
+            $model_class = 'Horsefly\\' . $request->input('module');
+            $model = $model_class::find($request->input('module_key'));
+
+            if ($model) {
+                ModuleNote::where('module_noteable_id', $request->input('module_key'))
+                    ->where('status', 1)
+                    ->update(['status' => 0]);
+
+                $module_note = ModuleNote::create([
+                    'user_id' => $user->id,
+                    'details' => $noteDetail,
+                    'module_noteable_type' => $model_class,
+                    'module_noteable_id' => $request->input('module_key'),
+                ]);
+
+                $module_note->update(['module_note_uid' => md5($module_note->id)]);
+
+                // Log audit
+                $applicant = Applicant::find($applicant_id)->select('applicant_name', 'id')->first();
+                $observer = new ActionObserver();
+                $observer->customApplicantAudit($applicant, 'applicant_notes');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Note added successfully!'  // <-- this message will go to frontend
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('Note storing error: ' . $e->getMessage());
+
+            echo '<div class="alert alert-danger border-0 alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-                    <span class="font-weight-semibold">' . $request->input('module') . '</span> Note Could not Added
+                    <span class="font-weight-semibold">Error:</span> An unexpected error occurred while saving the note.
                 </div>';
-
-        //set Model name
-        $model_class = 'Horsefly\\' . $request->input('module');
-
-        //find the record into their relevant model/database table
-        $model = $model_class::find($request->input('module_key'));
-        if ($model) {
-            ModuleNote::where('module_noteable_id', $request->input('module_key'))
-                ->update(['status' => 0]);
-
-            $module_note = ModuleNote::create([
-                'user_id' => $user->id,
-                'details' => $noteDetail,
-                'module_noteable_type' => $model_class,
-                'module_noteable_id' => $request->input('module_key'),
-            ]);
-
-            $last_inserted_module_note = $module_note->id;
-
-            if ($last_inserted_module_note) {
-                $module_note_uid = md5($last_inserted_module_note);
-
-                ModuleNote::where('id', $last_inserted_module_note)
-                    ->update(['module_note_uid' => $module_note_uid]);
-
-                $html = '<div class="alert alert-success border-0 alert-dismissible" id="alert_note' . $model->id . '">
-							<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-							<span class="font-weight-semibold">' . $request->input('module') . '</span> Note Added Successfully
-						</div>';
-
-                echo $html;
-            } else {
-                echo $html;
-            }
-        } else {
-            echo $html;
         }
     }
+
     public function getModuleNotesHistory(Request $request)
     {
         try {

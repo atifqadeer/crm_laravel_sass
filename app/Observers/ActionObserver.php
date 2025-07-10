@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use Illuminate\Support\Facades\Auth;
 use Horsefly\Audit;
-use Horsefly\JobTitle;
+use Horsefly\Applicant;
 use Carbon\Carbon;
 
 class ActionObserver
@@ -39,7 +39,6 @@ class ActionObserver
             "data" => json_encode(array_merge(json_decode($sale->toJson(), true), $data)),
             "message" => $message,
         ]);
-
     }
     public function changeSaleOnHoldStatus($sale, $columns)
     {
@@ -86,6 +85,50 @@ class ActionObserver
         $audit->auditable_type = \Horsefly\Applicant::class;
         $audit->save();
     }
+    public function customApplicantAudit($applicant, $column)
+    {
+        $auth_user = Auth::user();
 
+        $data['action_performed_by'] = $auth_user->name;
+        $data['changes_made'] = $column;
+        $d_message = '';
+        $message = '';
 
+        if($column == 'applicant_notes'){
+            $d_message = 'note updated';
+            $message = "Applicant '".ucwords($applicant->applicant_name)."' notes has been updated";
+        }
+
+        $data['message'] = "Applicant '".ucwords($applicant->applicant_name)."' ".$d_message;
+
+        // Create the audit log entry
+        $applicant->audits()->create([
+            "user_id" => Auth::id(),
+            "data" => json_encode(array_merge(json_decode($applicant->toJson(), true), $data)),
+            "message" => $message,
+        ]);
+    }
+    public function customOfficeAudit($office, $column)
+    {
+        $auth_user = Auth::user();
+
+        $data['action_performed_by'] = $auth_user->name;
+        $data['changes_made'] = $column;
+        $d_message = '';
+        $message = '';
+
+        if($column == 'office_notes'){
+            $d_message = 'note updated';
+            $message = "Head Office '".ucwords($office->office_name)."' notes has been updated";
+        }
+
+        $data['message'] = "Head Office '".ucwords($office->office_name)."' ".$d_message;
+
+        // Create the audit log entry
+        $office->audits()->create([
+            "user_id" => Auth::id(),
+            "data" => json_encode(array_merge(json_decode($office->toJson(), true), $data)),
+            "message" => $message,
+        ]);
+    }
 }

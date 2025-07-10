@@ -265,13 +265,13 @@ class PermissionsTableSeeder extends Seeder
 
             // Regions Permissions
             // Region Sub Modules Resources Permissions
-            'region-index',
-            'region-filters',
-            'region-view-note',
-            'region-add-note',
-            'region-view-notes-history',
-            'region-view',
-            'region-download-resume',
+            'region-resource-index',
+            'region-resource-filters',
+            'region-resource-view-note',
+            'region-resource-add-note',
+            'region-resource-view-notes-history',
+            'region-resource-view',
+            'region-resource-download-resume',
 
             // Region Sub Modules Sales Permissions
             'region-sale-index',
