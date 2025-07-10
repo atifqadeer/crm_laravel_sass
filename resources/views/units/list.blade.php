@@ -1,0 +1,601 @@
+@extends('layouts.vertical', ['title' => 'Units List', 'subTitle' => 'Home'])
+@section('style')
+<style>
+    .dropdown-toggle::after {
+        display: none !important;
+    }
+    table.dataTable.no-footer {
+        border-bottom: none !important;
+    }
+</style>
+
+@endsection
+@section('content')
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header border-0">
+                <div class="row justify-content-between">
+                    <div class="col-lg-12">
+                        <div class="text-md-end mt-3">
+                            <!-- Button Dropdown -->
+                            <div class="dropdown d-inline">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ri-filter-line me-1"></i> Filters
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                    <a class="dropdown-item" href="#">All</a>
+                                    <a class="dropdown-item" href="#">Active</a>
+                                    <a class="dropdown-item" href="#">Inactive</a>
+                                </div>
+                            </div>
+                            <!-- Button Dropdown -->
+                            <div class="dropdown d-inline">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ri-download-line me-1"></i> Export
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'all']) }}">Export All Data</a>
+                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'emails']) }}">Export Emails</a>
+                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import CSV">
+                                <i class="ri-upload-line"></i>
+                            </button>
+                            <a href="{{ route('units.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Unit</button></a>
+                        </div>
+                    </div><!-- end col-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="table-responsive">
+                    <table id="units_table" class="table align-middle mb-3">
+                        <thead class="bg-light-subtle">
+                            <tr>
+                                <th>#</th>
+                                <th>Date</th>
+                                <th>Head Office</th>
+                                <th>Unit Name</th>
+                                <th>PostCode</th>
+                                <th>Website</th>
+                                <th>Notes</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{-- The data will be populated here by DataTables --}}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- end table-responsive -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section('script')
+    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- DataTables CSS (for styling the table) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
+    <!-- DataTables JS (for the table functionality) -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Store the current filter in a variable
+            var currentFilter = '';
+
+            // Create a loader row and append it to the table before initialization
+            const loadingRow = document.createElement('tr');
+            loadingRow.innerHTML = `<td colspan="14" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </td>`;
+
+            // Append the loader row to the table's tbody
+            $('#units_table tbody').append(loadingRow);
+
+            // Initialize DataTable with server-side processing
+            var table = $('#units_table').DataTable({
+                processing: false,  // Disable default processing state
+                serverSide: true,  // Enables server-side processing
+                ajax: {
+                    url: @json(route('getUnits')),  // Fetch data from the backend
+                    type: 'GET',
+                    data: function(d) {
+                        // Add the current filter to the request parameters
+                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                    }
+                },
+                columns: [
+                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { data: 'created_at', name: 'units.created_at' },
+                    { data: 'office_name', name: 'offices.office_name' },
+                    { data: 'unit_name', name: 'units.unit_name'  },
+                    { data: 'unit_postcode', name: 'units.unit_postcode' },
+                    { data: 'unit_website', name: 'units.unit_website' },
+                    { data: 'unit_notes', name: 'units.unit_notes', orderable: false },
+                    { data: 'status', name: 'units.status', orderable: false },
+                    { data: 'action', name: 'action', orderable: false }
+                ],
+                columnDefs: [
+                    {
+                        targets: 6,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 7,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    }
+                ],
+                rowId: function(data) {
+                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                },
+                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
+                    // Custom pagination HTML
+                    var api = this.api();
+                    var pagination = $(api.table().container()).find('.dataTables_paginate');
+                    pagination.empty();  // Clear existing pagination
+
+                    // Get the current page and total pages
+                    var pageInfo = api.page.info();
+                    var currentPage = pageInfo.page + 1;  // Page starts at 0, so add 1
+                    var totalPages = pageInfo.pages;
+
+                    // Check if there are no records
+                    if (pageInfo.recordsTotal === 0) {
+                        $('#units_table tbody').html('<tr><td colspan="14" class="text-center">Data not found</td></tr>');
+                    } else {
+                        // Build the custom pagination structure
+                        var paginationHtml = `
+                            <nav aria-label="Page navigation example">
+                                <ul class="pagination pagination-rounded mb-0">
+                                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                        <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                            <span >&laquo;</span>
+                                        </a>
+                                    </li>`;
+
+                        for (var i = 1; i <= totalPages; i++) {
+                            paginationHtml += `
+                                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                                </li>`;
+                        }
+
+                        paginationHtml += `
+                                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                        <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                            <span >&raquo;</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>`;
+
+                        pagination.html(paginationHtml); // Append custom pagination HTML
+                    }
+                }
+            });
+
+            // Handle filter button clicks and send filter parameters to the DataTable
+            $('.dropdown-item').on('click', function() {
+                // Get the selected filter value
+                currentFilter = $(this).text().toLowerCase();
+
+                // Update the DataTable request with the selected filter
+                table.ajax.reload();  // Reload the table with the new filter
+            });
+
+             // Handle the DataTable search
+            $('#units_table_filter input').on('keyup', function() {
+                table.search(this.value).draw(); // Manually trigger search
+            });
+        });
+
+        // Function to move the page forward or backward
+        function movePage(page) {
+            var table = $('#units_table').DataTable();
+            var currentPage = table.page.info().page + 1;
+            var totalPages = table.page.info().pages;
+
+            if (page === 'previous' && currentPage > 1) {
+                table.page(currentPage - 2).draw('page');  // Move to the previous page
+            } else if (page === 'next' && currentPage < totalPages) {
+                table.page(currentPage).draw('page');  // Move to the next page
+            } else if (typeof page === 'number' && page !== currentPage) {
+                table.page(page - 1).draw('page');  // Move to the selected page
+            }
+        }
+        
+        // Function to show the notes modal
+        function showNotesModal(unitId, notes, unitName, unitPostcode) {
+            const modalId = 'showNotesModal_' + unitId;
+
+            // If modal doesn't exist, create it
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+                        '<div class="modal-dialog modal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body modal-body-text-left">' +
+                                    '<div class="text-center my-3">' + 
+                                        '<div class="spinner-border text-primary my-3" role="status"><span class="visually-hidden">Loading...</span></div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Show modal first with loader
+            $('#' + modalId).modal('show');
+
+            // Set timeout to simulate loading (remove if unnecessary)
+            setTimeout(function () {
+                const contentHtml =
+                    'Unit Name: <strong>' + unitName + '</strong><br>' +
+                    'Postcode: <strong>' + unitPostcode + '</strong><br>' +
+                    'Notes Detail: <p>' + notes + '</p>';
+
+                $('#' + modalId + ' .modal-body').html(contentHtml);
+            }, 300); // you can adjust/remove this delay
+        }
+
+        // Function to show the notes modal
+        function addShortNotesModal(unitID) {
+            const modalId = 'shortNotesModal_' + unitID;
+            const formId = 'shortNotesForm_' + unitID;
+            const textareaId = 'detailsTextarea_' + unitID;
+            const saveBtnId = 'saveShortNotesButton_' + unitID;
+
+            // If the modal doesn't already exist, append it to the body
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body">' +
+                                    '<form id="' + formId + '">' +
+                                        '<div class="mb-3">' +
+                                            '<label for="' + textareaId + '" class="form-label">Details</label>' +
+                                            '<textarea class="form-control" id="' + textareaId + '" rows="4" required></textarea>' +
+                                        '</div>' +
+                                    '</form>' +
+                                '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
+                                    '<button type="button" class="btn btn-primary" id="' + saveBtnId + '">Save</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Reset form on load
+            $('#' + formId)[0].reset();
+            $('#' + textareaId).removeClass('is-valid is-invalid');
+            $('#' + textareaId).next('.invalid-feedback').remove();
+
+            // Show the modal
+            $('#' + modalId).modal('show');
+
+            // Unbind any previous handlers and bind fresh click event
+            $('#' + saveBtnId).off('click').on('click', function () {
+                const notes = $('#' + textareaId).val();
+
+                if (!notes) {
+                    $('#' + textareaId).addClass('is-invalid');
+                    if ($('#' + textareaId).next('.invalid-feedback').length === 0) {
+                        $('#' + textareaId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+
+                    // Remove validation error when user starts typing
+                    $('#' + textareaId).on('input', function () {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+
+                    return;
+                }
+
+                // Clean validation state
+                $('#' + textareaId).removeClass('is-invalid').addClass('is-valid');
+                $('#' + textareaId).next('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Send via AJAX
+                $.ajax({
+                    url: '{{ route("storeUnitShortNotes") }}',
+                    type: 'POST',
+                    data: {
+                        unit_id: unitID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        toastr.success('Notes saved successfully!');
+                        $('#' + modalId).modal('hide');
+                        $('#' + formId)[0].reset();
+                        $('#' + textareaId).removeClass('is-valid');
+                        $('#' + textareaId).next('.invalid-feedback').remove();
+                        $('#units_table').DataTable().ajax.reload();
+                    },
+                    error: function () {
+                        alert('An error occurred while saving notes.');
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        function showDetailsModal(unitId, officeName, name, postcode, status) {
+            const modalId = 'showDetailsModal_' + unitId;
+
+            // Append modal HTML if it doesn't already exist
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Unit Details</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body modal-body-text-left">' +
+                                    '<div class="text-center py-3">' +
+                                        '<div class="spinner-border text-primary my-4 text-center" role="status">' +
+                                            '<span class="visually-hidden">Loading...</span>' +
+                                        '</div>' +
+                                   '</div>' +
+                                '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Show the modal with loader first
+            $('#' + modalId + ' .modal-body').html(
+                '<div class="text-center py-3">' +
+                '<div class="spinner-border text-primary" role="status">' +
+                    '<span class="visually-hidden">Loading...</span>' +
+                '</div>'+
+                '</div>'
+            );
+            $('#' + modalId).modal('show');
+
+            // Render content after small delay to simulate loading
+            setTimeout(function () {
+                const htmlContent =
+                    '<table class="table table-bordered">' +
+                        '<tr><th>Unit ID</th><td>' + unitId + '</td></tr>' +
+                        '<tr><th>Head Office Name</th><td>' + officeName + '</td></tr>' +
+                        '<tr><th>Unit Name</th><td>' + name + '</td></tr>' +
+                        '<tr><th>Postcode</th><td>' + postcode + '</td></tr>' +
+                        '<tr><th>Status</th><td>' + status + '</td></tr>' +
+                    '</table>';
+
+                $('#' + modalId + ' .modal-body').html(htmlContent);
+            }, 300); // Optional: Adjust delay for realism
+        }
+
+        // Function to show the notes modal
+        function viewNotesHistory(id) {
+            const modalId = 'viewUnitNotesHistoryModal';
+
+            // Add the modal HTML to the page (only once)
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes History</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body text-start">' +
+                                    '<div class="text-center my-4">' +
+                                        '<div class="spinner-border text-primary" role="status">' +
+                                            '<span class="visually-hidden">Loading...</span>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            } else {
+                // Reset loader content if modal already exists
+                $('#' + modalId + ' .modal-body').html(
+                    '<div class="text-center my-4">' +
+                        '<div class="spinner-border text-primary" role="status">' +
+                            '<span class="visually-hidden">Loading...</span>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Show the modal before AJAX completes
+            $('#' + modalId).modal('show');
+
+            // AJAX call to fetch notes
+            $.ajax({
+                url: '{{ route("getModuleNotesHistory") }}',
+                type: 'GET',
+                data: { 
+                    id: id,
+                    module: 'Horsefly\\Unit'
+                },
+                success: function(response) {
+                    var notesHtml = '';
+
+                    if (response.data.length === 0) {
+                        notesHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(note) {
+                            var notes = note.details;
+                            var created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                            var statusClass = (note.status == 1) ? 'bg-success' : 'bg-dark';
+                            var statusText = (note.status == 1) ? 'Active' : 'Inactive';
+
+                            notesHtml +=
+                                '<div class="note-entry">' +
+                                    '<p><strong>Dated:</strong> ' + created + ' <span class="badge ' + statusClass + '">' + statusText + '</span></p>' +
+                                    '<p><strong>Notes Detail:</strong><br>' + notes + '</p>' +
+                                '</div><hr>';
+                        });
+                    }
+
+                    $('#' + modalId + ' .modal-body').html(notesHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error fetching notes history: " + error);
+                    $('#' + modalId + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
+                }
+            });
+        }
+
+        // Function to show the notes modal
+        function viewManagerDetails(id) {
+            const modalId = 'viewUnitManagerDetailsModal';
+
+            // Add modal to DOM only once
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Unit Manager Details</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body text-start">' +
+                                    '<div class="text-center my-4">' +
+                                        '<div class="spinner-border text-primary" role="status">' +
+                                            '<span class="visually-hidden">Loading...</span>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            } else {
+                // Reset loader if modal already exists
+                $('#' + modalId + ' .modal-body').html(
+                    '<div class="text-center my-4">' +
+                        '<div class="spinner-border text-primary" role="status">' +
+                            '<span class="visually-hidden">Loading...</span>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Show modal early with loader
+            $('#' + modalId).modal('show');
+
+            // AJAX to get manager details
+            $.ajax({
+                url: '{{ route("getModuleContacts") }}',
+                type: 'GET',
+                data: { 
+                    id: id,
+                    module: 'Horsefly\\Unit'
+                },
+                success: function(response) {
+                    var contactHtml = '';
+
+                    if (response.data.length === 0) {
+                        contactHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(contact) {
+                            var name = contact.contact_name;
+                            var email = contact.contact_email;
+                            var phone = contact.contact_phone || 'N/A';
+                            var landline = contact.contact_landline || 'N/A';
+                            var note = contact.contact_note || 'N/A';
+
+                            contactHtml += 
+                                '<div class="note-entry">' +
+                                    '<p><strong>Name:</strong> ' + name + '</p>' +
+                                    '<p><strong>Email:</strong> ' + email + '</p>' +
+                                    '<p><strong>Phone:</strong> ' + phone + '</p>' +
+                                    '<p><strong>Landline:</strong> ' + landline + '</p>' +
+                                    '<p><strong>Note:</strong> ' + note + '</p>' +
+                                '</div><hr>';
+                        });
+                    }
+
+                    $('#' + modalId + ' .modal-body').html(contactHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error fetching manager details: " + error);
+                    $('#' + modalId + ' .modal-body').html('<p>There was an error retrieving the manager details. Please try again later.</p>');
+                }
+            });
+        }
+
+    </script>
+    
+@endsection
+@endsection                        
