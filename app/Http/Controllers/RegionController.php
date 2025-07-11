@@ -56,7 +56,7 @@ class RegionController extends Controller
             $reg = Region::first();
         }
 
-        $district = $reg['districts_code'];
+       $district = $reg['districts_code'] ?? null;
 
         $model = Applicant::query()
             ->with('cv_notes')
@@ -327,7 +327,7 @@ class RegionController extends Controller
             $reg = Region::first();
         }
         
-        $district = $reg['districts_code'];
+        $district = $reg['districts_code'] ?? null;
 
         $model = Sale::query()
             ->select([

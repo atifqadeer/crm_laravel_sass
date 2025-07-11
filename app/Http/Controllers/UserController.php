@@ -381,10 +381,82 @@ class UserController extends Controller
                 ->make(true);
         }
     }
-    public function userLoginHistory($id)
+    public function getUserLoginHistory(Request $request)
+    {
+        $id = $request->input('id');
+
+        // Select only the latest login record for each user for the selected date
+        $model = LoginDetail::query()
+            ->with('user')
+            ->leftJoin('users', 'login_details.user_id', '=', 'users.id')
+            ->select('login_details.*', 'users.name as user_name')
+            ->where('login_details.user_id', $id)
+            ->latest();
+
+        // Sorting logic
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            // Default case for valid columns
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            } else {
+                $model->orderBy('login_details.created_at', 'desc');
+            }
+        } else {
+            // Default sorting when no order is specified
+            $model->orderBy('login_details.created_at', 'desc');
+        }
+
+        if ($request->ajax()) {
+            return DataTables::eloquent($model)
+                ->addIndexColumn() // This will automatically add a serial number to the rows
+                ->addColumn('user_name', function ($loginDetail) {
+                    return $loginDetail->user->formatted_name; // Using accessor
+                })
+                ->addColumn('created_at', function ($loginDetail) {
+                    return Carbon::parse($loginDetail->created_at)->format('d M Y'); // Using accessor
+                })
+                ->addColumn('updated_at', function ($loginDetail) {
+                    return $loginDetail->user->formatted_updated_at; // Using accessor
+                })
+                ->addColumn('credit_hours', function ($loginDetail) {
+                    if ($loginDetail->login_at && $loginDetail->logout_at) {
+                        try {
+                            $login = $loginDetail->login_at instanceof \Carbon\Carbon
+                                ? $loginDetail->login_at
+                                : \Carbon\Carbon::parse($loginDetail->login_at);
+
+                            $logout = $loginDetail->logout_at instanceof \Carbon\Carbon
+                                ? $loginDetail->logout_at
+                                : \Carbon\Carbon::parse($loginDetail->logout_at);
+
+                            if ($logout->lessThanOrEqualTo($login)) {
+                                return '0h 0m';
+                            }
+
+                            $diffInSeconds = $logout->diffInSeconds($login);
+                            $hours = abs(intdiv($diffInSeconds, 3600));  // Added abs() here
+                            $minutes = abs(intdiv($diffInSeconds % 3600, 60));  // Added abs() here
+
+                            return "{$hours}h {$minutes}m";
+                        } catch (\Exception $e) {
+                            return '0h 0m';
+                        }
+                    }
+
+                    return '0h 0m';
+                })
+
+                ->rawColumns(['user_name', 'credit_hours'])
+                ->make(true);
+        }
+    }
+    public function userLoginHistoryIndex($id)
     {
         $history = LoginDetail::where('user_id', $id)->get();
-        return view('reports.history', compact('history'));
+        return view('reports.login-history', compact('history'));
     }
     public function unitDetails($id)
     {

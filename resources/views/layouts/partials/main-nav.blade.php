@@ -314,7 +314,7 @@
                <li class="menu-title">Reports</li>
                <!-- users Menu -->
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('reports.userLogin')}}">
+                    <a class="nav-link" href="{{ route('reports.usersLoginReport')}}">
                          <span class="nav-icon">
                               <i class="ri-pages-line"></i>
                          </span>

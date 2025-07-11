@@ -189,10 +189,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
 
     Route::group(['prefix' => 'reports'], function () {
-        Route::get('user-login-report', [UserController::class, 'userLogin'])->name('reports.userLogin');
-        Route::get('{id}', [UserController::class, 'userLoginHistory'])->name('reports.userLoginHistory');
+        Route::get('users-login-report', [UserController::class, 'userLogin'])->name('reports.usersLoginReport');
+        Route::get('login-history', [UserController::class, 'userLoginHistoryIndex'])->name('reports.userLoginHistory');
     });
     Route::get('getUsersLoginReport', [UserController::class, 'getUsersLoginReport'])->name('getUsersLoginReport');
+    Route::get('getUserLoginHistory', [UserController::class, 'getUserLoginHistory'])->name('getUserLoginHistory');
     Route::post('changeUserStatus', [UserController::class, 'changeUserStatus'])->name('changeUserStatus');
 
     Route::group(['prefix' => 'roles'], function () {

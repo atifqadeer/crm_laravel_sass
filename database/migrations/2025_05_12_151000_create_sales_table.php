@@ -16,7 +16,7 @@ class CreateSalesTable extends Migration
             $table->unsignedBigInteger('unit_id');
             $table->unsignedBigInteger('job_category_id');
             $table->unsignedBigInteger('job_title_id');
-            $table->string('postcode', 50);
+            $table->string('sale_postcode', 50);
             $table->string('position_type', 50);
             $table->string('job_type', 50);
             $table->string('timing', 255)->nullable();

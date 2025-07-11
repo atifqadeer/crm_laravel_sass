@@ -21,6 +21,7 @@ class CreateApplicantsTable extends Migration
             $table->unsignedBigInteger('job_source_id')->nullable();
             $table->unsignedBigInteger('job_category_id')->nullable();
             $table->unsignedBigInteger('job_title_id')->nullable();
+            $table->string('job_type')->nullable();
             $table->string('applicant_name', 255);
             $table->string('applicant_email', 255);
             $table->string('applicant_postcode', 50)->nullable();

@@ -313,7 +313,6 @@ class ResourceController extends Controller
                     }
                 });
             });
-;
 
         // Fetch Sales Data
         $salesData = $sales->distinct('sales.id')->get();
@@ -640,10 +639,6 @@ class ResourceController extends Controller
                     }
                 }
             });
-        } else {
-            // Log or handle the case where no sales locations are found
-            Log::warning('No active sales locations found for distance calculation.');
-            throw new \Exception('No active sales locations found for distance calculation.');
         }
 
         // Date filter logic
