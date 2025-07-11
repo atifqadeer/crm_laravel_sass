@@ -29,6 +29,10 @@ class DashboardController extends Controller
     public function __construct()
     {
     }
+    public function index()
+    {
+        return view('dashboards.index');
+    }
     public function getUsersForDashboard(Request $request)
     {
         $model = User::query()

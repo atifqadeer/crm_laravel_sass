@@ -22,11 +22,11 @@
                <li class="menu-title">Menu</li>
                @canany(['dashboard'])
                     <li class="nav-item">
-                         <a class="nav-link" href="{{ route('second', ['dashboards', 'index'])}}">
+                         <a class="nav-link" href="{{ route('dashboard.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-dashboard-2-line"></i>
                               </span>
-                              <span class="nav-text"> Dashboards </span>
+                              <span class="nav-text"> Dashboard </span>
                          </a>
                     </li>
                @endcanany
