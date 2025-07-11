@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             DeploymentIpSeeder::class,
             PermissionsTableSeeder::class,
             RoleSeeder::class,
+            JobCategoriesSeeder::class,
+            JobSourcesSeeder::class,
         ]);
     }
 }
