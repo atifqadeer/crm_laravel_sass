@@ -93,7 +93,7 @@ class LoginController extends Controller
                 }
 
                 // Redirect to the dashboard if active
-                return redirect('/dashboards/index');
+                return redirect('/dashboard');
             } else {
                 // If the user is inactive, log them out and show an error
                 Auth::logout();

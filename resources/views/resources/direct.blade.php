@@ -63,7 +63,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
                                     <a class="dropdown-item type-filter" href="#">All Types</a>
                                     <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Non Specialist</a>
+                                    <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
                              <!-- Title Filter Dropdown -->

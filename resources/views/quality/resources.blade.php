@@ -69,7 +69,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
                                     <a class="dropdown-item type-filter" href="#">All Types</a>
                                     <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Non Specialist</a>
+                                    <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
                         </div>

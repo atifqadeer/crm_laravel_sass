@@ -9,7 +9,6 @@ use Horsefly\Sale;
 use Horsefly\Applicant;
 use Horsefly\Office;
 use Horsefly\Unit;
-use Horsefly\Specialist_job_titles;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;

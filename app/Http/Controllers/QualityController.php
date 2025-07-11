@@ -523,8 +523,8 @@ class QualityController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty
@@ -830,8 +830,8 @@ class QualityController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('sales.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('sales.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('sales.job_type', 'regular');
         }
        
         // Filter by category if it's not empty

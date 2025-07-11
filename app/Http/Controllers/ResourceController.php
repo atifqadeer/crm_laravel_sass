@@ -123,8 +123,8 @@ class ResourceController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('sales.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('sales.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('sales.job_type', 'regular');
         }
        
         // Filter by category if it's not empty
@@ -282,29 +282,6 @@ class ResourceController extends Controller
             $end_date = Carbon::today()->endOfDay();
         }
 
-        // Sorting Logic
-        $orderColumnIndex = request()->input('order.0.column', 0);
-        $orderDirection = request()->input('order.0.dir', 'asc');
-        $columns = [
-            'applicants.updated_at',
-            '',
-            'applicants.applicant_name',
-            'applicants.applicant_email',
-            'applicants.job_title_id',
-            '',
-            'applicants.applicant_postcode',
-            '',
-            '',
-            '',
-            '',
-            '',
-            'applicants.applicant_source',
-            '',
-            '',
-            'cv_notes.status'
-        ];
-        $orderColumn = $columns[$orderColumnIndex] ?? $columns[0];
-
         // Sales Query
         $sales = Sale::query()
             ->select([
@@ -323,18 +300,20 @@ class ResourceController extends Controller
                     ->where('audits.message', 'like', '%sale-opened%');
             })
             ->where(function ($query) use ($filterByUpdatedSale, $start_date, $end_date) {
-                $query->whereBetween('audits.updated_at', [$start_date, $end_date]); // Always applied
+                $query->where(function ($q) use ($start_date, $end_date) {
+                    $q->whereNotNull('audits.updated_at')
+                    ->whereBetween('audits.updated_at', [$start_date, $end_date]);
+                });
 
-                $query->orWhere(function ($subQuery) use ($filterByUpdatedSale, $start_date, $end_date) {
+                $query->orWhere(function ($q) use ($filterByUpdatedSale, $start_date, $end_date) {
                     if ($filterByUpdatedSale) {
-                        // Checkbox checked: Use updated_at
-                        $subQuery->whereBetween('sales.updated_at', [$start_date, $end_date]);
+                        $q->whereBetween('sales.updated_at', [$start_date, $end_date]);
                     } else {
-                        // Default case: Use created_at
-                        $subQuery->whereBetween('sales.created_at', [$start_date, $end_date]);
+                        $q->whereBetween('sales.created_at', [$start_date, $end_date]);
                     }
                 });
             });
+;
 
         // Fetch Sales Data
         $salesData = $sales->distinct('sales.id')->get();
@@ -346,7 +325,7 @@ class ResourceController extends Controller
 
         $salesData->chunk(500)->each(function ($chunk) use (&$near_by_applicants, $radius, $status, $categoryFilter, $orderColumn, $orderDirection) {
             $chunk->each(function ($sale) use (&$near_by_applicants, $radius, $status, $categoryFilter, $orderColumn, $orderDirection) {
-                $applicants = collect($this->getApplicantsAgainstSales($sale->lat, $sale->lng, $radius, $sale->job_title, $status, $categoryFilter, $orderColumn, $orderDirection));
+                $applicants = collect($this->getApplicantsAgainstSales($sale->lat, $sale->lng, $radius, $sale->job_title_id, $status, $categoryFilter, $orderColumn, $orderDirection));
                 if ($applicants->isNotEmpty()) {
                     $near_by_applicants = $near_by_applicants->merge($applicants);
                 }
@@ -748,8 +727,8 @@ class ResourceController extends Controller
         // Apply type, category, and title filters
         if ($typeFilter === 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter === 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter === 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         if ($categoryFilter) {
@@ -1003,8 +982,8 @@ class ResourceController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty
@@ -1254,8 +1233,8 @@ class ResourceController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty
@@ -1498,8 +1477,8 @@ class ResourceController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty
@@ -1850,8 +1829,8 @@ class ResourceController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $model->where('applicants.job_type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty

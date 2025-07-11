@@ -32,7 +32,7 @@
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
                                     <a class="dropdown-item type-filter" href="#">All Types</a>
                                     <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Non Specialist</a>
+                                    <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
                             <!-- Button Dropdown -->
@@ -117,7 +117,7 @@
                         <select class="form-select" id="type" name="type" required>
                             <option value="">Select Type</option>
                             <option value="specialist">Specialist</option>
-                            <option value="non-specialist">Non Specialist</option>
+                            <option value="regular">Regular</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -168,7 +168,7 @@
                         <select class="form-select" id="editType" name="type" required>
                             <option value="">Select Type</option>
                             <option value="specialist">Specialist</option>
-                            <option value="non-specialist">Non Specialist</option>
+                            <option value="regular">Regular</option>
                         </select>
                     </div>
                     <div class="mb-3">

@@ -68,7 +68,7 @@ class ApplicantController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'job_category_id' => 'required|exists:job_categories,id',
-            'job_type' => ['required', Rule::in(['specialist', 'non-specialist'])],
+            'job_type' => ['required', Rule::in(['specialist', 'regular'])],
             'job_title_id' => 'required|exists:job_titles,id',
             'job_source_id' => 'required|exists:job_sources,id',
             'applicant_name' => 'required|string|max:255',
@@ -282,11 +282,11 @@ class ApplicantController extends Controller
 
             // Handle special cases first
             if ($orderColumn === 'job_source') {
-                $model->orderBy('job_source_id', $orderDirection);
+                $model->orderBy('applicants.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('job_category_id', $orderDirection);
+                $model->orderBy('applicants.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('job_title_id', $orderDirection);
+                $model->orderBy('applicants.job_title_id', $orderDirection);
             }
             // Default case for valid columns
             elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
@@ -333,46 +333,46 @@ class ApplicantController extends Controller
         // Filter by status if it's not empty
         switch ($statusFilter) {
             case 'active':
-                $model->where('status', 1)
-                    ->where('is_no_job', false)
-                    ->where('is_blocked', false)
-                    ->where('is_temp_not_interested', false);
+                $model->where('applicants.status', 1)
+                    ->where('applicants.is_no_job', false)
+                    ->where('applicants.is_blocked', false)
+                    ->where('applicants.is_temp_not_interested', false);
                 break;
             case 'inactive':
-                $model->where('status', 0)
-                    ->where('is_no_job', false)
-                    ->where('is_blocked', false)
-                    ->where('is_temp_not_interested', false);
+                $model->where('applicants.status', 0)
+                    ->where('applicants.is_no_job', false)
+                    ->where('applicants.is_blocked', false)
+                    ->where('applicants.is_temp_not_interested', false);
                 break;
             case 'blocked':
-                $model->where('is_blocked', true);
+                $model->where('applicants.is_blocked', true);
                 break;
             case 'not interested':
-                $model->where('is_temp_not_interested', true);
+                $model->where('applicants.is_temp_not_interested', true);
                 break;
             case 'no job':
-                $model->where('is_no_job', true);
+                $model->where('applicants.is_no_job', true);
                 break;
         }
 
         // Filter by type if it's not empty
         switch ($typeFilter) {
             case 'specialist':
-                $model->where('job_type', 'specialist');
+                $model->where('applicants.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('job_type', 'non-specialist');
+            case 'regular':
+                $model->where('applicants.job_type', 'regular');
                 break;
         }
 
         // Filter by type if it's not empty
         if ($categoryFilter) {
-            $model->where('job_category_id', $categoryFilter);
+            $model->where('applicants.job_category_id', $categoryFilter);
         }
 
         // Filter by type if it's not empty
         if ($titleFilter) {
-            $model->where('job_title_id', $titleFilter);
+            $model->where('applicants.job_title_id', $titleFilter);
         }
 
         if ($request->ajax()) {
@@ -728,7 +728,7 @@ class ApplicantController extends Controller
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
             'job_category_id' => 'required|exists:job_categories,id',
-            'job_type' => ['required', Rule::in(['specialist', 'non-specialist'])],
+            'job_type' => ['required', Rule::in(['specialist', 'regular'])],
             'job_title_id' => 'required|exists:job_titles,id',
             'job_source_id' => 'required|exists:job_sources,id',
             'applicant_name' => 'required|string|max:255',
@@ -1323,7 +1323,7 @@ class ApplicantController extends Controller
                 if ($data['job_title_id'] == 'nonnurse specialist') {
                     $jobType = 'specialist';
                 } else {
-                    $jobType = 'non-specialist';
+                    $jobType = 'regular';
                 }
 
                 $data['job_type'] = $jobType;
@@ -1710,8 +1710,8 @@ class ApplicantController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
 
@@ -2033,8 +2033,8 @@ class ApplicantController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
 

@@ -64,7 +64,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
                                     <a class="dropdown-item type-filter" href="#">All Types</a>
                                     <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Non Specialist</a>
+                                    <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
 
@@ -128,25 +128,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="viewApplicantModal" tabindex="-1" aria-labelledby="viewApplicantModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="viewApplicantModalLabel">Applicant Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <!-- Content will be dynamically loaded here -->
-            <div id="applicantDetails"></div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-        </div>
-    </div>
-</div>
-
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -170,24 +151,36 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
     <script>
         let isButtonClicked = false;
 
-        $(function() {
-            // Initialize the date range picker
+        $(function () {
+            // Get today's date in moment.js format
+            const today = moment().startOf('day');
+
+            // Initialize the date range picker with today's date as default
             $('#dateRangePicker').daterangepicker({
-                autoUpdateInput: false,
+                startDate: today,
+                endDate: today,
+                autoUpdateInput: true,
                 locale: {
-                    cancelLabel: 'Clear'
+                    cancelLabel: 'Clear',
+                    format: 'YYYY-MM-DD'
                 }
             });
 
-            $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
+            // Set default value in input and filter variable
+            $('#dateRangePicker').val(today.format('YYYY-MM-DD') + ' to ' + today.format('YYYY-MM-DD'));
+            window.currentDateRangeFilter = today.format('YYYY-MM-DD') + '|' + today.format('YYYY-MM-DD');
+            $('#showDateRange').html($('#dateRangePicker').val());
+
+            // On apply
+            $('#dateRangePicker').on('apply.daterangepicker', function (ev, picker) {
                 $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
-                // Set the filter variable and reload DataTable
                 window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
                 $('#showDateRange').html($(this).val());
                 $('#applicants_table').DataTable().ajax.reload();
             });
 
-            $('#dateRangePicker').on('cancel.daterangepicker', function(ev, picker) {
+            // On cancel
+            $('#dateRangePicker').on('cancel.daterangepicker', function (ev, picker) {
                 $(this).val('');
                 window.currentDateRangeFilter = '';
                 $('#showDateRange').html('All Data');
@@ -195,23 +188,20 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             });
 
             // Clear button
-            $('#clearDateRange').on('click', function() {
+            $('#clearDateRange').on('click', function () {
                 $('#dateRangePicker').val('');
                 window.currentDateRangeFilter = '';
                 $('#showDateRange').html('All Data');
                 $('#applicants_table').DataTable().ajax.reload();
             });
 
-            // Listen for the button click to toggle the filter
-            $('#addUpdatedSalesFilter').on('click', function() {
-                // Toggle the button state (click status)
+            // Toggle filter button
+            $('#addUpdatedSalesFilter').on('click', function () {
                 isButtonClicked = !isButtonClicked;
-                
-                // Reload the DataTable with the updated state of the filter
                 $('#applicants_table').DataTable().ajax.reload();
             });
         });
-        
+
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';

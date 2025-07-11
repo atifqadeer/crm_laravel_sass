@@ -42,7 +42,7 @@ $applicant = \Horsefly\Applicant::find($applicant_id);
                                 <select class="form-select" id="job_type" name="job_type" required>
                                     <option value="">Choose a Job Type</option>
                                     <option value="specialist" {{ old('job_type', $applicant->job_type == 'specialist' ? 'selected':'') }}>Specialist</option>
-                                    <option value="non-specialist" {{ old('job_type', $applicant->job_type == 'non-specialist' ? 'selected':'') }}>Non Specialist</option>
+                                    <option value="regular" {{ old('job_type', $applicant->job_type == 'regular' ? 'selected':'') }}>Regular</option>
                                 </select>
                                 <div class="invalid-feedback">Please select a job type</div>
                             </div>

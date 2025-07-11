@@ -70,7 +70,7 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
                                     <a class="dropdown-item type-filter" href="#">All Types</a>
                                     <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Non Specialist</a>
+                                    <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
                             <!-- Button Dropdown -->

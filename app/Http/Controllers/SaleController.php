@@ -544,8 +544,8 @@ class SaleController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
        
@@ -856,8 +856,8 @@ class SaleController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
        
@@ -1201,8 +1201,8 @@ class SaleController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
 
@@ -1546,8 +1546,8 @@ class SaleController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
 
@@ -2008,8 +2008,8 @@ class SaleController extends Controller
             case 'specialist':
                 $model->where('sales.job_type', 'specialist');
                 break;
-            case 'non specialist':
-                $model->where('sales.job_type', 'non-specialist');
+            case 'regular':
+                $model->where('sales.job_type', 'regular');
                 break;
         }
        

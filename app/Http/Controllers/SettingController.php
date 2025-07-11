@@ -318,8 +318,8 @@ class SettingController extends Controller
         // Filter by type if it's not empty
         if ($typeFilter == 'specialist') {
             $query->where('job_titles.type', 'specialist');
-        } elseif ($typeFilter == 'non specialist') {
-            $query->where('job_titles.type', 'non-specialist');
+        } elseif ($typeFilter == 'regular') {
+            $query->where('job_titles.type', 'regular');
         }
 
         // Sorting
