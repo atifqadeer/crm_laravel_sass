@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('job_titles', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->json('relevant_titles')->nullable();
+            $table->json('related_titles')->nullable();
             $table->string('type', 50);
             $table->unsignedBigInteger('job_category_id')->nullable();
             $table->text('description')->nullable();

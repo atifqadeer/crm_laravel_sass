@@ -437,10 +437,8 @@
                </li>
                <!-- end settings Menu -->
 
+               @canany(['old'])
                <li class="menu-title">Old Data</li>
-
-              
-
                <li class="nav-item">
                     <a class="nav-link" href="{{ route('any', 'orders')}}">
                          <span class="nav-icon">
@@ -944,6 +942,7 @@
                          <span class="nav-text"> Disable Item </span>
                     </a>
                </li> <!-- end Demo Menu Item -->
+               @endcanany
           </ul>
      </div>
 </div>
