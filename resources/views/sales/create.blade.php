@@ -2,7 +2,6 @@
 
 @section('css')
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
-    @vite(['node_modules/quill/dist/quill.snow.css'])
 @endsection
 
 @section('content')
@@ -153,17 +152,14 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                             </div>
                         </div>
                         <div class="col-lg-12">
-                            <div class="mb-3">
+                           <div class="mb-3">
                                 <label for="job_description" class="form-label">Job Description</label>
-                                <div class="my-2">
-                                    <!-- Quill editor must be a <div> -->
-                                    {{-- <div id="snow-editor" style="height: 200px;"></div> --}}
-                                    <textarea name="job_description"  class="form-control" rows="3" id="job_description_input">{{ old('job_description') }}</textarea>
-                                </div>
+                                <textarea id="job_description" name="job_description" class="form-control summernote">{{ old('job_description') }}</textarea>
+                                <div class="invalid-feedback"></div>
                             </div>
 
-                            <!-- Hidden textarea to capture the HTML content of Quill -->
                         </div>
+
 
                         <!--   <div class="card">
                             <div class="card-header">
@@ -258,11 +254,30 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-@section('script-bottom')
-    @vite(['resources/js/components/form-fileupload.js'])
-    @vite(['resources/js/components/form-quilljs.js'])
-@endsection
+<!-- Summernote CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+
+<!-- Summernote JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 <script>
+    $(document).ready(function () {
+        $('.summernote').summernote({
+            height: 500,
+            toolbar: [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['fontsize', ['fontsize']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link', 'picture']],
+                ['view', ['fullscreen']]
+            ]
+        });
+    });
+</script>
+
+<script>
+
     // Form validation
     (function () {
         'use strict'
@@ -286,7 +301,13 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
             quill = new Quill(ele, {
                 theme: 'snow',
                 modules: {
-                    'toolbar': [[{'font': []}, {'size': []}], ['bold', 'italic', 'underline', 'strike'], [{'color': []}, {'background': []}], [{'script': 'super'}, {'script': 'sub'}], [{'header': [false, 1, 2, 3, 4, 5, 6]}, 'blockquote', 'code-block'], [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}], ['direction', {'align': []}], ['link', 'image', 'video'], ['clean']]
+                    'toolbar': [[{'font': []}, {'size': []}], 
+                    ['bold', 'italic', 'underline', 'strike'], 
+                    [{'color': []}, {'background': []}], 
+                    [{'script': 'super'}, {'script': 'sub'}], 
+                    [{'header': [false, 1, 2, 3, 4, 5, 6]}, 'blockquote', 'code-block'], 
+                    [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}], 
+                    ['direction', {'align': []}], ['link', 'image', 'video'], ['clean']]
                 },
             });
         }
@@ -297,14 +318,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const jobDescriptionInput = document.getElementById("job_description_input");
-            
-            // Capture Quill content
             if (quill && jobDescriptionInput) {
                 const quillContent = quill.root.innerHTML;
+                console.log('Quil:' + quillContent);
                 jobDescriptionInput.value = quillContent;
-                
-                // For debugging - check the value
-                console.log("Job Description Value:", jobDescriptionInput.value);
             }
 
             // Submit button loading state
@@ -346,14 +363,14 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                             }
                         });
                     } else {
-                        alert(data.message || 'Submission failed.');
+                        toastr.error(data.message || 'Submission failed.');
                     }
                 }
             })
             .catch(error => {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Save';
-                alert('An unexpected error occurred. Please try again.');
+                toastr.error('An unexpected error occurred. Please try again.');
                 console.error('Error:', error);
             });
         });
@@ -400,7 +417,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                     })
                     .catch(error => {
                         console.error('Error fetching job titles:', error);
-                        // alert('Failed to fetch job titles.');
+                        // toastr.error('Failed to fetch job titles.');
                     });
             }
         }
@@ -472,4 +489,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
     }
 
 </script>
+@endsection
+@section('script-bottom')
+    @vite(['resources/js/components/form-fileupload.js'])
 @endsection

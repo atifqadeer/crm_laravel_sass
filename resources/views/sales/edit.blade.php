@@ -2,7 +2,6 @@
 
 @section('css')
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
-    @vite(['node_modules/quill/dist/quill.snow.css'])
 @endsection
 
 @section('content')
@@ -157,13 +156,9 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                         <div class="col-lg-12">
                            <div class="mb-3">
                                 <label for="job_description" class="form-label">Job Description</label>
-                                <div class="my-2">
-                                    {{-- <div id="snow-editor" style="height: 200px;"></div> --}}
-                                    <textarea name="job_description" class="form-control" rows="3" id="job_description_input">{{ old('job_description', $sale->job_description) }}</textarea>
-                                </div>
+                                <textarea id="job_description" name="job_description" class="form-control summernote">{{ old('job_description', $sale->job_description) }}</textarea>
+                                <div class="invalid-feedback"></div>
                             </div>
-
-                            <!-- Hidden input field to capture the Quill content -->
                         </div>
                         <!--   <div class="card">
                             <div class="card-header">
@@ -280,6 +275,25 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Summernote JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('.summernote').summernote({
+            height: 500,
+            toolbar: [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['fontsize', ['fontsize']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link', 'picture']],
+                ['view', ['fullscreen']]
+            ]
+        });
+    });
+</script>
 <script>
     // Form validation
     (function () {
@@ -349,9 +363,9 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                     } else {
                         if (data.errors) {
                             let errorMessages = Object.values(data.errors).flat().join('\n');
-                            alert('Validation Errors:\n' + errorMessages);
+                            toastr.error('Validation Errors:\n' + errorMessages);
                         } else {
-                            alert(data.message);
+                            toastr.error(data.message);
                         }
                     }
                 }
@@ -359,7 +373,7 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
             .catch(error => {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Save';
-                alert('An unexpected error occurred. Please try again.');
+                toastr.error('An unexpected error occurred. Please try again.');
                 console.error('Error:', error);
             });
         });
@@ -541,6 +555,5 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
 @endsection
 @section('script-bottom')
     @vite(['resources/js/components/form-fileupload.js'])
-    @vite(['resources/js/components/form-quilljs.js'])
     @vite(['resources/js/components/extended-sweetalert.js'])
 @endsection

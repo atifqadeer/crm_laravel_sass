@@ -83,6 +83,7 @@ class SaleController extends Controller
     }
     public function store(Request $request)
     {
+        return $request->all();
         // Validation
         $validator = Validator::make($request->all(), [
             'office_id' => 'required',
@@ -99,7 +100,7 @@ class SaleController extends Controller
             'benefits' => 'nullable',
             'qualification' => 'nullable',
             'sale_notes' => 'required',
-            'job_description' => 'nullable',
+            'job_description' => 'nullable|string',
             'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:5120', // max 5MB
         ]);
 
