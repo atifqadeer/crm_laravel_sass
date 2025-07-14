@@ -28,7 +28,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-upload-resume',
             'applicant-add-note',
             'applicant-view-note',
-            'applicant-change-status',
+            'applicant-upload-crm-resume',
             'applicant-view-history',
             'applicant-view-notes-history',
             'applicant-filters',

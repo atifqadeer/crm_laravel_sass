@@ -39,6 +39,7 @@ use App\Traits\SendSMS;
 use App\Traits\Geocode;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Str;
 
 class ApplicantController extends Controller
 {
@@ -78,7 +79,7 @@ class ApplicantController extends Controller
             'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'applicant_phone' => 'required|string|max:20',
             'applicant_landline' => 'nullable|string|max:20',
-            'applicant_experience' => 'nullable|string|max:255',
+            'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
         ]);
@@ -390,6 +391,19 @@ class ApplicantController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary view-experience" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#experienceModal"
+                        data-experience="' . htmlspecialchars($full) . '">
+                            ' . $short . '
+                        </a>';
+                })
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';
                     if($applicant->applicant_email_secondary){
@@ -561,7 +575,7 @@ class ApplicantController extends Controller
 
                         return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicant_phone', 'job_title', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_phone', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -760,7 +774,7 @@ class ApplicantController extends Controller
             'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'applicant_phone' => 'required|string|max:20',
             'applicant_landline' => 'nullable|string|max:20',
-            'applicant_experience' => 'nullable|string|max:255',
+            'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
         ]);

@@ -156,7 +156,7 @@
 
             // Create a loader row and append it to the table before initialization
             const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="14" class="text-center py-4">
+            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -188,50 +188,74 @@
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
                 dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function(settings) {
-                    // Custom pagination HTML
-                    var api = this.api();
-                    var pagination = $(api.table().container()).find('.dataTables_paginate');
-                    pagination.empty();  // Clear existing pagination
+                drawCallback: function (settings) {
+                    const api = this.api();
+                    const pagination = $(api.table().container()).find('.dataTables_paginate');
+                    pagination.empty();
 
-                    // Get the current page and total pages
-                    var pageInfo = api.page.info();
-                    var currentPage = pageInfo.page + 1;  // Page starts at 0, so add 1
-                    var totalPages = pageInfo.pages;
+                    const pageInfo = api.page.info();
+                    const currentPage = pageInfo.page + 1;
+                    const totalPages = pageInfo.pages;
 
-                    // Check if there are no records
                     if (pageInfo.recordsTotal === 0) {
-                        $('#users_table tbody').html('<tr><td colspan="14" class="text-center">Data not found</td></tr>');
-                    } else {
-                        // Build the custom pagination structure
-                        var paginationHtml = `
-                            <nav aria-label="Page navigation example">
-                                <ul class="pagination pagination-rounded mb-0">
-                                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                            <span >&laquo;</span>
-                                        </a>
-                                    </li>`;
-
-                        for (var i = 1; i <= totalPages; i++) {
-                            paginationHtml += `
-                                <li class="page-item ${currentPage === i ? 'active' : ''}">
-                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                                </li>`;
-                        }
-
-                        paginationHtml += `
-                                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                            <span >&raquo;</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>`;
-
-                        pagination.html(paginationHtml); // Append custom pagination HTML
+                        $('#category_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        return;
                     }
-                }
+
+                    let paginationHtml = `
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-rounded mb-0">
+                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                    <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>`;
+
+                    // Generate page range
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
+
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                    </li>`;
+
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
+
+                    if (start > 2) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                        </li>`;
+                    }
+
+                    if (end < totalPages - 1) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+
+                    // Always show last page if it's not already shown
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                        </li>`;
+                    }
+
+                    // Next button
+                    paginationHtml += `
+                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        </ul>
+                    </nav>`;
+
+                    pagination.html(paginationHtml);
+                },
             });
 
             // Handle filter button clicks and send filter parameters to the DataTable

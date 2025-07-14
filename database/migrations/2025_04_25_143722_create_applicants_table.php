@@ -31,6 +31,7 @@ class CreateApplicantsTable extends Migration
             $table->string('updated_cv', 255)->nullable();
             $table->string('applicant_notes', 255)->nullable();
             $table->string('applicant_experience', 255)->nullable();
+            $table->enum('gender', ['m', 'f', 'u'])->default('u');
             $table->float('lat', 15, 6)->nullable();
             $table->float('lng', 15, 6)->nullable();
 

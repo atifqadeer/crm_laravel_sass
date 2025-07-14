@@ -79,6 +79,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                     <option value="">Choose Gender</option>
                                     <option value="m" {{ old('gender' == 'm' ? 'selected':'') }}>Male</option>
                                     <option value="f" {{ old('gender' == 'f' ? 'selected':'') }}>Female</option>
+                                    <option value="f" {{ old('gender' == 'u' ? 'selected':'') }} selected>Unknown</option>
                                 </select>
                                 <div class="invalid-feedback">Please provide gender</div>
                             </div>
@@ -122,14 +123,13 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                value="{{ old('applicant_landline') }}">
                             </div>
                         </div>
-                        
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
                             <div class="mb-3">
                                 <label for="applicant_experience" class="form-label">Experience <small class="text-info">(Optional)</small></label>
                                 <textarea class="form-control" id="applicant_experience" name="applicant_experience" rows="3" placeholder="Enter Experience">{{ old('applicant_experience') }}</textarea>
                             </div>
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
                             <div class="mb-3">
                                 <label for="applicant_notes" class="form-label">Notes</label>
                                 <textarea class="form-control" id="applicant_notes" name="applicant_notes" rows="3" placeholder="Enter Notes" required>{{ old('applicant_notes') }}</textarea>

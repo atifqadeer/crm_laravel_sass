@@ -152,25 +152,21 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="viewApplicantModal" tabindex="-1" aria-labelledby="viewApplicantModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="viewApplicantModalLabel">Applicant Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <!-- Content will be dynamically loaded here -->
-            <div id="applicantDetails"></div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-        </div>
+<!-- Experience Modal -->
+<div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="experienceModalLabel">Applicant Experience</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="experienceModalBody">
+        <!-- Experience will be injected here -->
+      </div>
     </div>
+  </div>
 </div>
-  
+
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -292,34 +288,63 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
                     if (pageInfo.recordsTotal === 0) {
                         $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
-                    } else {
-                        let paginationHtml = `
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination pagination-rounded mb-0">
-                                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>`;
-
-                        for (let i = 1; i <= totalPages; i++) {
-                            paginationHtml += `
-                                <li class="page-item ${currentPage === i ? 'active' : ''}">
-                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                                </li>`;
-                        }
-
-                        paginationHtml += `
-                                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>`;
-                        pagination.html(paginationHtml);
+                        return;
                     }
-                }
+
+                    let paginationHtml = `
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-rounded mb-0">
+                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                    <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>`;
+
+                    // Generate page range
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
+
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                    </li>`;
+
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
+
+                    if (start > 2) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                        </li>`;
+                    }
+
+                    if (end < totalPages - 1) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+
+                    // Always show last page if it's not already shown
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                        </li>`;
+                    }
+
+                    // Next button
+                    paginationHtml += `
+                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        </ul>
+                    </nav>`;
+
+                    pagination.html(paginationHtml);
+                },
             });
 
             // Type filter dropdown handler
@@ -1146,6 +1171,17 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             }
         }
     </script>
-    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.addEventListener('click', function (e) {
+                if (e.target.classList.contains('view-experience')) {
+                    e.preventDefault();
+                    const experience = e.target.getAttribute('data-experience');
+                    document.getElementById('experienceModalBody').innerHTML = experience;
+                }
+            });
+        });
+    </script>
+
 @endsection
 @endsection

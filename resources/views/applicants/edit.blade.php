@@ -84,6 +84,7 @@ $applicant = \Horsefly\Applicant::find($applicant_id);
                                     <option value="">Choose Gender</option>
                                     <option value="m" {{ old('gender', $applicant->gender == 'm' ? 'selected':'') }}>Male</option>
                                     <option value="f" {{ old('gender', $applicant->gender == 'f' ? 'selected':'') }}>Female</option>
+                                    <option value="f" {{ old('gender', $applicant->gender == 'u' ? 'selected':'') }}>Unknown</option>
                                 </select>
                                 <div class="invalid-feedback">Please provide gender</div>
                             </div>
@@ -125,14 +126,13 @@ $applicant = \Horsefly\Applicant::find($applicant_id);
                                 <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-phone') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
                             </div>
                         </div>
-                        
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
                             <div class="mb-3">
                                 <label for="applicant_experience" class="form-label">Experience <small class="text-info">(Optional)</small></label>
                                 <textarea class="form-control" id="applicant_experience" name="applicant_experience" rows="3" placeholder="Enter Experience">{{ old('applicant_experience', $applicant->applicant_experience) }}</textarea>
                             </div>
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
                             <div class="mb-3">
                                 <label for="applicant_notes" class="form-label">Notes</label>
                                 <textarea class="form-control" id="applicant_notes" name="applicant_notes" rows="3" placeholder="Enter Notes" required>{{ old('applicant_notes') }}</textarea>
