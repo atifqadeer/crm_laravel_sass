@@ -131,4 +131,27 @@ class ActionObserver
             "message" => $message,
         ]);
     }
+    public function customUnitAudit($unit, $column)
+    {
+        $auth_user = Auth::user();
+
+        $data['action_performed_by'] = $auth_user->name;
+        $data['changes_made'] = $column;
+        $d_message = '';
+        $message = '';
+
+        if($column == 'unit_notes'){
+            $d_message = 'note updated';
+            $message = "Unit '".ucwords($unit->unit_name)."' notes has been updated";
+        }
+
+        $data['message'] = "Unit '".ucwords($unit->unit_name)."' ".$d_message;
+
+        // Create the audit log entry
+        $unit->audits()->create([
+            "user_id" => Auth::id(),
+            "data" => json_encode(array_merge(json_decode($unit->toJson(), true), $data)),
+            "message" => $message,
+        ]);
+    }
 }

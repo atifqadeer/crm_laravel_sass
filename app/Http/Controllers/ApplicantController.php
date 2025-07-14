@@ -122,6 +122,8 @@ class ApplicantController extends Controller
                 : null;
             $applicantData['user_id'] = Auth::id();
 
+            $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             if ($request->hasFile('applicant_cv')) {
                 $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
                 $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
@@ -169,9 +171,9 @@ class ApplicantController extends Controller
             $applicant = Applicant::create($applicantData);
             $applicant->update(['applicant_uid' => md5($applicant->id)]);
 
-             // Create new module note
+            // Create new module note
             $moduleNote = ModuleNote::create([
-                'details' => $request->applicant_notes,
+                'details' => $applicant_notes,
                 'module_noteable_id' => $applicant->id,
                 'module_noteable_type' => 'Horsefly\Applicant',
                 'user_id' => Auth::id()
@@ -807,6 +809,8 @@ class ApplicantController extends Controller
                 throw new Exception("Applicant not found with ID: " . $id);
             }
 
+            $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             $postcode = $request->applicant_postcode;
 
             if ($postcode != $applicant->applicant_postcode) {
@@ -848,7 +852,7 @@ class ApplicantController extends Controller
                 ->update(['status' => 0]);
 
             $moduleNote = ModuleNote::create([
-                'details' => $request->applicant_notes,
+                'details' => $applicant_notes,
                 'module_noteable_id' => $applicant->id,
                 'module_noteable_type' => 'Horsefly\Applicant',
                 'user_id' => Auth::id()

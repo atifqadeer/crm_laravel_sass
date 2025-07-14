@@ -17,6 +17,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\ActionObserver;
+use Illuminate\Support\Carbon;
 
 class HeadOfficeController extends Controller
 {
@@ -113,6 +114,8 @@ class HeadOfficeController extends Controller
 
             // Format data for office
             $officeData['user_id'] = Auth::id();
+            $officeData['office_notes'] = $office_notes = $request->office_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             $office = Office::create($officeData);
 
             // Iterate through each contact provided in the request
@@ -133,7 +136,19 @@ class HeadOfficeController extends Controller
             }
 
             // Generate UID
-            $office->update(['office_uid' => md5(uniqid($office->id, true))]);
+            $office->update(['office_uid' => md5($office->id)]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $office_notes,
+                'module_noteable_id' => $office->id,
+                'module_noteable_type' => 'Horsefly\Office',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             DB::commit();
             return response()->json([
@@ -393,6 +408,8 @@ class HeadOfficeController extends Controller
                 throw new \Exception("Head Office not found with ID: " . $id);
             }
 
+            $officeData['office_notes'] = $office_notes = $request->office_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             $postcode = $request->office_postcode;
 
             if($postcode != $office->office_postcode){
@@ -423,8 +440,26 @@ class HeadOfficeController extends Controller
                 }
             }
 
-            // Update the applicant with the validated and formatted data
+            // Update the Office with the validated and formatted data
             $office->update($officeData);
+
+            ModuleNote::where([
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Office'
+            ])
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            $moduleNote = ModuleNote::create([
+                'details' => $office_notes,
+                'module_noteable_id' => $office->id,
+                'module_noteable_type' => 'Horsefly\Office',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             Contact::where('contactable_id',$office->id)
                 ->where('contactable_type','Horsefly\Office')->delete();

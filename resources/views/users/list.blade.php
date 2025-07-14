@@ -234,7 +234,7 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
    
     <!-- Toastr css -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
@@ -246,7 +246,7 @@
 
             // Create a loader row and append it to the table before initialization
             const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="14" class="text-center py-4">
+            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -307,7 +307,7 @@
 
                     // Check if there are no records
                     if (pageInfo.recordsTotal === 0) {
-                        $('#users_table tbody').html('<tr><td colspan="14" class="text-center">Data not found</td></tr>');
+                        $('#users_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                     } else {
                         // Build the custom pagination structure
                         var paginationHtml = `
@@ -575,6 +575,5 @@
         }
 
     </script>
-    
 @endsection
 @endsection                        

@@ -13,6 +13,7 @@ class ApplicantObserver
      */
     public function created(Applicant $applicant): void
     {
+        // Create the audit log entry
         $applicant->audits()->create([
             "user_id" => Auth::id(),
             "data" => $applicant->toJson(),

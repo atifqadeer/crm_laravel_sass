@@ -17,6 +17,8 @@ use App\Exports\UnitsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Carbon;
+use App\Observers\ActionObserver;
 class UnitController extends Controller
 {
     use Geocode;
@@ -114,6 +116,8 @@ class UnitController extends Controller
                 $unitData['lng'] = $postcode_query->lng;
             }
 
+            $unitData['unit_notes'] = $unit_notes = $request->unit_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             $unit = Unit::create($unitData);
 
             // Iterate through each contact provided in the request
@@ -134,7 +138,19 @@ class UnitController extends Controller
             }
 
             // Generate UID
-            $unit->update(['unit_uid' => md5(uniqid($unit->id, true))]);
+            $unit->update(['unit_uid' => md5($unit->id)]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $unit_notes,
+                'module_noteable_id' => $unit->id,
+                'module_noteable_type' => 'Horsefly\Unit',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             DB::commit();
             return response()->json([
@@ -342,8 +358,12 @@ class UnitController extends Controller
             'status' => 1,
         ]);
 
-        $moduleNote_uid = md5($moduleNote->id);
-        $moduleNote->update(['module_note_uid' => $moduleNote_uid]);
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
+
+        // Log audit
+        $unit = Unit::where('id', $unit_id)->select('unit_name', 'unit_notes', 'id')->first();
+        $observer = new ActionObserver();
+        $observer->customUnitAudit($unit, 'unit_notes');
 
         return redirect()->to(url()->previous());
     }
@@ -429,8 +449,28 @@ class UnitController extends Controller
                 }
             }
 
+            $unitData['unit_notes'] = $unit_notes = $request->unit_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
+
             // Update the applicant with the validated and formatted data
             $unit->update($unitData);
+
+            ModuleNote::where([
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Unit'
+            ])
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            $moduleNote = ModuleNote::create([
+                'details' => $unit_notes,
+                'module_noteable_id' => $unit->id,
+                'module_noteable_type' => 'Horsefly\Unit',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             Contact::where('contactable_id', $unit->id)
                 ->where('contactable_type', 'Horsefly\Unit')->delete();

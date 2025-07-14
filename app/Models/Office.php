@@ -62,5 +62,9 @@ class Office extends Model
     {
         return $this->morphMany(Audit::class, 'auditable');
     }
+    public function module_note()
+    {
+        return $this->morphMany(ModuleNote::class, 'module_noteable');
+    }
 
 }

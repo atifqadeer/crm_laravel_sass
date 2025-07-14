@@ -145,7 +145,7 @@ class ModuleNotesController extends Controller
         try {
             // Validate the incoming request to ensure 'id' is provided and is a valid integer
             $request->validate([
-                'id' => 'required|integer|exists:module_notes,id',  // Assuming 'module_notes' is the table name and 'id' is the primary key
+                'id' => 'required|integer',  // Assuming 'module_notes' is the table name and 'id' is the primary key
             ]);
 
             // Fetch the module notes by the given ID
