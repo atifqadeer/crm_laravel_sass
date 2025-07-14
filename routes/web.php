@@ -60,6 +60,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('edit', [ApplicantController::class, 'edit'])->name('applicants.edit');
         Route::post('update', [ApplicantController::class, 'update'])->name('applicants.update');
         Route::post('uploadCv', [ApplicantController::class, 'uploadCv'])->name('applicants.uploadCv');
+        Route::post('crmuploadCv', [ApplicantController::class, 'crmuploadCv'])->name('applicants.crmuploadCv');
         Route::get('history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
     Route::get('/applicants/available-no-jobs/{id}/{radius?}', [ApplicantController::class, 'availableNoJobsIndex'])->name('applicants.available_no_job');

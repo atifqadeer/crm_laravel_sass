@@ -215,12 +215,12 @@ $applicant = \Horsefly\Applicant::find($applicant_id);
                         </div>
                     </li>
                 </ul>
-            </div>
+            </div>-->
             <div class="form-group">
                 <label for="applicant_cv">Upload CV</label>
-                <input type="file" class="form-control" name="applicant_cv" id="applicant_cv">
+                <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx">
                 <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-            </div> -->
+            </div> 
             
             <div class="mb-3 rounded">
                 <div class="row justify-content-end g-2">

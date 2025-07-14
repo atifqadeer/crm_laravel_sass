@@ -126,10 +126,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>PostCode</th>
-                                <th>Phone</th>
-                                <th>Landline</th>
+                                <th width="10%">Phone</th>
                                 @canany(['applicant-download-resume'])
-                                    <th>Resume</th>
+                                    <th>Applicant Resume</th>
+                                    <th>CRM Resume</th>
                                 @endcanany
                                 <th>Experience</th>
                                 <th>Source</th>
@@ -216,16 +216,13 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 { data: 'job_category', name: 'job_categories.name' },
                 { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
                 { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                { data: 'applicant_landline', name: 'applicants.applicant_landline' },
             ];
 
             if (hasResumePermission) {
-                columns.push({
-                    data: 'resume',
-                    name: 'applicants.resume',
-                    orderable: false,
-                    searchable: false
-                });
+                columns.push(
+                    { data: 'applicant_resume', name: 'applicants.applicant_cv', orderable: false, searchable: false },
+                    { data: 'crm_resume', name: 'applicants.updated_cv', orderable: false, searchable: false },
+                );
             }
 
             columns.push(
@@ -238,7 +235,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 });
             }
             columns.push(
-                
                 { data: 'customStatus', name: 'customStatus', orderable: false, searchable: false },
                 { data: 'action', name: 'action', orderable: false, searchable: false }
             );
@@ -249,7 +245,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             const centerAlignedIndices = [];
             for (let i = 0; i < columns.length; i++) {
                 const key = columns[i].data;
-                if (['resume', 'applicant_experience', 'customStatus', 'action'].includes(key)) {
+                if (['applicant_resume', 'crm_resume', 'customStatus', 'action'].includes(key)) {
                     centerAlignedIndices.push(i);
                 }
             }
@@ -1054,6 +1050,54 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
         let applicantId = null; // Store applicant ID
 
+        function triggerCrmFileInput(id) {
+            // Store the applicant ID when the button is clicked
+            applicantId = id;
+            
+            // Trigger the file input click event
+            document.getElementById('crmfileInput').click();
+        }
+
+        function crmuploadFile() {
+            const fileInput = document.getElementById('crmfileInput');
+            const file = fileInput.files[0]; // Get the selected file
+
+            if (file && applicantId) {
+                // Create a FormData object to send the file along with the applicant ID
+                const formData = new FormData();
+                formData.append('resume', file);
+                formData.append('applicant_id', applicantId); // Append applicant ID
+
+                // Include CSRF token if you're using Laravel or any framework that requires CSRF protection
+                formData.append('_token', '{{ csrf_token() }}');  // CSRF token
+
+                // You can send the file to the server using an AJAX request or any method you prefer
+                // Example using Fetch API
+                fetch('{{ route("applicants.crmuploadCv") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                    // If needed, add other headers here (like Authorization headers if you're using token-based auth)
+                    //'Authorization': 'Bearer ' + YOUR_TOKEN // Uncomment if needed
+                    }
+                })
+                .then(response => response.json()) // Assuming the server returns JSON
+                .then(data => {
+                    if (data.success) {
+                        toastr.success('File uploaded successfully');
+                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
+                    } else {
+                        toastr.error('Error:', data.message);
+                    }
+                })
+                .catch(error => {
+                    toastr.error('Error uploading file:', error);
+                });
+            } else {
+                toastr.error('No file selected or applicant ID missing.');
+            }
+        }
+        
         function triggerFileInput(id) {
             // Store the applicant ID when the button is clicked
             applicantId = id;

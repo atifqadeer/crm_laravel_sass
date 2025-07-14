@@ -236,7 +236,6 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             
             <div class="mb-3 rounded">
                 <div class="row justify-content-end g-2">
-                   
                     <div class="col-lg-2">
                         <a href="{{ route('applicants.list') }}" class="btn btn-dark w-100">Cancel</a>
                     </div>

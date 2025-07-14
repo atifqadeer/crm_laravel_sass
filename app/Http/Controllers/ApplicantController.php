@@ -191,9 +191,7 @@ class ApplicantController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            if (!$email_template) {
-                throw new \Exception('Email template not found.');
-            } else {
+            if ($email_template) {
                 $email_to = $applicant->applicant_email;
                 $email_from = $email_template->from_email;
                 $email_subject = $email_template->subject;
@@ -221,9 +219,7 @@ class ApplicantController extends Controller
                 ->where('status', 1)
                 ->first();
 
-            if (!$sms_template) {
-                throw new \Exception('SMS template not found.');
-            } else {
+            if ($sms_template) {
                 $sms_to = $applicant->applicant_phone;
                 $sms_template = $sms_template->template;
 
@@ -394,6 +390,16 @@ class ApplicantController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
+                ->addColumn('applicant_email', function ($applicant) {
+                    $email = '';
+                    if($applicant->applicant_email_secondary){
+                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                    }else{
+                        $email = $applicant->applicant_email;
+                    }
+
+                    return $email; // Using accessor
+                })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     return $applicant->formatted_postcode; // Using accessor
                 })
@@ -417,10 +423,12 @@ class ApplicantController extends Controller
                     return $buttons;
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    return $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_phone;
-                })
-                ->addColumn('applicant_landline', function ($applicant) {
-                    return $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_landline;
+                    $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                    $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+
+                    $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+
+                    return $strng;
                 })
                 ->addColumn('created_at', function ($applicant) {
                     return $applicant->formatted_created_at; // Using accessor
@@ -428,23 +436,29 @@ class ApplicantController extends Controller
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
-                ->addColumn('resume', function ($applicant) {
+                ->addColumn('applicant_resume', function ($applicant) {
                     if (!$applicant->is_blocked) {
                         $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
+                    } else {
+                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    }
 
+                    return $applicant_cv;
+                })
+                ->addColumn('crm_resume', function ($applicant) {
+                    if (!$applicant->is_blocked) {
                         $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                         $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     }
 
-                    return $applicant_cv . ' ' . $updated_cv;
+                    return $updated_cv;
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status = '';
@@ -457,11 +471,13 @@ class ApplicantController extends Controller
                     } elseif ($applicant->is_no_job == 1) {
                         $status = '<span class="badge bg-warning">No Job</span>';
                     } elseif ($applicant->is_temp_not_interested == 1) {
-                        $status = '<span class="badge bg-danger">Not <br>Interested</span>';
+                        $status = '<span class="badge bg-danger">Not<br>Interested</span>';
+                    } elseif ($applicant->is_cv_in_quality_clear == 1) {
+                        $status = '<span class="badge bg-primary">CRM Active</span>';
                     } elseif ($applicant->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
-                    } else {
-                        $status = '<span class="badge bg-warning">Inactive</span>';
+                    } elseif ($applicant->status == 0) {
+                        $status = '<span class="badge bg-danger">Inactive</span>';
                     }
 
                     return $status;
@@ -512,17 +528,21 @@ class ApplicantController extends Controller
                                         \'' . addslashes(htmlspecialchars($status)) . '\'
                                     )">View</a></li>';
                             }
-                            if(Gate::allows('applicant-change-status')){
-                                $html .= '<li><a class="dropdown-item" href="#" onclick="changeStatusModal(' . (int)$applicant->id . ',' . $applicant->status . ')">Change Status</a></li>';
-                            }
                             if(Gate::allows('applicant-add-note')){
                                 $html .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
                             }
                             if(Gate::allows('applicant-upload-resume')){
                                 $html .= '<li>
-                                        <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Resume</a>
+                                        <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
+                                    </li>';
+                            }
+                            if(Gate::allows('applicant-upload-crm-resume')){
+                                $html .= '<li>
+                                        <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                        <!-- Hidden File Input -->
+                                        <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                     </li>';
                             }
                             if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
@@ -541,7 +561,7 @@ class ApplicantController extends Controller
 
                         return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_phone', 'job_title', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -780,23 +800,23 @@ class ApplicantController extends Controller
                 'gender'
             ]);
 
-            // // Handle file upload if a CV is provided
-            // $path = null;
-            // if ($request->hasFile('applicant_cv')) {
-            //     // Get the original file name
-            //     $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
-            //     // Get the filename without extension
-            //     $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-            //     // Get file extension
-            //     $extension = $request->file('applicant_cv')->getClientOriginalExtension();
-            //     // Create a new filename with a timestamp
-            //     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-            //     // Store the file in the public/uploads/resume/ directory
-            //     $path = $request->file('applicant_cv')->storeAs('uploads/resume', $fileNameToStore, 'public');
-            // }
+            // Handle file upload if a CV is provided
+            $path = null;
+            if ($request->hasFile('applicant_cv')) {
+                // Get the original file name
+                $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
+                // Get the filename without extension
+                $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+                // Get file extension
+                $extension = $request->file('applicant_cv')->getClientOriginalExtension();
+                // Create a new filename with a timestamp
+                $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+                // Store the file in the public/uploads/resume/ directory
+                $path = $request->file('applicant_cv')->storeAs('uploads/resume', $fileNameToStore, 'public');
 
-            // // If a CV was uploaded, assign the path to the data
-            // $applicantData['applicant_cv'] = $path;
+                // If a CV was uploaded, assign the path to the data
+                $applicantData['applicant_cv'] = $path;
+            }
 
             // Get the applicant ID from the request
             $id = $request->input('applicant_id');
@@ -914,14 +934,43 @@ class ApplicantController extends Controller
         // Retrieve the applicant
         $applicant = Applicant::findOrFail($applicantId);
 
-        // Check if the 'applicant_cv' field is null or not
-        if (is_null($applicant->applicant_cv)) {
-            // If applicant_cv is null, save the file path in 'applicant_cv'
-            $applicant->update(['applicant_cv' => $filePath]);
-        } else {
-            // If applicant_cv already exists, save the file path in 'updated_cv'
-            $applicant->update(['updated_cv' => $filePath]);
-        }
+        // If applicant_cv is null, save the file path in 'applicant_cv'
+        $applicant->update(['applicant_cv' => $filePath]);
+
+        // Return success response
+        return response()->json([
+            'success' => true,
+            'message' => 'File uploaded successfully',
+            'file_path' => $filePath, // You can return the path or save it in the database if needed
+        ]);
+    }
+    public function crmuploadCv(Request $request)
+    {
+        // Validate the request (check if a file was uploaded)
+        $request->validate([
+            'resume' => 'required|file|mimes:pdf,doc,docx|max:10240', // Validating file type and size
+            'applicant_id' => 'required|integer|exists:applicants,id', // Validate applicant ID
+        ]);
+
+        // Get the file from the request
+        $file = $request->file('resume');
+
+        // Get the applicant ID from the request
+        $applicantId = $request->input('applicant_id');
+
+        // Define the file path where you want to store the resume
+        // You can optionally use a unique name for the file, or keep the original name
+        $fileName = time() . $applicantId . '.' . $file->getClientOriginalExtension();
+
+        // Store the file in public/storage/uploads directory
+        // The 'public' disk will store the file in the 'public/storage' directory
+        $filePath = $file->storeAs('uploads/resume/', $fileName, 'public');
+
+        // Retrieve the applicant
+        $applicant = Applicant::findOrFail($applicantId);
+
+        // If applicant_cv already exists, save the file path in 'updated_cv'
+        $applicant->update(['updated_cv' => $filePath]);
 
         // Return success response
         return response()->json([
