@@ -406,22 +406,21 @@
 
                 if (typeof related_titles !== 'undefined') {
                     const select = document.getElementById('edit-choices-multiple-groups');
-                    const instance = select.choicesInstance || select.choices;
+                    const instance = select?.choicesInstance;
 
                     if (instance) {
-                        instance.removeActiveItems(); // Clear current selections
-
+                        instance.removeActiveItems(); // clear old
                         related_titles.forEach(function (title) {
-                            instance.setValue([{ value: title, label: title }]);
+                            instance.setChoiceByValue(title); // ✅ correct method to select existing <option>
                         });
                     } else {
+                        // fallback for non-Choices usage
                         $('#edit-choices-multiple-groups').val(related_titles).trigger('change');
                     }
                 }
 
                 editModal.modal('show');
             };
-
 
             // Save user changes
             saveEditBtn.on('click', function () {
@@ -503,6 +502,9 @@
                 });
             });
         }
+
+
+
     </script>
 @endsection
 @endsection                        

@@ -75,10 +75,10 @@ class ApplicantController extends Controller
             'applicant_name' => 'required|string|max:255',
             'gender' => 'required',
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
-            'applicant_email_secondary' => 'nullable|email|max:255',
+            'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary',
             'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:20',
-            'applicant_landline' => 'nullable|string|max:20',
+            'applicant_phone' => 'required|string|max:20|unique:applicants,applicant_phone',
+            'applicant_landline' => 'nullable|string|max:20|unique:applicants,applicant_landline',
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
@@ -437,10 +437,16 @@ class ApplicantController extends Controller
                     return $buttons;
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                    $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+                    $strng = '';
+                    if($applicant->applicant_landline){
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
 
-                    $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                    }else{
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    }
 
                     return $strng;
                 })
@@ -770,10 +776,10 @@ class ApplicantController extends Controller
             'applicant_name' => 'required|string|max:255',
             'gender' => 'required',
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email,' . $request->input('applicant_id'), // Exclude current applicant's email
-            'applicant_email_secondary' => 'nullable|email|max:255',
+            'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary,' . $request->input('applicant_id'),
             'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:20',
-            'applicant_landline' => 'nullable|string|max:20',
+            'applicant_phone' => 'required|string|max:20|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
+            'applicant_landline' => 'nullable|string|max:20|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
