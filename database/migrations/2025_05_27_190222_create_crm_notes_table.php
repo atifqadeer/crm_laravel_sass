@@ -19,7 +19,7 @@ class CreateCrmNotesTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('applicant_id');
             $table->unsignedBigInteger('sale_id');
-            $table->string('details', 255);
+            $table->longText('details');
             $table->string('moved_tab_to', 50);
             $table->boolean('status')->default(1);
 

@@ -6,11 +6,7 @@ use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\Unit;
 use Horsefly\EmailTemplate;
-use Horsefly\ApplicantNote;
-use Horsefly\ApplicantPivotSale;
-use Horsefly\NotesForRangeApplicant;
 use Horsefly\Applicant;
-use Horsefly\ModuleNote;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
@@ -18,14 +14,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Exception;
 use Carbon\Carbon;
-use Horsefly\CrmNote;
 use Horsefly\JobCategory;
 use Horsefly\SentEmail;
 use App\Traits\SendEmails;
+use App\Traits\SendSMS;
 
 class CommunicationController extends Controller
 {
-    use SendEmails;
+    use SendEmails, SendSMS;
 
     public function __construct()   
     {
@@ -211,88 +207,125 @@ class CommunicationController extends Controller
                 ->make(true);
         }
     }
-    public function sendMessageToApplicant(Request $request)
+   public function sendMessageToApplicant(Request $request)
     {
-        return $request->all();
         try {
-            $phone_number = $request->input('phone_number');
-            $message = $request->input('message');
-
-            if (!$phone_number || !$message) {
-                return response()->json([
-                    'error' => 'Phone number and message are required.'
-                ], 400);
-            }
-
-            // Encode message to be safely used in a URL
-            $encoded_message = urlencode($message);
-
-            $url = 'http://milkyway.tranzcript.com:1008/sendsms?username=admin&password=admin&phonenumber='
-                . $phone_number . '&message=' . $encoded_message . '&port=1&report=JSON&timeout=0';
-
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HEADER => false,
-                CURLOPT_TIMEOUT => 10,
+            $request->validate([
+                'phone_number' => 'required|string',
+                'message' => 'required|string',
+                'applicant_id' => 'nullable|integer',
             ]);
 
-            $response = curl_exec($curl);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $phone_number = $request->input('phone_number');
+            $message = $request->input('message');
+            $applicant_id = $request->input('applicant_id');
 
-            if ($response === false) {
-                return response()->json([
-                    'error' => 'Failed to connect to SMS API: ' . $curlError,
-                    'query_string' => $url
-                ], 500);
+            $is_saved = $this->saveSMSDB($phone_number, $message, $applicant_id);
+
+            if (!$is_saved) {
+                Log::warning("SMS saving failed for applicant ID: {$applicant_id}");
+                throw new \Exception('Failed to store SMS in the database.');
             }
 
-            // Try to parse JSON response
-            $parsed = json_decode($response, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $report = $parsed['result'] ?? null;
-                $time = $parsed['time'] ?? null;
-                $phone = $parsed['phonenumber'] ?? null;
-            } else {
-                // Fallback (non-JSON API response)
-                $report = explode('"', strstr($response, "result"))[2] ?? null;
-                $time = explode('"', strstr($response, "time"))[2] ?? null;
-                $phone = explode('"', strstr($response, "phonenumber"))[2] ?? null;
-            }
+            return response()->json([
+                'success' => 'SMS sent and stored successfully.',
+            ]);
 
-            if ($report === "success") {
-                return response()->json([
-                    'success' => 'SMS sent successfully!',
-                    'data' => $response,
-                    'phonenumber' => $phone,
-                    'time' => $time,
-                    'report' => $report
-                ]);
-            } elseif ($report === "sending") {
-                return response()->json([
-                    'success' => 'SMS is sending, please check later!',
-                    'data' => $response,
-                    'phonenumber' => $phone,
-                    'time' => $time,
-                    'report' => $report
-                ]);
-            } else {
-                return response()->json([
-                    'error' => 'SMS failed, please check your device or settings!',
-                    'data' => $response,
-                    'report' => $report,
-                    'query_string' => $url
-                ]);
-            }
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            // Validation errors will be caught separately
+            return response()->json([
+                'error' => $ve->validator->errors()->first(),
+            ], 422);
 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'An unexpected error occurred: ' . $e->getMessage()
+                'error' => 'An unexpected error occurred: ' . $e->getMessage(),
             ], 500);
         }
     }
+
+    // public function sendMessageToApplicant(Request $request)
+    // {
+    //     return $request->all();
+    //     try {
+    //         $phone_number = $request->input('phone_number');
+    //         $message = $request->input('message');
+
+    //         if (!$phone_number || !$message) {
+    //             return response()->json([
+    //                 'error' => 'Phone number and message are required.'
+    //             ], 400);
+    //         }
+
+    //         // Encode message to be safely used in a URL
+    //         $encoded_message = urlencode($message);
+
+    //         $url = 'http://milkyway.tranzcript.com:1008/sendsms?username=admin&password=admin&phonenumber='
+    //             . $phone_number . '&message=' . $encoded_message . '&port=1&report=JSON&timeout=0';
+
+    //         $curl = curl_init();
+    //         curl_setopt_array($curl, [
+    //             CURLOPT_URL => $url,
+    //             CURLOPT_RETURNTRANSFER => true,
+    //             CURLOPT_HEADER => false,
+    //             CURLOPT_TIMEOUT => 10,
+    //         ]);
+
+    //         $response = curl_exec($curl);
+    //         $curlError = curl_error($curl);
+    //         curl_close($curl);
+
+    //         if ($response === false) {
+    //             return response()->json([
+    //                 'error' => 'Failed to connect to SMS API: ' . $curlError,
+    //                 'query_string' => $url
+    //             ], 500);
+    //         }
+
+    //         // Try to parse JSON response
+    //         $parsed = json_decode($response, true);
+    //         if (json_last_error() === JSON_ERROR_NONE) {
+    //             $report = $parsed['result'] ?? null;
+    //             $time = $parsed['time'] ?? null;
+    //             $phone = $parsed['phonenumber'] ?? null;
+    //         } else {
+    //             // Fallback (non-JSON API response)
+    //             $report = explode('"', strstr($response, "result"))[2] ?? null;
+    //             $time = explode('"', strstr($response, "time"))[2] ?? null;
+    //             $phone = explode('"', strstr($response, "phonenumber"))[2] ?? null;
+    //         }
+
+    //         if ($report === "success") {
+    //             return response()->json([
+    //                 'success' => 'SMS sent successfully!',
+    //                 'data' => $response,
+    //                 'phonenumber' => $phone,
+    //                 'time' => $time,
+    //                 'report' => $report
+    //             ]);
+    //         } elseif ($report === "sending") {
+    //             return response()->json([
+    //                 'success' => 'SMS is sending, please check later!',
+    //                 'data' => $response,
+    //                 'phonenumber' => $phone,
+    //                 'time' => $time,
+    //                 'report' => $report
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 'error' => 'SMS failed, please check your device or settings!',
+    //                 'data' => $response,
+    //                 'report' => $report,
+    //                 'query_string' => $url
+    //             ]);
+    //         }
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'error' => 'An unexpected error occurred: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function sendRejectionEmail(Request $request)
     {
         try {

@@ -29,6 +29,8 @@ use Illuminate\Support\HtmlString;
 use Exception;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use Horsefly\SmsTemplate;
+use Illuminate\Support\Str;
 
 class CrmController extends Controller
 {
@@ -108,6 +110,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id') // Make optional
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
 
                         /** sale */
@@ -198,7 +201,7 @@ class CrmController extends Controller
                         'revert_stages.user_id as revert_user_id',
                         'revert_stages.notes as notes_detail',
                         'revert_stages.stage as revert_stage',
-                        'revert_stages.updated_at as revert_stage_updated_at',
+                        'revert_stages.updated_at as notes_created_at',
                         'sent_by.name as user_name'
                     ]);
                 break;
@@ -226,6 +229,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'quality_notes.details as notes_detail',
+                        'quality_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
 
                         // sale
@@ -278,6 +282,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
 
                         // sale
@@ -334,6 +339,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
 
                         // sale
@@ -394,6 +400,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'interviews.schedule_time',
                         'interviews.schedule_date',
                         'interviews.status as interview_status',
@@ -448,6 +455,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -503,6 +511,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'interviews.schedule_time',
                         'interviews.schedule_date',
                         'offices.office_name as office_name',
@@ -555,6 +564,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -605,6 +615,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -655,6 +666,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -705,6 +717,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -755,6 +768,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -805,6 +819,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -855,6 +870,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -905,6 +921,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -955,6 +972,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -1005,6 +1023,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
                         // sale
                         'sales.id as sale_id',
@@ -1060,6 +1079,7 @@ class CrmController extends Controller
                     ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
 
                         /** sale */
@@ -1194,38 +1214,45 @@ class CrmController extends Controller
                     return $button;
                 })
                 ->addColumn('notes_detail', function ($applicant) {
-                    // Sanitize and retrieve the relevant data
-                    $notes = htmlspecialchars($applicant->notes_detail, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
+                    $notes_detail = strip_tags($applicant->notes_detail); // avoid double escaping
+                    $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
+                    $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
-                    // Modal HTML structure
-                    $modalId = 'applicantModal_' . $applicant->id;  // Unique modal ID per applicant
-                    $modalHtml = '';
-                    $modalHtml .= '<a href="#" title="View Note" data-bs-toggle="modal" data-bs-target="#' . $modalId . '">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
-                    $modalHtml .= '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-top">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="' . $modalId . 'Label">Applicant`s CRM Notes</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body modal-body-text-left">
-                                                <p><strong>Name:</strong> ' . $name . '</p>
-                                                <p><strong>Postcode:</strong> ' . $postcode . '</p>
-                                                <p><strong>Notes Detail:</strong><br><br> ' . $notes . '</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                            </div>
-                                        </div>
+                    $short = Str::limit($notes, 150);
+                    $modalId = 'crm-' . $applicant->id;
+
+                    $name = e($applicant->applicant_name);
+                    $postcode = e($applicant->applicant_postcode);
+                    $notesEscaped = nl2br(e($notes_detail));
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $modalId . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $modalId . '-label">Applicant\'s CRM Notes</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                </div>';
-
-                    // Return the modal along with the trigger link
-                    return  $modalHtml;  // Return both: link to open modal and the modal HTML itself
+                                    <div class="modal-body">
+                                        <p><strong>Name:</strong> ' . $name . '</p>
+                                        <p><strong>Postcode:</strong> ' . $postcode . '</p>
+                                        <p><strong>Date:</strong> ' . $notes_created_at . '</p>
+                                        <p class="notes-content"><strong>Notes Detail:</strong><br>' . $notesEscaped . '</p>
+                                    </div>
+                                     <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
@@ -1270,6 +1297,22 @@ class CrmController extends Controller
                         </a>' . $modalHtml;
                 })
                 ->addColumn('action', function ($applicant) use ($tabFilter) {
+                    $formattedMessage = '';
+                    // Fetch SMS template from the database
+                    $sms_template = SmsTemplate::where('title', 'crm_sent_cv')
+                        ->where('module', 'Applicant')
+                        ->where('status', 1)
+                        ->first();
+
+                    if ($sms_template) {
+                        $sms_template = $sms_template->template;
+
+                        $replace = [$applicant->applicant_name, $applicant->unit_name];
+                        $prev_val = ['(applicant_name)', '(unit_name)'];
+
+                        $newPhrase = str_replace($prev_val, $replace, $sms_template);
+                        $formattedMessage = nl2br($newPhrase);
+                    }
                     $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
@@ -1290,7 +1333,7 @@ class CrmController extends Controller
                                         data-applicant-phone="' . $applicant->applicant_phone . '" 
                                         data-applicant-name="' . $applicant->applicant_name . '" 
                                         data-applicant-unit="' . $applicant->unit_name . '"
-                                        onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
+                                        onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
                                         Add CRM Notes
                                     </a></li>
                                     <li><a class="dropdown-item" 
@@ -1332,7 +1375,7 @@ class CrmController extends Controller
                                             data-applicant-unit="' . $applicant->unit_name . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'open_cv\')">
+                                            onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'open_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
                                             Add CRM Notes
                                         </a></li>
                                         <li><a class="dropdown-item" 
@@ -1882,7 +1925,7 @@ class CrmController extends Controller
                                         data-applicant-phone="' . $applicant->applicant_phone . '" 
                                         data-applicant-name="' . $applicant->applicant_name . '" 
                                         data-applicant-unit="' . $applicant->unit_name . '"
-                                        onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
+                                        onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
                                         Add CRM Notes
                                     </a></li>
                                 <li><a class="dropdown-item" 
@@ -1946,10 +1989,12 @@ class CrmController extends Controller
                                                     <option value="agency">Sent By Another Agency</option>
                                                     <option value="manager">Rejected By Manager</option>
                                                     <option value="no_response">No Response</option>
+                                                    <option value="update_notes" selected>Update Notes</option>
                                                 </select>
                                                 <div class="invalid-feedback">Please select a reason.</div>
                                             </div>
                                             <div class="modal-footer">
+                                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
                                                 <button type="button" class="btn btn-danger crmSentCVRejectButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" style="display:none">Reject</button>
                                                 <button type="button" class="btn btn-primary saveUpdateCrmNotesButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" >Save</button>
                                             </div>

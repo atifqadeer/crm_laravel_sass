@@ -156,11 +156,11 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>PostCode</th>
-                                <th>Job Details</th>
+                                <th>Job</th>
                                 <th>Head Office</th>
                                 <th>Unit</th>
-                                <th>Job PostCode</th>
-                                <th>Notes</th>
+                                <th>PostCode</th>
+                                <th width="20%">Notes</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -189,6 +189,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 <div class="form-group row">
                     <label class="col-form-label col-sm-2">Message Text:</label>
                     <div class="col-sm-10">
+                        <input type="hidden" name="applicant_id" id="applicant_id">
                         <input type="hidden" name="applicant_phone_number" id="applicant_phone_number">
                         <input type="hidden" name="non_nurse_modal_id" id="non_nurse_modal_id">
                         <textarea name="details" id="smsBodyDetails" class="form-control" cols="40" rows="8" placeholder="TYPE HERE.." required></textarea>
@@ -281,12 +282,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 columnDefs: [
                     {
                         targets: 8,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
@@ -492,7 +487,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         }
 
         // Function to show the notes modal
-        function updateCrmNotesModal(applicantID, saleID, tab) {
+        function updateCrmNotesModal(applicantID, saleID, tab, smsMessage) {
             const formId = `#updateCrmNotesForm${applicantID}-${saleID}`;
             const modalId = `#updateCrmNotesModal${applicantID}-${saleID}`;
             const detailsId = `#details${applicantID}-${saleID}`;
@@ -502,21 +497,21 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             const rejectButton = $(`${formId} .crmSentCVRejectButton`);
 
             // Capture data from trigger <a> element
-            const triggerEl = document.querySelector(`[data-applicant-id="${applicantID}"][data-sale-id="${saleID}"]`);
-            const applicantName = triggerEl?.getAttribute('data-applicant-name') || '';
-            const applicantPhone = triggerEl?.getAttribute('data-applicant-phone') || '';
-            const applicantUnit = triggerEl?.getAttribute('data-applicant-unit') || '';
-            const smsTriggerId = modalId; // for reference back
+            if(smsMessage !== ''){
+                const triggerEl = document.querySelector(`[data-applicant-id="${applicantID}"][data-sale-id="${saleID}"]`);
+                const applicantName = triggerEl?.getAttribute('data-applicant-name') || '';
+                const applicantPhone = triggerEl?.getAttribute('data-applicant-phone') || '';
+                const applicantUnit = triggerEl?.getAttribute('data-applicant-unit') || '';
+                const smsTriggerId = modalId; // for reference back
 
-            // ✅ Show SMS Modal with pre-filled data
-            $('#smsName').text(applicantName);
-            $('#applicant_phone_number').val(applicantPhone);
-            // $('#non_nurse_modal_id').val(smsTriggerId);
+                // ✅ Show SMS Modal with pre-filled data
+                $('#smsName').text(applicantName);
+                $('#applicant_phone_number').val(applicantPhone);
+                $('#applicant_id').val(applicantID);
+                $('#smsBodyDetails').val(smsMessage);
 
-            const smsMessage = `Hi ${applicantName} Congratulations! ${applicantUnit} would like to invite you to their office for an in-person interview. Are you available next Tues 1-3pm or Fri 10am-12pm? Please do advise a suitable time. You can either reply to this message or contact us on the information given below Thank you for choosing Kingbury to represent you. Best regards, CRM TEAM T: 01494211220 E: crm@kingsburypersonnel.com`;
-            $('#smsBodyDetails').val(smsMessage);
-
-            $('#send_sms_to_requested_applicant').modal('show');
+                $('#send_sms_to_requested_applicant').modal('show');
+            }
 
             // Clear previous validation states
             $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
@@ -528,7 +523,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 const notes = $(detailsId).val();
                 const reason = $(reasonId).val();
 
-                 $(detailsId).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                $(detailsId).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
                 $(reasonId).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
 
                 // Validate inputs
@@ -3869,6 +3864,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
             const applicantMessage = $.trim($('#smsBodyDetails').val());
             const applicantNumber = $('#applicant_phone_number').val();
+            const applicantID = $('#applicant_id').val();
             const btn = $(this);
 
             if (!applicantMessage) {
@@ -3885,6 +3881,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 dataType: "json",
                 data: { 
                     phone_number: applicantNumber, 
+                    applicant_id: applicantID, 
                     message: applicantMessage,
                     _token: '{{ csrf_token() }}' 
                 },
@@ -3896,8 +3893,24 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         toastr.error(response.error || "Failed to send SMS.");
                     }
                 },
-                error: function () {
-                    toastr.error('Something went wrong, please try again...');
+                error: function (jqXHR, textStatus, errorThrown) {
+                    let message = 'Something went wrong, please try again...';
+
+                    if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                        message = jqXHR.responseJSON.message;
+                    } else if (jqXHR.responseText) {
+                        try {
+                            const response = JSON.parse(jqXHR.responseText);
+                            if (response.message) {
+                                message = response.message;
+                            }
+                        } catch (e) {
+                            // if not JSON, fallback to default message
+                            message = jqXHR.responseText || message;
+                        }
+                    }
+
+                    toastr.error(message);
                 },
                 complete: function () {
                     btn.prop("disabled", false); // Re-enable button after request
