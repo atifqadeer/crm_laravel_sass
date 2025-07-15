@@ -618,9 +618,11 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                     <h5 class="modal-title" id="${modalId}Label">Manager Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                <div class="modal-body ">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -761,6 +763,111 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     console.error("Error fetching sale documents:", error);
                     $('#' + modalId + ' .modal-body').html('<p>There was an error retrieving the documents. Please try again later.</p>');
                 }
+            });
+        }
+
+        // Function to show the notes modal
+        function changeSaleStatus(saleID, currentStatus) {
+            const modalId = 'changeSaleStatusModal-' + saleID;
+
+            // Remove any existing modal with the same ID
+            $('#' + modalId).remove();
+
+            // Modal HTML with unique ID
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Mark Sale As ${currentStatus}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="changeSaleStatusForm-${saleID}">
+                                    <div class="mb-3">
+                                        <label for="detailsTextarea-${saleID}" class="form-label">Details</label>
+                                        <textarea class="form-control" id="detailsTextarea-${saleID}" rows="4" required></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="saveChangeSaleStatusButton-${saleID}">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Append the modal to body
+            $('body').append(modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+
+            // Reset the form fields each time it's opened
+            $(`#changeSaleStatusForm-${saleID}`)[0].reset();
+
+            // Remove validation classes and feedback
+            $(`#detailsTextarea-${saleID}`).removeClass('is-valid is-invalid').next('.invalid-feedback').remove();
+
+            // Handle Save button
+            $(`#saveChangeSaleStatusButton-${saleID}`).off('click').on('click', function () {
+                const notes = $(`#detailsTextarea-${saleID}`).val().trim();
+
+                let valid = true;
+
+                if (!notes) {
+                    $(`#detailsTextarea-${saleID}`).addClass('is-invalid');
+                    if ($(`#detailsTextarea-${saleID}`).next('.invalid-feedback').length === 0) {
+                        $(`#detailsTextarea-${saleID}`).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+                    valid = false;
+                }
+
+                // Remove validation on input/change
+                $(`#detailsTextarea-${saleID}`).on('input', function () {
+                    if ($(this).val()) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                        $(this).next('.invalid-feedback').remove();
+                    }
+                });
+
+                if (!valid) return;
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Send data via AJAX
+                $.ajax({
+                    url: '{{ route("clear_reject_Sale") }}',
+                    type: 'POST',
+                    data: {
+                        sale_id: saleID,
+                        details: notes,
+                        status: currentStatus,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        toastr.success('Status changed saved successfully!');
+                        modal.hide();
+                        $(`#changeSaleStatusForm-${saleID}`)[0].reset();
+                        $('#sales_table').DataTable().ajax.reload();
+                    },
+                    error: function (xhr) {
+                        toastr.error('An error occurred while saving notes.');
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+
+            // Optional cleanup when modal is hidden
+            $(`#${modalId}`).on('hidden.bs.modal', function () {
+                $(this).remove(); // removes the modal from DOM
             });
         }
 

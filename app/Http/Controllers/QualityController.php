@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class QualityController extends Controller
 {
@@ -922,6 +923,34 @@ class QualityController extends Controller
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
@@ -940,6 +969,7 @@ class QualityController extends Controller
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
                     $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
+                    
                     $unit = Unit::find($sale->unit_id);
                     $unit_name = $unit ? $unit->unit_name : '-';
 
@@ -950,7 +980,9 @@ class QualityController extends Controller
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
-                    if ($sale->status == 1) {
+                    if ($sale->status == 1 && $sale->is_re_open == true) {
+                        $status = '<span class="badge bg-primary">Re-Open</span>';
+                    } elseif ($sale->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
@@ -1017,8 +1049,8 @@ class QualityController extends Controller
                         case 'active sales':
                            // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
                             }
                             break;
                             
@@ -1032,8 +1064,8 @@ class QualityController extends Controller
                         default:
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
                             }
                             break;
                     }
@@ -1047,7 +1079,7 @@ class QualityController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'sale_postcode', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1056,7 +1088,7 @@ class QualityController extends Controller
         $user = Auth::user();
 
         $id = $request->input('sale_id');
-        $notes = $request->input('details');
+        $notes = $request->input('details') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
         $status = $request->input('status');
 
         try {
@@ -1084,12 +1116,32 @@ class QualityController extends Controller
                 ]);
             }
 
+            // Disable previous module note
+            ModuleNote::where([
+                    'module_noteable_id' => $id,
+                    'module_noteable_type' => 'Horsefly\Sale'
+                ])
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $notes,
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Sale',
+                'user_id' => $user->id,
+            ]);
+
+            $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
+
             // Log audit
             $audit = new ActionObserver();
             $audit->changeSaleStatus($sale, ['status' => $status_value]);
 
             // Invalidate existing notes
-            SaleNote::where('sale_id', $sale->id)->update(['status' => 0]);
+            SaleNote::where('sale_id', $sale->id)
+                ->where('status', 1)
+                ->update(['status' => 0]);
 
             // Create new note and update UID
             $sale_note = new SaleNote([
