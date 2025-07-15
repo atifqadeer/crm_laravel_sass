@@ -2597,6 +2597,34 @@ class SaleController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     if($applicant->lat != null && $applicant->lng != null){
                         $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
@@ -2731,7 +2759,7 @@ class SaleController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['checkbox', 'applicant_postcode', 'applicant_notes', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'paid_status', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_postcode', 'applicant_experience', 'applicant_notes', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'paid_status', 'job_category', 'job_source', 'action'])
                 ->with(['sale_id' => $sale_id])
                 ->make(true);
         }

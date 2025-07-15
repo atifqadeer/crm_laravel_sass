@@ -17,7 +17,7 @@ class CreateCvNotesTable extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
             $table->foreignId('applicant_id')->constrained('applicants')->onDelete('cascade');
-            $table->string('details');
+            $table->longText('details');
             $table->tinyInteger('status')->default(1)->comment('0=Inactive, 1=Active, 2=Paid');
             
             $table->timestamp('created_at')->useCurrent();
