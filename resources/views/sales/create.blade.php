@@ -262,7 +262,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
 <script>
     $(document).ready(function () {
         $('.summernote').summernote({
-            height: 500,
+            height: 300,
             toolbar: [
                 ['style', ['bold', 'italic', 'underline', 'clear']],
                 ['font', ['strikethrough', 'superscript', 'subscript']],
@@ -294,35 +294,11 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
     })()
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Quill editor
-        // var quill;
-        // var ele = document.getElementById('snow-editor');
-        // if (ele) {
-        //     quill = new Quill(ele, {
-        //         theme: 'snow',
-        //         modules: {
-        //             'toolbar': [[{'font': []}, {'size': []}], 
-        //             ['bold', 'italic', 'underline', 'strike'], 
-        //             [{'color': []}, {'background': []}], 
-        //             [{'script': 'super'}, {'script': 'sub'}], 
-        //             [{'header': [false, 1, 2, 3, 4, 5, 6]}, 'blockquote', 'code-block'], 
-        //             [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}], 
-        //             ['direction', {'align': []}], ['link', 'image', 'video'], ['clean']]
-        //         },
-        //     });
-        // }
-
         const form = document.getElementById('createSaleForm');
         if (!form) return;
         
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            const jobDescriptionInput = document.getElementById("job_description_input");
-            if (quill && jobDescriptionInput) {
-                const quillContent = quill.root.innerHTML;
-                console.log('Quil:' + quillContent);
-                jobDescriptionInput.value = quillContent;
-            }
 
             // Submit button loading state
             const submitBtn = form.querySelector('button[type="submit"]');

@@ -23,6 +23,7 @@ use App\Exports\SalesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use App\Traits\Geocode;
+use Illuminate\Support\Str;
 
 class SaleController extends Controller
 {
@@ -83,7 +84,6 @@ class SaleController extends Controller
     }
     public function store(Request $request)
     {
-        return $request->all();
         // Validation
         $validator = Validator::make($request->all(), [
             'office_id' => 'required',
@@ -178,7 +178,6 @@ class SaleController extends Controller
 
             $sale_add_note = $request->input('sale_notes') . ' --- By: ' . $user->name . ' Date: ' . Carbon::now()->format('d-m-Y') . '  Time: ' . Carbon::now()->format("h:iA");
 
-
             // Format data for office
             $saleData['user_id'] = $user->id;
             $saleData['sale_note'] = $sale_add_note;
@@ -191,8 +190,20 @@ class SaleController extends Controller
             ]);
 
             // Generate UID
-            $sale->update(['sale_uid' => md5(uniqid($sale->id, true))]);
-            $sale_note->update(['sales_notes_uid' => md5(uniqid($sale_note->id, true))]);
+            $sale->update(['sale_uid' => md5($sale->id)]);
+            $sale_note->update(['sales_notes_uid' => md5($sale_note->id)]);
+
+            // Create new module note
+            $moduleNote = ModuleNote::create([
+                'details' => $sale_add_note,
+                'module_noteable_id' => $sale->id,
+                'module_noteable_type' => 'Horsefly\Sale',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             // Handle attachments if provided
             if ($request->hasFile('attachments')) {
@@ -357,6 +368,24 @@ class SaleController extends Controller
             $saleData['sale_notes'] = $sale_add_note;
             // Update the applicant with the validated and formatted data
             $sale->update($saleData);
+
+            ModuleNote::where([
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Sale'
+            ])
+                ->where('status', 1)
+                ->update(['status' => 0]);
+
+            $moduleNote = ModuleNote::create([
+                'details' => $sale_add_note,
+                'module_noteable_id' => $sale->id,
+                'module_noteable_type' => 'Horsefly\Sale',
+                'user_id' => Auth::id()
+            ]);
+
+            $moduleNote->update([
+                'module_note_uid' => md5($moduleNote->id)
+            ]);
 
             // Handle attachments if provided
             if ($request->hasFile('attachments')) {
@@ -652,6 +681,34 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     return $sale->formatted_postcode; // Using accessor
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
                 })
@@ -757,7 +814,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1023,6 +1080,34 @@ class SaleController extends Controller
 
                     return $status;
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('action', function ($sale) {
                     $postcode = $sale->formatted_postcode;
                     $posted_date = $sale->formatted_created_at;
@@ -1092,7 +1177,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'sale_postcode', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1351,6 +1436,34 @@ class SaleController extends Controller
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
@@ -1447,7 +1560,7 @@ class SaleController extends Controller
 
                                 return $action;
                 })
-                ->rawColumns(['sale_notes', 'job_title', 'cv_limit', 'closed_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'job_title', 'cv_limit', 'closed_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1728,6 +1841,34 @@ class SaleController extends Controller
 
                     return $status;
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('action', function ($sale) {
                     $postcode = $sale->formatted_postcode;
                     $posted_date = $sale->formatted_created_at;
@@ -1793,7 +1934,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1851,6 +1992,34 @@ class SaleController extends Controller
                     return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . strtoupper($postcode) . '\')">
                                 <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
                             </a>';
+                })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1929,7 +2098,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'cv_limit', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
+                ->rawColumns(['sale_notes', 'experience', 'cv_limit', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
     }
@@ -2123,6 +2292,34 @@ class SaleController extends Controller
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
@@ -2210,7 +2407,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'cv_limit', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
+                ->rawColumns(['sale_notes', 'experience', 'cv_limit', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
     }
@@ -2551,12 +2748,16 @@ class SaleController extends Controller
 
         Sale::where('id', $sale_id)->update($updateData);
 
+        $sale = Sale::findOrFail($sale_id);
+        $audit = new ActionObserver();
+        $audit->customSaleAudit($sale, 'sale_notes');
+
         // Disable previous module note
         ModuleNote::where([
-            'module_noteable_id' => $sale_id,
-            'module_noteable_type' => 'Horsefly\Sale'
-        ])
-            ->orderBy('id', 'desc')
+                'module_noteable_id' => $sale_id,
+                'module_noteable_type' => 'Horsefly\Sale'
+            ])
+            ->where('status', 1)
             ->update(['status' => 0]);
 
         // Create new module note
@@ -2565,11 +2766,9 @@ class SaleController extends Controller
             'module_noteable_id' => $sale_id,
             'module_noteable_type' => 'Horsefly\Sale',
             'user_id' => $user->id,
-            'status' => 1,
         ]);
 
-        $moduleNote_uid = md5($moduleNote->id);
-        $moduleNote->update(['module_note_uid' => $moduleNote_uid]);
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
 
         return redirect()->to(url()->previous());
     }
@@ -2581,7 +2780,6 @@ class SaleController extends Controller
         $status = $request->input('status');
         $details = $request->input('details');
         $sale_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
-        $audit = new ActionObserver();
 
         $updateData = [
             'sale_notes' => $sale_notes,
@@ -2591,16 +2789,17 @@ class SaleController extends Controller
         ];
 
         $sale = Sale::findOrfail($sale_id);
-        $audit->changeSaleStatus($sale, ['status' => $status]);
-
         $sale->update($updateData);
+
+        $audit = new ActionObserver();
+        $audit->changeSaleStatus($sale, ['status' => $status]);
 
         // Disable previous module note
         ModuleNote::where([
-            'module_noteable_id' => $sale_id,
-            'module_noteable_type' => 'Horsefly\Sale'
-        ])
-            ->orderBy('id', 'desc')
+                'module_noteable_id' => $sale_id,
+                'module_noteable_type' => 'Horsefly\Sale'
+            ])
+            ->where('status', 1)
             ->update(['status' => 0]);
 
         // Create new module note
@@ -2626,8 +2825,6 @@ class SaleController extends Controller
         $details = $request->input('details');
         $sale_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        $audit = new ActionObserver();
-
         if(isset($request->details)){
             $updateData = [
                 'is_on_hold' => $status,
@@ -2640,8 +2837,28 @@ class SaleController extends Controller
         }
 
         $sale = Sale::FindOrfail($sale_id);
-        // $audit->changeSaleOnHoldStatus($sale, ['status' => $status]);
         $sale->update($updateData);
+
+        // Disable previous module note
+        ModuleNote::where([
+                'module_noteable_id' => $sale_id,
+                'module_noteable_type' => 'Horsefly\Sale'
+            ])
+            ->where('status', 1)
+            ->update(['status' => 0]);
+
+        // Create new module note
+        $moduleNote = ModuleNote::create([
+            'details' => $sale_notes,
+            'module_noteable_id' => $sale_id,
+            'module_noteable_type' => 'Horsefly\Sale',
+            'user_id' => $user->id,
+        ]);
+
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
+
+        $audit = new ActionObserver();
+        $audit->changeSaleOnHoldStatus($sale, ['status' => $status]);
 
         return redirect()->to(url()->previous());
     }
@@ -2667,6 +2884,10 @@ class SaleController extends Controller
         try {
             // Find the document
             $document = SaleDocument::findOrFail($documentId);
+
+            $sale = Sale::findOrFail($document->sale_id);
+            $audit = new ActionObserver();
+            $audit->customSaleAudit($sale, 'document_removed');
 
             // Delete the file from the directory
             $filePath = storage_path('app/public/' . $document->document_path);

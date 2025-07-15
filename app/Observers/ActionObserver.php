@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Horsefly\Audit;
 use Horsefly\Applicant;
 use Carbon\Carbon;
+use Horsefly\Unit;
 
 class ActionObserver
 {
@@ -95,7 +96,7 @@ class ActionObserver
         $message = '';
 
         if($column == 'applicant_notes'){
-            $d_message = 'note updated';
+            $d_message = 'notes has been updated';
             $message = "Applicant '".ucwords($applicant->applicant_name)."' notes has been updated";
         }
 
@@ -118,7 +119,7 @@ class ActionObserver
         $message = '';
 
         if($column == 'office_notes'){
-            $d_message = 'note updated';
+            $d_message = 'notes has been updated';
             $message = "Head Office '".ucwords($office->office_name)."' notes has been updated";
         }
 
@@ -141,16 +142,43 @@ class ActionObserver
         $message = '';
 
         if($column == 'unit_notes'){
-            $d_message = 'note updated';
+            $d_message = 'notes has been updated';
             $message = "Unit '".ucwords($unit->unit_name)."' notes has been updated";
         }
 
-        $data['message'] = "Unit '".ucwords($unit->unit_name)."' ".$d_message;
+        $data['message'] = $message = "Unit '".ucwords($unit->unit_name)."' ".$d_message;
 
         // Create the audit log entry
         $unit->audits()->create([
             "user_id" => Auth::id(),
             "data" => json_encode(array_merge(json_decode($unit->toJson(), true), $data)),
+            "message" => $message,
+        ]);
+    }
+    public function customSaleAudit($sale, $column)
+    {
+        $auth_user = Auth::user();
+
+        $data['action_performed_by'] = $auth_user->name;
+        $data['changes_made'] = $column;
+        $d_message = '';
+        $message = '';
+
+        $unit = Unit::find($sale->unit_id);
+        if($column == 'sale_notes'){
+            $d_message = 'notes has been updated';
+            $message = "Sale '".ucwords($unit->unit_name)."' notes has been updated";
+        } elseif ($column == 'document_removed') {
+            $d_message = 'document has been removed';
+            $message = "Sale '".ucwords($unit->unit_name)."' document has been removed";
+        }
+
+        $data['message'] = "Sale '".ucwords($unit->unit_name)."' ".$d_message;  
+
+        // Create the audit log entry
+        $unit->audits()->create([
+            "user_id" => Auth::id(),
+            "data" => json_encode(array_merge(json_decode($sale->toJson(), true), $data)),
             "message" => $message,
         ]);
     }

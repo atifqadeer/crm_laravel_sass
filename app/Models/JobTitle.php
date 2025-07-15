@@ -20,6 +20,7 @@ class JobTitle extends Model
     ];
     protected $casts = [
         'related_titles' => 'array',
+        'is_active' => 'boolean',
     ];
 
     public function applicants()

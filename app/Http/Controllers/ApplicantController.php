@@ -393,16 +393,31 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
-                    $full = e($applicant->applicant_experience);
+                    $full = e($applicant->experience);
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary view-experience" 
+                        <a href="#" class="text-primary" 
                         data-bs-toggle="modal" 
-                        data-bs-target="#experienceModal"
-                        data-experience="' . htmlspecialchars($full) . '">
+                        data-bs-target="#' . $id . '">
                             ' . $short . '
-                        </a>';
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';

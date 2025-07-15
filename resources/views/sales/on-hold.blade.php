@@ -140,6 +140,21 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
 
 </div>
 
+<!-- Experience Modal -->
+<div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="experienceModalBody">
+        <!-- Experience will be injected here -->
+      </div>
+    </div>
+  </div>
+</div>
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -873,6 +888,16 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 }
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.addEventListener('click', function (e) {
+                if (e.target.classList.contains('view-experience')) {
+                    e.preventDefault();
+                    const experience = e.target.getAttribute('data-experience');
+                    document.getElementById('experienceModalBody').innerHTML = experience;
+                }
+            });
+        });
     </script>
     
 @endsection

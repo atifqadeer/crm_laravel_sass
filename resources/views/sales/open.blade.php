@@ -1161,6 +1161,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 }
             });
         }
+
     </script>
     
 @endsection
