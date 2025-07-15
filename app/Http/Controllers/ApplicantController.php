@@ -393,7 +393,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
-                    $full = e($applicant->experience);
+                    $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
 
                     return '
@@ -408,7 +408,7 @@ class ApplicantController extends Controller
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">

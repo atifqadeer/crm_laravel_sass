@@ -21,7 +21,7 @@ class CreateSalesTable extends Migration
             $table->string('job_type', 50);
             $table->string('timing', 255)->nullable();
             $table->string('salary', 255)->nullable();
-            $table->string('experience', 255)->nullable();
+            $table->longText('experience')->nullable();
             $table->string('qualification', 255)->nullable();
             $table->string('benefits', 255)->nullable();
             $table->float('lat', 15, 6)->nullable()->default(null);
