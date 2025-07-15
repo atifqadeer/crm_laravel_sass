@@ -37,10 +37,10 @@ use App\Http\Middleware\IPAddress;
 
 require __DIR__ . '/auth.php';
 
-Route::middleware(IPAddress::class)->group(function () {
+// Route::middleware(IPAddress::class)->group(function () {
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
-});
+// });
 
 Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 

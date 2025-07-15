@@ -13,14 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Register middleware alias
-        $middleware->alias([
-            'restrict.ip' => IPAddress::class,
-        ]);
+        // $middleware->alias([
+        //     'restrict.ip' => IPAddress::class,
+        // ]);
 
-        // Optionally apply to specific routes or groups
-        $middleware->web(append: [
-            IPAddress::class, // Apply to all web routes
-        ]);
+        // // Optionally apply to specific routes or groups
+        // $middleware->web(append: [
+        //     IPAddress::class, // Apply to all web routes
+        // ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
