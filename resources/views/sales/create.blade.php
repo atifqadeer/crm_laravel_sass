@@ -320,6 +320,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
             .then(data => {
                 if (data.success) {
                     toastr.success(data.message);
+                    form.reset();
+                    form.classList.remove('was-validated');
                     window.location.reload();
                 } else {
                     submitBtn.disabled = false;

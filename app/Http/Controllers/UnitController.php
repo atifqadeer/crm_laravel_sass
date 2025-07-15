@@ -153,6 +153,7 @@ class UnitController extends Controller
             ]);
 
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Unit created successfully',
@@ -164,7 +165,7 @@ class UnitController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating the unit. Please try again.'
+                'message' => $e->getMessage()
             ], 500);
         }
     }

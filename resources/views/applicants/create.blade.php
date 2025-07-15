@@ -347,6 +347,9 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             .then(data => {
                 if (data.success) { 
                     toastr.success(data.message);
+                    form.reset();
+                    form.classList.remove('was-validated');
+                    
                     window.location.reload();
                 } else {
                     // Handle validation errors

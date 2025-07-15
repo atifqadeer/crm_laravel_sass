@@ -213,6 +213,8 @@ $offices = \Horsefly\Office::where('status', 1)->select('id','office_name')->get
             .then(data => {
                 if (data.success) { 
                     toastr.success(data.message);
+                    form.reset();
+                    form.classList.remove('was-validated');
                     window.location.reload();
                 } else {
                     // Handle validation errors

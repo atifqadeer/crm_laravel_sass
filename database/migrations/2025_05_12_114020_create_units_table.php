@@ -20,7 +20,7 @@ class CreateUnitsTable extends Migration
             $table->foreignId('office_id')->constrained()->onDelete('cascade');  // foreign key to 'offices' table
             $table->string('unit_name', 255);
             $table->string('unit_postcode', 50);
-            $table->string('unit_website', 255);
+            $table->string('unit_website', 255)->nullable();
             $table->string('unit_notes', 255)->nullable();
             $table->float('lat', 15, 6)->nullable()->default(null);
             $table->float('lng', 15, 6)->nullable()->default(null);
