@@ -507,7 +507,17 @@ class ApplicantController extends Controller
                         $status = '<span class="badge bg-warning">No Job</span>';
                     } elseif ($applicant->is_temp_not_interested == 1) {
                         $status = '<span class="badge bg-danger">Not<br>Interested</span>';
-                    } elseif ($applicant->is_cv_in_quality_clear == 1) {
+                    } elseif ($applicant->is_cv_in_quality_clear || 
+                        $applicant->is_interview_confirm ||
+                        $applicant->is_interview_attend ||
+                        $applicant->is_in_crm_request ||
+                        $applicant->is_crm_request_confirm ||
+                        $applicant->is_crm_interview_attended != 0 ||
+                        $applicant->is_in_crm_start_date ||
+                        $applicant->is_in_crm_invoice ||
+                        $applicant->is_in_crm_invoice_sent ||
+                        $applicant->is_in_crm_start_date_hold ||
+                        $applicant->is_in_crm_paid) {
                         $status = '<span class="badge bg-primary">CRM Active</span>';
                     } elseif ($applicant->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
