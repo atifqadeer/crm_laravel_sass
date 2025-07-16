@@ -50,7 +50,8 @@ class CrmController extends Controller
             ->with([
                 'jobTitle',
                 'jobCategory',
-                'jobSource'
+                'jobSource',
+                'user'
             ])
             ->select([
                 'applicants.id',
@@ -67,6 +68,8 @@ class CrmController extends Controller
                 'applicants.job_type',
                 'applicants.paid_status',
                 'applicants.paid_timestamp',
+                'applicants.lat',
+                'applicants.lng',
 
                 /** get job category, title and source name */
                 'job_titles.name as job_title_name',
@@ -107,7 +110,7 @@ class CrmController extends Controller
                             ->on('cv_notes.sale_id', '=', 'sales.id')
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id') // Make optional
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id') // Make optional
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -136,7 +139,7 @@ class CrmController extends Controller
                         'units.unit_website',
 
                         /** user */
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -173,7 +176,7 @@ class CrmController extends Controller
                             ->whereIn("history.sub_stage", ["quality_cvs_hold"])
                             ->where("history.status", 1);
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'revert_stages.user_id')
+                    ->join('users', 'users.id', '=', 'revert_stages.user_id')
                     ->addSelect([
                         'offices.office_name as office_name',
                         // sale
@@ -202,7 +205,7 @@ class CrmController extends Controller
                         'revert_stages.notes as notes_detail',
                         'revert_stages.stage as revert_stage',
                         'revert_stages.updated_at as notes_created_at',
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
 
@@ -226,7 +229,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id')
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'quality_notes.details as notes_detail',
                         'quality_notes.created_at as notes_created_at',
@@ -254,7 +257,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -279,7 +282,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -307,7 +310,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
 
@@ -336,7 +339,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -368,7 +371,7 @@ class CrmController extends Controller
                         'interviews.schedule_date',
                         'interviews.status as interview_status',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
 
@@ -397,7 +400,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -428,7 +431,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -452,7 +455,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -479,7 +482,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -508,7 +511,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -537,7 +540,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -561,7 +564,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -588,7 +591,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -612,7 +615,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -639,7 +642,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -663,7 +666,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -690,7 +693,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -714,7 +717,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id')
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -741,7 +744,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -765,7 +768,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -792,7 +795,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -816,7 +819,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -843,7 +846,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -867,7 +870,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -894,7 +897,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -918,7 +921,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -945,7 +948,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -969,7 +972,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -996,7 +999,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -1020,7 +1023,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1047,7 +1050,7 @@ class CrmController extends Controller
                         'units.unit_postcode',
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -1076,7 +1079,7 @@ class CrmController extends Controller
                             ->whereColumn('cv_notes.sale_id', 'sales.id')
                             ->latest();
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1105,7 +1108,7 @@ class CrmController extends Controller
                         'units.unit_website',
 
                         /** user */
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
 
                 break;
@@ -1162,6 +1165,10 @@ class CrmController extends Controller
 
                     $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
                         $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
+                    });
+                    
+                    $query->orWhereHas('user', function ($q) use ($searchTerm) {
+                        $q->where('users.name', 'LIKE', "%{$searchTerm}%");
                     });
                 });
             }
@@ -5043,7 +5050,32 @@ class CrmController extends Controller
                     return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->moved_tab_to)) . '</span>';
                 })
                 ->addColumn('details', function ($row) {
-                    return htmlspecialchars($row->details, ENT_QUOTES, 'UTF-8');
+                    $short = Str::limit(strip_tags($row->details), 250);
+                    $full = e($row->details);
+                    $id = 'exp-' . $row->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('status', function ($row) {
                     return $row->status == 1

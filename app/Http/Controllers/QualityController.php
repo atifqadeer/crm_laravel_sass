@@ -558,6 +558,16 @@ class QualityController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
+                ->addColumn('applicant_email', function ($applicant) {
+                    $email = '';
+                    if($applicant->applicant_email_secondary){
+                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                    }else{
+                        $email = $applicant->applicant_email;
+                    }
+
+                    return $email; // Using accessor
+                })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     $status_value = 'open';
                     $postcode = '';
@@ -593,7 +603,18 @@ class QualityController extends Controller
                         </a>';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    return $applicant->formatted_phone; // Using accessor
+                    $strng = '';
+                    if($applicant->applicant_landline){
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                    }else{
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    }
+
+                    return $strng;
                 })
                 ->addColumn('applicant_landline', function ($applicant) {
                     return $applicant->formatted_landline; // Using accessor
@@ -601,23 +622,29 @@ class QualityController extends Controller
                 ->addColumn('notes_created_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'); // Using accessor
                 })
-                ->addColumn('resume', function ($applicant) {
+                ->addColumn('applicant_resume', function ($applicant) {
                     if (!$applicant->is_blocked) {
                         $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
+                    } else {
+                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    }
 
+                    return $applicant_cv;
+                })
+                ->addColumn('crm_resume', function ($applicant) {
+                    if (!$applicant->is_blocked) {
                         $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                         $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     }
 
-                    return $applicant_cv . ' ' . $updated_cv;
+                    return $updated_cv;
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
@@ -719,10 +746,15 @@ class QualityController extends Controller
                             break;
                     }
                     $html .= '<li>
-                                    <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Resume</a>
-                                    <!-- Hidden File Input -->
-                                    <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
-                                </li>';
+                                <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Resume</a>
+                                <!-- Hidden File Input -->
+                                <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
+                            </li>';
+                    $html .= '<li>
+                                <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                <!-- Hidden File Input -->
+                                <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                            </li>';
                     // Common actions
                     $html .= '<li><hr class="dropdown-divider"></li>';
                     $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory('.(int)$applicant->id.', '. (int)$applicant->sale_id . ')">Notes History</a></li>';
@@ -732,7 +764,7 @@ class QualityController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'notes_created_at', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'notes_created_at', 'applicant_email', 'applicant_postcode', 'crm_resume', 'applicant_phone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -945,6 +977,9 @@ class QualityController extends Controller
                                     </div>
                                     <div class="modal-body">
                                         ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>

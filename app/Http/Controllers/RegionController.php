@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class RegionController extends Controller
 {
@@ -190,13 +191,44 @@ class RegionController extends Controller
 
                     return $postcode;
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('applicant_notes', function ($applicant) {
                     $notes = htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8');
                     $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
                     $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
+                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
                                 <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
                             </a>
                             <a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . $applicant->id . '\')">
@@ -204,10 +236,28 @@ class RegionController extends Controller
                             </a>';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    return $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_phone;
+                    $strng = '';
+                    if($applicant->applicant_landline){
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                    }else{
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    }
+
+                    return $strng;
                 })
-                ->addColumn('applicant_landline', function ($applicant) {
-                    return $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_landline;
+                ->addColumn('applicant_email', function ($applicant) {
+                    $email = '';
+                    if($applicant->applicant_email_secondary){
+                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                    }else{
+                        $email = $applicant->applicant_email;
+                    }
+
+                    return $email; // Using accessor
                 })
                 ->addColumn('updated_at', function ($applicant) {
                     if (!empty($applicant->cv_notes) && count($applicant->cv_notes) > 0) {
@@ -218,23 +268,29 @@ class RegionController extends Controller
                         return Carbon::parse($applicant->updated_at)->format('d M Y, h:i A');
                     }
                 })
-                ->addColumn('resume', function ($applicant) {
+                ->addColumn('applicant_resume', function ($applicant) {
                     if (!$applicant->is_blocked) {
                         $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
+                    } else {
+                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    }
 
+                    return $applicant_cv;
+                })
+                ->addColumn('crm_resume', function ($applicant) {
+                    if (!$applicant->is_blocked) {
                         $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                         $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     }
 
-                    return $applicant_cv . ' ' . $updated_cv;
+                    return $updated_cv;
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
@@ -307,7 +363,7 @@ class RegionController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -536,7 +592,7 @@ class RegionController extends Controller
                     $unit = Unit::find($sale->unit_id);
                     $unit_name = $unit ? $unit->unit_name : '-';
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . $notes . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                 <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
                             </a>';
                 })
@@ -553,6 +609,37 @@ class RegionController extends Controller
                     }
 
                     return $status;
+                })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('action', function ($sale) {
                     $postcode = $sale->formatted_postcode;
@@ -611,7 +698,7 @@ class RegionController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'job_title', 'cv_limit', 'experience', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

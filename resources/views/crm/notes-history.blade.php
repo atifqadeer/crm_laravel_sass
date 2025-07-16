@@ -96,10 +96,10 @@ $quality_notes = \Horsefly\QualityNotes::where('applicant_id', $applicant_id)
                                         <thead class="bg-light-subtle">
                                             <tr>
                                                 <th>#</th>
-                                                <th>Date</th>
-                                                <th>Active IN</th>
+                                                <th width="15%">Date</th>
+                                                <th width="10%">Active IN</th>
                                                 <th>Notes</th>
-                                                <th>Status</th>
+                                                <th width="10%">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>

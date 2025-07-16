@@ -227,6 +227,32 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                     { data: 'status', name: 'sales.status', orderable: false },
                     { data: 'action', name: 'action', orderable: false }
                 ],
+                columnDefs: [
+                    {
+                        targets: 10,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 11,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 12,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 13,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    }
+                ],
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
@@ -437,633 +463,366 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
         }
         
         // Function to show the notes modal
-        function showNotesModal(notes, unitName, unitPostcode) {
-            // Set the notes content in the modal with proper line breaks using HTML
-            $('#showNotesModal .modal-body').html(
-                'Unit Name: <strong>' + unitName + '</strong><br>' +
-                'Postcode: <strong>' + unitPostcode + '</strong><br>' +
-                'Notes Detail: <p>' + notes + '</p>'
-            );
+        function showNotesModal(saleID, notes, unitName, unitPostcode) {
+            const modalId = `showNotesModal_${saleID}`;
+            const modalLabelId = `${modalId}_Label`;
+            const modalBodyId = `${modalId}_Body`;
 
-            // Show the modal
-            $('#showNotesModal').modal('show');
-
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#showNotesModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="showNotesModal" tabindex="-1" aria-labelledby="showNotesModalLabel" >' +
-                        '<div class="modal-dialog modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="showNotesModalLabel">Sale Notes</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
-        }
-    
-        // Function to show the notes modal
-        function addNotesModal(saleID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#notesModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" >' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="notesModalLabel">Add Notes</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<form id="notesForm">' +
-                                        '<div class="mb-3">' +
-                                            '<label for="detailsTextarea" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextarea" rows="4" required></textarea>' +
-                                        '</div>' +
-                                    '</form>' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveNotesButton">'+
-                                        'Save</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
-
-            // Show the modal
-            $('#notesModal').modal('show');
-
-            // Handle the save button click
-            $('#saveNotesButton').off('click').on('click', function() {
-                const notes = $('#detailsTextarea').val();
-
-                if (!notes) {
-                    if (!notes) {
-                        $('#detailsTextarea').addClass('is-invalid');
-                        if ($('#detailsTextarea').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextarea').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
-                    }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextarea').on('input', function() {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-
-                    return;
-                }
-
-                // Remove validation errors if inputs are valid
-                $('#detailsTextarea').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextarea').next('.invalid-feedback').remove();
-
-                // Send the data via AJAX
-                $.ajax({
-                    url: '{{ route("storeSaleNotes") }}', // Replace with your endpoint
-                    type: 'POST',
-                    data: {
-                        sale_id: saleID,
-                        details: notes,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
-                    },
-                    success: function(response) {
-                        toastr.success('Notes saved successfully!');
-
-                        $('#notesModal').modal('hide'); // Close the modal
-                        $('#notesForm')[0].reset(); // Clear the form
-                        $('#detailsTextarea').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextarea').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#sales_table').DataTable().ajax.reload(); // Reload the DataTable
-                    },
-                    error: function(xhr) {
-                        alert('An error occurred while saving notes.');
-                    }
-                });
-            });
-        }
-        
-        // Function to change sale status modal
-        function changeSaleStatusModal(saleID, status) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#changeSaleStatusModal').length === 0) {
-                $('body').append(
-                    `<div class="modal fade" id="changeSaleStatusModal" tabindex="-1" aria-labelledby="changeSaleStatusModalLabel" >
-                        <div class="modal-dialog modal-lg modal-dialog-top">
+            // Append modal HTML only if not already added
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}">
+                        <div class="modal-dialog modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="changeSaleStatusModalLabel">Change Sale Status</h5>
+                                    <h5 class="modal-title" id="${modalLabelId}">Sale Notes</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body">
-                                    <form id="changeSaleStatusForm">
-                                        <div class="mb-3">
-                                            <label for="detailsTextarea" class="form-label">Details</label>
-                                            <textarea class="form-control" id="detailsTextarea" rows="4" required></textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="statusDropdown" class="form-label">Status</label>
-                                            <select class="form-select" id="statusDropdown" required>
-                                                <option value="" disabled selected>Select Status</option>
-                                                <option value="1">Active</option>
-                                                <option value="0">Closed</option>
-                                                <option value="2">Pending</option>
-                                                <option value="3">Reject</option>
-                                            </select>
-                                        </div>
-                                    </form>
+                                <div class="modal-body" id="${modalBodyId}">
+                                    <!-- Notes content will be inserted dynamically -->
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="saveNotesButton">Save</button>
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
-                    </div>`
-                );
+                    </div>
+                `);
             }
 
-            // Show the modal
-            $('#changeSaleStatusModal').modal('show');
+            // Set notes content
+            $(`#${modalBodyId}`).html(`
+                Unit Name: <strong>${unitName}</strong><br>
+                Postcode: <strong>${unitPostcode}</strong><br>
+                Notes Detail: <p>${notes}</p>
+            `);
 
-            $('#statusDropdown').val(status); // this should now work
-
-            // Handle the save button click
-            $('#saveNotesButton').off('click').on('click', function () {
-                const notes = $('#detailsTextarea').val();
-                const selectedStatus = $('#statusDropdown').val();
-
-                let hasError = false;
-
-                if (!notes) {
-                    $('#detailsTextarea').addClass('is-invalid');
-                    if ($('#detailsTextarea').next('.invalid-feedback').length === 0) {
-                        $('#detailsTextarea').after('<div class="invalid-feedback">Please provide details.</div>');
-                    }
-                    hasError = true;
-                }
-
-                if (!selectedStatus) {
-                    $('#statusDropdown').addClass('is-invalid');
-                    if ($('#statusDropdown').next('.invalid-feedback').length === 0) {
-                        $('#statusDropdown').after('<div class="invalid-feedback">Please select a status.</div>');
-                    }
-                    hasError = true;
-                }
-
-                if (hasError) {
-                    $('#detailsTextarea').on('input', function () {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-
-                    $('#statusDropdown').on('change', function () {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-
-                    return;
-                }
-
-                // AJAX request
-                $.ajax({
-                    url: '{{ route("changeSaleStatus") }}',
-                    type: 'POST',
-                    data: {
-                        sale_id: saleID,
-                        details: notes,
-                        status: selectedStatus,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function (response) {
-                        toastr.success('Sale status changed successfully!');
-                        $('#changeSaleStatusModal').modal('hide');
-                        $('#changeSaleStatusForm')[0].reset();
-                        $('#detailsTextarea, #statusDropdown').removeClass('is-valid is-invalid');
-                        $('#detailsTextarea, #statusDropdown').next('.invalid-feedback').remove();
-
-                        $('#sales_table').DataTable().ajax.reload();
-                    },
-                    error: function (xhr) {
-                        toastr.error('An error occurred while saving sale status changed.');
-                    }
-                });
-            });
+            // Show modal
+            $(`#${modalId}`).modal('show');
         }
-       
-        // Function to change on hold status modal
-        function changeSaleOnHoldStatusModal(saleID, status) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#changeSaleOnHoldStatusModal').length === 0) {
-                $('body').append(
-                    `<div class="modal fade" id="changeSaleOnHoldStatusModal" tabindex="-1" aria-labelledby="changeSaleOnHoldStatusModalLabel" >
-                        <div class="modal-dialog modal-lg modal-dialog-top">
+
+        function showDetailsModal(
+            saleId, officeName, name, postcode,
+            jobCategory, jobTitle, status, timing, experience,
+            salary, position, qualification, benefits
+        ) {
+            const modalId = `showDetailsModal_${saleId}`;
+            const labelId = `${modalId}_Label`;
+            const bodyId = `${modalId}_Body`;
+
+            // Append modal HTML only if not already added
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}">
+                        <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="changeSaleOnHoldStatusModalLabel">Mark as On Hold Details</h5>
+                                    <h5 class="modal-title" id="${labelId}">Sale Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body">
-                                    <form id="changeSaleOnHoldStatusForm">
-                                        <div class="mb-3">
-                                            <label for="detailsTextarea" class="form-label">Details</label>
-                                            <textarea class="form-control" id="detailsTextarea" rows="4" required></textarea>
+                                <div class="modal-body" id="${bodyId}">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
                                         </div>
-                                        <input type="hidden" id="status" name="status" value="${status}">
-                                    </form>
+                                    </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="saveOnHoldNotesButton">Save</button>
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
-                    </div>`
-                );
+                    </div>
+                `);
             }
 
-            // Show the modal
-            $('#changeSaleOnHoldStatusModal').modal('show');
-
-            // Handle the save button click
-            $('#saveOnHoldNotesButton').off('click').on('click', function () {
-                const notes = $('#detailsTextarea').val();
-                const selectedStatus = $('#status').val();
-
-                let hasError = false;
-
-                if (!notes) {
-                    $('#detailsTextarea').addClass('is-invalid');
-                    if ($('#detailsTextarea').next('.invalid-feedback').length === 0) {
-                        $('#detailsTextarea').after('<div class="invalid-feedback">Please provide details.</div>');
-                    }
-                    hasError = true;
-                }
-
-                if (hasError) {
-                    $('#detailsTextarea').on('input', function () {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-
-                    return;
-                }
-
-                // AJAX request
-                $.ajax({
-                    url: '{{ route("changeSaleHoldStatus") }}',
-                    type: 'GET',
-                    data: {
-                        id: saleID,
-                        details: notes,
-                        status: selectedStatus,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function (response) {
-                        console.log(response);
-                        toastr.success('Sale status changed successfully!');
-                        $('#changeSaleOnHoldStatusModal').modal('hide');
-                        $('#changeSaleOnHoldStatusForm')[0].reset();
-                        $('#detailsTextarea, #statusDropdown').removeClass('is-valid is-invalid');
-                        $('#detailsTextarea, #statusDropdown').next('.invalid-feedback').remove();
-
-                        $('#sales_table').DataTable().ajax.reload();
-                    },
-                    error: function (xhr) {
-                        toastr.error('An error occurred while saving sale on hold status changed.');
-                    }
-                });
-            });
-        }
-
-        function showDetailsModal(saleId, officeName, name, postcode, 
-            jobCategory, jobTitle, status, timing, experience, salary, 
-            position, qualification, benefits
-        ) 
-        {
-            // Set the notes content in the modal as a table
-            $('#showDetailsModal .modal-body').html(
-                '<table class="table table-bordered">' +
-                    '<tr>' +
-                        '<th>Sale ID</th>' +
-                        '<td>' + saleId + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Head Office Name</th>' +
-                        '<td>' + officeName + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Unit Name</th>' +
-                        '<td>' + name + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Postcode</th>' +
-                        '<td>' + postcode + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Job Category</th>' +
-                        '<td>' + jobCategory + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Job Title</th>' +
-                        '<td>' + jobTitle + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Status</th>' +
-                        '<td>' + status + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Timing</th>' +
-                        '<td>' + timing + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Qualification</th>' +
-                        '<td>' + qualification + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Salary</th>' +
-                        '<td>' + salary + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Position</th>' +
-                        '<td>' + position + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Experience</th>' +
-                        '<td>' + experience + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Benefits</th>' +
-                        '<td>' + benefits + '</td>' +
-                    '</tr>' +
-                '</table>'
-            );
+            // Show loader initially
+            $(`#${bodyId}`).html(`
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `);
 
             // Show the modal
-            $('#showDetailsModal').modal('show');
+            $(`#${modalId}`).modal('show');
 
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#showDetailsModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="showDetailsModal" tabindex="-1" aria-labelledby="showDetailsModalLabel" >' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="showDetailsModalLabel">Sale Details</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
+            // Inject table content after short delay (simulating loader usage)
+            setTimeout(() => {
+                $(`#${bodyId}`).html(`
+                    <table class="table table-bordered">
+                        <tr><th>Sale ID</th><td>${saleId}</td></tr>
+                        <tr><th>Head Office Name</th><td>${officeName}</td></tr>
+                        <tr><th>Unit Name</th><td>${name}</td></tr>
+                        <tr><th>Postcode</th><td>${postcode}</td></tr>
+                        <tr><th>Job Category</th><td>${jobCategory}</td></tr>
+                        <tr><th>Job Title</th><td>${jobTitle}</td></tr>
+                        <tr><th>Status</th><td>${status}</td></tr>
+                        <tr><th>Timing</th><td>${timing}</td></tr>
+                        <tr><th>Qualification</th><td>${qualification}</td></tr>
+                        <tr><th>Salary</th><td>${salary}</td></tr>
+                        <tr><th>Position</th><td>${position}</td></tr>
+                        <tr><th>Experience</th><td>${experience}</td></tr>
+                        <tr><th>Benefits</th><td>${benefits}</td></tr>
+                    </table>
+                `);
+            }, 300); // Loader visible for 300ms
         }
 
         // Function to show the notes modal
         function viewSaleDocuments(id) {
-            // Make an AJAX call to retrieve notes history data
+            const modalId = `viewSaleDocumentsModal_${id}`;
+            const modalLabelId = `${modalId}_Label`;
+            const modalBodyId = `${modalId}_Body`;
+
+            // Append modal HTML if not already present
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalLabelId}">Sale Documents</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body" id="${modalBodyId}">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Reset with loader if modal exists already
+                $(`#${modalBodyId}`).html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Show modal immediately with loader
+            $(`#${modalId}`).modal('show');
+
+            // Make AJAX request to load document data
             $.ajax({
-                url: '{{ route("getSaleDocuments") }}', // Your backend URL to fetch notes history, replace it with your actual URL
+                url: '{{ route("getSaleDocuments") }}',
                 type: 'GET',
-                data: {
-                    id: id
-                }, // Pass the id to your server to fetch the corresponding applicant's notes
+                data: { id: id },
                 success: function(response) {
-                    console.log(response);
-                    var notesHtml = '';  // This will hold the combined HTML for all notes
+                    let html = '';
 
-                    // Check if the response data is empty
-                    if (response.data.length === 0) {
-                        notesHtml = '<p>No record found.</p>';
+                    if (!response.data || response.data.length === 0) {
+                        html = '<p>No documents found.</p>';
                     } else {
-                        // Loop through the response array (assuming it's an array of documents)
                         response.data.forEach(function(doc) {
-                            var doc_name = doc.document_name;
-                            var created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            var file_path = '/storage/' + doc.document_path;
+                            const docName = doc.document_name;
+                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
+                            const filePath = '/storage/' + doc.document_path;
 
-                            // Append each document's details to the notesHtml string, with a button to open in new tab
-                            notesHtml += 
-                                '<div class="note-entry">' +
-                                    '<p><strong>Dated:</strong> ' + created + '</p>' +
-                                    '<p><strong>File:</strong> ' + doc_name + 
-                                    '<br> <button class="btn btn-sm btn-primary" onclick="window.open(\'' + file_path + '\', \'_blank\')">Open</button></p>' +
-                                '</div><hr>';  // Add a separator between notes
+                            html += `
+                                <div class="note-entry">
+                                    <p><strong>Dated:</strong> ${created}</p>
+                                    <p><strong>File:</strong> ${docName}<br>
+                                        <button class="btn btn-sm btn-primary" onclick="window.open('${filePath}', '_blank')">Open</button>
+                                    </p>
+                                </div><hr>`;
                         });
                     }
 
-                    // Set the combined notes content in the modal
-                    $('#viewSaleDocumentsModal .modal-body').html(notesHtml);
-
-                    // Show the modal
-                    $('#viewSaleDocumentsModal').modal('show');
+                    $(`#${modalBodyId}`).html(html);
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    // Optionally, you can display an error message in the modal
-                    $('#viewSaleDocumentsModal .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                    $('#viewSaleDocumentsModal').modal('show');
+                    $(`#${modalBodyId}`).html(`
+                        <p class="text-danger">There was an error retrieving the documents. Please try again later.</p>
+                    `);
                 }
             });
-
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#viewSaleDocumentsModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="viewSaleDocumentsModal" tabindex="-1" aria-labelledby="viewSaleDocumentsModalLabel" >' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="viewSaleDocumentsModalLabel">Sale Documents</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
         }
         
         // Function to show the notes modal
         function viewNotesHistory(id) {
-            // Make an AJAX call to retrieve notes history data
+            const modalId = `viewNotesHistoryModal_${id}`;
+            const modalLabelId = `${modalId}_Label`;
+            const modalBodyId = `${modalId}_Body`;
+
+            // Append modal HTML if not already present
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalLabelId}">Sale Notes History</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body" id="${modalBodyId}">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Reset modal body with loader if it already exists
+                $(`#${modalBodyId}`).html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Show modal immediately
+            $(`#${modalId}`).modal('show');
+
+            // AJAX request to fetch notes
             $.ajax({
-                url: '{{ route("getModuleNotesHistory") }}', // Your backend URL to fetch notes history, replace it with your actual URL
+                url: '{{ route("getModuleNotesHistory") }}',
                 type: 'GET',
-                data: { 
+                data: {
                     id: id,
                     module: 'Horsefly\\Sale'
-
-                }, // Pass the id to your server to fetch the corresponding applicant's notes
+                },
                 success: function(response) {
-                    var notesHtml = '';  // This will hold the combined HTML for all notes
+                    let notesHtml = '';
 
-                    // Check if the response data is empty
-                    if (response.data.length === 0) {
+                    if (!response.data || response.data.length === 0) {
                         notesHtml = '<p>No record found.</p>';
                     } else {
-                        // Loop through the response array (assuming it's an array of notes)
-                        response.data.forEach(function(note) {
-                            var notes = note.details;
-                            var created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
-                            var status = note.status;
+                        response.data.forEach(note => {
+                            const notes = note.details;
+                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                            const status = note.status;
 
-                            // Determine the badge class based on the status value
-                            var statusClass = (status == 1) ? 'bg-success' : 'bg-dark'; // 'bg-success' for active, 'bg-dark' for inactive
-                            var statusText = (status == 1) ? 'Active' : 'Inactive';
+                            const statusClass = (status == 1) ? 'bg-success' : 'bg-dark';
+                            const statusText = (status == 1) ? 'Active' : 'Inactive';
 
-                            // Append each note's details to the notesHtml string
-                            notesHtml += 
-                                '<div class="note-entry">' +
-                                    '<p><strong>Dated:</strong> ' + created + '&nbsp;&nbsp;<span class="badge ' + statusClass + '">' + statusText + '</span></p>' +
-                                    '<p><strong>Notes Detail:</strong> <br>' + notes + '</p>' +
-                                '</div><hr>';  // Add a separator between notes
+                            notesHtml += `
+                                <div class="note-entry">
+                                    <p><strong>Dated:</strong> ${created} &nbsp;
+                                    <span class="badge ${statusClass}">${statusText}</span></p>
+                                    <p><strong>Notes Detail:</strong><br>${notes}</p>
+                                </div><hr>`;
                         });
                     }
 
-                    // Set the combined notes content in the modal
-                    $('#viewNotesHistoryModal .modal-body').html(notesHtml);
-
-                    // Show the modal
-                    $('#viewNotesHistoryModal').modal('show');
+                    $(`#${modalBodyId}`).html(notesHtml);
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    // Optionally, you can display an error message in the modal
-                    $('#viewNotesHistoryModal .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                    $('#viewNotesHistoryModal').modal('show');
+                    $(`#${modalBodyId}`).html(`
+                        <p class="text-danger">Error retrieving notes. Please try again later.</p>
+                    `);
+                    console.error("Error fetching notes history:", error);
                 }
             });
-
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#viewNotesHistoryModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="viewNotesHistoryModal" tabindex="-1" aria-labelledby="viewNotesHistoryModalLabel" >' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="viewNotesHistoryModalLabel">Sale Notes History</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
         }
-       
+
         // Function to show the notes modal
         function viewManagerDetails(id) {
-            // Make an AJAX call to retrieve notes history data
+            const modalId = `viewManagerDetailsModal_${id}`;
+            const modalLabelId = `${modalId}_Label`;
+            const modalBodyId = `${modalId}_Body`;
+
+            // Append modal only if not already in DOM
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalLabelId}">Manager Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body" id="${modalBodyId}">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Reset content to loader if modal already exists
+                $(`#${modalBodyId}`).html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Show the modal
+            $(`#${modalId}`).modal('show');
+
+            // Fetch manager details via AJAX
             $.ajax({
-                url: '{{ route("getModuleContacts") }}', // Your backend URL to fetch notes history, replace it with your actual URL
+                url: '{{ route("getModuleContacts") }}',
                 type: 'GET',
                 data: { 
                     id: id,
                     module: 'Horsefly\\Unit'
-
-                }, // Pass the id to your server to fetch the corresponding applicant's notes
+                },
                 success: function(response) {
-                    var contactHtml = '';  // This will hold the combined HTML for all notes
+                    let contactHtml = '';
 
-                    // Check if the response data is empty
-                    if (response.data.length === 0) {
+                    if (!response.data || response.data.length === 0) {
                         contactHtml = '<p>No record found.</p>';
                     } else {
-                        // Loop through the response array (assuming it's an array of notes)
-                        response.data.forEach(function(contact) {
-                            var name = contact.contact_name;
-                            var email = contact.contact_email;
-                            var phone = contact.contact_phone;
-                            var landline = contact.contact_landline ? contact.contact_landline : '-';
-                            var note = contact.contact_note ? contact.contact_note : 'N/A';
+                        response.data.forEach(contact => {
+                            const name = contact.contact_name;
+                            const email = contact.contact_email;
+                            const phone = contact.contact_phone;
+                            const landline = contact.contact_landline || '-';
+                            const note = contact.contact_note || 'N/A';
 
-                            // Append each note's details to the notesHtml string
-                            contactHtml += 
-                                '<div class="note-entry">' +
-                                    '<p><strong>Name:</strong> ' + name + '</p>' +
-                                    '<p><strong>Email:</strong> ' + email + '</p>' +
-                                    '<p><strong>Phone:</strong> ' + phone + '</p>' +
-                                    '<p><strong>Landline:</strong> ' + landline + '</p>' +
-                                    '<p><strong>Notes:</strong> ' + note + '</p>' +
-                                '</div><hr>';  // Add a separator between notes
+                            contactHtml += `
+                                <div class="note-entry">
+                                    <p><strong>Name:</strong> ${name}</p>
+                                    <p><strong>Email:</strong> ${email}</p>
+                                    <p><strong>Phone:</strong> ${phone}</p>
+                                    <p><strong>Landline:</strong> ${landline}</p>
+                                    <p><strong>Notes:</strong> ${note}</p>
+                                </div><hr>`;
                         });
                     }
 
-                    // Set the combined notes content in the modal
-                    $('#viewManagerDetailsModal .modal-body').html(contactHtml);
-
-                    // Show the modal
-                    $('#viewManagerDetailsModal').modal('show');
+                    $(`#${modalBodyId}`).html(contactHtml);
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    // Optionally, you can display an error message in the modal
-                    $('#viewManagerDetailsModal .modal-body').html('<p>There was an error retrieving the manager details. Please try again later.</p>');
-                    $('#viewManagerDetailsModal').modal('show');
+                    console.error("Error fetching manager details:", error);
+                    $(`#${modalBodyId}`).html(`
+                        <p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>
+                    `);
                 }
             });
-
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#viewManagerDetailsModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="viewManagerDetailsModal" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel" >' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="viewManagerDetailsModalLabel">Manager Details</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
         }
+
     </script>
     
 @endsection

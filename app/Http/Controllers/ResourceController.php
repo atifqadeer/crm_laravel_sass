@@ -22,6 +22,7 @@ use Exception;
 use Carbon\Carbon;
 use Horsefly\CrmNote;
 use Horsefly\JobTitle;
+use Illuminate\Support\Str;
 
 class ResourceController extends Controller
 {
@@ -237,6 +238,37 @@ class ResourceController extends Controller
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                ->addColumn('action', function ($sale) {
                     $is_disable = ($sale->lat == null || $sale->lng == null);
 
@@ -257,7 +289,7 @@ class ResourceController extends Controller
                     return '<div class="btn-group dropstart">' . $action . '</div>';
                 })
 
-                ->rawColumns(['sale_notes', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -775,6 +807,37 @@ class ResourceController extends Controller
                 ->addColumn('applicant_landline', function ($applicant) {
                     return $applicant->formatted_landline;
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('crm_notes_created', function ($applicant) {
                     return Carbon::parse($applicant->crm_notes_created)->format('d M Y, h:i A');
                 })
@@ -838,7 +901,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'sub_stage', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_experience', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'sub_stage', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
 
@@ -1052,6 +1115,37 @@ class ResourceController extends Controller
                 ->addColumn('applicant_landline', function ($applicant) {
                     return $applicant->formatted_landline; // Using accessor
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
@@ -1128,7 +1222,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['checkbox', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_notes', 'applicant_experience', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -1296,6 +1390,37 @@ class ResourceController extends Controller
                 ->addColumn('applicant_phone', function ($applicant) {
                     return $applicant->formatted_phone; // Using accessor
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('applicant_landline', function ($applicant) {
                     return $applicant->formatted_landline; // Using accessor
                 })
@@ -1366,7 +1491,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'customStatus', 'crm_notes_created_at', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_experience', 'applicant_landline', 'applicant_phone', 'job_title', 'customStatus', 'crm_notes_created_at', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -1565,6 +1690,37 @@ class ResourceController extends Controller
 
                     return $applicant_cv . ' ' . $updated_cv;
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
@@ -1641,7 +1797,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['checkbox', 'resume', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'resume', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -1675,7 +1831,7 @@ class ResourceController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource'])
+            ->with(['jobTitle', 'jobCategory', 'jobSource', 'user'])
             ->where(function ($query) {
                 $query->where("applicants.is_job_within_radius", true)
                     ->orWhereDate('applicants.created_at', '=', Carbon::now());  // Current date condition
@@ -1910,6 +2066,37 @@ class ResourceController extends Controller
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
+                ->addColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('resume', function ($applicant) {
                     if (!$applicant->is_blocked) {
                         $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
@@ -2007,7 +2194,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['checkbox', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

@@ -414,6 +414,9 @@ class ApplicantController extends Controller
                                     <div class="modal-body">
                                         ' . nl2br($full) . '
                                     </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1887,6 +1890,37 @@ class ApplicantController extends Controller
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('sale_postcode', function ($sale) {
                     return $sale->formatted_postcode; // Using accessor
                 })
@@ -1997,7 +2031,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -2219,6 +2253,37 @@ class ApplicantController extends Controller
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
                 })
+                ->addColumn('experience', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->experience), 80);
+                    $full = e($sale->experience);
+                    $id = 'exp-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
@@ -2318,7 +2383,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
