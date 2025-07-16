@@ -146,7 +146,7 @@
             const centerAlignedIndices = [];
             for (let i = 0; i < columns.length; i++) {
                 const key = columns[i].data;
-                if (['unit_notes', 'status', 'action'].includes(key)) {
+                if (['status', 'action'].includes(key)) {
                     centerAlignedIndices.push(i);
                 }
             }

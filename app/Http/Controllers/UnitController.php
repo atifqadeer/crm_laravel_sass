@@ -254,23 +254,11 @@ class UnitController extends Controller
                 })
                 ->addColumn('unit_notes', function ($unit) {
                     $notes = nl2br(htmlspecialchars($unit->unit_notes, ENT_QUOTES, 'UTF-8'));
-                    $notes = $notes ? $notes : 'N/A';
-
-                    $name = htmlspecialchars($unit->unit_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($unit->unit_postcode, ENT_QUOTES, 'UTF-8');
-                    $noteBtn = '';
-                    // Tooltip content with additional data-bs-placement and title
-                    if(Gate::allows('unit-view-note')){
-                    $noteBtn .= '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$unit->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    if(Gate::allows('unit-add-note')){
-                    $noteBtn .= '<a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">
-                                <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    return $noteBtn;
+                    return '
+                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">
+                            ' . $notes . '
+                        </a>
+                    ';
                 })
                 ->addColumn('status', function ($unit) {
                     $status = '';

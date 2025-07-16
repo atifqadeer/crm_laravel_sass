@@ -226,22 +226,11 @@ class HeadOfficeController extends Controller
                 })
                 ->addColumn('office_notes', function ($office) {
                     $notes = nl2br(htmlspecialchars($office->office_notes, ENT_QUOTES, 'UTF-8'));
-
-                    $name = htmlspecialchars($office->office_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($office->office_postcode, ENT_QUOTES, 'UTF-8');
-                    $notebtn = '';
-                    // Tooltip content with additional data-bs-placement and title
-                    if(Gate::allows('office-view-note')){
-                    $notebtn .= '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$office->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    if(Gate::allows('office-add-note')){
-                    $notebtn .= '<a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">
-                                <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    return $notebtn;
+                    return '
+                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">
+                            ' . $notes . '
+                        </a>
+                    ';
                 })
                 ->addColumn('status', function ($office) {
                     $status = '';

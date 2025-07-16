@@ -5072,6 +5072,9 @@ class CrmController extends Controller
                                     <div class="modal-body">
                                         ' . nl2br($full) . '
                                     </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

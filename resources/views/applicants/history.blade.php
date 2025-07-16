@@ -93,6 +93,7 @@ $postcode = ucwords($applicant->applicant_postcode);
                                                 <th>Category</th>
                                                 <th>Stage</th>
                                                 <th>Notes</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -159,6 +160,7 @@ $postcode = ucwords($applicant->applicant_postcode);
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'sub_stage', name: 'history.sub_stage' },
                     { data: 'details', name: 'crm_notes.details', orderable: false},
+                    { data: 'action', name: 'action', orderable: false},
                 ],
                 columnDefs: [
                     {
@@ -169,6 +171,12 @@ $postcode = ucwords($applicant->applicant_postcode);
                     },
                     {
                         targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 10,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }

@@ -126,7 +126,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>PostCode</th>
-                                <th width="10%">Phone</th>
+                                <th width="15%">Phone</th>
                                 @canany(['applicant-download-resume'])
                                     <th>Applicant Resume</th>
                                     <th>CRM Resume</th>
@@ -134,7 +134,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Experience</th>
                                 <th>Source</th>
                                 @canany(['applicant-view-note', 'applicant-add-note'])
-                                    <th>Notes</th>
+                                    <th width="25%">Notes</th>
                                 @endcanany
                                 <th>Status</th>
                                 <th>Action</th>

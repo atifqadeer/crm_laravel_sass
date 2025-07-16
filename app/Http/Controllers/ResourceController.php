@@ -2007,15 +2007,15 @@ class ResourceController extends Controller
                     return '-';
                 })
                 ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? $applicant->jobTitle->name : '-';
+                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -2044,24 +2044,37 @@ class ResourceController extends Controller
                     }
                     return $button;
                 })
-                ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
+                ->addColumn('applicant_email', function ($applicant) {
+                    $email = '';
+                    if($applicant->applicant_email_secondary){
+                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                    }else{
+                        $email = $applicant->applicant_email;
+                    }
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . $applicant->id . '\', \'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
-                            <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
+                    return $email; // Using accessor
+                })
+                ->addColumn('applicant_notes', function ($applicant) {
+                    $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
+                    return '
+                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                            ' . $notes . '
                         </a>
-                        <a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . $applicant->id . '\')">
-                            <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                        </a>';
+                    ';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    return $applicant->formatted_phone; // Using accessor
-                })
-                ->addColumn('applicant_landline', function ($applicant) {
-                    return $applicant->formatted_landline; // Using accessor
+                    $strng = '';
+                    if($applicant->applicant_landline){
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                    }else{
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    }
+
+                    return $strng;
                 })
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
@@ -2097,27 +2110,33 @@ class ResourceController extends Controller
                         </div>
                     ';
                 })
-                ->addColumn('resume', function ($applicant) {
+                ->addColumn('applicant_resume', function ($applicant) {
                     if (!$applicant->is_blocked) {
                         $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
+                    } else {
+                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    }
 
+                    return $applicant_cv;
+                })
+                ->addColumn('crm_resume', function ($applicant) {
+                    if (!$applicant->is_blocked) {
                         $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
                             ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
                             <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
                             : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                         $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
                     }
 
-                    return $applicant_cv . ' ' . $updated_cv;
+                    return $updated_cv;
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
-                    $color_class = 'bg-primary';
+                    $color_class = 'bg-dark';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
                         $color_class = 'bg-info';
@@ -2163,15 +2182,15 @@ class ResourceController extends Controller
                     } else {
                         $status = '<span class="badge bg-secondary">Inactive</span>';
                     }
-
-                    return '<div class="btn-group dropstart">
+                    $html = '';
+                    $html .= '<div class="btn-group dropstart">
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
                                 <li>
                                     <a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                        ' . $applicant->id . ',
+                                        ' . (int)$applicant->id . ',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_email ?? '-')) . '\',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary ?? '-')) . '\',
@@ -2186,15 +2205,22 @@ class ResourceController extends Controller
                                     )">View Details</a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#" onclick="triggerFileInput(' . $applicant->id . ')">Upload Resume</a>
+                                    <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                     <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                </li>';
+                        $html .= '<li>
+                                <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                <!-- Hidden File Input -->
+                                <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                            </li>';
+                        $html .= '<li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
+
+                        return $html;
                 })
-                ->rawColumns(['checkbox', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_email', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

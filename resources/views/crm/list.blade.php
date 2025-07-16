@@ -226,6 +226,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
     <script>
         $(document).ready(function() {
+            setInterval(() => {
+                $('#applicants_table').DataTable().ajax.reload(null, false); // 'false' keeps current page
+            }, 30000); // 60,000 milliseconds = 1 minute
+
             // Store the current filter in a variable
             var tabFilter = '';
             var currentTypeFilter = '';

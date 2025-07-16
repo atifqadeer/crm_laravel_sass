@@ -433,26 +433,21 @@ class ApplicantController extends Controller
                     return $email; // Using accessor
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
-                    return $applicant->formatted_postcode; // Using accessor
+                    if($applicant->lat != null && $applicant->lng != null){
+                        $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
+                        $button = '<a href="'. $url .'" target="_blank" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
+                    }else{
+                        $button = $applicant->formatted_postcode;
+                    }
+                    return $button;
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->formatted_postcode, ENT_QUOTES, 'UTF-8');
-
-                    // Tooltip content with additional data-bs-placement and title
-                    $buttons = '';
-                    if (Gate::allows('applicant-view-note')) {
-                        $buttons .= '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\',\'' . $notes . '\', \'' . ucwords($name) . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    if (Gate::allows('applicant-add-note')) {
-                        $buttons .= '<a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
-                                <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                            </a>';
-                    }
-                    return $buttons;
+                    $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
+                    return '
+                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                            ' . $notes . '
+                        </a>
+                    ';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
                     $strng = '';
@@ -609,7 +604,7 @@ class ApplicantController extends Controller
 
                         return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicant_phone', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicant_phone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -1185,18 +1180,37 @@ class ApplicantController extends Controller
                     return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->sub_stage)) . '</span>';
                 })
                 ->addColumn('details', function ($row) {
-                    $notes = htmlspecialchars($row->note_details, ENT_QUOTES, 'UTF-8');
-                    $office_name = htmlspecialchars($row->office_name, ENT_QUOTES, 'UTF-8');
-                    $unit_name = htmlspecialchars($row->unit_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($row->sale_postcode, ENT_QUOTES, 'UTF-8');
+                    $short = Str::limit(strip_tags($row->note_details), 100);
+                    $full = e($row->note_details);
+                    $id = 'exp-' . $row->id;
 
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Notes</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$row->sale_id . '\',\'' . $notes . '\', \'' . ucwords($office_name) . '\', \'' . ucwords($unit_name) . '\', \'' . $postcode . '\', \'' . $row->notes_created_at . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>
-                            <a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->app_id . '\',\'' . (int)$row->sale_id . '\')">
-                                <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
-                            </a>';
+                    return $notes;
                 })
                 ->addColumn('job_details', function ($row) {
                     $position_type = strtoupper(str_replace('-', ' ', $row->position_type));
@@ -1242,7 +1256,13 @@ class ApplicantController extends Controller
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
                 })
-                ->rawColumns(['details', 'job_category', 'job_title', 'job_details', 'sub_stage'])
+                ->addColumn('action', function ($row) {
+                    // Tooltip content with additional data-bs-placement and title
+                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->app_id . '\',\'' . (int)$row->sale_id . '\')">
+                                <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                            </a>';
+                })
+                ->rawColumns(['details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
                 ->make(true);
         }
     }
@@ -1718,6 +1738,7 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
+            ->where('sales.status', 1) // Only active sales
             ->having("distance", "<", $radius)
             ->orderBy("distance")
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
@@ -1930,74 +1951,74 @@ class ApplicantController extends Controller
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
                 })
-                ->addColumn('sale_notes', function ($sale) {
-                    $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
-                    $notes = $notes ? $notes : 'N/A';
-                    $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
-                    $office = Office::find($sale->office_id);
-                    $office_name = $office ? $office->office_name : '-';
-                    $unit = Unit::find($sale->unit_id);
-                    $unit_name = $unit ? $unit->unit_name : '-';
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Notes" onclick="showNotesModal(\'' . $sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
-                })
-                ->addColumn('status', function ($sale) {
-                    $status = '';
-                    if ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
-                        $status = '<span class="badge bg-danger">Closed</span>';
-                    } elseif ($sale->status == 2) {
-                        $status = '<span class="badge bg-warning">Pending</span>';
-                    } elseif ($sale->status == 3) {
-                        $status = '<span class="badge bg-danger">Rejected</span>';
-                    }
+                ->addColumn('sale_notes', function ($sale) {                   
+                    $short = Str::limit(strip_tags($sale->sale_notes), 100);
+                    $full = e($sale->sale_notes);
+                    $id = 'notes-' . $sale->id;
 
-                    return $status;
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Notes</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
-                ->addColumn('paid_status', function ($sale) use ($applicant) {
-                    $status_value = 'open';
-                    $color_class = 'bg-success';
+                ->addColumn('status', function ($sale)  use ($applicant) {
+                    $status_value = 'Open';
+                    $status_clr = 'bg-dark';
                     foreach ($applicant->cv_notes as $key => $value) {
-                        if ($value['status'] == 1) { //active
-                            $status_value = 'sent';
-                            break;
-                        } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale->id)) {
-                            $status_value = 'reject_job';
-                            $color_class = 'bg-danger';
-                            break;
-                        } elseif ($value['status'] == 0) { //disable
-                            $status_value = 'reject';
-                            $color_class = 'bg-danger';
-                        } elseif (($value['status'] == 2) && //2 for paid
-                            ($value['sale_id'] == $sale->id) &&
-                            ($applicant->paid_status == 'open')
-                        ) {
-                            $status_value = 'paid';
-                            $color_class = 'bg-primary';
-                            break;
+                        if ($value->sale_id == $sale->id) {
+                            if ($value->status == 1) {
+                                $status_value = 'Sent';
+                                $status_clr = 'bg-success';
+                                break;
+                            } elseif ($value->status == 0) {
+                                $status_value = 'Reject Job';
+                                $status_clr = 'bg-danger';
+                                break;
+                            } elseif ($value->status == 2) {
+                                $status_value = 'Paid';
+                                $status_clr = 'bg-success';
+                                break;
+                            }
                         }
                     }
-                    $status = '';
-                    $status .= '<span class="badge ' . $color_class . '">';
-                    $status .= ucwords($status_value);
-                    $status .= '</span>';
 
-                    return $status;
+                    return '<span class="badge '. $status_clr .'">'. $status_value .'</span>';
                 })
                 ->addColumn('action', function ($sale) use ($applicant) {
                     $status_value = 'open';
                     foreach ($applicant->cv_notes as $key => $value) {
-                        if ($value['status'] == 1) { //active
-                            $status_value = 'sent';
-                            break;
-                        } elseif ($value['status'] == 0) { //disable
-                            $status_value = 'reject_job';
-                        } elseif ($value['status'] == 2) { //paid
-                            $status_value = 'paid';
-                            break;
+                        if ($value->sale_id == $sale->id) {
+                            if ($value->status == 1) {
+                                $status_value = 'sent';
+                                break;
+                            } elseif ($value->status == 0) {
+                                $status_value = 'reject_job';
+                                break;
+                            } elseif ($value->status == 2) {
+                                $status_value = 'paid';
+                                break;
+                            }
                         }
                     }
 
@@ -2071,6 +2092,7 @@ class ApplicantController extends Controller
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->having('distance', '<', $radius)
             ->orderBy('distance')
+            ->where('sales.status', 1) // Only active sales
             ->whereNotExists(function ($query) use ($applicant_id) {
                 $query->select(DB::raw(1))
                     ->from('applicants_pivot_sales')
