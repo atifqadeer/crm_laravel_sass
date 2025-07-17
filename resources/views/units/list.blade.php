@@ -77,7 +77,9 @@
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
                                 <th>PostCode</th>
-                                <th>Website</th>
+                                <th>Contact Email</th>
+                                <th>Contact Phone</th>
+                                <th>Contact Landline</th>
                                 @canany(['unit-view-note', 'unit-add-note'])
                                 <th>Notes</th>
                                 @endcanany
@@ -127,7 +129,9 @@
                 { data: 'office_name', name: 'offices.office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
-                { data: 'unit_website', name: 'units.unit_website' }
+                { data: 'contact_email', name: 'contacts.contact_email' },                
+                { data: 'contact_phone', name: 'contacts.contact_phone' },                
+                { data: 'contact_landline', name: 'contacts.contact_landline' },
             ];
 
             if (hasViewNotePermission || hasAddNotePermission) {

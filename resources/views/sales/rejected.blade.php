@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Sales List', 'subTitle' => 'Sales'])
+@extends('layouts.vertical', ['title' => 'Rejected Sales List', 'subTitle' => 'Sales'])
 @section('style')
 <style>
     .dropdown-toggle::after {
@@ -23,6 +23,18 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 <div class="row justify-content-between">
                     <div class="col-lg-12">
                         <div class="text-md-end mt-3">
+                            <!-- Date Range filter -->
+                            <div class="dropdown d-inline">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 3 Months</span>
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
+                                    <a class="dropdown-item date-range-filter" href="#">Last 3 Months</a>
+                                    <a class="dropdown-item date-range-filter" href="#">Last 6 Months</a>
+                                    <a class="dropdown-item date-range-filter" href="#">Last 9 Months</a>
+                                    <a class="dropdown-item date-range-filter" href="#">Other</a>
+                                </div>
+                            </div>
                              <!-- user Filter Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
@@ -94,35 +106,16 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                     <a class="dropdown-item cv-limit-filter" href="#">Max</a>
                                 </div>
                             </div>
-                            <!-- Status Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item status-filter" href="#">All</a>
-                                    <a class="dropdown-item status-filter" href="#">Active</a>
-                                    <a class="dropdown-item status-filter" href="#">Closed</a>
-                                    <a class="dropdown-item status-filter" href="#">Pending</a>
-                                    <a class="dropdown-item status-filter" href="#">Rejected</a>
-                                    <a class="dropdown-item status-filter" href="#">On Hold</a>
-                                </div>
-                            </div>
                             <!-- Button Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-download-line me-1"></i> Export
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'all']) }}">Export All Data</a>
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'emails']) }}">Export Emails</a>
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'allClose']) }}">Export All Data</a>
+                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'emailsClose']) }}">Export Emails</a>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import CSV">
-                                <i class="ri-upload-line"></i>
-                            </button>
-                            <a href="{{ route('sales.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Sale</button></a>
                         </div>
                     </div><!-- end col-->
                 </div>
@@ -142,7 +135,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 <th>#</th>
                                 <th>Created Date</th>
                                 <th>Updated Date</th>
-                                <th>Open Date</th>
+                                <th>Closed Date</th>
                                 <th>Agent</th>
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
@@ -200,15 +193,13 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-     
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
             var currentTypeFilter = '';
+            var currentDateRangeFilter = '';
             var currentCategoryFilter = '';
             var currentUserFilter = '';
             var currentTitleFilter = '';
@@ -231,12 +222,13 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 processing: false,  // Disable default processing state
                 serverSide: true,  // Enables server-side processing
                 ajax: {
-                    url: @json(route('getSales')),  // Fetch data from the backend
+                    url: @json(route('getRejectedSales')),  // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
+                        d.date_range_filter = currentDateRangeFilter;  // Send the current filter value as a parameter
                         d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
                         d.office_filter = currentOfficeFilter;  // Send the current filter value as a parameter
@@ -248,7 +240,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'created_at', name: 'sales.created_at' },
                     { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'open_date', name: 'audits.created_at' },
+                    { data: 'closed_date', name: 'audits.created_at' },
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
@@ -409,6 +401,27 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 table.ajax.reload(); // Reload with updated status filter
             });
             // Status filter dropdown handler
+            $('.date-range-filter').on('click', function () {
+                // Get the clicked text and convert to lowercase
+                currentDateRangeFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
+
+                // Format text for display: capitalize each word (using the original string)
+                const formattedText = $(this).text()
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                // Update the dropdown display label
+                $('#showDateRange').html(formattedText);
+
+                // Optionally, log or use currentDateRangeFilter with hyphens
+                console.log('Selected filter:', currentDateRangeFilter);
+
+                // Reload table (assuming it uses currentDateRangeFilter somehow)
+                table.ajax.reload();
+            });
+            // Status filter dropdown handler
             $('.category-filter').on('click', function () {
                 const categoryName = $(this).text().trim();
                 currentCategoryFilter = $(this).data('category-id') ?? ''; // nullish fallback for "All Category"
@@ -482,6 +495,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 input.classList.add('is-invalid');
             }
         }
+
         // Function to move the page forward or backward
         function movePage(page) {
             var table = $('#sales_table').DataTable();
@@ -667,7 +681,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                             <label for="detailsTextarea_${saleID}" class="form-label">Details</label>
                                             <textarea class="form-control" id="detailsTextarea_${saleID}" rows="4" required></textarea>
                                         </div>
-                                        <div class="mb-3">
+                                        <div class="mb-3" style="display:none;">
                                             <label for="statusDropdown_${saleID}" class="form-label">Status</label>
                                             <select class="form-select" id="statusDropdown_${saleID}" required>
                                                 <option value="" disabled selected>Select Status</option>

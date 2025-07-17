@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Open Sales List', 'subTitle' => 'Home'])
+@extends('layouts.vertical', ['title' => 'Open Sales List', 'subTitle' => 'Sales'])
 @section('style')
 <style>
     .dropdown-toggle::after {
@@ -24,18 +24,28 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     <div class="col-lg-12">
                         <div class="text-md-end mt-3">
                             <!-- Date Range filter -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 3 Months</span>
+                            <div class="d-inline">
+                                <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
+                                <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
+                                    <i class="ri-close-line"></i>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
-                                    <a class="dropdown-item date-range-filter" href="#">Last 3 Months</a>
-                                    <a class="dropdown-item date-range-filter" href="#">Last 6 Months</a>
-                                    <a class="dropdown-item date-range-filter" href="#">Last 9 Months</a>
-                                    <a class="dropdown-item date-range-filter" href="#">Other</a>
+                            </div>
+                            <!-- Date Range filter -->
+
+                            <!-- Date flock filter -->
+                            <div class="dropdown d-inline">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dateFlockDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ri-calendar-line me-1"></i> <span id="showDateFlock">Last 3 Months</span>
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dateFlockDropdown">
+                                    <a class="dropdown-item date-flock-filter" href="#">Last 3 Months</a>
+                                    <a class="dropdown-item date-flock-filter" href="#">Last 6 Months</a>
+                                    <a class="dropdown-item date-flock-filter" href="#">Last 9 Months</a>
+                                    <a class="dropdown-item date-flock-filter" href="#">Other</a>
                                 </div>
                             </div>
-                             <!-- user Filter Dropdown -->
+                            <!-- Date flock filter -->
+                            
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
@@ -177,13 +187,53 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+    <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     
     <script>
+        $(function() {
+            // Initialize the date range picker
+            $('#dateRangePicker').daterangepicker({
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear'
+                }
+            });
+
+            // When a date range is selected
+            $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
+                // Set the filter variable and reload DataTable
+                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
+                $('#showDateRange').html($(this).val());
+                $('#sales_table').DataTable().ajax.reload();
+            });
+
+            // When the date range is cleared
+            $('#dateRangePicker').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
+                window.currentDateRangeFilter = '';
+                $('#showDateRange').html('All Data');
+                $('#sales_table').DataTable().ajax.reload();
+            });
+
+            // Clear button
+            $('#clearDateRange').on('click', function() {
+                $('#dateRangePicker').val('');
+                window.currentDateRangeFilter = '';
+                $('#showDateRange').html('All Data');
+                $('#sales_table').DataTable().ajax.reload();
+            });
+        });
+
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
             var currentTypeFilter = '';
             var currentDateRangeFilter = '';
+            var currentDateFlockFilter = '';
             var currentCategoryFilter = '';
             var currentUserFilter = '';
             var currentTitleFilter = '';
@@ -212,7 +262,8 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.date_range_filter = currentDateRangeFilter;  // Send the current filter value as a parameter
+                        d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
+                        d.date_flock_filter = currentDateFlockFilter;  // Send the current filter value as a parameter
                         d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
                         d.office_filter = currentOfficeFilter;  // Send the current filter value as a parameter
@@ -384,9 +435,9 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 table.ajax.reload(); // Reload with updated status filter
             });
             // Status filter dropdown handler
-            $('.date-range-filter').on('click', function () {
+            $('.date-flock-filter').on('click', function () {
                 // Get the clicked text and convert to lowercase
-                currentDateRangeFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
+                currentDateFlockFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
 
                 // Format text for display: capitalize each word (using the original string)
                 const formattedText = $(this).text()
@@ -396,10 +447,10 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     .join(' ');
 
                 // Update the dropdown display label
-                $('#showDateRange').html(formattedText);
+                $('#showDateFlock').html(formattedText);
 
                 // Optionally, log or use currentDateRangeFilter with hyphens
-                console.log('Selected filter:', currentDateRangeFilter);
+                console.log('Selected filter:', currentDateFlockFilter);
 
                 // Reload table (assuming it uses currentDateRangeFilter somehow)
                 table.ajax.reload();

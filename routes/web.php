@@ -125,6 +125,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('direct', [SaleController::class, 'directSaleIndex'])->name('sales.direct');
         Route::get('open', [SaleController::class, 'openSaleIndex'])->name('sales.open');
         Route::get('closed', [SaleController::class, 'closeSaleIndex'])->name('sales.closed');
+        Route::get('rejected', [SaleController::class, 'rejectedSaleIndex'])->name('sales.rejected');
         Route::get('on-hold', [SaleController::class, 'onHoldSaleIndex'])->name('sales.on-hold');
         Route::get('pending-on-hold', [SaleController::class, 'pendingOnHoldSaleIndex'])->name('sales.pending-on-hold');
     });
@@ -133,6 +134,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     ->name('fetchApplicantsWithinSaleRadiusIndex');
     Route::get('getSales', [SaleController::class, 'getSales'])->name('getSales');
     Route::get('getDirectSales', [SaleController::class, 'getDirectSales'])->name('getDirectSales');
+    Route::get('getRejectedSales', [SaleController::class, 'getRejectedSales'])->name('getRejectedSales');
     Route::get('getClosedSales', [SaleController::class, 'getClosedSales'])->name('getClosedSales');
     Route::get('getOpenSales', [SaleController::class, 'getOpenSales'])->name('getOpenSales');
     Route::get('pendingOnHoldSales', [SaleController::class, 'pendingOnHoldSales'])->name('pendingOnHoldSales');

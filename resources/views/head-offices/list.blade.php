@@ -75,8 +75,11 @@
                                 <th>#</th>
                                 <th>Date</th>
                                 <th>Name</th>
+                                <th>Type</th>
                                 <th>PostCode</th>
-                                <th>Website</th>
+                                <th>Contact Email</th>
+                                <th>Contact Phone</th>
+                                <th>Contact Landline</th>
                                 @canany(['office-view-note', 'office-add-note'])
                                     <th>Notes</th>
                                 @endcanany
@@ -135,8 +138,11 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'offices.created_at' },
                 { data: 'office_name', name: 'offices.office_name' },
+                { data: 'office_type', name: 'offices.office_type' },
                 { data: 'office_postcode', name: 'offices.office_postcode' },
-                { data: 'office_website', name: 'offices.office_website' },                
+                { data: 'contact_email', name: 'contacts.contact_email' },                
+                { data: 'contact_phone', name: 'contacts.contact_phone' },                
+                { data: 'contact_landline', name: 'contacts.contact_landline' },                
             ];
 
             if (hasViewNotePermission || hasAddNotePermission) {

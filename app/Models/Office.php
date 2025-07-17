@@ -14,6 +14,7 @@ class Office extends Model
         'office_uid',
         'user_id',
         'office_name',
+        'office_type',
         'office_website',
         'office_postcode',
         'office_notes',

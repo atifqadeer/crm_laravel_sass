@@ -179,7 +179,7 @@ class UnitController extends Controller
                 'offices.office_name as office_name',
             ])
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-            ->with(['office']);
+            ->with(['office','contact']);
 
         // Filter by status if it's not empty
         switch($statusFilter){
@@ -237,14 +237,43 @@ class UnitController extends Controller
                     return $office ? $office->office_name : '-';
                 })
                 ->addColumn('unit_name', function ($unit) {
-                    return '<a title="View Manager Details" style="color:blue" href="#" onclick="viewManagerDetails(' . $unit->id . ')">'.$unit->formatted_unit_name.'</a>'; // Using accessor
+                    return $unit->formatted_unit_name; // Using accessor
                 })
                 ->addColumn('unit_postcode', function ($unit) {
                     return $unit->formatted_postcode; // Using accessor
                 })
-                ->addColumn('website', function ($unit) {
-                    $website = $unit->website;
-                    return $website ? '<a href="' . e($website) . '" target="_blank">' . e($website) . '</a>' : '-';
+                ->addColumn('contact_email', function ($unit) {
+                    $contact = $unit->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $email = [];
+                        foreach ($contact as $c) {
+                            $email[] = $c->contact_email ? e($c->contact_email) : '-';
+                        }
+                        return implode('<br>', $email);
+                    }
+                    return '-';
+                })
+                ->addColumn('contact_landline', function ($unit) {
+                    $contact = $unit->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $landline = [];
+                        foreach ($contact as $c) {
+                            $landline[] = $c->contact_landline ? e($c->contact_landline) : '-';
+                        }
+                        return implode('<br>', $landline);
+                    }
+                    return '-';
+                })
+                ->addColumn('contact_phone', function ($unit) {
+                    $contact = $unit->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $phones = [];
+                        foreach ($contact as $c) {
+                            $phones[] = $c->contact_phone ? e($c->contact_phone) : '-';
+                        }
+                        return implode('<br>', $phones);
+                    }
+                    return '-';
                 })
                 ->addColumn('created_at', function ($unit) {
                     return $unit->formatted_created_at; // Using accessor
@@ -314,7 +343,7 @@ class UnitController extends Controller
                         return $html;
                 })
 
-                ->rawColumns(['unit_notes', 'unit_name', 'office_name', 'status', 'action', 'website'])
+                ->rawColumns(['unit_notes', 'unit_name', 'contact_email', 'contact_landline', 'contact_phone', 'office_name', 'status', 'action'])
                 ->make(true);
         }
     }

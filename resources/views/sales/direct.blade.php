@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Direct Sales List', 'subTitle' => 'Home'])
+@extends('layouts.vertical', ['title' => 'Direct Sales List', 'subTitle' => 'Sales'])
 @section('style')
 <style>
     .dropdown-toggle::after {

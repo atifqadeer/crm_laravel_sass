@@ -133,11 +133,11 @@
                                         <a class="sub-nav-link" href="{{ route('sales.create')}}">Create Sale</a>
                                    </li>
                                    @endcanany
-                                   @canany(['sale-direct-index'])
+                                   {{-- @canany(['sale-direct-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('sales.direct')}}">Direct Sales</a>
                                    </li>
-                                   @endcanany
+                                   @endcanany --}}
                                    @canany(['sale-open-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('sales.open')}}">Open Sales</a>
@@ -148,6 +148,9 @@
                                         <a class="sub-nav-link" href="{{ route('sales.closed')}}">Closed Sales</a>
                                    </li>
                                    @endcanany
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('sales.rejected')}}">Rejected Sales</a>
+                                   </li>
                                    @canany(['sale-hold-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('sales.on-hold')}}">On Hold Sales</a>

@@ -45,6 +45,7 @@ class HeadOfficeController extends Controller
         // Validation
         $validator = Validator::make($request->all(), [
             'office_name' => 'required|string|max:255',
+            'office_type' => 'required',
             'office_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
 
             'office_notes' => 'required|string|max:255',
@@ -80,6 +81,7 @@ class HeadOfficeController extends Controller
             // Get office data
             $officeData = $request->only([
                 'office_name',
+                'office_type',
                 'office_postcode',
                 'office_website',
                 'office_notes',
@@ -169,7 +171,8 @@ class HeadOfficeController extends Controller
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
-        $model = Office::query();
+        $model = Office::query()
+            ->with(['contact']);
 
         // Filter by status if it's not empty
         switch($statusFilter){
@@ -208,10 +211,43 @@ class HeadOfficeController extends Controller
                 ->addColumn('office_postcode', function ($office) {
                     return $office->formatted_postcode; // Using accessor
                 })
-                ->addColumn('website', function ($office) {
-                    $website = $office->website;
-                    return $website ? '<a href="' . e($website) . '" target="_blank">' . e($website) . '</a>' : '-';
+                ->addColumn('office_type', function ($office) {
+                    return ucwords(str_replace('_',' ',$office->office_type)); // Using accessor
                 })
+                ->addColumn('contact_email', function ($office) {
+                    $contact = $office->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $email = [];
+                        foreach ($contact as $c) {
+                            $email[] = $c->contact_email ? e($c->contact_email) : '-';
+                        }
+                        return implode('<br>', $email);
+                    }
+                    return '-';
+                })
+                ->addColumn('contact_landline', function ($office) {
+                    $contact = $office->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $landline = [];
+                        foreach ($contact as $c) {
+                            $landline[] = $c->contact_landline ? e($c->contact_landline) : '-';
+                        }
+                        return implode('<br>', $landline);
+                    }
+                    return '-';
+                })
+                ->addColumn('contact_phone', function ($office) {
+                    $contact = $office->contact;
+                    if ($contact && $contact->count() > 0) {
+                        $phones = [];
+                        foreach ($contact as $c) {
+                            $phones[] = $c->contact_phone ? e($c->contact_phone) : '-';
+                        }
+                        return implode('<br>', $phones);
+                    }
+                    return '-';
+                })
+
                 ->addColumn('created_at', function ($office) {
                     return $office->formatted_created_at; // Using accessor
                 })
@@ -283,7 +319,7 @@ class HeadOfficeController extends Controller
                     return $html;
                 })
 
-                ->rawColumns(['office_notes', 'status', 'action', 'website'])
+                ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action', 'website'])
                 ->make(true);
         }
     }
@@ -348,6 +384,7 @@ class HeadOfficeController extends Controller
          // Validation
         $validator = Validator::make($request->all(), [
             'office_name' => 'required|string|max:255',
+            'office_type' => 'required',
             'office_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'office_notes' => 'required|string|max:255',
 
@@ -381,6 +418,7 @@ class HeadOfficeController extends Controller
             // Get office data
             $officeData = $request->only([
                 'office_name',
+                'office_type',
                 'office_postcode',
                 'office_website',
                 'office_notes',
@@ -433,9 +471,9 @@ class HeadOfficeController extends Controller
             $office->update($officeData);
 
             ModuleNote::where([
-                'module_noteable_id' => $id,
-                'module_noteable_type' => 'Horsefly\Office'
-            ])
+                    'module_noteable_id' => $id,
+                    'module_noteable_type' => 'Horsefly\Office'
+                ])
                 ->where('status', 1)
                 ->update(['status' => 0]);
 

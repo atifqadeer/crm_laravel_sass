@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Edit Sale', 'subTitle' => 'Home'])
+@extends('layouts.vertical', ['title' => 'Edit Sale', 'subTitle' => 'Sales'])
 
 @section('css')
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])

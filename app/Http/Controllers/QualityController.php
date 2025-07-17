@@ -1017,8 +1017,8 @@ class QualityController extends Controller
                     $status = '';
                     if ($sale->status == 1 && $sale->is_re_open == true) {
                         $status = '<span class="badge bg-primary">Re-Open</span>';
-                    } elseif ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($sale->status == 1 && $sale->is_re_open == false) {
+                        $status = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 2) {

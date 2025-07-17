@@ -15,14 +15,26 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="mb-3">
                                 <label for="office_name" class="form-label">Name</label>
                                 <input type="text" id="office_name" class="form-control" name="office_name" value="{{ old('office_name') }}" placeholder="Full Name" required>
                                 <div class="invalid-feedback">Please provide a name</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
+                            <div class="mb-3">
+                                <label for="office_type" class="form-label">Type</label>
+                                <select class="form-select" id="office_type" name="office_type" required>
+                                    <option value="">Choose Type</option>
+                                    <option value="head_office" {{ old('office_type' == "head_office" ? 'selected':'') }}>Head Office</option>
+                                    <option value="individual" {{ old('office_type' == "individual" ? 'selected':'') }}>Individual</option>
+                                    <option value="independent" {{ old('office_type' == "independent" ? 'selected':'') }}>Independent</option>
+                                </select>
+                                <div class="invalid-feedback">Please select type</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="mb-3">
                                 <label for="office_postcode" class="form-label">PostCode</label>
                                 <input type="text" id="office_postcode" class="form-control" value="{{ old('office_postcode') }}" 
@@ -30,7 +42,7 @@
                                 <div class="invalid-feedback">Please provide a postcode</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="mb-3">
                                 <label for="office_website" class="form-label">Website</label>
                                 <input type="url" id="office_website" class="form-control" name="office_website" 
