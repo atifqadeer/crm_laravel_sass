@@ -153,15 +153,15 @@ class RegionController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? $applicant->jobTitle->name : '-';
+                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -182,7 +182,7 @@ class RegionController extends Controller
                         }
                     }
                     if ($status_value == 'open' || $status_value == 'reject') {
-                        $postcode .= '<a href="/available-jobs/' . $applicant->id . '">';
+                        $postcode .= '<a href="/available-jobs/' . $applicant->id . '" style="color:blue" target="_blank">';
                         $postcode .= $applicant->formatted_postcode;
                         $postcode .= '</a>';
                     } else {
@@ -223,17 +223,18 @@ class RegionController extends Controller
                     ';
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
+                    // Strip all tags except <strong> and <br>
+                    $notes = strip_tags($applicant->applicant_notes, '<strong><br>');
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>
-                            <a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . $applicant->id . '\')">
-                                <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                            </a>';
+                    // Optional: limit preview length
+                    // $notes = Str::limit($notes, 100);
+
+                    // Return HTML-safe output
+                    return '
+                        <a href="#" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                            ' . $notes . '
+                        </a>
+                    ';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
                     $strng = '';
@@ -320,10 +321,11 @@ class RegionController extends Controller
                 ->addColumn('action', function ($applicant) {
                     $landline = $applicant->formatted_landline;
                     $phone = $applicant->formatted_phone;
+                    $created_at = $applicant->formatted_created_at;
                     $postcode = $applicant->formatted_postcode;
-                    $job_title = $applicant->jobTitle ? $applicant->jobTitle->name : '-';
-                    $job_category = $applicant->jobCategory ? $applicant->jobCategory->name : '-';
-                    $job_source = $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    $job_title = $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
+                    $job_category = $applicant->jobCategory ? ucwords($applicant->jobCategory->name) : '-';
+                    $job_source = $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
                     $status = '';
 
                     if ($applicant->is_blocked) {
@@ -346,12 +348,13 @@ class RegionController extends Controller
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                    ' . $applicant->id . ',
+                                    ' . (int)$applicant->id . ',
+                                    \'' . addslashes($created_at) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
-                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary)) . '\',
+                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary ?? '-')) . '\',
                                     \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                    \'' . addslashes(htmlspecialchars($landline)) . '\',
+                                    \'' . addslashes(htmlspecialchars($landline ?? '-')) . '\',
                                     \'' . addslashes(htmlspecialchars($phone)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_title)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_category)) . '\',
@@ -359,7 +362,7 @@ class RegionController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -436,10 +439,6 @@ class RegionController extends Controller
 
                     $query->orWhereHas('office', function ($q) use ($likeSearch) {
                         $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('user', function ($q) use ($likeSearch) {
-                        $q->where('users.name', 'LIKE', "%{$likeSearch}%");
                     });
                 });
             }
@@ -576,7 +575,13 @@ class RegionController extends Controller
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    return $sale->formatted_postcode; // Using accessor
+                    if($sale->lat != null && $sale->lng != null){
+                        $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
+                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                    }else{
+                        $button = $sale->formatted_postcode;
+                    }
+                    return $button;
                 })
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
@@ -586,22 +591,69 @@ class RegionController extends Controller
                     return $status;
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
-                    $notes = $notes ? $notes : 'N/A';
-                    $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
-                    $unit = Unit::find($sale->unit_id);
-                    $unit_name = $unit ? $unit->unit_name : '-';
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
+                    $fullHtml = $sale->sale_notes; // HTML from Summernote
+                    $id = 'note-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 200);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
-                    if ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
+                    if ($sale->status == 1 && $sale->is_re_open == 1) {
+                        $status = '<span class="badge bg-dark">Re-Open</span>';
+                    } elseif ($sale->status == 1 && $sale->is_on_hold == 1) {
+                        $status = '<span class="badge bg-warning">On Hold</span>';
+                    } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($sale->status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {
@@ -610,19 +662,97 @@ class RegionController extends Controller
 
                     return $status;
                 })
-                ->addColumn('experience', function ($sale) {
-                    $short = Str::limit(strip_tags($sale->experience), 80);
-                    $full = e($sale->experience);
-                    $id = 'exp-' . $sale->id;
+                ->addColumn('qualification', function ($sale) {
+                    $fullHtml = $sale->qualification; // HTML from Summernote
+                    $id = 'qua-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
 
                     return '
-                        <a href="#" class="text-primary" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#' . $id . '">
-                            ' . $short . '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
                         </a>
 
-                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                })
+                ->addColumn('experience', function ($sale) {
+                    $fullHtml = $sale->experience; // HTML from Summernote
+                    $id = 'exp-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -631,37 +761,40 @@ class RegionController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . nl2br($full) . '
+                                        ' . $fullHtml . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ';
+                        </div>';
                 })
                 ->addColumn('action', function ($sale) {
                     $postcode = $sale->formatted_postcode;
                     $office_id = $sale->office_id;
                     $office = Office::find($office_id);
-                    $office_name = $office ? $office->office_name : '-';
+                    $office_name = $office ? ucwords($office->office_name) : '-';
                     $unit_id = $sale->unit_id;
                     $unit = Unit::find($unit_id);
-                    $unit_name = $unit ? $unit->unit_name : '-';
+                    $unit_name = $unit ? ucwords($unit->unit_name) : '-';
                     $status = '';
-                    $jobTitle = $sale->jobTitle ? $sale->jobTitle->name : '-';
+                    $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
-                    $jobCategory = $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
-                    if ($sale->status == '1') {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($sale->status == '0' && $sale->is_on_hold == '0') {
+                    if ($sale->status == 1 && $sale->is_on_hold == 1) {
+                        $status = '<span class="badge bg-warning">On Hold</span>';
+                    } elseif ($sale->status == 1 && $sale->is_re_open == 1) {
+                        $status = '<span class="badge bg-dark">Re-Open</span>';
+                    } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
-                    } elseif ($sale->status == '2') {
+                    } elseif ($sale->status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
-                    } elseif ($sale->status == '3') {
+                    } elseif ($sale->status == 3) {
                         $status = '<span class="badge bg-danger">Rejected</span>';
                     }
 
@@ -675,7 +808,7 @@ class RegionController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                    ' . $sale->id . ',
+                                    ' . (int)$sale->id . ',
                                     \'' . addslashes(htmlspecialchars($office_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($unit_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($postcode)) . '\',
@@ -683,22 +816,19 @@ class RegionController extends Controller
                                     \'' . addslashes(htmlspecialchars($jobTitle)) . '\',
                                     \'' . addslashes(htmlspecialchars($status)) . '\',
                                     \'' . addslashes(htmlspecialchars($sale->timing)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->experience)) . '\',
                                     \'' . addslashes(htmlspecialchars($sale->salary)) . '\',
                                     \'' . addslashes(htmlspecialchars($position)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->qualification)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->benefits)) . '\',
                                     )">View</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'job_title', 'cv_limit', 'experience', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'job_title', 'sale_postcode', 'cv_limit', 'experience', 'qualification', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

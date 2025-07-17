@@ -215,12 +215,6 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                         }
                     },
                     {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
                         targets: 13,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
@@ -646,7 +640,7 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
             });
         }
 
-        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, status) {
+        function showDetailsModal(applicantId, createdAt, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, status) {
             const modalId = `showDetailsModal_${applicantId}`;
             const modalLabelId = `${modalId}Label`;
             const modalBodyId = `${modalId}_body`;
@@ -692,6 +686,7 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                 const tableHtml = `
                     <table class="table table-bordered">
                         <tr><th>Applicant ID</th><td>${applicantId}</td></tr>
+                        <tr><th>Created On</th><td>${createdAt}</td></tr>
                         <tr><th>Name</th><td>${name}</td></tr>
                         <tr><th>Phone</th><td>${phone}</td></tr>
                         <tr><th>Landline</th><td>${landline}</td></tr>

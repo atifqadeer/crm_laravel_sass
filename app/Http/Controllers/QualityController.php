@@ -575,7 +575,6 @@ class QualityController extends Controller
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     $status_value = 'open';
-                    $postcode = '';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
                     } else {
@@ -591,7 +590,7 @@ class QualityController extends Controller
 
                     if($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject'){
                         $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="'. $url .'" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a href="'. $url .'" style="color:blue;" target="_blank">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $applicant->formatted_postcode;
                     }
@@ -792,7 +791,7 @@ class QualityController extends Controller
                             break;
                     }
                     $html .= '<li>
-                                <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Resume</a>
+                                <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                 <!-- Hidden File Input -->
                                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                             </li>';
@@ -1130,10 +1129,58 @@ class QualityController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
+                    $fullHtml = $sale->sale_notes; // HTML from Summernote
+                    $id = 'note-' . $sale->id;
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return $notes;
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 200);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';

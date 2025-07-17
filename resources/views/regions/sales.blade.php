@@ -235,12 +235,6 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                         }
                     },
                     {
-                        targets: 11,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
                         targets: 12,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
@@ -503,8 +497,8 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
 
         function showDetailsModal(
             saleId, officeName, name, postcode,
-            jobCategory, jobTitle, status, timing, experience,
-            salary, position, qualification, benefits
+            jobCategory, jobTitle, status, timing, 
+            salary, position
         ) {
             const modalId = `showDetailsModal_${saleId}`;
             const labelId = `${modalId}_Label`;
@@ -560,11 +554,8 @@ $regions = \Horsefly\Region::orderBy('name','asc')->get();
                         <tr><th>Job Title</th><td>${jobTitle}</td></tr>
                         <tr><th>Status</th><td>${status}</td></tr>
                         <tr><th>Timing</th><td>${timing}</td></tr>
-                        <tr><th>Qualification</th><td>${qualification}</td></tr>
                         <tr><th>Salary</th><td>${salary}</td></tr>
                         <tr><th>Position</th><td>${position}</td></tr>
-                        <tr><th>Experience</th><td>${experience}</td></tr>
-                        <tr><th>Benefits</th><td>${benefits}</td></tr>
                     </table>
                 `);
             }, 300); // Loader visible for 300ms
