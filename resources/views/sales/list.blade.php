@@ -97,11 +97,10 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                             <!-- Status Filter Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
+                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Open</span>
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item status-filter" href="#">All</a>
-                                    <a class="dropdown-item status-filter" href="#">Active</a>
+                                    <a class="dropdown-item status-filter" href="#">Open</a>
                                     <a class="dropdown-item status-filter" href="#">Closed</a>
                                     <a class="dropdown-item status-filter" href="#">Pending</a>
                                     <a class="dropdown-item status-filter" href="#">Rejected</a>
@@ -671,7 +670,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                             <label for="statusDropdown_${saleID}" class="form-label">Status</label>
                                             <select class="form-select" id="statusDropdown_${saleID}" required>
                                                 <option value="" disabled selected>Select Status</option>
-                                                <option value="1">Active</option>
+                                                <option value="1">Open</option>
                                                 <option value="0">Closed</option>
                                                 <option value="2">Pending</option>
                                                 <option value="3">Reject</option>

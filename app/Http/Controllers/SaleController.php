@@ -545,7 +545,7 @@ class SaleController extends Controller
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
-            case 'active':
+            case 'open':
                 $model->where('sales.status', 1)
                     ->where('sales.is_on_hold', 0);
                 break;
@@ -569,7 +569,8 @@ class SaleController extends Controller
                 
             // Optional: default case if none match
             default:
-                $model->where('sales.is_on_hold', 0);
+                $model->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 0);
                 break;
         }
 
@@ -834,7 +835,7 @@ class SaleController extends Controller
                     } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
+                        $status = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {
@@ -866,7 +867,7 @@ class SaleController extends Controller
                     } elseif ($sale->status == 0) {
                         $status_badge = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
-                        $status_badge = '<span class="badge bg-success">Active</span>';
+                        $status_badge = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 2) {
                         $status_badge = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {
@@ -2242,7 +2243,7 @@ class SaleController extends Controller
                     } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
+                        $status = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {
@@ -2273,7 +2274,7 @@ class SaleController extends Controller
                     } elseif ($sale->status == 0) {
                         $status_badge = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
-                        $status_badge = '<span class="badge bg-success">Active</span>';
+                        $status_badge = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 2) {
                         $status_badge = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {

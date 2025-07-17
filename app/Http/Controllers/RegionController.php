@@ -226,9 +226,6 @@ class RegionController extends Controller
                     // Strip all tags except <strong> and <br>
                     $notes = strip_tags($applicant->applicant_notes, '<strong><br>');
 
-                    // Optional: limit preview length
-                    // $notes = Str::limit($notes, 100);
-
                     // Return HTML-safe output
                     return '
                         <a href="#" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
@@ -295,7 +292,7 @@ class RegionController extends Controller
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
-                    $color_class = 'bg-success';
+                    $color_class = 'bg-dark';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
                         $color_class = 'bg-primary';

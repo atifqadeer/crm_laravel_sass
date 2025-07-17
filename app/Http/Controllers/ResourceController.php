@@ -67,6 +67,7 @@ class ResourceController extends Controller
         $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
+        $filterBySaleDate = $request->input('date_range_filter', ''); // Default is empty (no filter)
 
         $model = Sale::query()
             ->select([
@@ -126,6 +127,14 @@ class ResourceController extends Controller
             $model->where('sales.job_type', 'specialist');
         } elseif ($typeFilter == 'regular') {
             $model->where('sales.job_type', 'regular');
+        }
+
+        if($filterBySaleDate){
+            [$start_date, $end_date] = explode('|', $filterBySaleDate);
+            $start_date = Carbon::parse(trim($start_date))->startOfDay();
+            $end_date = Carbon::parse(trim($end_date))->endOfDay();
+        
+            $model->whereBetween('sales.created_at', [$start_date, $end_date]);
         }
        
         // Filter by category if it's not empty
@@ -194,11 +203,11 @@ class ResourceController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('sales.updated_at', 'desc');
+                $model->orderBy('sales.created_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('sales.updated_at', 'desc');
+            $model->orderBy('sales.created_at', 'desc');
         }
 
         if ($request->ajax()) {
@@ -207,50 +216,128 @@ class ResourceController extends Controller
                 ->addColumn('office_name', function ($sale) {
                     $office_id = $sale->office_id;
                     $office = Office::find($office_id);
-                    return $office ? $office->office_name : '-';
+                    return $office ? ucwords($office->office_name) : '-';
                 })
                 ->addColumn('unit_name', function ($sale) {
                     $unit_id = $sale->unit_id;
                     $unit = Unit::find($unit_id);
-                    return $unit ? $unit->unit_name : '-';
+                    return $unit ? ucwords($unit->unit_name) : '-';
                 })
                 ->addColumn('job_title', function ($sale) {
-                    return $sale->jobTitle ? $sale->jobTitle->name : '-';
+                    return $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a href="'. $url .'" style="color:blue;" target="_blank">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
                     return $button;
                 })
-                ->addColumn('updated_at', function ($sale) {
-                    return $sale->formatted_updated_at; // Using accessor
+                ->addColumn('created_at', function ($sale) {
+                    return $sale->formatted_created_at; // Using accessor
                 })
                 ->addColumn('cv_limit', function ($sale) {
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
-                ->addColumn('experience', function ($sale) {
-                    $short = Str::limit(strip_tags($sale->experience), 80);
-                    $full = e($sale->experience);
-                    $id = 'exp-' . $sale->id;
+                ->addColumn('qualification', function ($sale) {
+                    $fullHtml = $sale->qualification; // HTML from Summernote
+                    $id = 'qua-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
 
                     return '
-                        <a href="#" class="text-primary" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#' . $id . '">
-                            ' . $short . '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
                         </a>
 
-                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                })
+                ->addColumn('experience', function ($sale) {
+                    $fullHtml = $sale->experience; // HTML from Summernote
+                    $id = 'exp-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -259,17 +346,16 @@ class ResourceController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . nl2br($full) . '
+                                        ' . $fullHtml . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ';
+                        </div>';
                 })
-               ->addColumn('action', function ($sale) {
+                ->addColumn('action', function ($sale) {
                     $is_disable = ($sale->lat == null || $sale->lng == null);
 
                     $url = route('emails.sendemailstoapplicants', ['sale_id' => $sale->id]);
@@ -289,7 +375,7 @@ class ResourceController extends Controller
                     return '<div class="btn-group dropstart">' . $action . '</div>';
                 })
 
-                ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'qualification', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1811,19 +1897,16 @@ class ResourceController extends Controller
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
 
-        $model = Applicant::query()
-            ->with(['cv_notes' => function ($query) {
-                $query->select('status', 'applicant_id', 'sale_id', 'user_id')
-                    ->with(['user:id,name'])
-                    ->latest('cv_notes.created_at'); // Eager load the 'user' relationship and only select 'id' and 'name'
-            }])
-            ->select([
+        $model = Applicant::query()->select([
                 'applicants.*',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
                 'applicants_pivot_sales.sale_id as pivot_sale_id',
                 'applicants_pivot_sales.id as pivot_id',
+                'users.name as user_name',
+                'cv_notes.status as cv_note_status',
+                'module_notes.created_at as note_created_at'
             ])
             ->where('applicants.status', 1)
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
@@ -1831,13 +1914,26 @@ class ResourceController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->leftJoin(DB::raw("(
+                SELECT * FROM cv_notes AS a
+                WHERE a.status <> 1
+                AND a.id = (
+                    SELECT id FROM cv_notes AS b 
+                    WHERE b.applicant_id = a.applicant_id AND b.status <> 1 
+                    ORDER BY created_at DESC LIMIT 1
+                )
+            ) AS cv_notes"), 'applicants.id', '=', 'cv_notes.applicant_id')
+            ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
             ->with(['jobTitle', 'jobCategory', 'jobSource', 'user'])
+            ->with(['module_note' => function($query) {
+                $query->select('id', 'module_noteable_id', 'module_noteable_type', 'user_id', 'created_at', 'details')
+                    ->where('module_noteable_type', 'Horsefly\\Applicant')
+                    ->latest('created_at')
+                    ->limit(1);
+            }])
             ->where(function ($query) {
                 $query->where("applicants.is_job_within_radius", true)
-                    ->orWhereDate('applicants.created_at', '=', Carbon::now());  // Current date condition
-            })
-            ->whereDoesntHave('cv_notes', function ($query) {
-                $query->where('status', 1);
+                    ->orWhereDate('applicants.created_at', '=', Carbon::now());
             });
 
         // Filter by status if it's not empty
@@ -1941,11 +2037,11 @@ class ResourceController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('applicants.updated_at', 'desc');
+                $model->orderBy('note_created_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('applicants.updated_at', 'desc');
+            $model->orderBy('note_created_at', 'desc');
         }
 
         if ($request->has('search.value')) {
@@ -1972,6 +2068,9 @@ class ResourceController extends Controller
 
                     $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
                         $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
+                    });
+                    $query->orWhereHas('user', function ($q) use ($searchTerm) {
+                        $q->where('users.name', 'LIKE', "%{$searchTerm}%");
                     });
                 });
             }
@@ -2000,11 +2099,7 @@ class ResourceController extends Controller
                     return '<input type="checkbox" name="applicant_checkbox[]" class="applicant_checkbox" value="' . $applicant->id . '"/>';
                 })
                 ->addColumn("user_name", function ($applicant) {
-                    // Since we're fetching only the latest cv_note, this should be straightforward
-                    if ($applicant->cv_notes->isNotEmpty()) {
-                        return $applicant->cv_notes->first()->user->name ?? null;
-                    }
-                    return '-';
+                    return $applicant->user_name ?? '-';
                 })
                 ->addColumn('job_title', function ($applicant) {
                     return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
@@ -2055,12 +2150,44 @@ class ResourceController extends Controller
                     return $email; // Using accessor
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
-                    return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
-                            ' . $notes . '
-                        </a>
-                    ';
+                    $note = null;
+
+                    // Ensure $applicant->module_note is iterable
+                    if (!empty($applicant->module_note) && is_iterable($applicant->module_note)) {
+                        foreach ($applicant->module_note as $item) {
+                            if (!empty($item->details)) {
+                                $note = $item;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Safely strip all tags except <strong> and <br>
+                    $notes = $note ? strip_tags($note->details, '<strong><br>') : strip_tags($applicant->applicant_notes, '<strong><br>');
+
+                    $status_value = 'open';
+                    if ($applicant->paid_status == 'close') {
+                        $status_value = 'paid';
+                    } else {
+                        if ($applicant->cv_note_status != null && $applicant->cv_note_status == 1) {
+                            $status_value = 'sent';
+                        } elseif ($applicant->cv_note_status != null && $applicant->cv_note_status == 0) {
+                            $status_value = 'reject';
+                        }
+                    }
+
+                    if ($applicant->is_blocked == 0 && $status_value == 'open' || $status_value == 'reject') {
+
+                        $html = '
+                            <a href="#" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                                ' . $notes . '
+                            </a>
+                        ';
+                    } else {
+                        $html = $notes;
+                    }
+
+                    return $html;
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
                     $strng = '';
@@ -2077,8 +2204,23 @@ class ResourceController extends Controller
                     return $strng;
                 })
                 ->addColumn('updated_at', function ($applicant) {
-                    return $applicant->formatted_updated_at; // Using accessor
+                    $date = null;
+
+                    // Ensure $applicant->module_note is iterable
+                    if (!empty($applicant->module_note) && is_iterable($applicant->module_note)) {
+                        foreach ($applicant->module_note as $item) {
+                            if (!empty($item->created_at)) {
+                                $date = $item->created_at;
+                                break;
+                            }
+                        }
+                    }
+
+                    return $date
+                        ? Carbon::parse($date)->format('d M Y h:i A')
+                        : $applicant->formatted_updated_at; // Assuming you have an accessor
                 })
+
                 ->addColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
                     $full = e($applicant->applicant_experience);

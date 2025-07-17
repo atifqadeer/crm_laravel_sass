@@ -216,7 +216,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 columns: [
                     { data: "checkbox", orderable:false, searchable:false},
                     { data: 'updated_at', name: 'applicants.updated_at' },
-                    { data: 'user_name', name: 'users.name', orderable:false, searchable:false },
+                    { data: 'user_name', name: 'users.name'},
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },

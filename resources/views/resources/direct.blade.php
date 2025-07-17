@@ -107,7 +107,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                         <thead class="bg-light-subtle">
                             <tr>
                                 <th>#</th>
-                                <th>Updated Date</th>
+                                <th>Date</th>
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
                                 <th>Title</th>
@@ -228,7 +228,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'updated_at', name: 'sales.updated_at' },
+                    { data: 'created_at', name: 'sales.created_at' },
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
                     { data: 'job_title', name: 'job_titles.name' },
