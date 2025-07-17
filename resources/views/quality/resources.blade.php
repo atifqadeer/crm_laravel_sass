@@ -102,7 +102,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Head Office</th>
                                 <th>Unit</th>
                                 <th>PostCode</th>
-                                <th>Notes</th>
+                                <th width="10%">Notes</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -177,7 +177,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'notes_created_at', name: 'notes_created_at' },
-                    { data: 'user_name', name: 'users.name', orderable:false, searchable:false },
+                    { data: 'user_name', name: 'users.name'},
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },
@@ -201,12 +201,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     },
                     {
                         targets: 10,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 14,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
@@ -386,60 +380,60 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         }
         
         // Function to show the notes modal
-        function showNotesModal(applicantID, notes, applicantName, applicantPostcode) {
-            const modalID = `showNotesModal-${applicantID}`;
-            const modalSelector = `#${modalID}`;
+        // function showNotesModal(applicantID, notes, applicantName, applicantPostcode) {
+        //     const modalID = `showNotesModal-${applicantID}`;
+        //     const modalSelector = `#${modalID}`;
             
-            // Create modal if it doesn't exist
-            if ($(modalSelector).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalID}Label">Applicant CV Notes</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <!-- Content will be inserted here -->
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            }
+        //     // Create modal if it doesn't exist
+        //     if ($(modalSelector).length === 0) {
+        //         $('body').append(`
+        //             <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
+        //                 <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+        //                     <div class="modal-content">
+        //                         <div class="modal-header">
+        //                             <h5 class="modal-title" id="${modalID}Label">Applicant CV Notes</h5>
+        //                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        //                         </div>
+        //                         <div class="modal-body">
+        //                             <!-- Content will be inserted here -->
+        //                         </div>
+        //                         <div class="modal-footer">
+        //                             <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+        //                         </div>
+        //                     </div>
+        //                 </div>
+        //             </div>
+        //         `);
+        //     }
             
-            // Escape only the user-provided text (name and postcode) to prevent XSS
-            const escapedName = $('<div>').text(applicantName).html();
-            const escapedPostcode = $('<div>').text(applicantPostcode).html();
+        //     // Escape only the user-provided text (name and postcode) to prevent XSS
+        //     const escapedName = $('<div>').text(applicantName).html();
+        //     const escapedPostcode = $('<div>').text(applicantPostcode).html();
             
-            // For notes, we want to preserve HTML formatting but still need to sanitize it
-            // Here's a basic sanitizer that allows common safe tags
-            const sanitizedNotes = sanitizeHtml(notes, {
-                allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
-                allowedAttributes: {
-                    'a': ['href', 'target']
-                }
-            });
+        //     // For notes, we want to preserve HTML formatting but still need to sanitize it
+        //     // Here's a basic sanitizer that allows common safe tags
+        //     const sanitizedNotes = sanitizeHtml(notes, {
+        //         allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+        //         allowedAttributes: {
+        //             'a': ['href', 'target']
+        //         }
+        //     });
             
-            // Set the content with proper HTML structure
-            $(modalSelector + ' .modal-body').html(`
-                <div class="applicant-info">
-                    <p class="mb-1"><strong>Applicant Name:</strong> ${escapedName}</p>
-                    <p class="mb-1"><strong>Postcode:</strong> ${escapedPostcode}</p>
-                </div>
-                <div class="notes-content">
-                    <p class="mb-2"><strong>Notes Detail:</strong></p>
-                    <div class="notes-text">${sanitizedNotes}</div>
-                </div>
-            `);
+        //     // Set the content with proper HTML structure
+        //     $(modalSelector + ' .modal-body').html(`
+        //         <div class="applicant-info">
+        //             <p class="mb-1"><strong>Applicant Name:</strong> ${escapedName}</p>
+        //             <p class="mb-1"><strong>Postcode:</strong> ${escapedPostcode}</p>
+        //         </div>
+        //         <div class="notes-content">
+        //             <p class="mb-2"><strong>Notes Detail:</strong></p>
+        //             <div class="notes-text">${sanitizedNotes}</div>
+        //         </div>
+        //     `);
             
-            // Show the modal
-            $(modalSelector).modal('show');
-        }
+        //     // Show the modal
+        //     $(modalSelector).modal('show');
+        // }
 
         // Basic HTML sanitizer function (you might want to use a library like DOMPurify in production)
         function sanitizeHtml(html, options) {

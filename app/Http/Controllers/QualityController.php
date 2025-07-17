@@ -51,7 +51,8 @@ class QualityController extends Controller
             ->with([
                 'jobTitle', 
                 'jobCategory', 
-                'jobSource'
+                'jobSource',
+                'user'
             ])
             ->select([
                 'applicants.id',
@@ -95,7 +96,7 @@ class QualityController extends Controller
                             ->whereIn("history.sub_stage", ["quality_cvs"])
                             ->where("history.status", 1);
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'cv_notes.details as notes_detail',
                         'cv_notes.created_at as notes_created_at',
@@ -122,7 +123,7 @@ class QualityController extends Controller
                         'units.unit_postcode', 
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
                 
@@ -154,7 +155,7 @@ class QualityController extends Controller
                                     ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs']);
                             });
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'revert_stages.user_id')
+                    ->join('users', 'users.id', '=', 'revert_stages.user_id')
                     ->addSelect(
                         'revert_stages.notes as notes_detail',
                         'revert_stages.stage as revert_stage',
@@ -182,7 +183,7 @@ class QualityController extends Controller
                         'units.unit_postcode', 
                         'units.unit_website',
 
-                        'sent_by.name as user_name',
+                        'users.name as user_name',
                     );
                 break;
                 
@@ -203,7 +204,7 @@ class QualityController extends Controller
                             ->whereIn("history.sub_stage", ["no_job_quality_cvs"])
                             ->where("history.status", 1);
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'cv_notes.details as notes_detail',
                         'cv_notes.created_at as notes_created_at',
@@ -230,7 +231,7 @@ class QualityController extends Controller
                         'units.unit_postcode', 
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
                 
@@ -246,9 +247,9 @@ class QualityController extends Controller
                     })
                     ->join('offices', 'sales.office_id', '=', 'offices.id')
                     ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('users as sent_by', 'sent_by.id', '=', 'quality_notes.user_id')
+                    ->join('users', 'users.id', '=', 'quality_notes.user_id')
                     ->addSelect(
-                        'sent_by.name as user_name',
+                        'users.name as user_name',
                         'quality_notes.details as notes_detail',
                         'quality_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
@@ -280,7 +281,7 @@ class QualityController extends Controller
                         'quality_notes.sale_id', 
                         'quality_notes.id',
                         'quality_notes.details',
-                        'sent_by.name',
+                        'users.name',
 
                         // applicant
                         'applicants.id',
@@ -338,9 +339,9 @@ class QualityController extends Controller
                     })
                     ->join('offices', 'sales.office_id', '=', 'offices.id')
                     ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('users as sent_by', 'sent_by.id', '=', 'quality_notes.user_id')
+                    ->join('users', 'users.id', '=', 'quality_notes.user_id')
                     ->addSelect(
-                        'sent_by.name as user_name',
+                        'users.name as user_name',
                         'quality_notes.details as notes_detail',
                         'quality_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
@@ -372,7 +373,7 @@ class QualityController extends Controller
                             'quality_notes.sale_id', 
                             'quality_notes.id',
                             'quality_notes.details',
-                            'sent_by.name',
+                            'users.name',
 
                             // applicant
                             'applicants.id',
@@ -434,7 +435,7 @@ class QualityController extends Controller
                             ->whereIn("history.sub_stage", ["quality_cvs"])
                             ->where("history.status", 1);
                     })
-                    ->join('users as sent_by', 'sent_by.id', '=', 'cv_notes.user_id')
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'cv_notes.details as notes_detail',
                         'cv_notes.created_at as notes_created_at',
@@ -461,7 +462,7 @@ class QualityController extends Controller
                         'units.unit_postcode', 
                         'units.unit_website',
 
-                        'sent_by.name as user_name'
+                        'users.name as user_name'
                     ]);
                 break;
         }
@@ -517,6 +518,10 @@ class QualityController extends Controller
                     $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
                         $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
                     });
+                   
+                    $query->orWhereHas('user', function ($q) use ($searchTerm) {
+                        $q->where('users.name', 'LIKE', "%{$searchTerm}%");
+                    });
                 });
             }
         }
@@ -542,18 +547,18 @@ class QualityController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn("user_name", function ($applicant) {
-                    return $applicant->user_name ?? '-';
+                    return ucwords($applicant->user_name) ?? '-';
                 })
                 ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? $applicant->jobTitle->name : '-';
+                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -593,14 +598,58 @@ class QualityController extends Controller
                     return $button;
                 })
                 ->addColumn('notes_detail', function ($applicant) {
-                    $notes = htmlspecialchars($applicant->notes_detail, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
+                    $fullHtml = $applicant->notes_detail; // HTML from Summernote
+                    $id = 'qua-' . $applicant->id;
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . $applicant->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
-                            <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                        </a>';
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 200);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
                     $strng = '';
@@ -615,9 +664,6 @@ class QualityController extends Controller
                     }
 
                     return $strng;
-                })
-                ->addColumn('applicant_landline', function ($applicant) {
-                    return $applicant->formatted_landline; // Using accessor
                 })
                 ->addColumn('notes_created_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'); // Using accessor
@@ -841,7 +887,7 @@ class QualityController extends Controller
             case 'active sales':
                 $model->where(function($query) {
                     $query->where('sales.status', 2)/**1=open, 2=pending */
-                        ->orWhere('is_re_open', true);
+                        ->orWhere('is_re_open', 2);/** re-open requested */
                 });
                 break;
                 
@@ -854,8 +900,8 @@ class QualityController extends Controller
                 break;
             default:
                 $model->where(function($query) {
-                    $query->whereIn('sales.status', [1, 2])/**1=re-open, 2=pending */
-                        ->orWhere('is_re_open', true);
+                    $query->where('sales.status', 2)/**1=open, 2=pending */
+                        ->orWhere('is_re_open', 2);/** re-open requested */
                 });
                 break;
         }
@@ -955,19 +1001,97 @@ class QualityController extends Controller
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
-                ->addColumn('experience', function ($sale) {
-                    $short = Str::limit(strip_tags($sale->experience), 80);
-                    $full = e($sale->experience);
-                    $id = 'exp-' . $sale->id;
+                ->addColumn('qualification', function ($sale) {
+                    $fullHtml = $sale->qualification; // HTML from Summernote
+                    $id = 'qua-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
 
                     return '
-                        <a href="#" class="text-primary" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#' . $id . '">
-                            ' . $short . '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
                         </a>
 
-                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                })
+                ->addColumn('experience', function ($sale) {
+                    $fullHtml = $sale->experience; // HTML from Summernote
+                    $id = 'exp-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -976,15 +1100,14 @@ class QualityController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . nl2br($full) . '
+                                        ' . $fullHtml . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ';
+                        </div>';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
@@ -992,7 +1115,13 @@ class QualityController extends Controller
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    return $sale->formatted_postcode;
+                    if($sale->lat != null && $sale->lng != null){
+                        $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
+                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                    }else{
+                        $button = $sale->formatted_postcode;
+                    }
+                    return $button;
                 })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
@@ -1002,16 +1131,9 @@ class QualityController extends Controller
                 })
                 ->addColumn('sale_notes', function ($sale) {
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
-                    $notes = $notes ? $notes : 'N/A';
-                    $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
-                    
-                    $unit = Unit::find($sale->unit_id);
-                    $unit_name = $unit ? $unit->unit_name : '-';
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>';
+                    return $notes;
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1116,7 +1238,7 @@ class QualityController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'qualification', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -1144,7 +1266,7 @@ class QualityController extends Controller
                 if ($status === 'reject') {
                     $sale->update(['status' => 3]);
                 } else {
-                    $sale->update(['is_re_open' => true]);
+                    $sale->update(['is_re_open' => 1]);
                 }
             } else {
                 $sale->update([

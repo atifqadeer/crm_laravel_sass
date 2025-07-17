@@ -1183,16 +1183,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 }
             });
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            document.body.addEventListener('click', function (e) {
-                if (e.target.classList.contains('view-experience')) {
-                    e.preventDefault();
-                    const experience = e.target.getAttribute('data-experience');
-                    document.getElementById('experienceModalBody').innerHTML = experience;
-                }
-            });
-        });
+        
     </script>
     
 @endsection

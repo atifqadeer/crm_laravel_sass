@@ -123,7 +123,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 <th>Qualification</th>
                                 <th>Salary</th>
                                 <th>CV Limit</th>
-                                <th>Notes</th>
+                                <th width="15%">Notes</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -217,12 +217,6 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 columnDefs: [
                     {
                         targets: 11,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
@@ -435,49 +429,49 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
         }
         
         // Function to show the notes modal
-        function showNotesModal(saleID, notes, unitName, unitPostcode) {
-            const modalId = 'showNotesModal' + saleID;
+        // function showNotesModal(saleID, notes, unitName, unitPostcode) {
+        //     const modalId = 'showNotesModal' + saleID;
 
-            // Add the modal HTML only once if not already present
-            if ($('#' + modalId).length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="' + modalId + 'Label">Sale Notes</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<div class="text-center">' +
-                                        '<div class="spinner-border text-primary" role="status">' +
-                                            '<span class="visually-hidden">Loading...</span>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
+        //     // Add the modal HTML only once if not already present
+        //     if ($('#' + modalId).length === 0) {
+        //         $('body').append(
+        //             '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
+        //                 '<div class="modal-dialog modal-dialog-top">' +
+        //                     '<div class="modal-content">' +
+        //                         '<div class="modal-header">' +
+        //                             '<h5 class="modal-title" id="' + modalId + 'Label">Sale Notes</h5>' +
+        //                             '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+        //                         '</div>' +
+        //                         '<div class="modal-body">' +
+        //                             '<div class="text-center">' +
+        //                                 '<div class="spinner-border text-primary" role="status">' +
+        //                                     '<span class="visually-hidden">Loading...</span>' +
+        //                                 '</div>' +
+        //                             '</div>' +
+        //                         '</div>' +
+        //                         '<div class="modal-footer">' +
+        //                             '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+        //                         '</div>' +
+        //                     '</div>' +
+        //                 '</div>' +
+        //             '</div>'
+        //         );
+        //     }
 
-            // Show the modal immediately with loader
-            $('#' + modalId).modal('show');
+        //     // Show the modal immediately with loader
+        //     $('#' + modalId).modal('show');
 
-            // Populate content after slight delay (for realism / UX polish)
-            setTimeout(() => {
-                const notesContent = notes
-                    ? `<p><strong>Unit Name:</strong> ${unitName}</p>
-                    <p><strong>Postcode:</strong> ${unitPostcode}</p>
-                    <p><strong>Notes Detail:</strong><br>${notes}</p>`
-                    : '<p>No notes available for this sale.</p>';
+        //     // Populate content after slight delay (for realism / UX polish)
+        //     setTimeout(() => {
+        //         const notesContent = notes
+        //             ? `<p><strong>Unit Name:</strong> ${unitName}</p>
+        //             <p><strong>Postcode:</strong> ${unitPostcode}</p>
+        //             <p><strong>Notes Detail:</strong><br>${notes}</p>`
+        //             : '<p>No notes available for this sale.</p>';
 
-                $('#' + modalId + ' .modal-body').html(notesContent);
-            }, 300); // simulate a loading experience
-        }
+        //         $('#' + modalId + ' .modal-body').html(notesContent);
+        //     }, 300); // simulate a loading experience
+        // }
 
         function showDetailsModal(saleId, postedAt, officeName, name, postcode, 
             jobCategory, jobTitle, status, timing, experience, salary, 

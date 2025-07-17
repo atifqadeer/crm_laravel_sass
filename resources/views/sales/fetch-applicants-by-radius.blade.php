@@ -15,8 +15,111 @@
                                 <li><strong>PostCode:</strong> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</li>
                                 <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                 <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
-                                <li><strong>Qualification:</strong> {!! $sale->qualification !!}</li>
-                                <li><strong>Benefits:</strong> {!! $sale->benefits !!}</li>
+                                @php
+                                    $fullHtml = $sale->qualification; // HTML from Summernote
+                                    $id = 'qualification-' . $sale->id;
+
+                                    // 0. Remove inline styles and <span> tags
+                                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                                    // 1. Convert block-level and <br> tags into \n
+                                    $withBreaks = preg_replace(
+                                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                                        "\n",
+                                        $cleanedHtml
+                                    );
+
+                                    // 2. Remove all other HTML tags except basic formatting tags
+                                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                                    // 3. Decode HTML entities
+                                    $decodedText = html_entity_decode($plainText);
+
+                                    // 4. Normalize multiple newlines
+                                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                                    // 5. Limit preview characters
+                                    $preview = Str::limit(trim($normalizedText), 300, '...');
+
+                                    // 6. Convert newlines to <br>
+                                    $shortText = nl2br($preview);
+
+                                    $qualification = '
+                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>
+
+                                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        ' . $fullHtml . '
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>';
+                                @endphp
+
+                                <li><strong>Qualification:</strong> {!! $qualification !!}</li>
+
+                                @php
+                                    $fullHtml = $sale->benefits; // HTML from Summernote
+                                    $id = 'benefits-' . $sale->id;
+
+                                    // 0. Remove inline styles and <span> tags
+                                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                                    // 1. Convert block-level and <br> tags into \n
+                                    $withBreaks = preg_replace(
+                                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                                        "\n",
+                                        $cleanedHtml
+                                    );
+
+                                    // 2. Remove all other HTML tags except basic formatting tags
+                                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                                    // 3. Decode HTML entities
+                                    $decodedText = html_entity_decode($plainText);
+
+                                    // 4. Normalize multiple newlines
+                                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                                    // 5. Limit preview characters
+                                    $preview = Str::limit(trim($normalizedText), 300, '...');
+
+                                    // 6. Convert newlines to <br>
+                                    $shortText = nl2br($preview);
+
+                                    $benefits = '
+                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>
+
+                                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="' . $id . '-label">Sale Benefits</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        ' . $fullHtml . '
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>';
+                                @endphp
+
+                                <li><strong>Benefits:</strong> {!! $benefits !!}</li>
                             </ul>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -24,10 +127,61 @@
                                 <input type="hidden" id="sale_id" value="">
 
                                 <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
+                                <li><strong>Posted On:</strong> {{ \Carbon\Carbon::parse($sale->created_at)->format('d M Y, h:i A') }}</li>
                                 <li><strong>Position Type:</strong> {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}</li>
                                 <li><strong>Salary:</strong> {{ $sale->salary }}</li>
                                 <li><strong>Timing:</strong> {{ $sale->timing }}</li>
-                                <li><strong>Experience:</strong> {!! $sale->experience !!}</li>
+                                 @php
+                                    $fullHtml = $sale->experience; // HTML from Summernote
+                                    $id = 'experience-' . $sale->id;
+
+                                    // 0. Remove inline styles and <span> tags
+                                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                                    // 1. Convert block-level and <br> tags into \n
+                                    $withBreaks = preg_replace(
+                                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                                        "\n",
+                                        $cleanedHtml
+                                    );
+
+                                    // 2. Remove all other HTML tags except basic formatting tags
+                                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                                    // 3. Decode HTML entities
+                                    $decodedText = html_entity_decode($plainText);
+
+                                    // 4. Normalize multiple newlines
+                                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                                    // 5. Limit preview characters
+                                    $preview = Str::limit(trim($normalizedText), 300, '...');
+
+                                    // 6. Convert newlines to <br>
+                                    $shortText = nl2br($preview);
+
+                                    $experience = '
+                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>
+
+                                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        ' . $fullHtml . '
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>';
+                                @endphp
+                                <li><strong>Experience:</strong> {!! $experience !!}</li>
                                 <li><strong>Status:</strong>
                                     @php
                                         $status = $sale->status;
@@ -42,6 +196,14 @@
                                     {!! $statusClass !!}
                                 </li>
                                 <li>
+                                    <!-- Button (Blade) -->
+                                    <button class="btn btn-info btn-sm my-1" type="button" id="viewJobDescription" data-description="{{ $sale->job_description }}">
+                                        <span class="nav-icon">
+                                            <i class="ri-file-text-line fs-16"></i>
+                                        </span>
+                                        Job Description
+                                    </button>
+
                                     <button class="btn btn-warning btn-sm my-1" type="button" id="viewDocuments">
                                         <span class="nav-icon">
                                             <i class="ri-file-text-line fs-16"></i>
@@ -118,9 +280,9 @@
                                                 <th>Title</th>
                                                 <th>Category</th>
                                                 <th>PostCode</th>
-                                                <th>Phone</th>
-                                                <th>Landline</th>
-                                                <th>Resume</th>
+                                                <th width="10%">Phone</th>
+                                                <th>Applicant Resume</th>
+                                                <th>CRM Resume</th>
                                                 <th>Experience</th>
                                                 <th>Source</th>
                                                 <th>Notes</th>
@@ -199,13 +361,39 @@
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
                     { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
-                    { data: 'resume', name:'applicants.resume', orderable: false, searchable: false },
+                    { data: 'applicant_resume', name:'applicants.applicant_cv', orderable: false, searchable: false },
+                    { data: 'crm_resume', name:'applicants.updated_cv', orderable: false, searchable: false },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
                     { data: 'job_source', name: 'job_sources.name' },
                     { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
                     { data: 'paid_status', name: 'applicants.paid_status', searchable: false },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
+                ],
+                columnDefs: [
+                    {
+                        targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 9,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 13,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 14,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    }
                 ],
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
@@ -314,7 +502,6 @@
                 input.classList.add('is-invalid');
             }
         }
-
         // Function to move the page forward or backward
         function movePage(page) {
             var table = $('#applicants_table').DataTable();
@@ -331,52 +518,53 @@
         }
         // Function to mark as not interested modal
         function markNotInterestedModal(applicantID, saleID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#markApplicantNotInerestedModal').length === 0) {
+            const modalId = `markApplicantNotInterestedModal_${applicantID}`;
+            const formId = `markApplicantNotInterestedForm_${applicantID}`;
+            const textareaId = `detailsTextareaApplicantNotInterested_${applicantID}`;
+            const saveBtnId = `saveApplicantNotInterestedButton_${applicantID}`;
+
+            // Check and append modal if not already present
+            if ($(`#${modalId}`).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="markApplicantNotInerestedModal" tabindex="-1" aria-labelledby="markApplicantNotInerestedModalLabel" aria-hidden="true">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="markApplicantNotInerestedModalLabel">Mark As Not Interested On Sale</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<form id="markApplicantNotInterestedForm">' +
-                                        '<div class="mb-3">' +
-                                            '<label for="detailsTextareaApplicantNotInterested" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextareaApplicantNotInterested" rows="4" required></textarea>' +
-                                        '</div>' +
-                                    '</form>' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveApplicantNotInterestedButton">'+
-                                        'Save</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
+                    `<div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-top">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalId}Label">Mark As Not Interested On Sale</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="${formId}">
+                                        <div class="mb-3">
+                                            <label for="${textareaId}" class="form-label">Details</label>
+                                            <textarea class="form-control" id="${textareaId}" rows="4" required></textarea>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`
                 );
             }
 
-            // Show the modal
-            $('#markApplicantNotInerestedModal').modal('show');
+            // Show modal
+            $(`#${modalId}`).modal('show');
 
-            // Handle the save button click
-            $('#saveApplicantNotInterestedButton').off('click').on('click', function() {
-                const notes = $('#detailsTextareaApplicantNotInterested').val();
+            // Handle save
+            $(`#${saveBtnId}`).off('click').on('click', function () {
+                const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
-                    if (!notes) {
-                        $('#detailsTextareaApplicantNotInterested').addClass('is-invalid');
-                        if ($('#detailsTextareaApplicantNotInterested').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextareaApplicantNotInterested').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
+                    $(`#${textareaId}`).addClass('is-invalid');
+                    if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
+                        $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextareaApplicantNotInterested').on('input', function() {
+
+                    $(`#${textareaId}`).on('input', function () {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -386,30 +574,29 @@
                     return;
                 }
 
-                // Remove validation errors if inputs are valid
-                $('#detailsTextareaApplicantNotInterested').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextareaApplicantNotInterested').next('.invalid-feedback').remove();
+                // Remove error states
+                $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
 
-                // Send the data via AJAX
+                // Submit via AJAX
                 $.ajax({
-                    url: '{{ route("markApplicantNotInterestedOnSale") }}', // Replace with your endpoint
+                    url: '{{ route("markApplicantNotInterestedOnSale") }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
                         sale_id: saleID,
                         details: notes,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
+                        _token: '{{ csrf_token() }}'
                     },
-                    success: function(response) {
-                        toastr.success('Mark as not interested successfully!');
-                        $('#markApplicantNotInerestedModal').modal('hide'); // Close the modal
-                        $('#markApplicantNotInterestedForm')[0].reset(); // Clear the form
-                        $('#detailsTextareaApplicantNotInterested').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextareaApplicantNotInterested').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
+                    success: function (response) {
+                        toastr.success('Marked as not interested successfully!');
+                        $(`#${modalId}`).modal('hide');
+                        $(`#${formId}`)[0].reset();
+                        $(`#${textareaId}`).removeClass('is-valid');
+                        $(`#${textareaId}`).next('.invalid-feedback').remove();
+                        $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function(xhr) {
+                    error: function () {
                         toastr.error('An error occurred while saving notes.');
                     }
                 });
@@ -417,25 +604,27 @@
         }
         // Function to show the notes modal
         function addShortNotesModal(applicantID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#shortNotesModal').length === 0) {
+            const modalId = 'shortNotesModal-' + applicantID;
+
+            // If modal doesn't exist yet, append it
+            if ($('#' + modalId).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="shortNotesModal" tabindex="-1" aria-labelledby="shortNotesModalLabel" aria-hidden="true">' +
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label" aria-hidden="true">' +
                         '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="shortNotesModalLabel">Add Notes</h5>' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
                                 '<div class="modal-body">' +
-                                    '<form id="shortNotesForm">' +
+                                    '<form id="shortNotesForm-' + applicantID + '">' +
                                         '<div class="mb-3">' +
-                                            '<label for="detailsTextarea" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextarea" rows="4" required></textarea>' +
+                                            '<label for="detailsTextarea-' + applicantID + '" class="form-label">Details</label>' +
+                                            '<textarea class="form-control" id="detailsTextarea-' + applicantID + '" rows="4" required></textarea>' +
                                         '</div>' +
                                         '<div class="mb-3">' +
-                                            '<label for="reasonDropdown" class="form-label">Reason</label>' +
-                                            '<select class="form-select" id="reasonDropdown" required>' +
+                                            '<label for="reasonDropdown-' + applicantID + '" class="form-label">Reason</label>' +
+                                            '<select class="form-select" id="reasonDropdown-' + applicantID + '" required>' +
                                                 '<option value="" disabled selected>Select Reason</option>' +
                                                 '<option value="casual">Casual Notes</option>' +
                                                 '<option value="blocked">Blocked Notes</option>' +
@@ -446,8 +635,7 @@
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveShortNotesButton">'+
-                                        'Save</button>' +
+                                    '<button type="button" class="btn btn-primary saveShortNotesButton" data-applicant-id="' + applicantID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -455,105 +643,98 @@
                 );
             }
 
-            // Show the modal
-            $('#shortNotesModal').modal('show');
+            // Reset form fields on open
+            $('#shortNotesForm-' + applicantID)[0].reset();
+            $('#detailsTextarea-' + applicantID).removeClass('is-valid is-invalid');
+            $('#reasonDropdown-' + applicantID).removeClass('is-valid is-invalid');
+            $('#detailsTextarea-' + applicantID).next('.invalid-feedback').remove();
+            $('#reasonDropdown-' + applicantID).next('.invalid-feedback').remove();
 
-            // Handle the save button click
-            $('#saveShortNotesButton').off('click').on('click', function() {
-                const notes = $('#detailsTextarea').val();
-                const reason = $('#reasonDropdown').val();
+            // Show modal
+            $('#' + modalId).modal('show');
 
-                if (!notes || !reason) {
-                    if (!notes) {
-                        $('#detailsTextarea').addClass('is-invalid');
-                        if ($('#detailsTextarea').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextarea').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
+            // Handle save button click (unbind previous first)
+            $('.saveShortNotesButton').off('click').on('click', function () {
+                const id = $(this).data('applicant-id');
+                const notes = $('#detailsTextarea-' + id).val();
+                const reason = $('#reasonDropdown-' + id).val();
+
+                // Validation
+                let isValid = true;
+
+                if (!notes) {
+                    $('#detailsTextarea-' + id).addClass('is-invalid');
+                    if ($('#detailsTextarea-' + id).next('.invalid-feedback').length === 0) {
+                        $('#detailsTextarea-' + id).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
-                
-                    if (!reason) {
-                        $('#reasonDropdown').addClass('is-invalid');
-                        if ($('#reasonDropdown').next('.invalid-feedback').length === 0) {
-                            $('#reasonDropdown').after('<div class="invalid-feedback">Please select a reason.</div>');
-                        }
+                    isValid = false;
+                }
+
+                if (!reason) {
+                    $('#reasonDropdown-' + id).addClass('is-invalid');
+                    if ($('#reasonDropdown-' + id).next('.invalid-feedback').length === 0) {
+                        $('#reasonDropdown-' + id).after('<div class="invalid-feedback">Please select a reason.</div>');
                     }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextarea').on('input', function() {
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    // Attach dynamic error removal
+                    $('#detailsTextarea-' + id).on('input', function () {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
                     });
-                
-                    $('#reasonDropdown').on('change', function() {
+
+                    $('#reasonDropdown-' + id).on('change', function () {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
                     });
-                
+
                     return;
                 }
 
-                // Remove validation errors if inputs are valid
-                $('#detailsTextarea').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextarea').next('.invalid-feedback').remove();
-                $('#reasonDropdown').removeClass('is-invalid').addClass('is-valid');
-                $('#reasonDropdown').next('.invalid-feedback').remove();
-
-                // Send the data via AJAX
+                // Submit via AJAX
                 $.ajax({
-                    url: '{{ route("storeShortNotes") }}', // Replace with your endpoint
+                    url: '{{ route("storeShortNotes") }}',
                     type: 'POST',
                     data: {
-                        applicant_id: applicantID,
+                        applicant_id: id,
                         details: notes,
                         reason: reason,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
+                        _token: '{{ csrf_token() }}'
                     },
-                    success: function(response) {
+                    success: function (response) {
                         toastr.success('Notes saved successfully!');
-
-                        $('#shortNotesModal').modal('hide'); // Close the modal
-                        $('#shortNotesForm')[0].reset(); // Clear the form
-                        $('#detailsTextarea').removeClass('is-valid'); // Remove valid class
-                        $('#reasonDropdown').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextarea').next('.invalid-feedback').remove(); // Remove error message
-                        $('#reasonDropdown').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
+                        $('#' + modalId).modal('hide');
+                        $('#shortNotesForm-' + id)[0].reset();
+                        $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function(xhr) {
+                    error: function () {
                         toastr.error('An error occurred while saving notes.');
                     }
                 });
             });
         }
          // Function to show the notes modal
-        function showNotesModal(notes, applicantName, applicantPostcode) {
-            // Set the notes content in the modal with proper line breaks using HTML
-            $('#showNotesModal .modal-body').html(
-                'Applicant Name: <strong>' + applicantName + '</strong><br>' +
-                'Postcode: <strong>' + applicantPostcode + '</strong><br>' +
-                'Notes Detail: <p>' + notes + '</p>'
-            );
+        function showNotesModal(applicantID, notes, applicantName, applicantPostcode) {
+            let modalId = 'showNotesModal-' + applicantID;
 
-            // Show the modal
-            $('#showNotesModal').modal('show');
-
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#showNotesModal').length === 0) {
+            // If the modal does not exist yet, create and append it
+            if ($('#' + modalId).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="showNotesModal" tabindex="-1" aria-labelledby="showNotesModalLabel" aria-hidden="true">' +
-                        '<div class="modal-dialog modal-dialog-top">' +
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label" aria-hidden="true">' +
+                        '<div class="modal-dialog modal-md modal-dialog-scrollable modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="showNotesModalLabel">Applicant Notes</h5>' +
+                                    '<h5 class="modal-title" id="' + modalId + 'Label">Applicant Notes</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
                                 '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
+                                    '<!-- Content will be inserted dynamically -->' +
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
@@ -563,6 +744,16 @@
                     '</div>'
                 );
             }
+
+            // Populate modal content
+            $('#' + modalId + ' .modal-body').html(
+                'Applicant Name: <strong>' + applicantName + '</strong><br>' +
+                'Postcode: <strong>' + applicantPostcode + '</strong><br>' +
+                'Notes Detail:<p>' + notes + '</p>'
+            );
+
+            // Show the modal
+            $('#' + modalId).modal('show');
         }
         // Function to send cv modal
         function sendCVModal(applicantID, saleID) {
@@ -803,28 +994,32 @@
         }
         // Function to mark no nursing home modal
         function markNoNursingHomeModal(applicantID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#markNoNursingHomeModal').length === 0) {
+            const modalID = 'markNoNursingHomeModal_' + applicantID;
+            const textareaID = 'detailsTextareaMarkNoNursingHome_' + applicantID;
+            const formID = 'markNoNursingHomeForm_' + applicantID;
+            const saveButtonID = 'saveMarkNoNursingHomeButton_' + applicantID;
+
+            // Add the modal HTML to the page if not already present
+            if ($('#' + modalID).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="markNoNursingHomeModal" tabindex="-1" aria-labelledby="markNoNursingHomeModalLabel" aria-hidden="true">' +
+                    '<div class="modal fade" id="' + modalID + '" tabindex="-1" aria-labelledby="' + modalID + 'Label" aria-hidden="true">' +
                         '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="markNoNursingHomeModalLabel">Mark As No Nursing Home</h5>' +
+                                    '<h5 class="modal-title" id="' + modalID + 'Label">Mark As No Nursing Home</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
                                 '<div class="modal-body">' +
-                                    '<form id="markNoNursingHomeForm">' +
+                                    '<form id="' + formID + '">' +
                                         '<div class="mb-3">' +
-                                            '<label for="detailsTextareaMarkNoNursingHome" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextareaMarkNoNursingHome" rows="4" required></textarea>' +
+                                            '<label for="' + textareaID + '" class="form-label">Details</label>' +
+                                            '<textarea class="form-control" id="' + textareaID + '" rows="4" required></textarea>' +
                                         '</div>' +
                                     '</form>' +
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveMarkNoNursingHomeButton">'+
-                                        'Save</button>' +
+                                    '<button type="button" class="btn btn-primary" id="' + saveButtonID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -832,24 +1027,27 @@
                 );
             }
 
-            // Show the modal
-            $('#markNoNursingHomeModal').modal('show');
+            // Reset the form and validation before showing
+            $('#' + formID)[0].reset();
+            $('#' + textareaID).removeClass('is-valid is-invalid');
+            $('#' + textareaID).next('.invalid-feedback').remove();
 
-            // Handle the save button click
-            $('#saveMarkNoNursingHomeButton').off('click').on('click', function() {
-                const notes = $('#detailsTextareaMarkNoNursingHome').val();
+            // Show the modal
+            $('#' + modalID).modal('show');
+
+            // Handle save button click (unbind previous first)
+            $('#' + saveButtonID).off('click').on('click', function () {
+                const notes = $('#' + textareaID).val().trim();
 
                 if (!notes) {
-                    if (!notes) {
-                        $('#detailsTextareaMarkNoNursingHome').addClass('is-invalid');
-                        if ($('#detailsTextareaMarkNoNursingHome').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextareaMarkNoNursingHome').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
+                    $('#' + textareaID).addClass('is-invalid');
+                    if ($('#' + textareaID).next('.invalid-feedback').length === 0) {
+                        $('#' + textareaID).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextareaMarkNoNursingHome').on('input', function() {
-                        if ($(this).val()) {
+
+                    // Handle live validation
+                    $('#' + textareaID).on('input', function () {
+                        if ($(this).val().trim()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
@@ -858,30 +1056,28 @@
                     return;
                 }
 
-                // Remove validation errors if inputs are valid
-                $('#detailsTextareaMarkNoNursingHome').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextareaMarkNoNursingHome').next('.invalid-feedback').remove();
+                // Clear validation states
+                $('#' + textareaID).removeClass('is-invalid').addClass('is-valid');
+                $('#' + textareaID).next('.invalid-feedback').remove();
 
-                // Send the data via AJAX
+                // Send AJAX request
                 $.ajax({
-                    url: '{{ route("markApplicantNoNursingHome") }}', // Replace with your endpoint
+                    url: '{{ route("markApplicantNoNursingHome") }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
                         details: notes,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
+                        _token: '{{ csrf_token() }}'
                     },
-                    success: function(response) {
-                        toastr.success('Mark no nursing home saved successfully!');
-                        $('#markNoNursingHomeModal').modal('hide'); // Close the modal
-                        $('#markNoNursingHomeForm')[0].reset(); // Clear the form
-                        $('#detailsTextareaMarkNoNursingHome').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextareaMarkNoNursingHome').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
-
+                    success: function () {
+                        toastr.success('Marked successfully!');
+                        $('#' + modalID).modal('hide');
+                        $('#' + formID)[0].reset();
+                        $('#' + textareaID).removeClass('is-valid');
+                        $('#' + textareaID).next('.invalid-feedback').remove();
+                        $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function(xhr) {
+                    error: function () {
                         toastr.error('An error occurred while saving notes.');
                     }
                 });
@@ -889,28 +1085,32 @@
         }
         // Function to mark no nursing home modal
         function markApplicantCallbackModal(applicantID, saleID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#markApplicantCallbackModal').length === 0) {
+            const modalID = 'markApplicantCallbackModal_' + applicantID;
+            const textareaID = 'detailsTextareaMarkCallback_' + applicantID;
+            const formID = 'markCallbackForm_' + applicantID;
+            const saveButtonID = 'saveMarkCallbackButton_' + applicantID;
+
+            // Add the modal HTML only once for this applicant
+            if ($('#' + modalID).length === 0) {
                 $('body').append(
-                    '<div class="modal fade" id="markApplicantCallbackModal" tabindex="-1" aria-labelledby="markApplicantCallbackModalLabel" aria-hidden="true">' +
+                    '<div class="modal fade" id="' + modalID + '" tabindex="-1" aria-labelledby="' + modalID + 'Label" aria-hidden="true">' +
                         '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="markApplicantCallbackModalLabel">Mark As Callback</h5>' +
+                                    '<h5 class="modal-title" id="' + modalID + 'Label">Mark As Callback</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
                                 '<div class="modal-body">' +
-                                    '<form id="markCallbackForm">' +
+                                    '<form id="' + formID + '">' +
                                         '<div class="mb-3">' +
-                                            '<label for="detailsTextareaMarkCallback" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextareaMarkCallback" rows="4" required></textarea>' +
+                                            '<label for="' + textareaID + '" class="form-label">Details</label>' +
+                                            '<textarea class="form-control" id="' + textareaID + '" rows="4" required></textarea>' +
                                         '</div>' +
                                     '</form>' +
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveMarkCallbackButton">'+
-                                        'Save</button>' +
+                                    '<button type="button" class="btn btn-primary" id="' + saveButtonID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -918,24 +1118,25 @@
                 );
             }
 
-            // Show the modal
-            $('#markApplicantCallbackModal').modal('show');
+            // Reset and show the modal
+            $('#' + formID)[0].reset();
+            $('#' + textareaID).removeClass('is-valid is-invalid');
+            $('#' + textareaID).next('.invalid-feedback').remove();
+            $('#' + modalID).modal('show');
 
-            // Handle the save button click
-            $('#saveMarkCallbackButton').off('click').on('click', function() {
-                const notes = $('#detailsTextareaMarkCallback').val();
+            // Handle Save button click
+            $('#' + saveButtonID).off('click').on('click', function () {
+                const notes = $('#' + textareaID).val().trim();
 
                 if (!notes) {
-                    if (!notes) {
-                        $('#detailsTextareaMarkCallback').addClass('is-invalid');
-                        if ($('#detailsTextareaMarkCallback').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextareaMarkCallback').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
+                    $('#' + textareaID).addClass('is-invalid');
+                    if ($('#' + textareaID).next('.invalid-feedback').length === 0) {
+                        $('#' + textareaID).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextareaMarkCallback').on('input', function() {
-                        if ($(this).val()) {
+
+                    // Live validation
+                    $('#' + textareaID).on('input', function () {
+                        if ($(this).val().trim()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
@@ -944,37 +1145,35 @@
                     return;
                 }
 
-                // Remove validation errors if inputs are valid
-                $('#detailsTextareaMarkCallback').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextareaMarkCallback').next('.invalid-feedback').remove();
+                // Clear validation
+                $('#' + textareaID).removeClass('is-invalid').addClass('is-valid');
+                $('#' + textareaID).next('.invalid-feedback').remove();
 
-                // Send the data via AJAX
+                // AJAX request
                 $.ajax({
-                    url: '{{ route("markApplicantCallback") }}', // Replace with your endpoint
+                    url: '{{ route("markApplicantCallback") }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
                         sale_id: saleID,
                         details: notes,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
+                        _token: '{{ csrf_token() }}'
                     },
-                    success: function(response) {
+                    success: function () {
                         toastr.success('Mark callback saved successfully!');
-                        $('#markApplicantCallbackModal').modal('hide'); // Close the modal
-                        $('#markCallbackForm')[0].reset(); // Clear the form
-                        $('#detailsTextareaMarkCallback').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextareaMarkCallback').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
-
+                        $('#' + modalID).modal('hide');
+                        $('#' + formID)[0].reset();
+                        $('#' + textareaID).removeClass('is-valid');
+                        $('#' + textareaID).next('.invalid-feedback').remove();
+                        $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function(xhr) {
+                    error: function () {
                         toastr.error('An error occurred while saving notes.');
                     }
                 });
             });
         }
-          // Disable the Unblock button by default
+        // Disable the Unblock button by default
         $('#markNursingHomeBtn').prop('disabled', true);
         $('#markNoNursingHomeBtn').prop('disabled', true);
 
@@ -1093,7 +1292,37 @@
 			}
 		});
 
-        // Function to show the notes modal
+        // Function to show the job description modal
+        $('#viewJobDescription').on('click', function () {
+            var description = $(this).data('description');
+
+            // Append modal HTML only once
+            if ($('#viewSaleDescriptionModal').length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="viewSaleDescriptionModal" tabindex="-1" aria-labelledby="viewSaleDescriptionModalLabel">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-scrollablemodal-dialog-top">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title" id="viewSaleDescriptionModalLabel">Sale Description</h5>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                                '</div>' +
+                                '<div class="modal-body">' + description + '</div>' +
+                                '<div class="modal-footer">' +
+                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            } else {
+                // Update modal content if already exists
+                $('#viewSaleDescriptionModal .modal-body').html(description);
+            }
+
+            // Show the modal
+            $('#viewSaleDescriptionModal').modal('show');
+        });
+        
         $('#viewDocuments').on('click', function () {
             // Make an AJAX call to retrieve notes history data
             var id = $('#sale_id').val();
