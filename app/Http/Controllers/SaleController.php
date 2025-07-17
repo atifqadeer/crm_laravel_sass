@@ -685,19 +685,72 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     return $sale->formatted_postcode; // Using accessor
                 })
-                ->addColumn('experience', function ($sale) {
-                    $short = Str::limit(strip_tags($sale->experience), 80);
-                    $full = e($sale->experience);
-                    $id = 'exp-' . $sale->id;
+                ->addColumn('qualification', function ($sale) {
+                    $fullHtml = $sale->qualification; // This contains HTML from Summernote
+                    $short = Str::limit(strip_tags($fullHtml), 80); // Strips tags for preview
+                    $id = 'qua-' . $sale->id;
 
                     return '
                         <a href="#" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
-                            ' . $short . '
+                            ' . e($short) . '
                         </a>
 
                         <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
+                ->addColumn('experience', function ($sale) {
+                    $fullHtmlFromDatabase = $sale->experience;
+                    $id = 'exp-' . $sale->id;
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $fullHtmlFromDatabase
+                    );
+
+                    // 2. Remove all other HTML tags except simple formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple \n to single \n
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br> for browser display
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#" class="text-primary"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $shortText . '
+                        </a>
+
+                        <!-- Modal with full formatted HTML -->
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -706,7 +759,7 @@ class SaleController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . nl2br($full) . '
+                                        ' . $fullHtmlFromDatabase . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
@@ -748,7 +801,7 @@ class SaleController extends Controller
                         $status = '<span class="badge bg-warning">On Hold</span>';
                     } elseif ($sale->status == 1 && $sale->is_re_open == 1) {
                         $status = '<span class="badge bg-dark">Re-Open</span>';
-                    } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
+                    } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
@@ -825,7 +878,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'experience', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -3237,13 +3290,22 @@ class SaleController extends Controller
         $details = $request->input('details');
         $sale_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        $updateData = [
-            'sale_notes' => $sale_notes,
-            'status' => $status,
-            'is_on_hold' => false,
-            'is_re_open' => false
-        ];
-
+        if($status == 1){
+            $updateData = [
+                'sale_notes' => $sale_notes,
+                'status' => 1, // Assuming 1 is for active
+                'is_on_hold' => false,
+                'is_re_open' => true
+            ];
+        }else{
+            $updateData = [
+                'sale_notes' => $sale_notes,
+                'status' => 2, // Assuming 2 is for pending
+                'is_on_hold' => false,
+                'is_re_open' => false
+            ];
+        }
+        
         $sale = Sale::findOrfail($sale_id);
         $sale->update($updateData);
 

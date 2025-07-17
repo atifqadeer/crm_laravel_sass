@@ -124,33 +124,31 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                             </div>
                             <div class="col-lg-6">
                                 <div class="mb-3">
-                                    <label for="experience" class="form-label">Experience</label>
-                                    <textarea class="form-control" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience', $sale->experience) }}</textarea>
-                                    <div class="invalid-feedback">Please provide experience</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="benefits" class="form-label">Benefits</label>
-                                    <textarea class="form-control" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits', $sale->benefits) }}</textarea>
-                                    <div class="invalid-feedback">Please provide benefits</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="qualification" class="form-label">Qualification</label>
-                                    <textarea class="form-control" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification', $sale->qualification) }}</textarea>
-                                    <div class="invalid-feedback">Please provide qualification</div>
+                                    <label for="sale_notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                    <div class="invalid-feedback">Please provide notes</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-12">
                             <div class="mb-3">
-                                <label for="sale_notes" class="form-label">Notes</label>
-                                <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
-                                <div class="invalid-feedback">Please provide notes</div>
+                                <label for="experience" class="form-label">Experience</label>
+                                <textarea class="form-control summernote" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience', $sale->experience) }}</textarea>
+                                <div class="invalid-feedback">Please provide experience</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-12">
+                            <div class="mb-3">
+                                <label for="benefits" class="form-label">Benefits</label>
+                                <textarea class="form-control summernote" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits', $sale->benefits) }}</textarea>
+                                <div class="invalid-feedback">Please provide benefits</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-12">
+                            <div class="mb-3">
+                                <label for="qualification" class="form-label">Qualification</label>
+                                <textarea class="form-control summernote" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification', $sale->qualification) }}</textarea>
+                                <div class="invalid-feedback">Please provide qualification</div>
                             </div>
                         </div>
                         <div class="col-lg-12">
@@ -281,7 +279,7 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
 <script>
     $(document).ready(function () {
         $('.summernote').summernote({
-            height: 300,
+            height: 200,
             toolbar: [
                 ['style', ['bold', 'italic', 'underline', 'clear']],
                 ['font', ['strikethrough', 'superscript', 'subscript']],

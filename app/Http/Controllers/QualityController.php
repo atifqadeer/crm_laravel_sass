@@ -840,7 +840,7 @@ class QualityController extends Controller
         switch ($statusFilter) {
             case 'active sales':
                 $model->where(function($query) {
-                    $query->whereIn('sales.status', [1, 2])/**1=re-open, 2=pending */
+                    $query->where('sales.status', 2)/**1=open, 2=pending */
                         ->orWhere('is_re_open', true);
                 });
                 break;
@@ -1015,12 +1015,14 @@ class QualityController extends Controller
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
-                    if ($sale->status == 1 && $sale->is_re_open == true) {
-                        $status = '<span class="badge bg-primary">Re-Open</span>';
-                    } elseif ($sale->status == 1 && $sale->is_re_open == false) {
-                        $status = '<span class="badge bg-success">Open</span>';
-                    } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
+                    if ($sale->status == 1 && $sale->is_re_open == 1) {
+                        $status = '<span class="badge bg-dark">Re-Open</span>';
+                    } elseif ($sale->status == 1 && $sale->is_on_hold == 1) {
+                        $status = '<span class="badge bg-warning">On Hold</span>';
+                    } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($sale->status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {
@@ -1145,9 +1147,8 @@ class QualityController extends Controller
                     $sale->update(['is_re_open' => true]);
                 }
             } else {
-                 $sale->update([
-                    'status' => ($status == 'clear') ? 1 : 3, 
-                    'is_re_open' => ($status == 'clear') ? true : false
+                $sale->update([
+                    'status' => ($status == 'clear') ? 1 : 3
                 ]);
             }
 

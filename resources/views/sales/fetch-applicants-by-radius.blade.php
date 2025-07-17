@@ -15,7 +15,8 @@
                                 <li><strong>PostCode:</strong> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</li>
                                 <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                 <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
-                                <li><strong>Qualification:</strong> {{ $sale->qualification }}</li>
+                                <li><strong>Qualification:</strong> {!! $sale->qualification !!}</li>
+                                <li><strong>Benefits:</strong> {!! $sale->benefits !!}</li>
                             </ul>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -26,7 +27,7 @@
                                 <li><strong>Position Type:</strong> {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}</li>
                                 <li><strong>Salary:</strong> {{ $sale->salary }}</li>
                                 <li><strong>Timing:</strong> {{ $sale->timing }}</li>
-                                <li><strong>Experience:</strong> {{ $sale->experience }}</li>
+                                <li><strong>Experience:</strong> {!! $sale->experience !!}</li>
                                 <li><strong>Status:</strong>
                                     @php
                                         $status = $sale->status;
