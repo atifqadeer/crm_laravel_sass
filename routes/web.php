@@ -241,6 +241,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('emailEditTemplate', [SettingController::class, 'emailEditTemplate'])->name('emailEditTemplate');
     Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
     Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
+    Route::post('emailTemplateDelete', [SettingController::class, 'emailTemplateDelete'])->name('emailTemplates.delete');
+
 
     /**SMS Templates */
     Route::post('settings/sms-templates', [SettingController::class, 'smsTemplatesIndex'])->name('settings.sms-templates');
@@ -248,6 +250,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('smsEditTemplate', [SettingController::class, 'smsEditTemplate'])->name('smsEditTemplate');
     Route::post('sms-templates/store', [SettingController::class, 'smsTemplatesStore'])->name('smsTemplates.store');
     Route::put('sms-templates/update', [SettingController::class, 'smsTemplatesUpdate'])->name('smsTemplates.update');
+    Route::post('smsTemplateDelete', [SettingController::class, 'smsTemplateDelete'])->name('smsTemplates.delete');
 
     /** crm */ 
     Route::group(['prefix' => 'crm'], function () {
@@ -281,6 +284,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('crmRequestConfirm', [CrmController::class, 'crmRequestConfirm'])->name('crmRequestConfirm');
     Route::post('crmRequestSave', [CrmController::class, 'crmRequestSave'])->name('crmRequestSave');
     Route::post('crmScheduleInterview', [CrmController::class, 'crmScheduleInterview'])->name('crmScheduleInterview');
+    Route::post('crmRevertRequestedCvToSentCv', [CrmController::class, 'crmRevertRequestedCvToSentCv'])->name('crmRevertRequestedCvToSentCv');
+    Route::post('crmRevertRequestedCvToQuality', [CrmController::class, 'crmRevertRequestedCvToQuality'])->name('crmRevertRequestedCvToQuality');
     Route::post('crmRequestedInterviewEmailToApplicant', [CrmController::class, 'crmRequestedInterviewEmailToApplicant'])->name('crmRequestedInterviewEmailToApplicant');
     /** CRM Request No Job */
 

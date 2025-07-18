@@ -539,14 +539,43 @@ class SettingController extends Controller
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
-                                     <li>
+                                    <li>
                                         <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
                                     </li>
                                 </ul>
                             </div>';
                 })
                 ->rawColumns(['action', 'created_at', 'template', 'slug', 'title', 'status'])
                 ->make(true);
+        }
+    }
+    public function smsTemplateDelete(Request $request)
+    {
+        try {
+            $id = $request->id; // Get the ID from the route parameter
+
+            $template = SmsTemplate::find($id);
+
+            if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SMS Template not found.'
+            ], 404);
+            }
+            $template->delete();
+            return response()->json([
+            'success' => true,
+            'data' => $template
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting SMS template: ' . $e->getMessage());
+            return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while deleting the SMS template. Please try again.'
+            ], 500);
         }
     }
     public function smsEditTemplate(Request $request)
@@ -725,6 +754,9 @@ class SettingController extends Controller
                                      <li>
                                         <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
+                                    </li>
                                 </ul>
                             </div>';
                 })
@@ -841,6 +873,33 @@ class SettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while updating the template, Please try again.'
+            ], 500);
+        }
+    }
+    public function emailTemplateDelete(Request $request)
+    {
+        try {
+            $id = $request->id; // Get the ID from the route parameter
+
+            $template = EmailTemplate::find($id);
+
+            if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email Template not found.'
+            ], 404);
+            }
+            $template->delete();
+
+            return response()->json([
+            'success' => true,
+            'data' => $template
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting SMS template: ' . $e->getMessage());
+            return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while deleting the SMS template. Please try again.'
             ], 500);
         }
     }

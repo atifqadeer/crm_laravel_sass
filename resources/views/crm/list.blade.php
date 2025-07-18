@@ -224,12 +224,29 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
+    <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+
     <script>
         $(document).ready(function() {
-            setInterval(() => {
-                $('#applicants_table').DataTable().ajax.reload(null, false); // 'false' keeps current page
-            }, 30000); // 60,000 milliseconds = 1 minute
-
+            // Initialize Summernote and set content
+            $('.summernote').summernote({
+                height: 200,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+        });
+        $(document).ready(function() {
             // Store the current filter in a variable
             var tabFilter = '';
             var currentTypeFilter = '';
@@ -974,6 +991,167 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                             `).show();
                     },
                     complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        /** Revert Requested Cv to Sent CV */
+        function crmRevertRequestedCvToSentCvModal(applicantID, saleID) {
+            const formId = `#crmRevertRequestedCvToSentCvForm${applicantID}-${saleID}`;
+            const modalId = `#crmRevertRequestedCvToSentCvModal${applicantID}-${saleID}`;
+            const detailsId = `#RevertRevertRequestedCvToSentCvDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertRequestedCvToSentCvButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // 💾 Save button handler
+            saveButton.off('click').on('click', function () {
+                // Clear previous validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+
+                // Validate input
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                const form = $(formId)[0];
+
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        /** Revert Requested Cv to Quality */
+        function crmRevertRequestedCvToQualityModal(applicantID, saleID) {
+            const formId = `#crmRevertRequestedCvToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmRevertRequestedCvToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#RevertRevertRequestedCvToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertRequestedCvToQualityButton`);
+
+            // 🧼 Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // 💾 Save button logic
+            saveButton.off('click').on('click', function () {
+                // Clear previous validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                const form = $(formId)[0];
+
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function (xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });

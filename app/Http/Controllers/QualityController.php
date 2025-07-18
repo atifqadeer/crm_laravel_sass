@@ -79,7 +79,7 @@ class QualityController extends Controller
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
-            case 'active cvs':
+            case 'requested cvs':
                 $model->join('cv_notes', function ($join) {
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id')
                             ->where("cv_notes.status", 1);

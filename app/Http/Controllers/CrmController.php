@@ -1195,18 +1195,18 @@ class CrmController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn("user_name", function ($applicant) {
-                    return $applicant->user_name ?? '-';
+                    return ucwords($applicant->user_name) ?? '-';
                 })
                 ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? $applicant->jobTitle->name : '-';
+                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -2084,6 +2084,60 @@ class CrmController extends Controller
                                     </div>
                                 </div>
                             </div>';
+                    /** CRM Revert Requested CV to Sent CV Modal */
+                    $html .= '<div id="crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmRevertRequestedCvToSentCvModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmRevertRequestedCvToSentCvModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Sent CV</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertRequestedCvToSentCv') . '" method="POST" id="crmRevertRequestedCvToSentCvForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="RevertRevertRequestedCvToSentCvDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-primary saveCrmRevertRequestedCvToSentCvButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Revert Requested CV to Quality Modal */
+                    $html .= '<div id="crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmRevertRequestedCvToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmRevertRequestedCvToSentCvModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertRequestedCvToQuality') . '" method="POST" id="crmRevertRequestedCvToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="RevertRevertRequestedCvToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-primary saveCrmRevertRequestedCvToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
                     /** CRM Revert Rejected CV to Sent CV Modal */
                     $html .= '<div id="crmRevertRejectedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmRevertRejectedCvToSentCvModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
@@ -2111,7 +2165,7 @@ class CrmController extends Controller
                                     </div>
                                 </div>
                             </div>';
-                    /** CRM Revert Rejected CV to Sent CV Modal */
+                    /** CRM Revert Rejected CV to Quality Modal */
                     $html .= '<div id="crmRevertRejectedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmRevertRejectedCvToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                     <div class="modal-content">
@@ -2143,9 +2197,9 @@ class CrmController extends Controller
                     $newPhrase = '';
                     $newSubject = '';
                     $applicant_email = '';
-                    $request_configuration_email = EmailTemplate::where('title', $title)->first();
+                    $request_configuration_email = EmailTemplate::where('title', $title)->where('is_active', 1)->first();
 
-                    if ($request_configuration_email && $request_configuration_email->is_active == 1) {
+                    if ($request_configuration_email) {
                         // Loop through each attribute of the model
                         foreach ($request_configuration_email->getAttributes() as $key => $value) {
                             if (is_string($value)) {
@@ -2254,7 +2308,7 @@ class CrmController extends Controller
                                                     <div class="invalid-feedback">Please provide email subject.</div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <textarea name="email_body" id="email_body_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="10" class="form-control mt-2" placeholder="Email Body" required>' . $newPhrase . '</textarea>
+                                                    <textarea name="email_body" id="email_body_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="10" class="form-control mt-2 summernote" placeholder="Email Body" required>' . $newPhrase . '</textarea>
                                                     <div class="invalid-feedback">Please provide email body.</div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -3729,6 +3783,84 @@ class CrmController extends Controller
             }
 
             return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmRevertRequestedCvToSentCv(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $this->crmRevertRequestToSentCvAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmRevertRequestedCvToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            if($revertedInSentCv){
+                // Private function might throw exceptions
+                $this->crmRevertCVInQualityAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $request->input('sale_id'),
+                    $details
+                );
+            }
+
+            return response()->json(['success' => true, 'message' => 'CRM Reverted In Quality Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -6394,6 +6526,67 @@ class CrmController extends Controller
             // Re-throw the exception to be caught by the calling method
             throw $e;
         }   
+    }
+    private function crmRevertRequestToSentCvAction($applicant_id, $user_id, $sale_id, $details)
+    {
+        try {
+            Applicant::where("id", $applicant_id)
+                ->update([
+                    'is_in_crm_request' => false
+                ]);
+
+            CrmNote::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1
+            ])->update(["status" => 0]);
+
+            $crm_notes = new CrmNote();
+            $crm_notes->applicant_id = $applicant_id;
+            $crm_notes->user_id = $user_id;
+            $crm_notes->sale_id = $sale_id;
+            $crm_notes->details = $details;
+            $crm_notes->moved_tab_to = "cv_sent";
+            $crm_notes->save();
+
+            //update uid
+            $crm_notes->crm_notes_uid = md5($crm_notes->id);
+            $crm_notes->save();
+
+            QualityNotes::where([
+                "applicant_id" => $applicant_id, 
+                "sale_id" => $sale_id, 
+                "moved_tab_to" => "cleared",
+                "status" => 0
+            ])->update(["status" => 1]);
+
+            History::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1
+            ])->update(["status" => 0]);
+
+            $history = new History();
+            $history->applicant_id = $applicant_id;
+            $history->user_id = $user_id;
+            $history->sale_id = $sale_id;
+            $history->stage = 'crm';
+            $history->sub_stage = 'crm_save';
+            $history->save();
+
+            //update uid
+            $history->history_uid = md5($history->id);
+            $history->save();
+
+            return true; // Indicate success
+
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error("Error in crmRevertRequestToSentCvAction: " . $e->getMessage());
+
+            // Re-throw the exception to be caught by the calling method
+            throw $e;
+        }
     }
 
     /** CRM Request Reject */

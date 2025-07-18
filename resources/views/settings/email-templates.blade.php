@@ -522,38 +522,38 @@
             });
         }
 
-        // function deleteCategory(id) {
-        //     Swal.fire({
-        //     title: 'Are you sure?',
-        //     text: 'This Job Category will be permanently deleted. Are you sure you want to continue?',
-        //     icon: 'warning',
-        //     showCancelButton: true,
-        //     customClass: {
-        //         confirmButton: 'btn bg-danger text-white me-2 mt-2',
-        //         cancelButton: 'btn btn-secondary mt-2'
-        //     },
-        //     cancelButtonColor: '#d33',
-        //     confirmButtonText: 'Yes, delete it!'
-        //     }).then((result) => {
-        //     if (result.isConfirmed) {
-        //         $.ajax({
-        //         url: '',
-        //         type: 'post',
-        //         data: {
-        //             id: id,
-        //             _token: '{{ csrf_token() }}'
-        //         },
-        //         success: function(response) {
-        //             toastr.success(response.message || 'Job Category deleted successfully!');
-        //             $('#template_table').DataTable().ajax.reload();
-        //         },
-        //         error: function(xhr) {
-        //             toastr.error('An error occurred while deleting the job category.');
-        //         }
-        //         });
-        //     }
-        //     });
-        // }
+        function deleteTemplate(id) {
+            Swal.fire({
+            title: 'Are you sure?',
+            text: 'This template will be permanently deleted. Are you sure you want to continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            customClass: {
+                confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                cancelButton: 'btn btn-secondary mt-2'
+            },
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                url: '{{ route("emailTemplates.delete") }}',
+                type: 'post',
+                data: {
+                    id: id,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    toastr.success(response.message || 'Template deleted successfully!');
+                    $('#template_table').DataTable().ajax.reload();
+                },
+                error: function(xhr) {
+                    toastr.error('An error occurred while deleting the template.');
+                }
+                });
+            }
+            });
+        }
     </script>
     
 @endsection

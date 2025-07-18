@@ -127,21 +127,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-            // Initialize Summernote and set content
-            $(`#template`).summernote({
-                height: 200,
-                toolbar: [
-                    ['style', ['bold', 'italic', 'underline', 'clear']],
-                    ['font', ['strikethrough', 'superscript', 'subscript']],
-                    ['fontsize', ['fontsize']],
-                    ['color', []],
-                    ['para', ['ul', 'ol', 'paragraph']],
-                    ['insert', []],
-                    ['view', []]
-                ]
-            });
-        });
+        // $(document).ready(function() {
+        //     // Initialize Summernote and set content
+        //     $(`#template`).summernote({
+        //         height: 200,
+        //         toolbar: [
+        //             ['style', ['bold', 'italic', 'underline', 'clear']],
+        //             ['font', ['strikethrough', 'superscript', 'subscript']],
+        //             ['fontsize', ['fontsize']],
+        //             ['color', []],
+        //             ['para', ['ul', 'ol', 'paragraph']],
+        //             ['insert', []],
+        //             ['view', []]
+        //         ]
+        //     });
+        // });
 
         $(document).ready(function() {
             // Store the current filter in a variable
@@ -337,7 +337,7 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Template</label>
-                                        <textarea id="${templateId}" class="form-control summernote" name="edit_template" rows="7" required></textarea>
+                                        <textarea id="${templateId}" class="form-control" name="edit_template" rows="7" required></textarea>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="mb-3">
@@ -378,19 +378,19 @@
                     $(`#${statusId}`).val(response.data.status);
 
                     // Initialize Summernote and set content
-                    $(`#${templateId}`).summernote({
-                        height: 200,
-                        toolbar: [
-                            ['style', ['bold', 'italic', 'underline', 'clear']],
-                            ['font', ['strikethrough', 'superscript', 'subscript']],
-                            ['fontsize', ['fontsize']],
-                            ['color', []],
-                            ['para', ['ul', 'ol', 'paragraph']],
-                            ['insert', []],
-                            ['view', []]
-                        ]
-                    });
-                    $(`#${templateId}`).summernote('code', response.template);
+                    // $(`#${templateId}`).summernote({
+                    //     height: 200,
+                    //     toolbar: [
+                    //         ['style', ['bold', 'italic', 'underline', 'clear']],
+                    //         ['font', ['strikethrough', 'superscript', 'subscript']],
+                    //         ['fontsize', ['fontsize']],
+                    //         ['color', []],
+                    //         ['para', ['ul', 'ol', 'paragraph']],
+                    //         ['insert', []],
+                    //         ['view', []]
+                    //     ]
+                    // });
+                    // $(`#${templateId}`).summernote('code', response.template);
 
                     // Show modal
                     const modal = new bootstrap.Modal(document.getElementById(modalId));
@@ -412,7 +412,7 @@
                 const formData = {
                     id: form.find('[name="id"]').val(),
                     edit_title: form.find('[name="edit_title"]').val(),
-                    edit_template: $(`#${templateId}`).summernote('code'),
+                    edit_template: form.find('[name="edit_template"]').val(),
                     status: form.find('[name="status"]').val(),
                     _token: '{{ csrf_token() }}'
                 };
@@ -492,38 +492,38 @@
             });
         }
 
-        // function deleteCategory(id) {
-        //     Swal.fire({
-        //     title: 'Are you sure?',
-        //     text: 'This Job Category will be permanently deleted. Are you sure you want to continue?',
-        //     icon: 'warning',
-        //     showCancelButton: true,
-        //     customClass: {
-        //         confirmButton: 'btn bg-danger text-white me-2 mt-2',
-        //         cancelButton: 'btn btn-secondary mt-2'
-        //     },
-        //     cancelButtonColor: '#d33',
-        //     confirmButtonText: 'Yes, delete it!'
-        //     }).then((result) => {
-        //     if (result.isConfirmed) {
-        //         $.ajax({
-        //         url: '',
-        //         type: 'post',
-        //         data: {
-        //             id: id,
-        //             _token: '{{ csrf_token() }}'
-        //         },
-        //         success: function(response) {
-        //             toastr.success(response.message || 'Job Category deleted successfully!');
-        //             $('#template_table').DataTable().ajax.reload();
-        //         },
-        //         error: function(xhr) {
-        //             toastr.error('An error occurred while deleting the job category.');
-        //         }
-        //         });
-        //     }
-        //     });
-        // }
+        function deleteTemplate(id) {
+            Swal.fire({
+            title: 'Are you sure?',
+            text: 'This template will be permanently deleted. Are you sure you want to continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            customClass: {
+                confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                cancelButton: 'btn btn-secondary mt-2'
+            },
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                url: '{{ route("smsTemplates.delete") }}',
+                type: 'post',
+                data: {
+                    id: id,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    toastr.success(response.message || 'Template deleted successfully!');
+                    $('#template_table').DataTable().ajax.reload();
+                },
+                error: function(xhr) {
+                    toastr.error('An error occurred while deleting the template.');
+                }
+                });
+            }
+            });
+        }
     </script>
     
 @endsection

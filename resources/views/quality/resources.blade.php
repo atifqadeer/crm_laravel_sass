@@ -25,10 +25,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                             <!-- Button Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Active CVs</span>
+                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Requested CVs</span>
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
-                                    <a class="dropdown-item status-filter" href="#">Active CVs</a>
+                                    <a class="dropdown-item status-filter" href="#">Requested CVs</a>
                                     <a class="dropdown-item status-filter" href="#">Open CVs</a>
                                     <a class="dropdown-item status-filter" href="#">No Job CVs</a>
                                     <a class="dropdown-item status-filter" href="#">Rejected CVs</a>
