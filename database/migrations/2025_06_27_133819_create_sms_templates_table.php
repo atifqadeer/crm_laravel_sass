@@ -15,11 +15,9 @@ class CreateSmsTemplatesTable extends Migration
             $table->bigIncrements('id');
 
             $table->string('title')->unique();               // e.g. "welcome_sms"
-            $table->string('module')->nullable();            // e.g. "applicant", "sale"
-            $table->string('description')->nullable();       // Brief info about purpose
             $table->longText('template');                        // SMS body text with placeholders
 
-            $table->tinyInteger('status')->default(0)->comment('0 = draft, 1 = active, 2 = failed');
+            $table->tinyInteger('status')->default(0)->comment('0 = inactive, 1 = active');
 
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

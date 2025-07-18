@@ -222,18 +222,30 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('job-categories/list', [SettingController::class, 'jobCategoriesIndex'])->name('job-categories.list');
     Route::post('job-categories/store', [SettingController::class, 'jobCategoriesStore'])->name('job-categories.store');
     Route::put('job-categories/update', [SettingController::class, 'jobCategoriesUpdate'])->name('job-categories.update');
-
+    
     // job titles
     Route::get('getJobTitles', [SettingController::class, 'getJobTitles'])->name('getJobTitles');
     Route::get('job-titles/list', [SettingController::class, 'jobTitlesIndex'])->name('job-titles.list');
     Route::post('job-titles/store', [SettingController::class, 'jobTitlesStore'])->name('job-titles.store');
     Route::put('job-titles/update', [SettingController::class, 'jobTitlesUpdate'])->name('job-titles.update');
-
+    
     // job sources
     Route::get('getJobSources', [SettingController::class, 'getJobSources'])->name('getJobSources');
     Route::post('job-sources/list', [SettingController::class, 'jobSourceIndex'])->name('job-sources.list');
     Route::post('job-sources/store', [SettingController::class, 'jobSourceStore'])->name('job-sources.store');
     Route::put('job-sources/update', [SettingController::class, 'jobSourceUpdate'])->name('job-sources.update');
+
+    /**Email Templates */
+    Route::post('settings/email-templates', [SettingController::class, 'emailTemplatesIndex'])->name('settings.email-templates');
+    Route::get('getEmailTemplates', [SettingController::class, 'getEmailTemplates'])->name('getEmailTemplates');
+    Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
+    Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
+
+    /**SMS Templates */
+    Route::post('settings/sms-templates', [SettingController::class, 'smsTemplatesIndex'])->name('settings.sms-templates');
+    Route::get('getSmsTemplates', [SettingController::class, 'getSmsTemplates'])->name('getSmsTemplates');
+    Route::post('sms-templates/store', [SettingController::class, 'smsTemplatesStore'])->name('smsTemplates.store');
+    Route::put('sms-templates/update', [SettingController::class, 'smsTemplatesUpdate'])->name('smsTemplates.update');
 
     /** crm */ 
     Route::group(['prefix' => 'crm'], function () {

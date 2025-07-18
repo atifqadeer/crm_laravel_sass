@@ -1906,7 +1906,6 @@ class ResourceController extends Controller
                 'applicants_pivot_sales.id as pivot_id',
                 'users.name as user_name',
                 'cv_notes.status as cv_note_status',
-                'module_notes.created_at as note_created_at'
             ])
             ->where('applicants.status', 1)
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
@@ -1925,12 +1924,12 @@ class ResourceController extends Controller
             ) AS cv_notes"), 'applicants.id', '=', 'cv_notes.applicant_id')
             ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
             ->with(['jobTitle', 'jobCategory', 'jobSource', 'user'])
-            ->with(['module_note' => function($query) {
-                $query->select('id', 'module_noteable_id', 'module_noteable_type', 'user_id', 'created_at', 'details')
-                    ->where('module_noteable_type', 'Horsefly\\Applicant')
-                    ->latest('created_at')
-                    ->limit(1);
-            }])
+            ->leftJoin(DB::raw("(
+                    SELECT module_noteable_id, MAX(created_at) as latest_note_created
+                    FROM module_notes
+                    WHERE module_noteable_type = 'Horsefly\\\Applicant'
+                    GROUP BY module_noteable_id
+                ) as latest_module_note"), 'applicants.id', '=', 'latest_module_note.module_noteable_id')
             ->where(function ($query) {
                 $query->where("applicants.is_job_within_radius", true)
                     ->orWhereDate('applicants.created_at', '=', Carbon::now());
@@ -2037,11 +2036,13 @@ class ResourceController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('note_created_at', 'desc');
+                $model->orderBy('latest_module_note.latest_note_created', 'desc');
+
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('note_created_at', 'desc');
+            $model->orderBy('latest_module_note.latest_note_created', 'desc');
+
         }
 
         if ($request->has('search.value')) {
@@ -2071,6 +2072,9 @@ class ResourceController extends Controller
                     });
                     $query->orWhereHas('user', function ($q) use ($searchTerm) {
                         $q->where('users.name', 'LIKE', "%{$searchTerm}%");
+                    });
+                    $query->orWhereHas('module_note', function ($q) use ($searchTerm) {
+                        $q->where('latest_module_note.latest_note_created', 'LIKE', "%{$searchTerm}%");
                     });
                 });
             }
@@ -2203,7 +2207,7 @@ class ResourceController extends Controller
 
                     return $strng;
                 })
-                ->addColumn('updated_at', function ($applicant) {
+                ->addColumn('created_at', function ($applicant) {
                     $date = null;
 
                     // Ensure $applicant->module_note is iterable
@@ -2220,7 +2224,6 @@ class ResourceController extends Controller
                         ? Carbon::parse($date)->format('d M Y h:i A')
                         : $applicant->formatted_updated_at; // Assuming you have an accessor
                 })
-
                 ->addColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
                     $full = e($applicant->applicant_experience);

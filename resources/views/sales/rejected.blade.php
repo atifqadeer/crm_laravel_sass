@@ -134,8 +134,8 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                             <tr>
                                 <th>#</th>
                                 <th>Created Date</th>
-                                <th>Updated Date</th>
-                                <th>Closed Date</th>
+                                {{-- <th>Updated Date</th> --}}
+                                <th>Rejected Date</th>
                                 <th>Agent</th>
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
@@ -239,8 +239,8 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'created_at', name: 'sales.created_at' },
-                    { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'closed_date', name: 'audits.created_at' },
+                    // { data: 'updated_at', name: 'sales.updated_at' },
+                    { data: 'rejected_date', name: 'audits.created_at' },
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
@@ -257,6 +257,12 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 ],
                 columnDefs: [
                     {
+                        targets: 12,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
                         targets: 13,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
@@ -270,12 +276,6 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     },
                     {
                         targets: 15,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 16,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }

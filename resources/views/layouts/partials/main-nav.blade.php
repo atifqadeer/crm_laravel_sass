@@ -443,7 +443,7 @@
                     @canany(['administrator-email-template-index'])
                          <!-- Email Templates -->
                          <li class="nav-item">
-                              <a class="nav-link" href="#">
+                              <a class="nav-link" href="{{ route('settings.email-templates')}}">
                                    <span class="nav-icon">
                                         <i class="ri-inbox-line"></i>
                                    </span>
@@ -455,7 +455,7 @@
                     @canany(['administrator-sms-template-index'])
                          <!-- SMS Templates -->
                          <li class="nav-item">
-                              <a class="nav-link" href="#">
+                              <a class="nav-link" href="{{ route('settings.sms-templates')}}">
                                    <span class="nav-icon">
                                         <i class="ri-discuss-line"></i>
                                    </span>

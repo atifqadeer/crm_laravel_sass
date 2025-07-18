@@ -900,7 +900,7 @@ class SaleController extends Controller
                                     \'' . e($sale->qualification) . '\',
                                     \'' . e($sale->benefits) . '\'
                                 )">View</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Change Status</a></li>';
+                    <li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
                     if ($sale->status == 1 && $sale->is_on_hold == 0) {
                         $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
                     }
@@ -1605,8 +1605,8 @@ class SaleController extends Controller
                 ->addColumn('job_title', function ($sale) {
                     return $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                 })
-                 ->addColumn('closed_date', function ($sale) {
-                    return $sale->closed_date ? Carbon::parse($sale->closed_date)->format('d M Y, h:i A') : '-'; // Using accessor
+                 ->addColumn('rejected_date', function ($sale) {
+                    return $sale->rejected_date ? Carbon::parse($sale->rejected_date)->format('d M Y, h:i A') : '-'; // Using accessor
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
@@ -1844,7 +1844,7 @@ class SaleController extends Controller
 
                                 return $action;
                 })
-                ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'closed_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'rejected_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -3891,14 +3891,14 @@ class SaleController extends Controller
         if($status == 1){
             $updateData = [
                 'sale_notes' => $sale_notes,
-                'status' => 1, // Assuming 1 is for active
+                'status' => 2, // Assuming 2 is for pending
                 'is_on_hold' => false,
-                'is_re_open' => 1
+                'is_re_open' => false
             ];
         }else{
             $updateData = [
                 'sale_notes' => $sale_notes,
-                'status' => 0, // Assuming 2 is for pending
+                'status' => $status, // Assuming 2 is for pending
                 'is_on_hold' => false,
                 'is_re_open' => false
             ];

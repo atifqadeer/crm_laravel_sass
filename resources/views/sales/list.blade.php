@@ -657,7 +657,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                         <div class="modal-dialog modal-lg modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">Change Sale Status</h5>
+                                    <h5 class="modal-title" id="${modalId}Label">Mark as Open/Close Sale</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
@@ -671,9 +671,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                             <select class="form-select" id="statusDropdown_${saleID}" required>
                                                 <option value="" disabled selected>Select Status</option>
                                                 <option value="1">Open</option>
-                                                <option value="0">Closed</option>
-                                                <option value="2">Pending</option>
-                                                <option value="3">Reject</option>
+                                                <option value="0">Close</option>
                                             </select>
                                         </div>
                                     </form>

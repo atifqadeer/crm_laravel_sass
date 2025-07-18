@@ -112,12 +112,48 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                                  <div class="invalid-feedback">Please enter salary</div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="timing" class="form-label">Timing</label>
+                                <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{{ old('timing') }}</textarea>
+                                <div class="invalid-feedback">Please provide timing</div>
+                            </div>
+                        </div>
+                            <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="experience" class="form-label">Experience</label>
+                                <textarea class="form-control summernotee" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience') }}</textarea>
+                                <div class="invalid-feedback">Please provide experience</div>
+                            </div>
+                        </div>
                             <div class="col-lg-6">
                                 <div class="mb-3">
-                                    <label for="timing" class="form-label">Timing</label>
-                                    <textarea class="form-control" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{{ old('timing') }}</textarea>
-                                    <div class="invalid-feedback">Please provide timing</div>
+                                    <label for="benefits" class="form-label">Benefits</label>
+                                    <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits') }}</textarea>
+                                    <div class="invalid-feedback">Please provide benefits</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="qualification" class="form-label">Qualification</label>
+                                    <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification') }}</textarea>
+                                    <div class="invalid-feedback">Please provide qualification</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                            <div class="mb-3">
+                                    <label for="job_description" class="form-label">Job Description</label>
+                                    <textarea id="job_description" name="job_description" class="form-control summernote">{{ old('job_description') }}</textarea>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <div class="form-group">
+                                        <label for="attachment">Attachment</label>
+                                        <input type="file" class="form-control" name="attachments[]" id="attachment" multiple>
+                                        <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-lg-6">
@@ -127,37 +163,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                                     <div class="invalid-feedback">Please provide notes</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-lg-12">
-                            <div class="mb-3">
-                                <label for="experience" class="form-label">Experience</label>
-                                <textarea class="form-control summernote" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience') }}</textarea>
-                                <div class="invalid-feedback">Please provide experience</div>
-                            </div>
-                        </div>
-                        <div class="col-lg-12">
-                            <div class="mb-3">
-                                <label for="benefits" class="form-label">Benefits</label>
-                                <textarea class="form-control summernote" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits') }}</textarea>
-                                <div class="invalid-feedback">Please provide benefits</div>
-                            </div>
-                        </div>
-                        <div class="col-lg-12">
-                            <div class="mb-3">
-                                <label for="qualification" class="form-label">Qualification</label>
-                                <textarea class="form-control summernote" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification') }}</textarea>
-                                <div class="invalid-feedback">Please provide qualification</div>
-                            </div>
-                        </div>
-                        <div class="col-lg-12">
-                           <div class="mb-3">
-                                <label for="job_description" class="form-label">Job Description</label>
-                                <textarea id="job_description" name="job_description" class="form-control summernote">{{ old('job_description') }}</textarea>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-
-
+                        
                         <!--   <div class="card">
                             <div class="card-header">
                                 <h4 class="card-title">Upload Documents</h4>
@@ -210,11 +216,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                                 </li>
                             </ul>
                         </div> -->
-                        <div class="form-group">
-                            <label for="attachment">Attachment</label>
-                            <input type="file" class="form-control" name="attachments[]" id="attachment" multiple>
-                            <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-                        </div>
+                       
                     </div>
                 </div>
             </div>
@@ -251,13 +253,25 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-<!-- Summernote CSS -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+    <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
-<!-- Summernote JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 <script>
     $(document).ready(function () {
+        $('.summernotee').summernote({
+            height: 100,
+            toolbar: [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['fontsize', ['fontsize']],
+                ['color', []],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', []],
+                ['view', []]
+            ]
+        });
         $('.summernote').summernote({
             height: 200,
             toolbar: [
@@ -267,7 +281,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                 ['color', ['color']],
                 ['para', ['ul', 'ol', 'paragraph']],
                 ['insert', ['link', 'picture']],
-                ['view', ['fullscreen']]
+                ['view', []]
             ]
         });
     });

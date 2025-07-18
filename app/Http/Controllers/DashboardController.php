@@ -43,7 +43,6 @@ class DashboardController extends Controller
             ->leftJoin('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->select('users.*', 'roles.name as role_name'); // Add alias for sorting
 
-
         // Sorting logic
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
@@ -235,8 +234,14 @@ class DashboardController extends Controller
             $user_stats['CRM_paid'] = 0;
 
             foreach ($quality_stats['send_cvs_from_cv_notes'] as $key => $cv) {
-                $cv_cleared = History::where(['sub_stage' => 'quality_cleared', 'applicant_id' => $cv->applicant_id, 'sale_id' => $cv->sale_id, 'status' => 1])
-                    ->whereBetween('updated_at', [$start_date, $end_date])->distinct()->first();
+                $cv_cleared = History::where([
+                    'sub_stage' => 'quality_cleared', 
+                    'applicant_id' => $cv->applicant_id, 
+                    'sale_id' => $cv->sale_id, 
+                    'status' => 1
+                    ])->whereBetween('updated_at', [$start_date, $end_date])
+                    ->distinct()
+                    ->first();
 
                 if ($cv_cleared) {
                     $quality_stats['cvs_cleared']++;
@@ -244,8 +249,12 @@ class DashboardController extends Controller
                     $user_stats['CRM_sent_cvs']++;
 
                     /*** Rejected CV */
-                    $crm_rejected_cv = History::where(['sub_stage' => 'crm_reject', 'applicant_id' => $cv->applicant_id, 'sale_id' => $cv->sale_id, 'status' => 1])
-                        ->whereBetween('created_at', [$start_date, $end_date])->first();
+                    $crm_rejected_cv = History::where([
+                        'sub_stage' => 'crm_reject', 
+                        'applicant_id' => $cv->applicant_id, 
+                        'sale_id' => $cv->sale_id, 
+                        'status' => 1
+                        ])->whereBetween('created_at', [$start_date, $end_date])->first();
                     if ($crm_rejected_cv) {
                         $user_stats['CRM_rejected_cv']++;
                         continue;

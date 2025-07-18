@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 use Horsefly\Role;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use Horsefly\EmailTemplate;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\JobTitle;
+use Horsefly\SmsTemplate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Gate;
@@ -32,6 +34,14 @@ class SettingController extends Controller
     public function index()
     {
         return view('settings.list');
+    }
+    public function emailTemplatesIndex()
+    {
+        return view('settings.email-templates');
+    }
+    public function smsTemplatesIndex()
+    {
+        return view('settings.sms-templates');
     }
     public function jobCategoriesIndex()
     {
@@ -461,6 +471,336 @@ class SettingController extends Controller
                 })
                 ->rawColumns(['action', 'created_at', 'is_active'])
                 ->make(true);
+        }
+    }
+    public function getSmsTemplates(Request $request)
+    {
+        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
+
+        $query = SmsTemplate::query();
+
+        // Search filter
+        if ($request->has('search.value')) {
+            $searchTerm = strtolower($request->input('search.value'));
+            if (!empty($searchTerm)) {
+                 $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
+            }
+        }
+
+        // Filter by status if it's not empty
+        if ($statusFilter == 'active') {
+            $query->where('status', 1);
+        } elseif ($statusFilter == 'inactive') {
+            $query->where('status', 0);
+        }
+
+        // Sorting
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $query->orderBy($orderColumn, $orderDirection);
+            } else {
+                $query->orderBy('title', 'asc');
+            }
+        } else {
+            $query->orderBy('title', 'asc');
+        }
+
+        if ($request->ajax()) {
+            return DataTables::eloquent($query)
+                ->addIndexColumn()
+                ->addColumn('created_at', function ($row) {
+                    return $row->created_at ? $row->created_at->format('d-m-Y, h:i A') : '-';
+                })
+                ->addColumn('title', function ($row) {
+                    return ucwords(str_replace('_',' ',$row->title));
+                })
+                ->addColumn('template', function ($row) {
+                    return strip_tags($row->template);
+                })
+                ->addColumn('status', function ($row) {
+                    $status = '';
+                    if ($row->status) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } else {
+                        $status = '<span class="badge bg-danger">Inactive</span>';
+                    }
+
+                    return $status;
+                })
+                ->addColumn('action', function ($row) {
+                    $title = $row->title ? str_replace('_',' ',$row->title) : '';
+                    $template = ucwords($row->template ?? '');
+                    $status = ucwords($row->status);
+                    return '<div class="btn-group dropstart">
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                </button>
+                                <ul class="dropdown-menu">
+                                     <li>
+                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                            \'' . $row->id . '\',
+                                            \'' . addslashes(htmlspecialchars($title)) . '\',
+                                            \'' . addslashes(htmlspecialchars($template)) . '\',
+                                            \'' . addslashes(htmlspecialchars($status)) . '\'
+                                        )">Edit</a>
+                                    </li>
+                                </ul>
+                            </div>';
+                })
+                ->rawColumns(['action', 'created_at', 'title', 'status'])
+                ->make(true);
+        }
+    }
+    public function smsTemplatesStore(Request $request)
+    {
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:job_categories,name',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Please fix the errors in the form'
+            ], 422);
+        }
+
+        try {
+            // Create the role
+            JobCategory::create([
+                'name' => $request->input('name'),
+                'description' => $request->input('name')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job Category created successfully',
+                'redirect' => route('job-categories.list')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error creating job category: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the job category. Please try again.'
+            ], 500);
+        }
+    }
+    public function smsTemplatesUpdate(Request $request)
+    {
+        return $request->all();
+        $id = $request->input('id');
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'edit_title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('sms_templates', 'title')->ignore($id),
+            ],
+            'edit_template' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Please fix the errors in the form'
+            ], 422);
+        }
+
+        try {
+            // Retrieve the role
+            $template = SmsTemplate::findOrFail($id);
+
+            // Update 
+            $template->title = $request->input('edit_title');
+            $template->template = $request->input('edit_template');
+            $template->status = $request->input('status');
+            $template->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Template updated successfully',
+                'redirect' => route('settings.sms-templates')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating template: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the template, Please try again.'
+            ], 500);
+        }
+    }
+    public function getEmailTemplates(Request $request)
+    {
+        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
+
+        $query = EmailTemplate::query();
+
+        // Search filter
+        if ($request->has('search.value')) {
+            $searchTerm = strtolower($request->input('search.value'));
+            if (!empty($searchTerm)) {
+                 $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('sms_templates.from_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('sms_templates.subject', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
+            }
+        }
+
+        // Filter by status if it's not empty
+        if ($statusFilter == 'active') {
+            $query->where('is_active', 1);
+        } elseif ($statusFilter == 'inactive') {
+            $query->where('is_active', 0);
+        }
+
+        // Sorting
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $query->orderBy($orderColumn, $orderDirection);
+            } else {
+                $query->orderBy('title', 'asc');
+            }
+        } else {
+            $query->orderBy('title', 'asc');
+        }
+
+        if ($request->ajax()) {
+            return DataTables::eloquent($query)
+                ->addIndexColumn()
+                ->addColumn('created_at', function ($row) {
+                    return $row->created_at ? $row->created_at->format('d-m-Y, h:i A') : '-';
+                })
+                ->addColumn('title', function ($row) {
+                    return ucwords(str_replace('_',' ',$row->title));
+                })
+                ->addColumn('template', function ($row) {
+                    return strip_tags($row->template);
+                })
+                ->addColumn('status', function ($row) {
+                    $status = '';
+                    if ($row->is_active) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } else {
+                        $status = '<span class="badge bg-danger">Inactive</span>';
+                    }
+
+                    return $status;
+                })
+                ->addColumn('action', function ($row) {
+                    $title = str_replace('_',' ', $row->title);
+                    $template = ucwords($row->template);
+                    
+                    // Safely encode title, template, and status
+                    $jsId = (int) $row->id;
+                    $jsTitle = json_encode($title);
+                    $jsTemplate = json_encode($template);
+                    $jsStatus = json_encode($row->status);
+
+                    return '<div class="btn-group dropstart">
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $jsId . ', ' . $jsTitle . ', ' . $jsTemplate . ', ' . $jsStatus . ')">Edit</a>
+                                    </li>
+                                </ul>
+                            </div>';
+                })
+                ->rawColumns(['action', 'created_at', 'title', 'status'])
+                ->make(true);
+        }
+    }
+    public function emailTemplatesStore(Request $request)
+    {
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:job_categories,name',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Please fix the errors in the form'
+            ], 422);
+        }
+
+        try {
+            // Create the role
+            JobCategory::create([
+                'name' => $request->input('name'),
+                'description' => $request->input('name')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job Category created successfully',
+                'redirect' => route('job-categories.list')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error creating job category: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the job category. Please try again.'
+            ], 500);
+        }
+    }
+    public function emailTemplatesUpdate(Request $request)
+    {
+        $id = $request->input('id');
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'edit_title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('sms_templates', 'title')->ignore($id),
+            ],
+            'edit_template' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Please fix the errors in the form'
+            ], 422);
+        }
+
+        try {
+            // Retrieve the role
+            $template = SmsTemplate::findOrFail($id);
+
+            // Update 
+            $template->title = $request->input('edit_title');
+            $template->template = $request->input('edit_template');
+            $template->status = $request->input('status');
+            $template->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Template updated successfully',
+                'redirect' => route('settings.sms-templates')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating template: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the template, Please try again.'
+            ], 500);
         }
     }
     public function edit($id)

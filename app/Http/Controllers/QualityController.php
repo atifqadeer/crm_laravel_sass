@@ -883,7 +883,7 @@ class QualityController extends Controller
 
          // Filter by status if it's not empty
         switch ($statusFilter) {
-            case 'active sales':
+            case 'requested sales':
                 $model->where(function($query) {
                     $query->where('sales.status', 2)/**1=open, 2=pending */
                         ->orWhere('is_re_open', 2);/** re-open requested */
@@ -1191,7 +1191,7 @@ class QualityController extends Controller
                     } elseif ($sale->status == 0) {
                         $status = '<span class="badge bg-danger">Closed</span>';
                     } elseif ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
+                        $status = '<span class="badge bg-success">Open</span>';
                     } elseif ($sale->status == 2) {
                         $status = '<span class="badge bg-warning">Pending</span>';
                     } elseif ($sale->status == 3) {

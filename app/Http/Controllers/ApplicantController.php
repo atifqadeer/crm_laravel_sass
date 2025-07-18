@@ -216,7 +216,6 @@ class ApplicantController extends Controller
 
             // Fetch SMS template from the database
             $sms_template = SmsTemplate::where('title', 'applicant_welcome_sms')
-                ->where('module', 'Applicant')
                 ->where('status', 1)
                 ->first();
 

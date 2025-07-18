@@ -1307,7 +1307,6 @@ class CrmController extends Controller
                     $formattedMessage = '';
                     // Fetch SMS template from the database
                     $sms_template = SmsTemplate::where('title', 'crm_sent_cv')
-                        ->where('module', 'Applicant')
                         ->where('status', 1)
                         ->first();
 
@@ -1530,6 +1529,24 @@ class CrmController extends Controller
                                     </li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmRevertRequestedCvToSentCvModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Sent CV
+                                        </a></li>';
+                            $actionButtons .= '<li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmRevertRequestedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
+                                            Revert In Quality
+                                        </a></li>';
                             $actionButtons .= '<li><a class="dropdown-item" href="#" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"

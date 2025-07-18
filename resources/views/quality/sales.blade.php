@@ -26,10 +26,10 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                             <!-- Status Filter Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Active Sales</span>
+                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Requested Sales</span>
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item status-filter" href="#">Active Sales</a>
+                                    <a class="dropdown-item status-filter" href="#">Requested Sales</a>
                                     <a class="dropdown-item status-filter" href="#">Cleared Sales</a>
                                     <a class="dropdown-item status-filter" href="#">Rejected Sales</a>
                                 </div>

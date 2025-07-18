@@ -114,40 +114,31 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                                  <div class="invalid-feedback">Please enter salary</div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="timing" class="form-label">Timing</label>
-                                    <textarea class="form-control" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{{ old('timing', $sale->timing) }}</textarea>
-                                    <div class="invalid-feedback">Please provide timing</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="sale_notes" class="form-label">Notes</label>
-                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
-                                    <div class="invalid-feedback">Please provide notes</div>
-                                </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="timing" class="form-label">Timing</label>
+                                <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{{ old('timing', $sale->timing) }}</textarea>
+                                <div class="invalid-feedback">Please provide timing</div>
                             </div>
                         </div>
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="experience" class="form-label">Experience</label>
-                                <textarea class="form-control summernote" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience', $sale->experience) }}</textarea>
+                                <textarea class="form-control summernotee" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience', $sale->experience) }}</textarea>
                                 <div class="invalid-feedback">Please provide experience</div>
                             </div>
                         </div>
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="benefits" class="form-label">Benefits</label>
-                                <textarea class="form-control summernote" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits', $sale->benefits) }}</textarea>
+                                <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits', $sale->benefits) }}</textarea>
                                 <div class="invalid-feedback">Please provide benefits</div>
                             </div>
                         </div>
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="qualification" class="form-label">Qualification</label>
-                                <textarea class="form-control summernote" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification', $sale->qualification) }}</textarea>
+                                <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification', $sale->qualification) }}</textarea>
                                 <div class="invalid-feedback">Please provide qualification</div>
                             </div>
                         </div>
@@ -210,31 +201,42 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                                 </li>
                             </ul>
                         </div> -->
-                        <div class="form-group">
-                            <label for="attachment">Attachment</label>
-                            <input type="file" class="form-control" name="attachments[]" id="attachment" multiple>
-                            <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-                        </div>
-                        @if($sale->documents->isNotEmpty())
-                            <div class="col-lg-12">
-                                <div class="mt-3">
-                                    <label for="sale_documents" class="form-label">Already Attached Files</label>
-                                    <ul class="list-group">
-                                        @foreach($sale->documents as $document)
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <a href="{{ asset('storage/' . $document->document_path) }}" target="_blank">{{ $document->document_name }}</a>
-                                                <div>
-                                                    <span class="badge bg-info rounded-pill">{{ $document->created_at->format('d M Y') }}</span>
-                                                    <button type="button" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Delete File" class="btn bg-transparent btn-sm ms-2 remove-document-btn" data-document-id="{{ $document->id }}">
-                                                        <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24 text-danger"></iconify-icon>
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        @endforeach
-                                    </ul>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <div class="form-group">
+                                    <label for="attachment">Attachment</label>
+                                    <input type="file" class="form-control" name="attachments[]" id="attachment" multiple>
+                                    <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
                                 </div>
+                                @if($sale->documents->isNotEmpty())
+                                    <div class="col-lg-6">
+                                        <div class="mt-3">
+                                            <label for="sale_documents" class="form-label">Already Attached Files</label>
+                                            <ul class="list-group">
+                                                @foreach($sale->documents as $document)
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        <a href="{{ asset('storage/' . $document->document_path) }}" target="_blank">{{ $document->document_name }}</a>
+                                                        <div>
+                                                            <span class="badge bg-info rounded-pill">{{ $document->created_at->format('d M Y') }}</span>
+                                                            <button type="button" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Delete File" class="btn bg-transparent btn-sm ms-2 remove-document-btn" data-document-id="{{ $document->id }}">
+                                                                <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24 text-danger"></iconify-icon>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
-                        @endif
+                        </div>
+                         <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="sale_notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                <div class="invalid-feedback">Please provide notes</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,6 +280,18 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
 <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 <script>
     $(document).ready(function () {
+        $('.summernotee').summernote({
+            height: 100,
+            toolbar: [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['fontsize', ['fontsize']],
+                ['color', []],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', []],
+                ['view', []]
+            ]
+        });
         $('.summernote').summernote({
             height: 200,
             toolbar: [
@@ -287,7 +301,7 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                 ['color', ['color']],
                 ['para', ['ul', 'ol', 'paragraph']],
                 ['insert', ['link', 'picture']],
-                ['view', ['fullscreen']]
+                ['view', []]
             ]
         });
     });
