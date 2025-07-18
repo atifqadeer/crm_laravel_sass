@@ -517,8 +517,11 @@ class SettingController extends Controller
                 ->addColumn('title', function ($row) {
                     return ucwords(str_replace('_',' ',$row->title));
                 })
+                ->addColumn('slug', function ($row) {
+                    return $row->title;
+                })
                 ->addColumn('template', function ($row) {
-                    return strip_tags($row->template);
+                    return $row->template; // must include HTML (e.g., from Summernote)
                 })
                 ->addColumn('status', function ($row) {
                     $status = '';
@@ -531,34 +534,48 @@ class SettingController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($row) {
-                    $title = $row->title ? str_replace('_',' ',$row->title) : '';
-                    $template = ucwords($row->template ?? '');
-                    $status = ucwords($row->status);
                     return '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
                                      <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
-                                            \'' . $row->id . '\',
-                                            \'' . addslashes(htmlspecialchars($title)) . '\',
-                                            \'' . addslashes(htmlspecialchars($template)) . '\',
-                                            \'' . addslashes(htmlspecialchars($status)) . '\'
-                                        )">Edit</a>
+                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action', 'created_at', 'title', 'status'])
+                ->rawColumns(['action', 'created_at', 'template', 'slug', 'title', 'status'])
                 ->make(true);
         }
+    }
+    public function smsEditTemplate(Request $request)
+    {
+        $id = $request->id; // Get the ID from the route parameter
+
+        $template = SmsTemplate::find($id);
+        if ($template) {
+            // Format the title: replace underscores with spaces and capitalize words
+            $template->title = ucwords(str_replace('_', ' ', $template->title));
+        }
+        if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SMS Template not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $template
+        ]);
     }
     public function smsTemplatesStore(Request $request)
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:job_categories,name',
+            'title' => 'required|string|max:255|unique:sms_templates,title',
+            'template' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -571,28 +588,28 @@ class SettingController extends Controller
 
         try {
             // Create the role
-            JobCategory::create([
-                'name' => $request->input('name'),
-                'description' => $request->input('name')
+            SmsTemplate::create([
+                'title' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'template' => $request->input('template')
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Job Category created successfully',
-                'redirect' => route('job-categories.list')
+                'message' => 'SMS template created successfully',
+                'redirect' => route('settings.sms-templates')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating job category: ' . $e->getMessage());
+            Log::error('Error creating sms template: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating the job category. Please try again.'
+                'message' => 'An error occurred while creating the sms template. Please try again.'
             ], 500);
         }
     }
     public function smsTemplatesUpdate(Request $request)
     {
-        return $request->all();
+
         $id = $request->input('id');
         // Validation
         $validator = Validator::make($request->all(), [
@@ -618,7 +635,7 @@ class SettingController extends Controller
             $template = SmsTemplate::findOrFail($id);
 
             // Update 
-            $template->title = $request->input('edit_title');
+            $template->title = strtolower(str_replace(' ','_',$request->input('edit_title')));
             $template->template = $request->input('edit_template');
             $template->status = $request->input('status');
             $template->save();
@@ -683,6 +700,9 @@ class SettingController extends Controller
                 ->addColumn('title', function ($row) {
                     return ucwords(str_replace('_',' ',$row->title));
                 })
+                ->addColumn('slug', function ($row) {
+                    return $row->title;
+                })
                 ->addColumn('template', function ($row) {
                     return strip_tags($row->template);
                 })
@@ -697,35 +717,50 @@ class SettingController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($row) {
-                    $title = str_replace('_',' ', $row->title);
-                    $template = ucwords($row->template);
-                    
-                    // Safely encode title, template, and status
-                    $jsId = (int) $row->id;
-                    $jsTitle = json_encode($title);
-                    $jsTemplate = json_encode($template);
-                    $jsStatus = json_encode($row->status);
-
                     return '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $jsId . ', ' . $jsTitle . ', ' . $jsTemplate . ', ' . $jsStatus . ')">Edit</a>
+                                     <li>
+                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action', 'created_at', 'title', 'status'])
+                ->rawColumns(['action', 'created_at', 'title', 'slug', 'status'])
                 ->make(true);
         }
+    }
+    public function emailEditTemplate(Request $request)
+    {
+        $id = $request->id; // Get the ID from the route parameter
+
+        $template = EmailTemplate::find($id);
+        if ($template) {
+            // Format the title: replace underscores with spaces and capitalize words
+            $template->title = ucwords(str_replace('_', ' ', $template->title));
+        }
+        if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email Template not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $template
+        ]);
     }
     public function emailTemplatesStore(Request $request)
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:job_categories,name',
+            'title' => 'required|string|max:191|unique:email_templates,title',
+            'from_email' => 'required|email|max:255',
+            'subject' => 'required|string|max:255',
+            'template' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -738,22 +773,24 @@ class SettingController extends Controller
 
         try {
             // Create the role
-            JobCategory::create([
-                'name' => $request->input('name'),
-                'description' => $request->input('name')
+            EmailTemplate::create([
+                'title' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'from_email' => $request->input('from_email'),
+                'subject' => $request->input('subject'),
+                'template' => $request->input('template'),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Job Category created successfully',
-                'redirect' => route('job-categories.list')
+                'message' => 'Email template created successfully',
+                'redirect' => route('settings.email-templates')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating job category: ' . $e->getMessage());
+            Log::error('Error creating email template: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating the job category. Please try again.'
+                'message' => 'An error occurred while creating the email template. Please try again.'
             ], 500);
         }
     }
@@ -766,9 +803,11 @@ class SettingController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('sms_templates', 'title')->ignore($id),
+                Rule::unique('email_templates', 'title')->ignore($id),
             ],
-            'edit_template' => 'required'
+            'edit_template' => 'required',
+            'edit_from' => 'required',
+            'edit_subject' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -781,12 +820,14 @@ class SettingController extends Controller
 
         try {
             // Retrieve the role
-            $template = SmsTemplate::findOrFail($id);
+            $template = EmailTemplate::findOrFail($id);
 
             // Update 
-            $template->title = $request->input('edit_title');
+            $template->title = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            $template->from_email = $request->input('edit_from');
+            $template->subject = $request->input('edit_subject');
             $template->template = $request->input('edit_template');
-            $template->status = $request->input('status');
+            $template->is_active = $request->input('status');
             $template->save();
 
             return response()->json([

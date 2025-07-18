@@ -32,7 +32,7 @@
                                 </div>
                             </div>
                             <!-- Create User Button triggers modal -->
-                            <button type="button" class="btn btn-success ml-1 my-1" onclick="createCategory()">
+                            <button type="button" class="btn btn-success ml-1 my-1" onclick="createTemplate()">
                                 <i class="ri-add-line"></i> Create New
                             </button>
                         </div>
@@ -54,7 +54,8 @@
                             <tr>
                                 <th>#</th>
                                 <th>Title</th>
-                                <th>From</th>
+                                <th>Slug</th>
+                                <th>From Email</th>
                                 <th>Subject</th>
                                 <th>Template</th>
                                 <th>Status</th>
@@ -77,21 +78,37 @@
     <div class="modal-dialog modal-lg modal-dialog-top">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add Category</h5>
+                <h5 class="modal-title">Create Template</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="createCategoryForm">
+                <form id="createTemplateForm">
                     @csrf
                     <div class="mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter Category Name" required>
+                        <label class="form-label">Title <small>(Event Name)</small></label>
+                        <input id="title" type="text" class="form-control" name="title" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">From Email</label>
+                        <input id="from_email" type="email" class="form-control" name="from_email" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input id="subject" type="text" class="form-control" name="subject" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Template</label>
+                        <textarea id="template" class="form-control summernote" name="template" rows="7" required></textarea>
+                        <div class="invalid-feedback"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="savecreateCategoryButton">Save</button>
+                <button class="btn btn-primary" id="savecreateTemplateButton">Save</button>
             </div>
         </div>
     </div>
@@ -115,8 +132,29 @@
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
     <script>
+        $(document).ready(function() {
+            // Initialize Summernote and set content
+            $(`#template`).summernote({
+                height: 200,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+        });
+
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
@@ -147,6 +185,7 @@
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'title', name: 'sms_templates.title' },
+                    { data: 'slug', name: 'sms_templates.title' },
                     { data: 'from_email', name: 'sms_templates.from_email' },
                     { data: 'subject', name: 'sms_templates.subject' },
                     { data: 'template', name: 'sms_templates.template'  },
@@ -229,6 +268,7 @@
                         </div>
                         <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
                         </div>`;
+
                     pagination.html(paginationHtml);
                 },
             });
@@ -281,111 +321,174 @@
             }
         }
 
-        function showEditModal (id, title, template, status) {
+        function showEditModal(id) {
             const modalId = `editTemplateModal-${id}`;
             const formId = `editTemplateForm-${id}`;
             const saveBtnId = `saveEditTemplateButton-${id}`;
+            const titleId = `edit_title-${id}`;
+            const fromEmailId = `edit_from-${id}`;
+            const subjectId = `edit_subject-${id}`;
+            const templateId = `edit_template-${id}`;
+            const statusId = `editTemplateStatus-${id}`;
 
-            // Check if modal already exists
-            if (!$(`#${modalId}`).length) {
-                const modalHtml = `
-                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Edit Template</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="${formId}">
-                                        <input type="hidden" name="id" value="${id}">
-                                        <div class="mb-3">
-                                            <label class="form-label">Title <small>(Event Name)</small></label>
-                                            <input type="text" class="form-control" name="edit_title" value="${title || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Template</label>
-                                            <textarea class="form-control" name="edit_template" rows="7" required>${template || ''}</textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Status</label>
-                                            <select class="form-select" name="status" required>
-                                                <option value="">Select Status</option>
-                                                <option value="1" ${status == 1 ? 'selected' : ''}>Active</option>
-                                                <option value="0" ${status == 0 ? 'selected' : ''}>Inactive</option>
-                                            </select>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button class="btn btn-primary" id="${saveBtnId}">Save</button>
-                                </div>
+            // Remove existing modal to prevent conflicts
+            $(`#${modalId}`).remove();
+
+            // Build modal HTML
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Edit Template</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="${formId}">
+                                    <input type="hidden" name="id" value="${id}">
+                                    <div class="mb-3">
+                                        <label class="form-label">Title <small>(Event Name)</small></label>
+                                        <input id="${titleId}" type="text" class="form-control" name="edit_title" required>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">From Email</label>
+                                        <input id="${fromEmailId}" type="email" class="form-control" name="edit_from" required>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Subject</label>
+                                        <input id="${subjectId}" type="text" class="form-control" name="edit_subject" required>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Template</label>
+                                        <textarea id="${templateId}" class="form-control summernote" name="edit_template" rows="7" required></textarea>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Status</label>
+                                        <select id="${statusId}" class="form-select" name="status" required>
+                                            <option value="">Select Status</option>
+                                            <option value="1">Active</option>
+                                            <option value="0">Inactive</option>
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                <button class="btn btn-primary" id="${saveBtnId}">Update</button>
                             </div>
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
 
-                $('#dynamicModalsContainer').append(modalHtml);
+            // Append modal to body or a container
+            $('#dynamicModalsContainer').length ? $('#dynamicModalsContainer').append(modalHtml) : $('body').append(modalHtml);
 
-                // Attach save button event
-                $(document).on('click', `#${saveBtnId}`, function () {
-                    const form = $(`#${formId}`);
-                    const formData = form.serialize();
-                    const url = '{{ route("smsTemplates.update") }}';
+            // Fetch template data via AJAX
+            $.ajax({
+                url: "{{ url('emailEditTemplate') }}",
+                method: 'post',
+                data: { 
+                    id: id,
+                    _token: '{{ csrf_token() }}'
+                 },
+                success: function(response) {
+                    console.log(response);
+                    // Populate form fields
+                    $(`#${titleId}`).val(response.data.title);
+                    $(`#${fromEmailId}`).val(response.data.from_email);
+                    $(`#${subjectId}`).val(response.data.subject);
+                    $(`#${templateId}`).val(response.data.template);
+                    $(`#${statusId}`).val(response.data.is_active);
 
-                    // Clear old errors
-                    form.find('.is-invalid').removeClass('is-invalid');
-                    form.find('.invalid-feedback').remove();
-
-                    $.ajax({
-                        url: url,
-                        type: 'PUT',
-                        data: formData,
-                        success: function (response) {
-                            toastr.success(response.message);
-                            $(`#${modalId}`).modal('hide');
-                            form[0].reset();
-                            $('#template_table').DataTable().ajax.reload();
-                        },
-                        error: function (xhr) {
-                            if (xhr.status === 422) {
-                                const errors = xhr.responseJSON.errors;
-                                for (let field in errors) {
-                                    const input = form.find(`[name="${field}"]`);
-                                    input.addClass('is-invalid');
-                                    if (!input.next('.invalid-feedback').length) {
-                                        input.after(`<div class="invalid-feedback">${errors[field][0]}</div>`);
-                                    }
-                                }
-                            } else {
-                                toastr.error('An error occurred while updating the template.');
-                            }
-                        }
+                    // Initialize Summernote and set content
+                    $(`#${templateId}`).summernote({
+                        height: 200,
+                        toolbar: [
+                            ['style', ['bold', 'italic', 'underline', 'clear']],
+                            ['font', ['strikethrough', 'superscript', 'subscript']],
+                            ['fontsize', ['fontsize']],
+                            ['color', []],
+                            ['para', ['ul', 'ol', 'paragraph']],
+                            ['insert', []],
+                            ['view', []]
+                        ]
                     });
+                    $(`#${templateId}`).summernote('code', response.template);
+
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById(modalId));
+                    modal.show();
+                },
+                error: function(xhr) {
+                    toastr.error('Failed to load template data');
+                }
+            });
+
+            // Save handler
+            $(document).off('click', `#${saveBtnId}`).on('click', `#${saveBtnId}`, function() {
+                const form = $(`#${formId}`);
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Prepare form data
+                const formData = {
+                    id: form.find('[name="id"]').val(),
+                    edit_title: form.find('[name="edit_title"]').val(),
+                    edit_from: form.find('[name="edit_from"]').val(),
+                    edit_subject: form.find('[name="edit_subject"]').val(),
+                    edit_template: $(`#${templateId}`).summernote('code'),
+                    status: form.find('[name="status"]').val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+                // Clear previous errors
+                form.find('.is-invalid').removeClass('is-invalid');
+                form.find('.invalid-feedback').text('');
+
+                $.ajax({
+                    url: '{{ route("emailTemplates.update") }}',
+                    method: 'PUT',
+                    data: formData,
+                    success: function(response) {
+                        toastr.success(response.message || 'Template updated successfully');
+                        $(`#${modalId}`).modal('hide');
+                        $('#template_table').DataTable().ajax.reload();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            const errors = xhr.responseJSON.errors;
+                            for (let field in errors) {
+                                const input = form.find(`[name="${field}"]`);
+                                input.addClass('is-invalid');
+                                input.next('.invalid-feedback').text(errors[field][0]);
+                            }
+                        } else {
+                            toastr.error('An error occurred while updating.');
+                        }
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
                 });
-            }
+            });
 
-            // Show modal
-            $(`#${modalId}`).modal('show');
-        };
+            // Clean up modal on hide
+            $(`#${modalId}`).on('hidden.bs.modal', function() {
+                $(this).remove();
+            });
+        }
 
-        $(document).on('click', '.toggle-password', function() {
-            var input = $($(this).data('target'));
-            var icon = $(this).find('i');
-            if (input.attr('type') === 'password') {
-                input.attr('type', 'text');
-                icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
-            } else {
-                input.attr('type', 'password');
-                icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
-            }
-        });
-
-        function createCategory() {
+        function createTemplate() {
             $('#createTemplateModal').modal('show');
 
-            $('#savecreateCategoryButton').off('click').on('click', function () {
-                let form = $('#createCategoryForm');
+            $('#savecreateTemplateButton').off('click').on('click', function () {
+                let form = $('#createTemplateForm');
                 let formData = form.serialize();
 
                 // Clear previous errors
@@ -393,11 +496,11 @@
                 form.find('.invalid-feedback').remove();
 
                 $.ajax({
-                    url: '{{ route("job-categories.store") }}',
+                    url: '{{ route("emailTemplates.store") }}',
                     type: 'POST',
                     data: formData,
                     success: function (response) {
-                        toastr.success('Category created successfully!');
+                        toastr.success('Email template created successfully!');
                         $('#createTemplateModal').modal('hide');
                         form[0].reset();
 
@@ -454,4 +557,4 @@
     </script>
     
 @endsection
-@endsection                        
+@endsection

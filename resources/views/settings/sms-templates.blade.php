@@ -32,7 +32,7 @@
                                 </div>
                             </div>
                             <!-- Create User Button triggers modal -->
-                            <button type="button" class="btn btn-success ml-1 my-1" onclick="createCategory()">
+                            <button type="button" class="btn btn-success ml-1 my-1" onclick="createTemplate()">
                                 <i class="ri-add-line"></i> Create New
                             </button>
                         </div>
@@ -54,6 +54,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Title</th>
+                                <th>Slug</th>
                                 <th>Template</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -75,28 +76,31 @@
     <div class="modal-dialog modal-lg modal-dialog-top">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add Category</h5>
+                <h5 class="modal-title">Create Template</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="createCategoryForm">
+                <form id="createTemplateForm">
                     @csrf
                     <div class="mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter Category Name" required>
+                        <label class="form-label">Title <small>(Event Name)</small></label>
+                        <input id="title" type="text" class="form-control" name="title" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Template</label>
+                        <textarea id="template" class="form-control summernote" name="template" rows="7" required></textarea>
+                        <div class="invalid-feedback"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="savecreateCategoryButton">Save</button>
+                <button class="btn btn-primary" id="savecreateTemplateButton">Save</button>
             </div>
         </div>
     </div>
 </div>
-
-<!-- edit ip address Modal -->
-<div id="dynamicModalsContainer"></div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -123,16 +127,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
     <script>
-        $(document).ready(function () {
-            $(`#${templateId}`).summernote({
+        $(document).ready(function() {
+            // Initialize Summernote and set content
+            $(`#template`).summernote({
                 height: 200,
-                callbacks: {
-                    onInit: function () {
-                        $(`#${templateId}`).summernote('code', template);
-                    }
-                }
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
             });
         });
+
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
@@ -163,6 +173,7 @@
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'title', name: 'sms_templates.title' },
+                    { data: 'slug', name: 'sms_templates.title' },
                     { data: 'template', name: 'sms_templates.template'  },
                     { data: 'status', name: 'sms_templates.status' },
                     { data: 'action', name: 'action', orderable: false }
@@ -296,16 +307,16 @@
             }
         }
 
-        function showEditModal(id, title, template, status) {
-            const modalId     = `editTemplateModal-${id}`;
-            const formId      = `editTemplateForm-${id}`;
-            const saveBtnId   = `saveEditCategoryButton-${id}`;
-            const titleId     = `edit_title-${id}`;
-            const templateId  = `edit_template-${id}`;
-            const statusId    = `editTemplateStatus-${id}`;
+        function showEditModal(id) {
+            const modalId = `editTemplateModal-${id}`;
+            const formId = `editTemplateForm-${id}`;
+            const saveBtnId = `saveEditTemplateButton-${id}`;
+            const titleId = `edit_title-${id}`;
+            const templateId = `edit_template-${id}`;
+            const statusId = `editTemplateStatus-${id}`;
 
-            // Remove if already exists (ensure fresh)
-            $('#' + modalId).remove();
+            // Remove existing modal to prevent conflicts
+            $(`#${modalId}`).remove();
 
             // Build modal HTML
             const modalHtml = `
@@ -322,10 +333,12 @@
                                     <div class="mb-3">
                                         <label class="form-label">Title <small>(Event Name)</small></label>
                                         <input id="${titleId}" type="text" class="form-control" name="edit_title" required>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Template</label>
                                         <textarea id="${templateId}" class="form-control summernote" name="edit_template" rows="7" required></textarea>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Status</label>
@@ -334,100 +347,118 @@
                                             <option value="1">Active</option>
                                             <option value="0">Inactive</option>
                                         </select>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </form>
                             </div>
                             <div class="modal-footer">
                                 <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                <button class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                <button class="btn btn-primary" id="${saveBtnId}">Update</button>
                             </div>
                         </div>
                     </div>
                 </div>`;
 
-            // Append modal to body
-            $('body').append(modalHtml);
+            // Append modal to body or a container
+            $('#dynamicModalsContainer').length ? $('#dynamicModalsContainer').append(modalHtml) : $('body').append(modalHtml);
 
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById(modalId));
-            modal.show();
+            // Fetch template data via AJAX
+            $.ajax({
+                url: "{{ url('smsEditTemplate') }}",
+                method: 'post',
+                data: { 
+                    id: id,
+                    _token: '{{ csrf_token() }}'
+                 },
+                success: function(response) {
+                    console.log(response);
+                    // Populate form fields
+                    $(`#${titleId}`).val(response.data.title);
+                    $(`#${templateId}`).val(response.data.template);
+                    $(`#${statusId}`).val(response.data.status);
 
-            // Set initial values
-            $(`#${titleId}`).val(title);
-            $(`#${templateId}`).val(template); // Set before summernote
-            $(`#${templateId}`).summernote({ height: 200 });
-            $(`#${templateId}`).summernote('code', template); // Apply content
-            $(`#${statusId}`).val(status ?? '');
+                    // Initialize Summernote and set content
+                    $(`#${templateId}`).summernote({
+                        height: 200,
+                        toolbar: [
+                            ['style', ['bold', 'italic', 'underline', 'clear']],
+                            ['font', ['strikethrough', 'superscript', 'subscript']],
+                            ['fontsize', ['fontsize']],
+                            ['color', []],
+                            ['para', ['ul', 'ol', 'paragraph']],
+                            ['insert', []],
+                            ['view', []]
+                        ]
+                    });
+                    $(`#${templateId}`).summernote('code', response.template);
+
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById(modalId));
+                    modal.show();
+                },
+                error: function(xhr) {
+                    toastr.error('Failed to load template data');
+                }
+            });
 
             // Save handler
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(document).off('click', `#${saveBtnId}`).on('click', `#${saveBtnId}`, function() {
                 const form = $(`#${formId}`);
-                const data = form.serialize();
-
-                // Clear previous errors
-                form.find('.is-invalid').removeClass('is-invalid');
-                form.find('.invalid-feedback').remove();
-
                 const btn = $(this);
                 const originalText = btn.html();
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
-                // Add CSRF token to data
-                const dataWithCsrf = data + '&_token={{ csrf_token() }}';
+                // Prepare form data
+                const formData = {
+                    id: form.find('[name="id"]').val(),
+                    edit_title: form.find('[name="edit_title"]').val(),
+                    edit_template: $(`#${templateId}`).summernote('code'),
+                    status: form.find('[name="status"]').val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+                // Clear previous errors
+                form.find('.is-invalid').removeClass('is-invalid');
+                form.find('.invalid-feedback').text('');
 
                 $.ajax({
                     url: '{{ route("smsTemplates.update") }}',
-                    type: 'PUT',
-                    data: dataWithCsrf,
-                    success(res) {
-                        toastr.success(res.message);
-                        modal.hide();
-                        form[0].reset();
+                    method: 'PUT',
+                    data: formData,
+                    success: function(response) {
+                        toastr.success(response.message || 'Template updated successfully');
+                        $(`#${modalId}`).modal('hide');
                         $('#template_table').DataTable().ajax.reload();
                     },
-                    error(xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
-                            const errs = xhr.responseJSON.errors;
-                            for (let f in errs) {
-                                const input = form.find(`[name="${f}"]`);
+                            const errors = xhr.responseJSON.errors;
+                            for (let field in errors) {
+                                const input = form.find(`[name="${field}"]`);
                                 input.addClass('is-invalid');
-                                if (!input.next('.invalid-feedback').length) {
-                                    input.after(`<div class="invalid-feedback">${errs[f][0]}</div>`);
-                                }
+                                input.next('.invalid-feedback').text(errors[field][0]);
                             }
                         } else {
                             toastr.error('An error occurred while updating.');
                         }
                     },
-                    complete() {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
 
-            // Optional cleanup on modal hide
-            $(`#${modalId}`).on('hidden.bs.modal', function () {
-                $(this).remove(); // Remove from DOM after closing
+            // Clean up modal on hide
+            $(`#${modalId}`).on('hidden.bs.modal', function() {
+                $(this).remove();
             });
         }
 
-        $(document).on('click', '.toggle-password', function() {
-            var input = $($(this).data('target'));
-            var icon = $(this).find('i');
-            if (input.attr('type') === 'password') {
-                input.attr('type', 'text');
-                icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
-            } else {
-                input.attr('type', 'password');
-                icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
-            }
-        });
-
-        function createCategory() {
+        function createTemplate() {
             $('#createTemplateModal').modal('show');
 
-            $('#savecreateCategoryButton').off('click').on('click', function () {
-                let form = $('#createCategoryForm');
+            $('#savecreateTemplateButton').off('click').on('click', function () {
+                let form = $('#createTemplateForm');
                 let formData = form.serialize();
 
                 // Clear previous errors
@@ -435,11 +466,11 @@
                 form.find('.invalid-feedback').remove();
 
                 $.ajax({
-                    url: '{{ route("job-categories.store") }}',
+                    url: '{{ route("smsTemplates.store") }}',
                     type: 'POST',
                     data: formData,
                     success: function (response) {
-                        toastr.success('Category created successfully!');
+                        toastr.success('SMS template created successfully!');
                         $('#createTemplateModal').modal('hide');
                         form[0].reset();
 

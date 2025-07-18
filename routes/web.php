@@ -238,12 +238,14 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     /**Email Templates */
     Route::post('settings/email-templates', [SettingController::class, 'emailTemplatesIndex'])->name('settings.email-templates');
     Route::get('getEmailTemplates', [SettingController::class, 'getEmailTemplates'])->name('getEmailTemplates');
+    Route::post('emailEditTemplate', [SettingController::class, 'emailEditTemplate'])->name('emailEditTemplate');
     Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
     Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
 
     /**SMS Templates */
     Route::post('settings/sms-templates', [SettingController::class, 'smsTemplatesIndex'])->name('settings.sms-templates');
     Route::get('getSmsTemplates', [SettingController::class, 'getSmsTemplates'])->name('getSmsTemplates');
+    Route::post('smsEditTemplate', [SettingController::class, 'smsEditTemplate'])->name('smsEditTemplate');
     Route::post('sms-templates/store', [SettingController::class, 'smsTemplatesStore'])->name('smsTemplates.store');
     Route::put('sms-templates/update', [SettingController::class, 'smsTemplatesUpdate'])->name('smsTemplates.update');
 
