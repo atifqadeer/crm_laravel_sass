@@ -504,6 +504,8 @@ class ApplicantController extends Controller
                         $status = '<span class="badge bg-warning">No Job</span>';
                     } elseif ($applicant->is_temp_not_interested == 1) {
                         $status = '<span class="badge bg-danger">Not<br>Interested</span>';
+                    } elseif ($applicant->paid_status == 'open') {
+                        $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($applicant->is_cv_in_quality_clear || 
                         $applicant->is_interview_confirm ||
                         $applicant->is_interview_attend ||

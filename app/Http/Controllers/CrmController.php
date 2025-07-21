@@ -1271,6 +1271,9 @@ class CrmController extends Controller
                 ->addColumn('schedule_date', function ($applicant) {
                     return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; // Using accessor
                 })
+                ->addColumn('paid_status', function ($applicant) {
+                    return $applicant->paid_status ?? '-';
+                })
                 ->addColumn('job_details', function ($applicant) {
                     $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type));
                     $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
@@ -1933,8 +1936,8 @@ class CrmController extends Controller
                                     data-sale-id="' . (int)$applicant->sale_id . '"
                                     onclick="crmChangePaidStatusModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                    Mark As '. $paid_status_button . '
-                                </a></li>
-                                ';
+                                </a></li>';
+
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
@@ -2348,9 +2351,13 @@ class CrmController extends Controller
                                                         data-applicant-id="' . (int)$applicant->id . '" 
                                                         data-sale-id="' . (int)$applicant->sale_id . '">
                                                         Reject
-                                                    </button>
-                                                    <button type="button" class="btn btn-primary savecrmConfirmationButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Confirm</button>
-                                                    <button type="button" class="btn btn-success savecrmConfirmationSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                    </button>';
+                                                    if($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1){
+                                                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Request Confirm</button>';
+                                                    } else {
+                                                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton disabled" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" title="Please schedule an interview first.">Request Confirm</button>';
+                                                    }   
+                                                    $html .= '<button type="button" class="btn btn-success savecrmConfirmationSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3055,14 +3062,13 @@ class CrmController extends Controller
                                             <form action="' . route('crmChangePaidStatus') . '" method="POST" id="crmChangePaidStatusForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
                                                 <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
                                                 <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <input type="hidden" id="paid_status-' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" name="paid_status" value="' . strtolower($paid_status_title) . '">
                                                 <div class="mb-3">
-                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
-                                                    <textarea class="form-control" name="details" id="crmChangePaidStatusDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required>'. $content_details .'</textarea>
-                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                    <span id="crmChangePaidStatusDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">'. $content_details .'</span>
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="button" class="btn btn-primary saveCrmChangePaidStatusButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                    <button type="button" class="btn btn-primary saveCrmChangePaidStatusButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Yes!</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3071,7 +3077,7 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'user_name', 'schedule_date', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -3590,7 +3596,6 @@ class CrmController extends Controller
     /** CRM Request Reject */
     public function crmRequestReject(Request $request)
     {
-
         try {
             $validated = $request->validate([
                 'applicant_id' => 'required|integer',
@@ -3602,10 +3607,12 @@ class CrmController extends Controller
                 '_token' => 'required'
             ]);
 
+            DB::beginTransaction();
+
             $user = Auth::user();
             $details = $request->input('details') . ' --- Request Rejected By: ' . $user->name;
 
-            // Private function might throw exceptions
+            // Transition: move applicant to request_reject
             $result = $this->crmRequestRejectAction(
                 $request->input('applicant_id'),
                 $user->id,
@@ -3616,15 +3623,14 @@ class CrmController extends Controller
             $sale_id = $request->input('sale_id');
             $applicant_id = $request->input('applicant_id');
             $sale = Sale::where('id', $sale_id)
-                    ->select('unit_id', 'id')
-                    ->first();
+                ->select('unit_id', 'id')
+                ->first();
 
             $applicantRecord = Applicant::where("id", $applicant_id)
                 ->select('applicant_name')
                 ->first();
 
-                
-            if($result && $sale && $applicantRecord) {
+            if ($result && $sale && $applicantRecord) {
                 $body = $request->input('body');
                 $subject = $request->input('subject');
                 $to = $request->input('to');
@@ -3636,25 +3642,35 @@ class CrmController extends Controller
                 $email_from = $from_email;
                 $email_subject = $subject;
                 $email_body = $body;
-                $email_title = '' . $applicant_name . ' - Request Rejected';
+                $email_title = $applicant_name . ' - Request Rejected';
 
-                // Attempt to send email
-                $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, null, $sale->id);
-                if (!$is_save) {
-                    // Optional: throw or log
-                    Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
-                    throw new \Exception('Email is not stored in DB');
+                // Attempt to save email in DB
+                try {
+                    $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
+                    if (!$is_save) {
+                        Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
+                        throw new \Exception('Email is not stored in DB');
+                    }
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to save email: ' . $e->getMessage()
+                    ], 500);
                 }
             }
 
+            DB::commit();
             return response()->json(['success' => true, 'message' => 'CRM Request Rejected Successfully']);
         } catch (ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Operation failed: ' . $e->getMessage()
@@ -3973,18 +3989,6 @@ class CrmController extends Controller
         ]);
 
         try {
-            $emailData = [
-                'body' => $validatedData['email_body'],
-                'subject' => $validatedData['email_subject'],
-            ];
-
-            // Send email using proper HTML email method
-            // Mail::send([], [], function ($message) use ($validatedData) {
-            //     $message->from('crm@kingsburypersonnel.com', 'Kingsbury Personnel Ltd')
-            //         ->to($validatedData['email_address'])
-            //         ->subject($validatedData['email_subject'])
-            //         ->html($validatedData['email_body']); // Use html() instead of setBody()
-            // });
 
             // Attempt to send email
             $is_save = $this->saveEmailDB(
@@ -5110,11 +5114,12 @@ class CrmController extends Controller
             $request->validate([
                 'applicant_id' => 'required|integer',
                 'sale_id' => 'required|integer',
-                'details' => 'required',
+                'paid_status' => 'required',
+                // 'details' => 'required',
             ]);
 
             $user = Auth::user();
-            $details = $request->input('details') . ' --- By: ' . $user->name;
+            // $details = $request->input('details') . ' --- By: ' . $user->name;
             $applicant_id = $request->input('applicant_id');
             $sale_id = $request->input('sale_id');
 
@@ -5122,17 +5127,22 @@ class CrmController extends Controller
 
             if($applicant){
                 $msg = '';
-                if ($applicant->paid_status == 'open') {
-                    $audit_data['action'] = "Close Applicant CV";
-                    $update_paid_status = 'close';
-                    $msg = 'Closed';
-                } elseif ($applicant->paid_status == 'close') {
+                $update_paid_status = '';
+
+                if ($request->input('paid_status') == 'open') {
                     $audit_data['action'] = "Open Applicant CV";
                     $update_paid_status = 'open';
                     $msg = 'Opened';
+                } elseif ($request->input('paid_status') == 'close') {
+                    $audit_data['action'] = "Close Applicant CV";
+                    $update_paid_status = 'close';
+                    $msg = 'Closed';
                 }
                 $update_columns = ['paid_status' => $update_paid_status, 'paid_timestamp' => Carbon::now()];
                 $applicant->update($update_columns);
+
+                $audit = new ActionObserver();
+                $audit->customApplicantAudit($applicant, ['paid_status']);
 
                 return response()->json(['success' => true, 'message' => 'CRM Changed Paid Status '. $msg .' Successfully']);
 
@@ -5346,40 +5356,6 @@ class CrmController extends Controller
                         </div>
                     </div>
                 </div>';
-    }
-    private function sendEmailToUnit($applicant_name, $service_name, $service_email)
-    {
-        $template = EmailTemplate::where('title', 'request_reject')->first();
-        $data = $template->template;
-        $replace = [$service_name, $applicant_name];
-        $prev_val = ['(Service name)', '(xyz)'];
-
-        $newPhrase = str_replace($prev_val, $replace, $data);
-
-        $email_from = 'customerservice@kingsburypersonnel.com';
-        $email_title = '';
-        $email_subject = 'Application has been Withdraw';
-        $action_name = 'Request Reject';
-        $email_cc = '';
-
-        Mail::send([], [], function ($message) use ($email_from, $newPhrase, $service_email, $email_subject) {
-            $message->from($email_from, 'Kingsbury Personnel Ltd');
-            $message->to($service_email);
-            $message->subject($email_subject);
-            $message->setBody($newPhrase, 'text/html');
-        });
-        if (Mail::failures()) {
-             // Get failure details
-            $failures = Mail::failures();
-
-            // Convert array to a string message
-            $errorMessage = "Failed to send email to the following address(es): " . implode(', ', $failures);
-            return $errorMessage;
-        }
-            
-        $dbSaveEmail = $this->saveSentEmails($service_email, $email_cc, $email_from, $email_title, $email_subject, $newPhrase, $action_name);
-        
-        return $dbSaveEmail;
     }
     private function saveSentEmails($email_to, $email_cc, $email_from, $email_title, $email_subject, $email_body, $action_name, $applicant_id = Null, $sale_id = Null)
     {

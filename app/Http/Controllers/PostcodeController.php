@@ -165,7 +165,6 @@ class PostcodeController extends Controller
         ->where("status", 1)
         ->where("is_on_hold", 0)
         ->where('job_category_id', $job_category_id)
-        // ->where('job_type', $job_type)
         ->get();
 
         return $location_distance;

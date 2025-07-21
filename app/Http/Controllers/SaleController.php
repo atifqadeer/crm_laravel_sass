@@ -3491,12 +3491,31 @@ class SaleController extends Controller
             ])
             ->where('applicants.status', 1)
             ->where("is_in_nurse_home", false)
-            ->where('applicants.job_title_id', $sale->job_title_id)
             ->having('distance', '<', $radius)
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
             ->with(['jobTitle', 'jobCategory', 'jobSource']);
+
+        $jobTitle = JobTitle::find($sale->job_title_id);
+
+        // Decode related_titles safely and normalize
+        $relatedTitles = is_array($jobTitle->related_titles)
+            ? $jobTitle->related_titles
+            : json_decode($jobTitle->related_titles ?? '[]', true);
+
+        // Make sure it's an array, lowercase all, and add main title
+        $titles = collect($relatedTitles)
+            ->map(fn($item) => strtolower(trim($item)))
+            ->push(strtolower(trim($jobTitle->name)))
+            ->unique()
+            ->values()
+            ->toArray();
+
+
+        $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
+
+        $model->whereIn('applicants.job_title_id', $jobTitleIds);
 
         // Sorting logic
         if ($request->has('order')) {

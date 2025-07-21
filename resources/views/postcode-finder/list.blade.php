@@ -164,7 +164,14 @@
                                                 </a>
                                             </div>
                                             <div class="d-flex gap-2">
-                                                <span class="badge bg-info text-white">Distance: ${result.distance ? parseFloat(result.distance).toFixed(2) + ' KMs' : '-'}</span>
+                                                <span class="badge bg-info text-white">
+                                                    Distance: 
+                                                    ${result.distance 
+                                                        ? parseFloat(result.distance).toFixed(2) + ' KMs / ' + 
+                                                        (parseFloat(result.distance) * 0.621371).toFixed(2) + ' Miles' 
+                                                        : '-'}
+                                                </span>
+
                                                 <span class="badge bg-dark text-white">
                                                     ${result.created_at ? moment(result.created_at).format('D MMM YYYY') : '-'}
                                                 </span>

@@ -161,6 +161,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Unit</th>
                                 <th>PostCode</th>
                                 <th width="20%">Notes</th>
+                                <th id="paid_status" style="display:none;">Paid Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -308,6 +309,32 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     { data: 'unit_name', name: 'units.unit_name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
                     { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
+                    { 
+                        data: 'paid_status', 
+                        name: 'applicants.paid_status', 
+                        visible: tabFilter.toLowerCase() === 'paid',
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            // Show badge for paid_status
+                            if (cellData) {
+                                let badgeClass = 'bg-secondary';
+                                let label = cellData;
+                                if (cellData.toLowerCase() === 'open') {
+                                    badgeClass = 'bg-success';
+                                } else if (cellData.toLowerCase() === 'pending') {
+                                    badgeClass = 'bg-warning text-warning';
+                                } else if (cellData.toLowerCase() === 'close') {
+                                    badgeClass = 'bg-dark';
+                                }
+                                // toCapitalizeCase() is not a standard JS function, so this will fail unless defined elsewhere.
+                                // Use this instead:
+                                label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+                                $(td).html(`<span class="badge ${badgeClass}">${label}</span>`);
+                            
+                            } else {
+                                $(td).html('');
+                            }
+                        }
+                    },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
                 columnDefs: [
@@ -400,118 +427,122 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 }
             });
 
-    // Type filter handler
-    $('.type-filter').on('click', function () {
-        currentTypeFilter = $(this).text().toLowerCase();
-        const formattedText = currentTypeFilter
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-        $('#showFilterType').html(formattedText);
-        table.ajax.reload();
-    });
+            // Type filter handler
+            $('.type-filter').on('click', function () {
+                currentTypeFilter = $(this).text().toLowerCase();
+                const formattedText = currentTypeFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                $('#showFilterType').html(formattedText);
+                table.ajax.reload();
+            });
 
-    // Status filter handler
-    $('.tab-filter').on('click', function () {
-        tabFilter = $(this).text().toLowerCase();
-        const formattedText = tabFilter
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-        $('#showFilterTab').html(formattedText);
+            // Status filter handler
+            $('.tab-filter').on('click', function () {
+                tabFilter = $(this).text().toLowerCase();
 
-        // Toggle schedule_date column visibility
-        table.column(3).visible(formattedText === 'Confirmation');
+                const formattedText = tabFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                $('#showFilterTab').html(formattedText);
 
-        if (formattedText === 'Paid') {
-            $('#openToPaid').show();
-        } else {
-            $('#openToPaid').hide();
-        }
-        if (formattedText === 'Confirmation') {
-            $('#schedule_date').show();
-        } else {
-            $('#schedule_date').hide();
-        }
-        if (formattedText === 'Declined') {
-            $('#declined_export_email').removeClass('d-none');
-        } else {
-            $('#declined_export_email').addClass('d-none');
-        }
-        if (formattedText === 'Not Attended') {
-            $('#not_attended_export_email').removeClass('d-none');
-        } else {
-            $('#not_attended_export_email').addClass('d-none');
-        }
-        if (formattedText === 'Start Date Hold') {
-            $('#start_date_hold_export_email').removeClass('d-none');
-        } else {
-            $('#start_date_hold_export_email').addClass('d-none');
-        }
-        if (formattedText === 'Dispute') {
-            $('#dispute_export_email').removeClass('d-none');
-        } else {
-            $('#dispute_export_email').addClass('d-none');
-        }
-        if (formattedText === 'Paid') {
-            $('#paid_export_email').removeClass('d-none');
-        } else {
-            $('#paid_export_email').addClass('d-none');
-        }
+                // Toggle schedule_date column visibility
+                table.column(3).visible(formattedText === 'Confirmation');
+                table.column(14).visible(formattedText === 'Paid');
 
-        table.ajax.reload();
-    });
+                if (formattedText === 'Paid') {
+                    $('#openToPaid').show();
+                } else {
+                    $('#openToPaid').hide();
+                }
+                if (formattedText === 'Confirmation') {
+                    $('#schedule_date').show();
+                } else {
+                    $('#schedule_date').hide();
+                }
+                if (formattedText === 'Declined') {
+                    $('#declined_export_email').removeClass('d-none');
+                } else {
+                    $('#declined_export_email').addClass('d-none');
+                }
+                if (formattedText === 'Not Attended') {
+                    $('#not_attended_export_email').removeClass('d-none');
+                } else {
+                    $('#not_attended_export_email').addClass('d-none');
+                }
+                if (formattedText === 'Start Date Hold') {
+                    $('#start_date_hold_export_email').removeClass('d-none');
+                } else {
+                    $('#start_date_hold_export_email').addClass('d-none');
+                }
+                if (formattedText === 'Dispute') {
+                    $('#dispute_export_email').removeClass('d-none');
+                } else {
+                    $('#dispute_export_email').addClass('d-none');
+                }
+                if (formattedText === 'Paid') {
+                    $('#paid_export_email').removeClass('d-none');
+                    $('#paid_status').show();
+                } else {
+                    $('#paid_export_email').addClass('d-none');
+                    $('#paid_status').hide();
+                }
 
-    // Category filter handler
-    $('.category-filter').on('click', function () {
-        const categoryName = $(this).text().trim();
-        currentCategoryFilter = $(this).data('category-id') ?? '';
-        const formattedText = categoryName
-            .toLowerCase()
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-        $('#showFilterCategory').html(formattedText);
-        table.ajax.reload();
-    });
+                table.ajax.reload();
+            });
 
-    // Title filter handler
-    $('.title-filter').on('click', function () {
-        const titleName = $(this).text().trim();
-        currentTitleFilter = $(this).data('title-id') ?? '';
-        const formattedText = titleName
-            .toLowerCase()
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-        $('#showFilterTitle').html(formattedText);
-        table.ajax.reload();
-    });
+            // Category filter handler
+            $('.category-filter').on('click', function () {
+                const categoryName = $(this).text().trim();
+                currentCategoryFilter = $(this).data('category-id') ?? '';
+                const formattedText = categoryName
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                $('#showFilterCategory').html(formattedText);
+                table.ajax.reload();
+            });
 
-    // Pagination functions
-    window.movePage = function(direction) {
-        const api = $('#applicants_table').DataTable();
-        if (direction === 'previous') {
-            api.page('previous').draw('page');
-        } else if (direction === 'next') {
-            api.page('next').draw('page');
-        } else {
-            api.page(direction - 1).draw('page');
-        }
-    };
+            // Title filter handler
+            $('.title-filter').on('click', function () {
+                const titleName = $(this).text().trim();
+                currentTitleFilter = $(this).data('title-id') ?? '';
+                const formattedText = titleName
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                $('#showFilterTitle').html(formattedText);
+                table.ajax.reload();
+            });
 
-    window.goToPage = function(maxPages) {
-        const pageInput = $('#goToPageInput').val();
-        const page = parseInt(pageInput);
-        const errorElement = $('#goToPageError');
-        if (isNaN(page) || page < 1 || page > maxPages) {
-            errorElement.text(`Please enter a valid page number between 1 and ${maxPages}.`);
-            return;
-        }
-        errorElement.text('');
-        $('#applicants_table').DataTable().page(page - 1).draw('page');
-    };
-});
+            // Pagination functions
+            window.movePage = function(direction) {
+                const api = $('#applicants_table').DataTable();
+                if (direction === 'previous') {
+                    api.page('previous').draw('page');
+                } else if (direction === 'next') {
+                    api.page('next').draw('page');
+                } else {
+                    api.page(direction - 1).draw('page');
+                }
+            };
+
+            window.goToPage = function(maxPages) {
+                const pageInput = $('#goToPageInput').val();
+                const page = parseInt(pageInput);
+                const errorElement = $('#goToPageError');
+                if (isNaN(page) || page < 1 || page > maxPages) {
+                    errorElement.text(`Please enter a valid page number between 1 and ${maxPages}.`);
+                    return;
+                }
+                errorElement.text('');
+                $('#applicants_table').DataTable().page(page - 1).draw('page');
+            };
+        });
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
@@ -3825,7 +3856,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         function crmChangePaidStatusModal(applicantID, saleID) {
             const formId = `#crmChangePaidStatusForm${applicantID}-${saleID}`;
             const modalId = `#crmChangePaidStatusModal${applicantID}-${saleID}`;
-            const detailsId = `#crmChangePaidStatusDetails${applicantID}-${saleID}`;
+            const paid_status = `#paid_status-${applicantID}-${saleID}`;
+            // const detailsId = `#crmChangePaidStatusDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
             const saveButton = $(`${formId} .saveCrmChangePaidStatusButton`);
 
@@ -3833,29 +3865,13 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
                 // Reset form fields
                 $(formId)[0].reset();
-
-                // Remove validation styles and messages
-                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-
+                
                 // Hide any previous alerts
                 $(notificationAlert).html('').hide();
             });
 
             // Handle save button click
             saveButton.off('click').on('click', function() {
-                // Reset validation
-                $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
-                // Validate inputs
-                const notes = $(detailsId).val();
-
-                if (!notes) {
-                    $(detailsId).addClass('is-invalid');
-                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    return;
-                }
-
                 const btn = $(this);
                 const originalText = btn.html();
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
@@ -3870,7 +3886,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     data: {
                         applicant_id: applicantID,
                         sale_id: saleID,
-                        details: notes,
+                        paid_status: $(paid_status).val(),
+                        // details: notes,
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {

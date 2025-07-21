@@ -98,6 +98,9 @@ class ActionObserver
         if($column == 'applicant_notes'){
             $d_message = 'notes has been updated';
             $message = "Applicant '".ucwords($applicant->applicant_name)."' notes has been updated";
+        }elseif($column == 'paid_status'){
+            $d_message = 'paid status has been updated';
+            $message = "Applicant '".ucwords($applicant->applicant_name)."' paid status has been updated";
         }
 
         $data['message'] = "Applicant '".ucwords($applicant->applicant_name)."' ".$d_message;
