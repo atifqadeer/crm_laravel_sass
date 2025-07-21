@@ -3986,18 +3986,21 @@ class CrmController extends Controller
             //         ->html($validatedData['email_body']); // Use html() instead of setBody()
             // });
 
-            // Save email log
-            $this->saveSentEmails(
-                $validatedData['email_address'],
-                '', // CC
-                'crm@kingsburypersonnel.com',
-                $validatedData['email_title'],
-                $validatedData['email_subject'],
-                $validatedData['email_body'],
-                'Scheduled Interview',
-                $validatedData['applicant_id'],
-                $validatedData['sale_id']
-            );
+            // Attempt to send email
+            $is_save = $this->saveEmailDB(
+                $validatedData['email_address'], 
+                'crm@kingsburypersonnel.com', 
+                $validatedData['email_subject'], 
+                $validatedData['email_body'], 
+                $validatedData['email_title'], 
+                $validatedData['applicant_id'], 
+                $validatedData['sale_id']);
+
+            if (!$is_save) {
+                // Optional: throw or log
+                Log::warning('Email saved to DB failed for applicant ID: ' . $validatedData['applicant_id']);
+                throw new \Exception('Email is not stored in DB');
+            }
 
             return response()->json(['success' => true, 'message' => 'Email sent successfully']);
 
