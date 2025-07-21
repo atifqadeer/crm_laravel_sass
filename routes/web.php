@@ -280,7 +280,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('crmRevertRejectedCvToQuality', [CrmController::class, 'crmRevertRejectedCvToQuality'])->name('crmRevertRejectedCvToQuality');
 
     /** CRM Request */
-    Route::post('crmRequestReject', [CrmController::class, 'crmRequestReject'])->name('crmRequestReject');
+    Route::post('/crm/request-reject', [CrmController::class, 'crmRequestReject'])->name('crmRequestReject');
     Route::post('crmRequestConfirm', [CrmController::class, 'crmRequestConfirm'])->name('crmRequestConfirm');
     Route::post('crmRequestSave', [CrmController::class, 'crmRequestSave'])->name('crmRequestSave');
     Route::post('crmScheduleInterview', [CrmController::class, 'crmScheduleInterview'])->name('crmScheduleInterview');

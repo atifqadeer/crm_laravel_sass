@@ -31,9 +31,13 @@ use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Horsefly\SmsTemplate;
 use Illuminate\Support\Str;
+use App\Traits\SendEmails;
+use App\Traits\SendSMS;
 
 class CrmController extends Controller
 {
+    use SendEmails, SendSMS;
+
     public function index()
     {
         return view('crm.list');
@@ -1264,6 +1268,9 @@ class CrmController extends Controller
                 ->addColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
+                ->addColumn('schedule_date', function ($applicant) {
+                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; // Using accessor
+                })
                 ->addColumn('job_details', function ($applicant) {
                     $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type));
                     $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
@@ -1476,21 +1483,17 @@ class CrmController extends Controller
                             break;
 
                         case 'request':
-                            $emailIcon = '<i class="fas fa-envelope text-secondary" title="Not Sent"></i>';
-                            $emailText = 'Not Sent';
+                            $emailText = '<span class="badge bg-warning"><i class="ri-inbox-line text-white" title="Sent"></i> Email Not Sent</span>';
                             $sentEmail = SentEmail::where('applicant_id', $applicant->id)
                                 ->where('sale_id', $applicant->sale_id)
                                 ->latest()->first();
                             
                             if ($sentEmail && $sentEmail->status == '1') {
-                                $emailIcon = '<i class="fas fa-envelope text-success" title="Sent"></i>';
-                                $emailText = 'Sent';
+                                $emailText = '<span class="badge bg-success"><i class="ri-inbox-line text-white" title="Sent"></i> Email Sent</span>';
                             } elseif ($sentEmail && $sentEmail->status == '2') {
-                                $emailIcon = '<i class="fas fa-envelope text-danger" title="Failed"></i>';
-                                $emailText = 'Failed';
+                                $emailText = '<span class="badge bg-danger"><i class="ri-inbox-line text-white" title="Sent"></i> Email Failed</span>';
                             } elseif ($sentEmail && $sentEmail->status == '0') {
-                                $emailIcon = '<i class="fas fa-envelope text-secondary" title="Pending"></i>';
-                                $emailText = 'Pending';
+                                $emailText = '<span class="badge bg-warning"><i class="ri-inbox-line text-white" title="Sent"></i> Email Pending</span>';
                             }
 
                             $applicant_msgs = ApplicantMessage::where([
@@ -1499,9 +1502,9 @@ class CrmController extends Controller
                                 ])
                                 ->orderBy('created_at', 'desc')->first();
 
-                            $actionButtons = '<li><a class="dropdown-item" href="javascript:void(0)" >Email '. $emailText .'</a></li>';
+                            $actionButtons = '<li><a class="dropdown-item" href="javascript:void(0)" >'. $emailText .'</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
-                                $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">Already Scheduled</a></li>';
+                                $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger"><i class="ri-lock-line"></i> Already Scheduled</a></li>';
                             } else {
                                 if ($sentEmail && $sentEmail->status == '1') {
                                     // If the email is successfully sent (status = '1'), skip the email modal
@@ -2363,12 +2366,12 @@ class CrmController extends Controller
                                         <h5 class="modal-title" id="crmSendApplicantEmailOnRequestRejectModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">Send Rejection Email</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body">
+                                    <div class="modal-body modal-body-text-left">
                                         <div class="notificationAlertReject' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
                                         <form id="rejectEmailForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal" action="" method="POST">
                                             <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
                                             <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
-                                            <input type="hidden" name="notes" id="rejectionNotesHidden' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">
+                                            <input type="hidden" name="details" id="rejectionNotesHidden' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">To Email</label>
@@ -2380,7 +2383,7 @@ class CrmController extends Controller
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Message</label>
-                                                <textarea name="body" class="form-control" rows="4" required></textarea>
+                                                <textarea name="body" class="form-control summernote" rows="4" required></textarea>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="submit" class="btn btn-primary saveCrmSendApplicantEmailRequestRejectButton">Send Email</button>
@@ -3068,7 +3071,7 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'user_name', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'user_name', 'schedule_date', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -3396,41 +3399,49 @@ class CrmController extends Controller
             $request->validate([
                 'applicant_id' => 'required|integer|exists:applicants,id',
                 'sale_id' => 'required|integer|exists:sales,id',
-                'schedule_date' => 'required|date|after:today',
-                'schedule_time' => 'required|date_format:H:i',
+                'schedule_date' => 'required|date',
+                'schedule_time' => 'required'
             ]);
 
             $user = Auth::user();
-            
-            DB::transaction();
+
+            DB::beginTransaction();
 
             $interview = new Interview();
             $interview->user_id = $user->id;
-            $interview->sale_id = $request->Input('sale_id');
-            $interview->applicant_id = $request->Input('applicant_id');
-            $interview->schedule_date = $request->Input('schedule_date');
-            $interview->schedule_time = $request->Input('schedule_time');
+            $interview->sale_id = $request->input('sale_id');
+            $interview->applicant_id = $request->input('applicant_id');
+            $interview->schedule_date = date('Y-m-d', strtotime($request->input('schedule_date')));
+            $interview->schedule_time = date('H:i', strtotime($request->input('schedule_time')));
+
             $interview->save();
 
-            /** Update UID */
             $interview->interview_uid = md5($interview->id);
             $interview->save();
 
-            return response()->json(['success' => true, 'message' => 'CRM Interview Scheduled Successfully']);
-        } catch (ValidationException $e) {
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'CRM Interview Scheduled Successfully'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
-        } catch (Exception $e) {
+
+        } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Operation failed: ' . $e->getMessage()
             ], 500);
         }
     }
-   
 
     /** CRM Sent No Job  */
     public function updateCrmNoJobNotes(Request $request)
@@ -3579,23 +3590,62 @@ class CrmController extends Controller
     /** CRM Request Reject */
     public function crmRequestReject(Request $request)
     {
+
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'applicant_id' => 'required|integer',
                 'sale_id' => 'required|integer',
-                'details' => 'required',
+                'details' => 'required|string',
+                'to' => 'required|email',
+                'subject' => 'required|string',
+                'body' => 'required|string',
+                '_token' => 'required'
             ]);
 
             $user = Auth::user();
             $details = $request->input('details') . ' --- Request Rejected By: ' . $user->name;
 
             // Private function might throw exceptions
-            $this->crmRequestRejectAction(
+            $result = $this->crmRequestRejectAction(
                 $request->input('applicant_id'),
                 $user->id,
                 $request->input('sale_id'),
                 $details
             );
+
+            $sale_id = $request->input('sale_id');
+            $applicant_id = $request->input('applicant_id');
+            $sale = Sale::where('id', $sale_id)
+                    ->select('unit_id', 'id')
+                    ->first();
+
+            $applicantRecord = Applicant::where("id", $applicant_id)
+                ->select('applicant_name')
+                ->first();
+
+                
+            if($result && $sale && $applicantRecord) {
+                $body = $request->input('body');
+                $subject = $request->input('subject');
+                $to = $request->input('to');
+                $from_email = 'customerservice@kingsburypersonnel.com';
+
+                $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
+
+                $email_to = $to;
+                $email_from = $from_email;
+                $email_subject = $subject;
+                $email_body = $body;
+                $email_title = '' . $applicant_name . ' - Request Rejected';
+
+                // Attempt to send email
+                $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, null, $sale->id);
+                if (!$is_save) {
+                    // Optional: throw or log
+                    Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
+                    throw new \Exception('Email is not stored in DB');
+                }
+            }
 
             return response()->json(['success' => true, 'message' => 'CRM Request Rejected Successfully']);
         } catch (ValidationException $e) {
@@ -6382,39 +6432,6 @@ class CrmController extends Controller
             $history->history_uid = md5($history->id);
             $history->save();
 
-            // $sale = Sale::where('id', $sale_id)
-            //     ->select('head_office_unit')
-            //     ->first();
-
-            // $applicantRecord = Applicant::where("id", $applicant_id)
-            //     ->select('applicant_name')
-            //     ->first();
-
-            // $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
-
-            // Mail::send([], [], function ($message) use ($email_body, $email_subject, $email_to) {
-            //     $message->from('customerservice@kingsburypersonnel.com', 'Kingsbury Personnel Ltd');
-            //     $message->to($email_to);
-            //     $message->subject($email_subject);
-            //     $message->setBody($email_body, 'text/html');
-            // });
-
-            // if (Mail::failures()) {
-            //     // Get failure details
-            //     $failures = Mail::failures();
-
-            //     // Convert array to a string message
-            //     $errorMessage = "Failed to send email to the following address(es): " . implode(', ', $failures);
-
-            //     return $errorMessage;
-            // } else {
-            //     $email_from = 'customerservice@kingsburypersonnel.com';
-            //     $email_sent_to_cc = '';
-            //     $subject = $email_subject;
-            //     $action_name = 'Request Reject';
-            //     $this->saveSentEmails($email_to, $email_sent_to_cc, $email_from, $subject, $email_body, $action_name);
-            //     //  return 'success';
-            // }
             return true; // Indicate success
 
         } catch (\Exception $e) {

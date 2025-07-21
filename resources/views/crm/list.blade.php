@@ -246,48 +246,58 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 ]
             });
         });
+
         $(document).ready(function() {
-            // Store the current filter in a variable
+            // Store filter values
             var tabFilter = '';
             var currentTypeFilter = '';
             var currentCategoryFilter = '';
             var currentTitleFilter = '';
 
-            // Create a loader row and append it to the table before initialization
+            // Create loader row
             const loadingRow = document.createElement('tr');
             loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </td>`;
-
-            // Append the loader row to the table's tbody
             $('#applicants_table tbody').append(loadingRow);
 
-            // Initialize DataTable with server-side processing
+            // Initialize DataTable
             var table = $('#applicants_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false,
+                serverSide: true,
                 ajax: {
-                    url: @json(route('getCrmApplicantsAjaxRequest')),  // Fetch data from the backend
+                    url: '{{ route('getCrmApplicantsAjaxRequest') }}',
                     type: 'GET',
                     data: function(d) {
-                        // Add the current filter to the request parameters
-                        d.tab_filter = tabFilter;  // Send the current filter value as a parameter
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
-
-                        // Clean up search parameter
+                        d.tab_filter = tabFilter;
+                        d.type_filter = currentTypeFilter;
+                        d.category_filter = currentCategoryFilter;
+                        d.title_filter = currentTitleFilter;
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'updated_at', name: 'applicants.updated_at' },
                     { data: 'user_name', name: 'users.name' },
+                    { 
+                        data: 'schedule_date', 
+                        name: 'interviews.schedule_date', 
+                        visible: tabFilter.toLowerCase() === 'confirmation',
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            if (cellData) {
+                                $(td).text(cellData); // Format with moment.js if needed, e.g., moment(cellData).format('YYYY-MM-DD')
+                            }
+                        }
+                    },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },
@@ -302,22 +312,22 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 ],
                 columnDefs: [
                     {
-                        targets: 8,  // Column index for 'job_details'
+                        targets: 8, // job_details
                         createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                            $(td).css('text-align', 'center');
                         }
                     },
                     {
-                        targets: 13,  // Column index for 'job_details'
+                        targets: 13, // notes_detail
                         createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                            $(td).css('text-align', 'center');
                         }
                     }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data.id;
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'flrtip',
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -333,171 +343,175 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     }
 
                     let paginationHtml = `
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <nav aria-label="Page navigation">
-                                    <ul class="pagination pagination-rounded mb-0">
-                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>`;
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination pagination-rounded mb-0">
+                                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                        <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                            <span aria-hidden="true">«</span>
+                                        </a>
+                                    </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                    </li>`;
+
+                    if (start > 2) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                         </li>`;
+                    }
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    if (end < totalPages - 1) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                        </li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                            </li>`;
-                        }
-
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
-
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                            </li>`;
-                        }
-
-                        // Next button
-                        paginationHtml += `
-                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                        </nav>
-
-                        <div class="d-flex align-items-center ms-3 text-primary">
-                            <span class="me-2">Go to page:</span>
-                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                        </div>
-                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                        </div>`;
+                    paginationHtml += `
+                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                <span aria-hidden="true">»</span>
+                            </a>
+                        </li>
+                    </ul>
+                    </nav>
+                    <div class="d-flex align-items-center ms-3 text-primary">
+                        <span class="me-2">Go to page:</span>
+                        <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                            onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                    </div>
+                    <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                    </div>`;
 
                     pagination.html(paginationHtml);
-                },
+                }
             });
 
-            // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
-                currentTypeFilter = $(this).text().toLowerCase();
+    // Type filter handler
+    $('.type-filter').on('click', function () {
+        currentTypeFilter = $(this).text().toLowerCase();
+        const formattedText = currentTypeFilter
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterType').html(formattedText);
+        table.ajax.reload();
+    });
 
-                // Capitalize each word
-                const formattedText = currentTypeFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+    // Status filter handler
+    $('.tab-filter').on('click', function () {
+        tabFilter = $(this).text().toLowerCase();
+        const formattedText = tabFilter
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterTab').html(formattedText);
 
-                $('#showFilterType').html(formattedText);
-                table.ajax.reload(); // Reload with updated type filter
-            });
+        // Toggle schedule_date column visibility
+        table.column(3).visible(formattedText === 'Confirmation');
 
-            // Status filter dropdown handler
-            $('.tab-filter').on('click', function () {
-                tabFilter = $(this).text().toLowerCase();
+        if (formattedText === 'Paid') {
+            $('#openToPaid').show();
+        } else {
+            $('#openToPaid').hide();
+        }
+        if (formattedText === 'Confirmation') {
+            $('#schedule_date').show();
+        } else {
+            $('#schedule_date').hide();
+        }
+        if (formattedText === 'Declined') {
+            $('#declined_export_email').removeClass('d-none');
+        } else {
+            $('#declined_export_email').addClass('d-none');
+        }
+        if (formattedText === 'Not Attended') {
+            $('#not_attended_export_email').removeClass('d-none');
+        } else {
+            $('#not_attended_export_email').addClass('d-none');
+        }
+        if (formattedText === 'Start Date Hold') {
+            $('#start_date_hold_export_email').removeClass('d-none');
+        } else {
+            $('#start_date_hold_export_email').addClass('d-none');
+        }
+        if (formattedText === 'Dispute') {
+            $('#dispute_export_email').removeClass('d-none');
+        } else {
+            $('#dispute_export_email').addClass('d-none');
+        }
+        if (formattedText === 'Paid') {
+            $('#paid_export_email').removeClass('d-none');
+        } else {
+            $('#paid_export_email').addClass('d-none');
+        }
 
-                // Capitalize each word
-                const formattedText = tabFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+        table.ajax.reload();
+    });
 
-                $('#showFilterTab').html(formattedText);
+    // Category filter handler
+    $('.category-filter').on('click', function () {
+        const categoryName = $(this).text().trim();
+        currentCategoryFilter = $(this).data('category-id') ?? '';
+        const formattedText = categoryName
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterCategory').html(formattedText);
+        table.ajax.reload();
+    });
 
-                // Show button only if "Paid" is selected
-                if (formattedText === 'Paid') {
-                    $('#openToPaid').show();
-                } else {
-                    $('#openToPaid').hide();
-                }
-                
-                // Show button only if "Paid" is selected
-                if (formattedText === 'Confirmation') {
-                    $('#schedule_date').show();
-                } else {
-                    $('#schedule_date').hide();
-                }
-                
-                if (formattedText === 'Declined') {
-                    $('#declined_export_email').removeClass('d-none');
-                } else {
-                    $('#declined_export_email').addClass('d-none');
-                }
-                
-                if (formattedText === 'Not Attended') {
-                    $('#not_attended_export_email').removeClass('d-none');
-                } else {
-                    $('#not_attended_export_email').addClass('d-none');
-                }
-                
-                if (formattedText === 'Start Date Hold') {
-                    $('#start_date_hold_export_email').removeClass('d-none');
-                } else {
-                    $('#start_date_hold_export_email').addClass('d-none');
-                }
+    // Title filter handler
+    $('.title-filter').on('click', function () {
+        const titleName = $(this).text().trim();
+        currentTitleFilter = $(this).data('title-id') ?? '';
+        const formattedText = titleName
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterTitle').html(formattedText);
+        table.ajax.reload();
+    });
 
-                if (formattedText === 'Dispute') {
-                    $('#dispute_export_email').removeClass('d-none');
-                } else {
-                    $('#dispute_export_email').addClass('d-none');
-                }
-                
-                if (formattedText === 'Paid') {
-                    $('#paid_export_email').removeClass('d-none');
-                } else {
-                    $('#paid_export_email').addClass('d-none');
-                }
+    // Pagination functions
+    window.movePage = function(direction) {
+        const api = $('#applicants_table').DataTable();
+        if (direction === 'previous') {
+            api.page('previous').draw('page');
+        } else if (direction === 'next') {
+            api.page('next').draw('page');
+        } else {
+            api.page(direction - 1).draw('page');
+        }
+    };
 
-                
-                table.ajax.reload(); // Reload with updated status filter
-            });
-            
-            // Status filter dropdown handler
-            $('.category-filter').on('click', function () {
-                const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ?? ''; // nullish fallback for "All Category"
-
-                const formattedText = categoryName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterCategory').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-
-            $('.title-filter').on('click', function () {
-                const titleName = $(this).text().trim();
-                currentTitleFilter = $(this).data('title-id') ?? ''; // nullish fallback for "All Titles"
-
-                const formattedText = titleName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterTitle').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-        });
+    window.goToPage = function(maxPages) {
+        const pageInput = $('#goToPageInput').val();
+        const page = parseInt(pageInput);
+        const errorElement = $('#goToPageError');
+        if (isNaN(page) || page < 1 || page > maxPages) {
+            errorElement.text(`Please enter a valid page number between 1 and ${maxPages}.`);
+            return;
+        }
+        errorElement.text('');
+        $('#applicants_table').DataTable().page(page - 1).draw('page');
+    };
+});
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
@@ -2106,22 +2120,22 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             const detailsId = `#crmMoveToconfirmationDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
             
-            // Initialize modal
+            console.log('Initializing crmMoveToconfirmationModal with applicantID:', applicantID, 'saleID:', saleID);
+            
             const initModal = () => {
                 resetValidation();
                 attachEventHandlers();
             };
 
-            // Reset validation states
             const resetValidation = () => {
                 $(detailsId).removeClass('is-invalid is-valid')
                     .next('.invalid-feedback').remove();
                 $(notificationAlert).html('').hide();
             };
 
-            // Validate notes field
             const validateNotes = () => {
                 const notes = $(detailsId).val().trim();
+                console.log('Validating notes:', notes);
                 if (!notes) {
                     $(detailsId).addClass('is-invalid')
                         .after('<div class="invalid-feedback">Please provide details.</div>');
@@ -2130,7 +2144,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 return true;
             };
 
-            // Handle form submission
             const handleSubmit = (actionType) => {
                 if (!validateNotes()) return false;
 
@@ -2143,7 +2156,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 const btn = $(`${formId} .savecrmConfirmation${actionType === 'confirm' ? 'Button' : actionType === 'save' ? 'SaveButton' : 'RejectButton'}`);
                 const originalText = btn.html();
                 
-                // Show loading state
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
                 const formData = {
@@ -2153,14 +2165,15 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     _token: '{{ csrf_token() }}'
                 };
 
-                if (actionType === 'reject') {
-                    formData.rejection_data = sessionStorage.getItem(`rejectNotes_${applicantID}_${saleID}`);
-                }
+                console.log('Submitting form data for action:', actionType, formData);
 
                 $.ajax({
                     url: endpoints[actionType],
                     method: 'POST',
                     data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
                     success: function(response) {
                         showSuccess(response.message);
                         setTimeout(() => {
@@ -2173,7 +2186,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        console.error('Form submission error:', xhr.status, xhr.responseJSON);
+                        showError(xhr.responseJSON?.message || `Failed to process ${actionType} (Status: ${xhr.status})`);
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -2181,7 +2195,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 });
             };
 
-            // Show success message
             const showSuccess = (message) => {
                 $(notificationAlert).html(`
                     <div class="alert alert-success alert-dismissible fade show">
@@ -2191,7 +2204,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 `).show();
             };
 
-            // Show error message
             const showError = (message) => {
                 $(notificationAlert).html(`
                     <div class="alert alert-danger alert-dismissible fade show">
@@ -2201,46 +2213,50 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 `).show();
             };
 
-            // Attach event handlers
             const attachEventHandlers = () => {
-                // Reject button handler
-                $(`${formId} .savecrmMoveToconfirmationRejectButton`).off('click').on('click', () => {
+                const rejectButtonSelector = `${formId} .savecrmMoveToconfirmationRejectButton`;
+                console.log('Attaching event handler to reject button:', rejectButtonSelector);
+                $(rejectButtonSelector).off('click').on('click', () => {
+                    console.log('Reject button clicked');
                     resetValidation();
                     if (validateNotes()) {
-                        sessionStorage.setItem(`rejectNotes_${applicantID}_${saleID}`, $(detailsId).val().trim());
-                        $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`).modal('show');
+                        const notes = $(detailsId).val().trim();
+                        console.log('Passing notes to email modal:', notes);
+                        crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID, notes);
+                        const emailModalId = `#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`;
+                        console.log('Attempting to open email modal:', emailModalId);
+                        if ($(emailModalId).length) {
+                            $(emailModalId).modal('show');
+                        } else {
+                            console.error('Email modal not found in DOM:', emailModalId);
+                            showError('Email modal not found. Please contact support.');
+                        }
                     }
                 });
 
-                // Confirm button handler
-                $(`${formId} .savecrmMoveToconfirmationRejectButton`).off('click').on('click', () => handleSubmit('reject'));
                 $(`${formId} .savecrmConfirmationButton`).off('click').on('click', () => handleSubmit('confirm'));
-                
-                // Save button handler
                 $(`${formId} .savecrmConfirmationSaveButton`).off('click').on('click', () => handleSubmit('save'));
-
-                // SMS button handler (if needed)
                 $(`${formId} .savecrmConfirmationSendSMSButton`).off('click').on('click', () => {
                     // Add SMS functionality here
                 });
 
-                // Cleanup on modal close
                 $(modalId).off('hidden.bs.modal').on('hidden.bs.modal', () => {
                     $(formId)[0].reset();
                     resetValidation();
-                    sessionStorage.removeItem(`rejectNotes_${applicantID}_${saleID}`);
                 });
             };
 
-            // Initialize the modal
             initModal();
         }
-        
+
         /** Send Email to applicant on request reject */
-        function crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID) {
+        function crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID, notes) {
             const formId = `#rejectEmailForm${applicantID}-${saleID}`;
             const modalId = `#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlertReject${applicantID}-${saleID}`;
+
+            console.log('Initializing crmSendApplicantEmailOnRequestRejectModal:', modalId, 'with notes:', notes);
+            console.log('Route for crmRequestReject:', '{{ route('crmRequestReject') }}');
 
             const resetValidation = () => {
                 $(`${formId} [required]`).removeClass('is-invalid')
@@ -2253,7 +2269,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 $(`${formId} [required]`).each(function () {
                     if (!$(this).val().trim()) {
                         $(this).addClass('is-invalid')
-                            .after(`<div class="invalid-feedback">This field is required.</div>`);
+                            .after('<div class="invalid-feedback">This field is required.</div>');
                         valid = false;
                     }
                 });
@@ -2276,18 +2292,25 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
                 const btn = $(`${formId} .saveCrmSendApplicantEmailRequestRejectButton`);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Sending...');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
 
                 const formData = new FormData($(formId)[0]);
                 formData.append('_token', '{{ csrf_token() }}');
-                formData.set('notes', sessionStorage.getItem(`rejectNotes_${applicantID}_${saleID}`)); // Add notes
+                formData.set('details', notes || '');
+                formData.set('applicant_id', applicantID);
+                formData.set('sale_id', saleID);
+
+                console.log('Sending combined data:', Object.fromEntries(formData));
 
                 $.ajax({
-                    url: $(formId).attr('action'),
+                    url: "{{ route('crmRequestReject') }}",
                     method: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
                     success: (response) => {
                         showAlert('success', response.message);
                         setTimeout(() => {
@@ -2297,7 +2320,13 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         }, 1500);
                     },
                     error: (xhr) => {
-                        showAlert('danger', xhr.responseJSON?.message || 'Failed to send email');
+                        console.error('AJAX error:', xhr.status, xhr.responseJSON);
+                        let errorMessage = xhr.responseJSON?.message || `Failed to process rejection and email (Status: ${xhr.status})`;
+                        if (xhr.status === 405) {
+                            errorMessage = 'POST method not supported. Check route configuration for /crm/request-reject.';
+                        }
+                        showAlert('danger', errorMessage);
+                        btn.prop('disabled', false).html(originalText);
                     },
                     complete: () => {
                         btn.prop('disabled', false).html(originalText);
