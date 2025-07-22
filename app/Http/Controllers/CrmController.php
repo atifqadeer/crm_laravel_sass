@@ -2199,11 +2199,10 @@ class CrmController extends Controller
                                 </div>
                             </div>';
                     /*** Schedule Interview Modal */
-                    $title = 'request_configuration_email';
                     $newPhrase = '';
                     $newSubject = '';
                     $applicant_email = '';
-                    $request_configuration_email = EmailTemplate::where('title', $title)->where('is_active', 1)->first();
+                    $request_configuration_email = EmailTemplate::where('slug', 'request_configuration_email')->where('is_active', 1)->first();
 
                     if ($request_configuration_email) {
                         // Loop through each attribute of the model

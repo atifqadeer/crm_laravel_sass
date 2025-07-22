@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('email_templates', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('title', 191);
+            $table->string('title')->unique(); // e.g. "welcome_email"
+            $table->string('slug')->unique();
             $table->longText('template')->nullable()->default('Null');
             $table->string('from_email', 255)->nullable()->default('Null');
             $table->string('subject', 255)->nullable()->default('Null');

@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use Illuminate\Support\Facades\Log;
+use Horsefly\Setting;
 
 trait Geocode
 {
@@ -14,8 +15,10 @@ trait Geocode
             return ['error' => $error];
         }
 
-        $address = urlencode($address);
-        $apiKey = config('app.postcode_api');
+        $address = urlencode($address) . ',UK';
+
+        $setting = Setting::where('key', 'google_map_api')->first();
+        $apiKey = $setting ? $setting->value : '';
 
         if (!$apiKey) {
             $error = "Google Maps API key is missing in config.";

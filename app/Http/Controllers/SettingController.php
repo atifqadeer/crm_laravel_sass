@@ -10,7 +10,9 @@ use Horsefly\EmailTemplate;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\JobTitle;
+use Horsefly\SentEmail;
 use Horsefly\SmsTemplate;
+use Horsefly\SmtpSetting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Gate;
@@ -490,9 +492,9 @@ class SettingController extends Controller
 
         // Filter by status if it's not empty
         if ($statusFilter == 'active') {
-            $query->where('status', 1);
+            $query->where('status', '1');
         } elseif ($statusFilter == 'inactive') {
-            $query->where('status', 0);
+            $query->where('status', '0');
         }
 
         // Sorting
@@ -515,10 +517,10 @@ class SettingController extends Controller
                     return $row->created_at ? $row->created_at->format('d-m-Y, h:i A') : '-';
                 })
                 ->addColumn('title', function ($row) {
-                    return ucwords(str_replace('_',' ',$row->title));
+                    return ucwords($row->title);
                 })
                 ->addColumn('slug', function ($row) {
-                    return $row->title;
+                    return $row->slug;
                 })
                 ->addColumn('template', function ($row) {
                     return $row->template; // must include HTML (e.g., from Summernote)
@@ -542,9 +544,9 @@ class SettingController extends Controller
                                     <li>
                                         <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
-                                    <li>
+                                  <!--  <li>
                                         <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
-                                    </li>
+                                    </li> -->
                                 </ul>
                             </div>';
                 })
@@ -585,7 +587,7 @@ class SettingController extends Controller
         $template = SmsTemplate::find($id);
         if ($template) {
             // Format the title: replace underscores with spaces and capitalize words
-            $template->title = ucwords(str_replace('_', ' ', $template->title));
+            $template->title = ucwords($template->title);
         }
         if (!$template) {
             return response()->json([
@@ -618,7 +620,8 @@ class SettingController extends Controller
         try {
             // Create the role
             SmsTemplate::create([
-                'title' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'title' => $request->input('title'),
+                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
                 'template' => $request->input('template')
             ]);
 
@@ -664,7 +667,8 @@ class SettingController extends Controller
             $template = SmsTemplate::findOrFail($id);
 
             // Update 
-            $template->title = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            // $template->title = $request->input('edit_title');
+            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
             $template->template = $request->input('edit_template');
             $template->status = $request->input('status');
             $template->save();
@@ -702,9 +706,9 @@ class SettingController extends Controller
 
         // Filter by status if it's not empty
         if ($statusFilter == 'active') {
-            $query->where('is_active', 1);
+            $query->where('is_active', '1');
         } elseif ($statusFilter == 'inactive') {
-            $query->where('is_active', 0);
+            $query->where('is_active', '0');
         }
 
         // Sorting
@@ -727,10 +731,10 @@ class SettingController extends Controller
                     return $row->created_at ? $row->created_at->format('d-m-Y, h:i A') : '-';
                 })
                 ->addColumn('title', function ($row) {
-                    return ucwords(str_replace('_',' ',$row->title));
+                    return ucwords($row->title);
                 })
                 ->addColumn('slug', function ($row) {
-                    return $row->title;
+                    return $row->slug;
                 })
                 ->addColumn('template', function ($row) {
                     return strip_tags($row->template);
@@ -754,9 +758,9 @@ class SettingController extends Controller
                                      <li>
                                         <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
-                                    </li>
+                                    <!-- <li>
+                                         <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
+                                     </li>-->
                                 </ul>
                             </div>';
                 })
@@ -771,7 +775,7 @@ class SettingController extends Controller
         $template = EmailTemplate::find($id);
         if ($template) {
             // Format the title: replace underscores with spaces and capitalize words
-            $template->title = ucwords(str_replace('_', ' ', $template->title));
+            $template->title = ucwords($template->title);
         }
         if (!$template) {
             return response()->json([
@@ -806,7 +810,8 @@ class SettingController extends Controller
         try {
             // Create the role
             EmailTemplate::create([
-                'title' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'title' => $request->input('title'),
+                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
                 'from_email' => $request->input('from_email'),
                 'subject' => $request->input('subject'),
                 'template' => $request->input('template'),
@@ -855,7 +860,8 @@ class SettingController extends Controller
             $template = EmailTemplate::findOrFail($id);
 
             // Update 
-            $template->title = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            // $template->title = $request->input('edit_title');
+            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
             $template->from_email = $request->input('edit_from');
             $template->subject = $request->input('edit_subject');
             $template->template = $request->input('edit_template');
@@ -1108,4 +1114,97 @@ class SettingController extends Controller
         $role = Role::findOrFail($id);
         return view('roles.show', compact('role'));
     }
+    public function getSettings()
+    {
+        return response()->json([
+            'general.site_name' => config('app.name'),
+            'profile.user_email' => Auth::user()->email ?? '',
+            'profile.user_name' => Auth::user()->name ?? '',
+            'sms.sms_provider' => config('sms.provider', ''),
+            'sms.sms_api_key' => config('sms.api_key', ''),
+            'smtp' => SmtpSetting::all()->map(function ($setting) {
+                return [
+                    'id' => $setting->id,
+                    'mailer' => $setting->mailer,
+                    'host' => $setting->host,
+                    'port' => $setting->port,
+                    'username' => $setting->username,
+                    'password' => $setting->password,
+                    'encryption' => $setting->encryption,
+                    'from_address' => $setting->from_address,
+                    'from_name' => $setting->from_name,
+                ];
+            })->toArray(),
+        ]);
+    }
+    public function saveSmtpSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'smtp' => 'required|array',
+                'smtp.*.mailer' => 'required|string',
+                'smtp.*.host' => 'required|string',
+                'smtp.*.port' => 'required|numeric',
+                'smtp.*.username' => 'required|string',
+                'smtp.*.password' => 'required|string',
+                'smtp.*.from_name' => 'required|string',
+                'smtp.*.from_address' => 'required|email',
+                'smtp.*.encryption' => 'nullable|string',
+            ]);
+
+            foreach ($request->smtp as $setting) {
+                SmtpSetting::updateOrCreate(
+                    ['host' => $setting['host']], // or use another unique identifier
+                    [
+                        'mailer' => $setting['mailer'],
+                        'port' => $setting['port'],
+                        'username' => $setting['username'],
+                        'password' => $setting['password'],
+                        'from_name' => $setting['from_name'],
+                        'from_address' => $setting['from_address'],
+                        'encryption' => $setting['encryption'] ?? null,
+                    ]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'SMTP settings saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving SMTP settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function deleteSmtp(Request $request)
+    {
+        try {
+            $id = $request->id;
+            $smtp = SmtpSetting::find($id);
+
+            if (!$smtp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SMTP setting not found.'
+                ], 404);
+            }
+
+            $smtp->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'SMTP setting deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the SMTP setting. Please try again.'
+            ], 500);
+        }
+    }
+
+
 }

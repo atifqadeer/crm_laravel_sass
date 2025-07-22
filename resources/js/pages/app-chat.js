@@ -107,3 +107,8 @@ class Chat {
 document.addEventListener('DOMContentLoaded', function (e) {
     new Chat().init();
 });
+
+// Initialize SimpleBar for scrollable areas
+document.querySelectorAll('[data-simplebar]').forEach(element => {
+    new SimpleBar(element);
+});

@@ -9,6 +9,7 @@ class EmailTemplate extends Model
     protected $table = 'email_templates';
     protected $fillable = [
         'title',
+        'slug',
         'from_email',
         'subject',
         'template',

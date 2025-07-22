@@ -243,4 +243,8 @@ class Applicant extends Model
         return $this->morphOne(Audit::class, 'auditable')->with('user')
             ->where('message', 'like', '%has been created%');
     }
+    public function messages()
+    {
+        return $this->hasMany(ApplicantMessage::class, 'applicant_id');
+    }
 }

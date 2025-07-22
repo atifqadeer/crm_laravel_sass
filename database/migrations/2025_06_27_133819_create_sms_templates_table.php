@@ -15,6 +15,7 @@ class CreateSmsTemplatesTable extends Migration
             $table->bigIncrements('id');
 
             $table->string('title')->unique();               // e.g. "welcome_sms"
+            $table->string('slug')->unique();               // e.g. "welcome_sms"
             $table->longText('template');                        // SMS body text with placeholders
 
             $table->tinyInteger('status')->default(0)->comment('0 = inactive, 1 = active');

@@ -182,6 +182,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getSentEmailsAjaxRequest', [CommunicationController::class, 'getSentEmailsAjaxRequest'])->name('getSentEmailsAjaxRequest');
     Route::post('sendMessageToApplicant', [CommunicationController::class, 'sendMessageToApplicant'])->name('sendMessageToApplicant');
 
+    Route::post('/messages/{applicantId}', [CommunicationController::class, 'getMessages'])->name('messages.get');
+    Route::post('/messages/send', [CommunicationController::class, 'sendMessage'])->name('messages.send');
+    Route::get('/getApplicants', [CommunicationController::class, 'getApplicants'])->name('applicants.get');
+    Route::get('message_receive', [CommunicationController::class, 'messageReceive']);
+
     Route::group(['prefix' => 'users'], function () {
         Route::get('', [UserController::class, 'index'])->name('users.list');
         Route::get('create', [UserController::class, 'create'])->name('users.create');
@@ -242,7 +247,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
     Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
     Route::post('emailTemplateDelete', [SettingController::class, 'emailTemplateDelete'])->name('emailTemplates.delete');
-
 
     /**SMS Templates */
     Route::post('settings/sms-templates', [SettingController::class, 'smsTemplatesIndex'])->name('settings.sms-templates');
@@ -376,6 +380,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getIPs', [IPAddressController::class, 'getIPs'])->name('getIPs');
 
     Route::get('settings', [SettingController::class, 'index'])->name('settings.list');
+    Route::get('getSettings', [SettingController::class, 'getSettings'])->name('settings.get');
+    Route::get('save-settings', [SettingController::class, ''])->name('settings.save');
+    
+    Route::post('save-smtp-settings', [SettingController::class, 'saveSmtpSettings'])->name('settings.smtp.save');
+    Route::post('delete-smtp-settings', [SettingController::class, 'deleteSmtp'])->name('settings.smtp.delete');
 
     Route::post('module-notes/store', [ModuleNotesController::class, 'store'])->name('moduleNotes.store');
     Route::get('getModuleNotesHistory', [ModuleNotesController::class, 'getModuleNotesHistory'])->name('getModuleNotesHistory');

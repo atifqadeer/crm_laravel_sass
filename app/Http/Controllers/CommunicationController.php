@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\Unit;
+use Horsefly\ApplicantMessage;
 use Horsefly\EmailTemplate;
 use Horsefly\Applicant;
 use App\Http\Controllers\Controller;
@@ -18,6 +19,7 @@ use Horsefly\JobCategory;
 use Horsefly\SentEmail;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
+use Illuminate\Support\Str;
 
 class CommunicationController extends Controller
 {
@@ -33,7 +35,7 @@ class CommunicationController extends Controller
     }
     public function sendEmailsToApplicants(Request $request)
 	{
-        $radius = 15;
+        $radius = 15; //kilometers
         $id = $request->sale_id;
         $sale = Sale::find($id);
         $unit = Unit::where('office_id', $sale->office_id)->first();
@@ -44,7 +46,7 @@ class CommunicationController extends Controller
        
         $nearby_applicants = $this->distance($sale->lat, $sale->lng, $radius, $job_title, $job_category);
         $emails = is_null($nearby_applicants) ? '' : implode(',', $nearby_applicants->toArray());
-        $template = EmailTemplate::where('title','send_job_vacancy_details')->first();
+        $template = EmailTemplate::where('slug','send_job_vacancy_details')->where('is_active', 1)->first();
 
         $user_name = Auth::user()->name;
 
@@ -71,9 +73,12 @@ class CommunicationController extends Controller
         ];
         $prev_val = ['(agent_name)', '(job_category)', '(unit_name)', '(salary)', '(qualification)', '(job_type)', '(timing)', '(experience)', '(location)'];
 
-        $newPhrase = str_replace($prev_val, $replace, $template->template);
-        $formattedMessage = nl2br($newPhrase);
-
+        if($template){
+            $newPhrase = str_replace($prev_val, $replace, $template->template);
+            $formattedMessage = nl2br($newPhrase);
+        }else{
+            $template = '';
+        }
 
 		return view('emails.send-email-to-applicant', compact('sale', 'unit', 'template', 'formattedMessage', 'emails'));
     }
@@ -207,7 +212,7 @@ class CommunicationController extends Controller
                 ->make(true);
         }
     }
-   public function sendMessageToApplicant(Request $request)
+    public function sendMessageToApplicant(Request $request)
     {
         try {
             $request->validate([
@@ -340,15 +345,15 @@ class CommunicationController extends Controller
     {
         try {
             $emailData = $request->input('app_email');
-            $template = EmailTemplate::where('title','send_job_vacancy_details')->first();
+            $template = EmailTemplate::where('slug','send_job_vacancy_details')->where('is_active', 1)->first();
 
-           if ($emailData!=null){
+            if ($emailData!=null && $template){
                 $dataEmail = explode(',',$emailData);
 
                 $email_from = $template->from_email;
                 $email_subject = $request->input('email_subject');
                 $email_body = $request->input('email_body');
-                $email_title = 'send_job_vacancy_details';
+                $email_title = $template->title;
 
                 foreach($dataEmail as $email){
                     $applicant = Applicant::where('applicant_email', $email)->orWhere('applicant_email_secondary', $email)->first();
@@ -359,10 +364,145 @@ class CommunicationController extends Controller
                         throw new \Exception('Email is not stored in DB');
                     }
                 }
-           }
+            }
             return response()->json(['success' => true, 'message' => 'Email saved successfully']);
         }catch (\Exception $e){
         return  response()->json(['status'=>false,'message'=>$e->getMessage()],422);
+        }
+    }
+
+    /*************************************** */
+    public function getMessages($applicantId)
+    {
+        $messages = ApplicantMessage::where('applicant_id', $applicantId)
+            ->with(['user', 'applicant'])
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
+            ->get();
+
+        return response()->json([
+            'messages' => $messages->map(function ($message) {
+                return [
+                    'id' => $message->id,
+                    'msg_uid' => $message->msg_uid,
+                    'user_id' => $message->user_id,
+                    'user_name' => $message->user ? $message->user->name : 'Unknown',
+                    'message' => $message->message,
+                    'phone_number' => $message->phone_number,
+                    'date' => $message->date,
+                    'time' => $message->time,
+                    'status' => $message->status,
+                    'is_sent' => $message->is_sent,
+                    'is_read' => $message->is_read,
+                    'is_sender' => $message->user_id == Auth::id(),
+                    'created_at' => date('H:i', strtotime($message->time)),
+                ];
+            }),
+            'applicant' => Applicant::findOrFail($applicantId),
+        ]);
+    }
+    public function sendMessage(Request $request)
+    {
+        $request->validate([
+            'applicant_id' => 'required|exists:applicants,id',
+            'message' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:50',
+        ]);
+
+        $message = new ApplicantMessage();
+        $message->applicant_id = $request->applicant_id;
+        $message->user_id = Auth::id();
+        $message->msg_uid = Str::uuid();
+        $message->message = $request->message;
+        $message->phone_number = $request->phone_number;
+        $message->date = now()->toDateString();
+        $message->time = now()->toTimeString();
+        $message->status = 'sent';
+        $message->is_sent = 1;
+        $message->is_read = 0;
+        $message->save();
+
+        return response()->json([
+            'id' => $message->id,
+            'msg_uid' => $message->msg_uid,
+            'user_id' => $message->user_id,
+            'user_name' => Auth::user()->name,
+            'message' => $message->message,
+            'phone_number' => $message->phone_number,
+            'date' => $message->date,
+            'time' => $message->time,
+            'status' => $message->status,
+            'is_sent' => $message->is_sent,
+            'is_read' => $message->is_read,
+            'is_sender' => true,
+            'created_at' => date('H:i', strtotime($message->time)),
+        ]);
+    }
+    public function getApplicants()
+    {
+        $applicants = Applicant::with(['messages' => function ($query) {
+            $query->where('user_id', Auth::id())
+                  ->orWhereIn('phone_number', function ($subQuery) {
+                      $subQuery->select('phone_number')
+                               ->from('applicant_messages')
+                               ->where('user_id', Auth::id());
+                  })
+                  ->latest()
+                  ->first();
+        }])->get();
+
+        return response()->json(
+            $applicants->map(function ($applicant) {
+                $lastMessage = $applicant->messages->first();
+                return [
+                    'id' => $applicant->id,
+                    'name' => $applicant->name,
+                    'last_message' => $lastMessage ? [
+                        'message' => $lastMessage->message,
+                        'time' => $lastMessage->time,
+                        'is_sent' => $lastMessage->is_sent,
+                        'is_read' => $lastMessage->is_read,
+                        'unread_count' => ApplicantMessage::where('applicant_id', $applicant->id)
+                            ->where('is_read', 0)
+                            ->where('user_id', '!=', Auth::id())
+                            ->count(),
+                    ] : null,
+                ];
+            })
+        );
+    }
+    public function messageReceive(Request $request)
+    {
+        try {
+            $phoneNumber_gsm = $request->input('phoneNumber');
+            $phoneNumber = str_replace("+44", "0", $phoneNumber_gsm);
+            $message = $request->input('message');
+            $msg_id = substr(md5(time()), 0, 14);
+            $date_time = $request->input('time');
+            $date_time_arr = explode(" ", $date_time);
+            $date_res = $date_time_arr[0];
+            $date = str_replace("/", "-", $date_res);
+            $time = $date_time_arr[1];
+
+            $applicant_data = Applicant::where('applicant_phone', $phoneNumber)->first();
+            if ($applicant_data) {
+                $applicant_msg = new ApplicantMessage();
+                $applicant_msg->applicant_id = $applicant_data['id'];
+                $applicant_msg->user_id = '1';
+                $applicant_msg->msg_uid = $msg_id;
+                $applicant_msg->message = $message;
+                $applicant_msg->phone_number = $phoneNumber;
+                $applicant_msg->date = $date;
+                $applicant_msg->time = $time;
+                $applicant_msg->status = 'incoming';
+                $applicant_msg->save();
+
+                return response()->json(['message' => 'Message received and saved successfully.']);
+            } else {
+                return response()->json(['message' => 'Phone number not found in Applicant'], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to save message: ' . $e->getMessage()], 500);
         }
     }
 }

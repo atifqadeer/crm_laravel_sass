@@ -13,7 +13,7 @@ trait SendEmails
     public function sendApplicantWelcomeEmail($to, $name, $category, $applicant_id)
     {
         try {
-            $email_template = EmailTemplate::where('title', 'applicant_welcome_email')->first();
+            $email_template = EmailTemplate::where('slug', 'applicant_welcome_email')->where('is_active', 1)->first();
 
             if (!$email_template) {
                 throw new \Exception('Email template not found.');
@@ -50,7 +50,7 @@ trait SendEmails
     {
         try {
             $sent_email = new SentEmail();
-            $sent_email->action_name   = $email_title;
+            $sent_email->action_name   = strtolower(str_replace(' ', '_', $email_title));
             $sent_email->sent_from     = $from_email;
             $sent_email->sent_to       = $email_to;
             $sent_email->cc_emails     = '';

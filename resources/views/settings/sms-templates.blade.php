@@ -332,7 +332,7 @@
                                     <input type="hidden" name="id" value="${id}">
                                     <div class="mb-3">
                                         <label class="form-label">Title <small>(Event Name)</small></label>
-                                        <input id="${titleId}" type="text" class="form-control" name="edit_title" required>
+                                        <input id="${titleId}" type="text" class="form-control" name="edit_title" required readonly>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="mb-3">
@@ -492,38 +492,38 @@
             });
         }
 
-        function deleteTemplate(id) {
-            Swal.fire({
-            title: 'Are you sure?',
-            text: 'This template will be permanently deleted. Are you sure you want to continue?',
-            icon: 'warning',
-            showCancelButton: true,
-            customClass: {
-                confirmButton: 'btn bg-danger text-white me-2 mt-2',
-                cancelButton: 'btn btn-secondary mt-2'
-            },
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                url: '{{ route("smsTemplates.delete") }}',
-                type: 'post',
-                data: {
-                    id: id,
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    toastr.success(response.message || 'Template deleted successfully!');
-                    $('#template_table').DataTable().ajax.reload();
-                },
-                error: function(xhr) {
-                    toastr.error('An error occurred while deleting the template.');
-                }
-                });
-            }
-            });
-        }
+        // function deleteTemplate(id) {
+        //     Swal.fire({
+        //     title: 'Are you sure?',
+        //     text: 'This template will be permanently deleted. Are you sure you want to continue?',
+        //     icon: 'warning',
+        //     showCancelButton: true,
+        //     customClass: {
+        //         confirmButton: 'btn bg-danger text-white me-2 mt-2',
+        //         cancelButton: 'btn btn-secondary mt-2'
+        //     },
+        //     cancelButtonColor: '#d33',
+        //     confirmButtonText: 'Yes, delete it!'
+        //     }).then((result) => {
+        //     if (result.isConfirmed) {
+        //         $.ajax({
+        //         url: '{{ route("smsTemplates.delete") }}',
+        //         type: 'post',
+        //         data: {
+        //             id: id,
+        //             _token: '{{ csrf_token() }}'
+        //         },
+        //         success: function(response) {
+        //             toastr.success(response.message || 'Template deleted successfully!');
+        //             $('#template_table').DataTable().ajax.reload();
+        //         },
+        //         error: function(xhr) {
+        //             toastr.error('An error occurred while deleting the template.');
+        //         }
+        //         });
+        //     }
+        //     });
+        // }
     </script>
     
 @endsection
