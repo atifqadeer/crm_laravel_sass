@@ -19,12 +19,9 @@ trait SendSMS
             $sent_sms->message       = $message;
             $sent_sms->phone_number  = $sms_to;
             $sent_sms->status  = 'outgoing';
-            
+            $sent_sms->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
             $sent_sms->date = Carbon::now()->toDateString(); // e.g., "2025-06-26"
             $sent_sms->time = Carbon::now()->toTimeString(); // e.g., "16:45:00"
-            $sent_sms->save();
-
-            $sent_sms->msg_uid = md5($sent_sms->id);
             $sent_sms->save();
 
             return true;

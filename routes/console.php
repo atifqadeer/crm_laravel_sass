@@ -18,3 +18,13 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('SendBulkEmails command failed.');
                 });
+    
+    Schedule::command('sms:send-bulk')
+                ->everyMinute()
+                ->withoutOverlapping()
+                ->onSuccess(function () {
+                    Log::info('SendSms command ran successfully.');
+                })
+                ->onFailure(function () {
+                    Log::error('SendSms command failed.');
+                });

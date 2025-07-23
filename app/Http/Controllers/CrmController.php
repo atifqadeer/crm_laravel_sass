@@ -1316,11 +1316,11 @@ class CrmController extends Controller
                 ->addColumn('action', function ($applicant) use ($tabFilter) {
                     $formattedMessage = '';
                     // Fetch SMS template from the database
-                    $sms_template = SmsTemplate::where('title', 'crm_sent_cv')
+                    $sms_template = SmsTemplate::where('slug', 'crm_send_request')
                         ->where('status', 1)
                         ->first();
 
-                    if ($sms_template) {
+                    if ($sms_template && !empty($sms_template->template)) {
                         $sms_template = $sms_template->template;
 
                         $replace = [$applicant->applicant_name, $applicant->unit_name];
@@ -2204,7 +2204,7 @@ class CrmController extends Controller
                     $applicant_email = '';
                     $request_configuration_email = EmailTemplate::where('slug', 'request_configuration_email')->where('is_active', 1)->first();
 
-                    if ($request_configuration_email) {
+                    if ($request_configuration_email && !empty($request_configuration_email->template)) {
                         // Loop through each attribute of the model
                         foreach ($request_configuration_email->getAttributes() as $key => $value) {
                             if (is_string($value)) {
@@ -2304,16 +2304,19 @@ class CrmController extends Controller
                                         <div class="modal-body modal-body-text-left">
                                             <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
                                             <form action="' . route('crmRequestedInterviewEmailToApplicant') . '" method="POST" id="crmSendApplicantEmailRequestForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
-                                                <div class="form-group">
-                                                    <input type="email" name="email_address" id="email_address_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-control mt-2" placeholder="Enter Email Address" value="' . $applicant_email . '" required>
+                                                <div class="form-group mb-2">
+                                                    <label for="">To</label>
+                                                    <input type="email" name="email_address" id="email_address_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-control" placeholder="Enter Email Address" value="' . $applicant_email . '" required>
                                                     <div class="invalid-feedback">Please provide email address.</div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <input type="text" name="email_subject" id="email_subject_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-control mt-2" placeholder="Email Subject" value="' . $newSubject . '" required>
+                                                <div class="form-group mb-2">
+                                                    <label for="">Subject</label>
+                                                    <input type="text" name="email_subject" id="email_subject_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-control" placeholder="Email Subject" value="' . $newSubject . '" required>
                                                     <div class="invalid-feedback">Please provide email subject.</div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <textarea name="email_body" id="email_body_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="10" class="form-control mt-2 summernote" placeholder="Email Body" required>' . $newPhrase . '</textarea>
+                                                    <label for="">Content</label>
+                                                    <textarea name="email_body" id="email_body_requested_' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="10" class="form-control" placeholder="Email Body" required>' . $newPhrase . '</textarea>
                                                     <div class="invalid-feedback">Please provide email body.</div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -2327,6 +2330,20 @@ class CrmController extends Controller
                             </div>';
 
                     /** CRM Move to Confirmation Modal */
+                    $request_reject_email_template = EmailTemplate::where('slug', 'request_rejected')->where('is_active', 1)->first();
+                    $request_reject_template = '';
+                    $request_reject_subject = '';
+                    $request_reject_slug = '';
+
+                    if($request_reject_email_template && !empty($request_reject_email_template->template)){
+                        $request_reject_subject = $request_reject_email_template->subject;
+                        $request_reject_slug = $request_reject_email_template->slug;
+                        $data = $request_reject_email_template->template;
+                        $replace = [$applicant->unit_name, $applicant->applicant_name];
+                        $prev_val = ['(service_name)', '(xyz)'];
+
+                        $request_reject_template = str_replace($prev_val, $replace, $data);
+                    }
                     $html .= '<div id="crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmMoveToconfirmationModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                     <div class="modal-content">
@@ -2347,8 +2364,11 @@ class CrmController extends Controller
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-danger savecrmMoveToconfirmationRejectButton" 
-                                                        data-applicant-id="' . (int)$applicant->id . '" 
-                                                        data-sale-id="' . (int)$applicant->sale_id . '">
+                                                        data-applicant-id ="' . (int)$applicant->id . '" 
+                                                        data-request-reject-template="' . e($request_reject_template) . '" 
+                                                        data-request-reject-subject="' . e($request_reject_subject) . '" 
+                                                        data-request-reject-slug="' . e($request_reject_slug) . '" 
+                                                        data-sale-id ="' . (int)$applicant->sale_id . '">
                                                         Reject
                                                     </button>';
                                                     if($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1){
@@ -2378,18 +2398,19 @@ class CrmController extends Controller
                                             <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
                                             <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
                                             <input type="hidden" name="details" id="rejectionNotesHidden' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">
+                                            <input type="hidden" name="slug" id="request_reject_slug'. $applicant->id .'-'. $applicant->sale_id .'" class="form-control">
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">To Email</label>
-                                                <input type="email" name="to" class="form-control" required>
+                                                <input type="email" name="to" id="request_reject_from_email'. $applicant->id .'-'. $applicant->sale_id .'" class="form-control" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Subject</label>
-                                                <input type="text" name="subject" class="form-control" required>
+                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Message</label>
-                                                <textarea name="body" class="form-control summernote" rows="4" required></textarea>
+                                                <textarea name="body" class="form-control summernote" rows="4" id="request_reject_template'. $applicant->id .'-'. $applicant->sale_id .'" required></textarea>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="submit" class="btn btn-primary saveCrmSendApplicantEmailRequestRejectButton">Send Email</button>
@@ -3630,19 +3651,22 @@ class CrmController extends Controller
                 ->first();
 
             if ($result && $sale && $applicantRecord) {
-                $body = $request->input('body');
-                $subject = $request->input('subject');
-                $to = $request->input('to');
-                $from_email = 'customerservice@kingsburypersonnel.com';
+                $email_body = $request->input('body');
+                $email_subject = $request->input('subject');
+                $email_to = $request->input('to');
+                
 
                 $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
+                if(isset($request->slug)){
+                    $email_template = EmailTemplate::where('slug', $request->slug)->where('is_active', 1)->first();
 
-                $email_to = $to;
-                $email_from = $from_email;
-                $email_subject = $subject;
-                $email_body = $body;
-                $email_title = $applicant_name . ' - Request Rejected';
-
+                    $email_from = $email_template->from_email;
+                    $email_title = $email_template->title;
+                }else{
+                    $email_from = 'customerservice@kingsburypersonnel.com';
+                    $email_title = $applicant_name . ' - Request Rejected';
+                }
+                
                 // Attempt to save email in DB
                 try {
                     $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);

@@ -554,32 +554,32 @@ class SettingController extends Controller
                 ->make(true);
         }
     }
-    public function smsTemplateDelete(Request $request)
-    {
-        try {
-            $id = $request->id; // Get the ID from the route parameter
+    // public function smsTemplateDelete(Request $request)
+    // {
+    //     try {
+    //         $id = $request->id; // Get the ID from the route parameter
 
-            $template = SmsTemplate::find($id);
+    //         $template = SmsTemplate::find($id);
 
-            if (!$template) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SMS Template not found.'
-            ], 404);
-            }
-            $template->delete();
-            return response()->json([
-            'success' => true,
-            'data' => $template
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error deleting SMS template: ' . $e->getMessage());
-            return response()->json([
-            'success' => false,
-            'message' => 'An error occurred while deleting the SMS template. Please try again.'
-            ], 500);
-        }
-    }
+    //         if (!$template) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'SMS Template not found.'
+    //         ], 404);
+    //         }
+    //         $template->delete();
+    //         return response()->json([
+    //         'success' => true,
+    //         'data' => $template
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error deleting SMS template: ' . $e->getMessage());
+    //         return response()->json([
+    //         'success' => false,
+    //         'message' => 'An error occurred while deleting the SMS template. Please try again.'
+    //         ], 500);
+    //     }
+    // }
     public function smsEditTemplate(Request $request)
     {
         $id = $request->id; // Get the ID from the route parameter
@@ -697,18 +697,18 @@ class SettingController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
-                 $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sms_templates.from_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sms_templates.subject', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
+                 $query->where('email_templates.title', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('email_templates.from_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('email_templates.subject', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('email_templates.template', 'LIKE', "%{$searchTerm}%");
             }
         }
 
         // Filter by status if it's not empty
         if ($statusFilter == 'active') {
-            $query->where('is_active', '1');
+            $query->where('is_active', 1);
         } elseif ($statusFilter == 'inactive') {
-            $query->where('is_active', '0');
+            $query->where('is_active', 0);
         }
 
         // Sorting
@@ -718,10 +718,10 @@ class SettingController extends Controller
             if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $query->orderBy($orderColumn, $orderDirection);
             } else {
-                $query->orderBy('title', 'asc');
+                $query->orderBy('email_templates.title', 'asc');
             }
         } else {
-            $query->orderBy('title', 'asc');
+            $query->orderBy('email_templates.title', 'asc');
         }
 
         if ($request->ajax()) {
@@ -737,9 +737,9 @@ class SettingController extends Controller
                     return $row->slug;
                 })
                 ->addColumn('template', function ($row) {
-                    return strip_tags($row->template);
+                    return $row->template;
                 })
-                ->addColumn('status', function ($row) {
+                ->addColumn('in_active', function ($row) {
                     $status = '';
                     if ($row->is_active) {
                         $status = '<span class="badge bg-success">Active</span>';
@@ -764,7 +764,7 @@ class SettingController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action', 'created_at', 'title', 'slug', 'status'])
+                ->rawColumns(['action', 'created_at', 'title', 'slug', 'in_active', 'template'])
                 ->make(true);
         }
     }
@@ -882,33 +882,33 @@ class SettingController extends Controller
             ], 500);
         }
     }
-    public function emailTemplateDelete(Request $request)
-    {
-        try {
-            $id = $request->id; // Get the ID from the route parameter
+    // public function emailTemplateDelete(Request $request)
+    // {
+    //     try {
+    //         $id = $request->id; // Get the ID from the route parameter
 
-            $template = EmailTemplate::find($id);
+    //         $template = EmailTemplate::find($id);
 
-            if (!$template) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email Template not found.'
-            ], 404);
-            }
-            $template->delete();
+    //         if (!$template) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Email Template not found.'
+    //         ], 404);
+    //         }
+    //         $template->delete();
 
-            return response()->json([
-            'success' => true,
-            'data' => $template
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error deleting SMS template: ' . $e->getMessage());
-            return response()->json([
-            'success' => false,
-            'message' => 'An error occurred while deleting the SMS template. Please try again.'
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //         'success' => true,
+    //         'data' => $template
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error deleting SMS template: ' . $e->getMessage());
+    //         return response()->json([
+    //         'success' => false,
+    //         'message' => 'An error occurred while deleting the SMS template. Please try again.'
+    //         ], 500);
+    //     }
+    // }
     public function edit($id)
     {
         return view('roles.edit');

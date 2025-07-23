@@ -2051,6 +2051,23 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
             const saveButton = $(`${formId} .saveCrmSendApplicantEmailRequestButton`);
 
+            // Initialize Summernote and set content
+            $(`${emailBody}`).summernote({
+                height: 200,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link']],
+                    ['view', []]
+                ]
+            });
+            
+            // Hide any previous alerts
+            $(notificationAlert).empty().hide();
+
             // Reset modal when it is about to be shown
             $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
                 // Reset form fields
@@ -2061,8 +2078,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 $(emailSubject).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
                 $(emailBody).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
 
-                // Hide any previous alerts
-                $(notificationAlert).html('').hide();
+
             });
 
             // Handle save button click
@@ -2246,17 +2262,49 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
             const attachEventHandlers = () => {
                 const rejectButtonSelector = `${formId} .savecrmMoveToconfirmationRejectButton`;
+                const button = $(rejectButtonSelector);
+                const reject_template = button.data('request-reject-template');
                 console.log('Attaching event handler to reject button:', rejectButtonSelector);
-                $(rejectButtonSelector).off('click').on('click', () => {
+
+                $(rejectButtonSelector).off('click').on('click', function () {
                     console.log('Reject button clicked');
                     resetValidation();
+                    
                     if (validateNotes()) {
                         const notes = $(detailsId).val().trim();
-                        console.log('Passing notes to email modal:', notes);
+
+                        // 🔥 Get values from the clicked button itself
+                        const reject_template = $(this).data('request-reject-template');
+                        const reject_subject = $(this).data('request-reject-subject');
+                        const reject_slug = $(this).data('request-reject-slug');
+
                         crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID, notes);
+
                         const emailModalId = `#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`;
-                        console.log('Attempting to open email modal:', emailModalId);
+                        const templateFieldId = `#request_reject_template${applicantID}-${saleID}`;
+                        const subjectFieldId = `#request_reject_subject${applicantID}-${saleID}`;
+                        const slugFieldId = `#request_reject_slug${applicantID}-${saleID}`;
+
+                        console.log('Opening email modal:', emailModalId);
+                        console.log('Template:', reject_template);
+
                         if ($(emailModalId).length) {
+                            $(subjectFieldId).val(reject_subject);
+                            $(slugFieldId).val(reject_slug);
+                            // Initialize Summernote and set content
+                            $(`${templateFieldId}`).summernote({
+                                height: 200,
+                                toolbar: [
+                                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                                    ['fontsize', ['fontsize']],
+                                    ['color', []],
+                                    ['para', ['ul', 'ol', 'paragraph']],
+                                    ['insert', ['link']],
+                                    ['view', []]
+                                ]
+                            });
+                            $(`${templateFieldId}`).summernote('code', reject_template);
                             $(emailModalId).modal('show');
                         } else {
                             console.error('Email modal not found in DOM:', emailModalId);

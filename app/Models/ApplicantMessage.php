@@ -12,6 +12,7 @@ class ApplicantMessage extends Model
       'time',
       'date',
       'is_read',
+      'is_sent',
       'message',
       'status',
       'phone_number',

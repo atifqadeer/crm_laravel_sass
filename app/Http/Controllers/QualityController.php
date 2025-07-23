@@ -13,6 +13,7 @@ use Horsefly\CVNote;
 use Horsefly\CrmNote;
 use Horsefly\Applicant;
 use Horsefly\RevertStage;
+use Horsefly\SmsTemplate;
 use Horsefly\ApplicantMessage;
 use Horsefly\ModuleNote;
 use App\Observers\ActionObserver;
@@ -21,12 +22,16 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\SendEmails;
+use App\Traits\SendSMS;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class QualityController extends Controller
 {
+    use SendEmails, SendSMS;
+
     public function __construct()
     {
         //
@@ -1421,6 +1426,36 @@ class QualityController extends Controller
                 /** Update UID */
                 $crm_notes->crm_notes_uid = md5($crm_notes->id);
                 $crm_notes->save();
+
+                $formattedMessage = '';
+                // Fetch SMS template from the database
+                $sms_template = SmsTemplate::where('slug', 'quality_cleared')
+                    ->where('status', 1)
+                    ->first();
+
+                if ($sms_template && !empty($sms_template->template)) {
+                    $sms_template_text = $sms_template->template;
+                    $applicant = Applicant::find($applicant_id);
+                    $sale = Sale::find($sale_id);
+                    $unit = $sale ? Unit::find($sale->unit_id) : null;
+
+                    $replace = [
+                        $applicant ? $applicant->applicant_name : '',
+                        $unit ? $unit->unit_name : ''
+                    ];
+                    $prev_val = ['(applicant_name)', '(unit_name)'];
+
+                    $newPhrase = str_replace($prev_val, $replace, $sms_template_text);
+                    $formattedMessage = nl2br($newPhrase);
+
+                    if ($applicant && $applicant->applicant_phone) {
+                        $is_save = $this->saveSMSDB($applicant->applicant_phone, $formattedMessage, $applicant->id);
+                        if (!$is_save) {
+                            Log::warning('SMS saved to DB failed for applicant ID: ' . $applicant->id);
+                            throw new \Exception('SMS is not stored in DB');
+                        }
+                    }
+                }
             }elseif($status == 'cleared_no_job'){
                 Applicant::where("id", $applicant_id)
                     ->update([
@@ -1600,59 +1635,6 @@ class QualityController extends Controller
                     ? $e->getMessage() 
                     : 'An error occurred while updating the record. Please try again.'
             ], 500);
-        }
-    }
-    public function sendQualityClearSms($data)
-    {
-        $query_string = $data;
-        $url = str_replace(" ", "%20", $query_string);
-        $link = curl_init();
-        curl_setopt($link, CURLOPT_HEADER, 0);
-        curl_setopt($link, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($link, CURLOPT_URL, $url);
-        $response = curl_exec($link);
-        curl_close($link);
-        $report = explode("\"", strchr($response, "result"))[2];
-        $time = explode("\"", strchr($response, "time"))[2];
-        $phone = explode("\"", strchr($response, "phonenumber"))[2];
-        if ($response) {
-            if ($report == "success") {
-                return ['result' => 'success', 'data' => $response, 'phonenumber' => $phone, 'time' => $time, 'report' => $report];
-            } elseif ($report == "sending") {
-                return ['result' => 'success', 'data' => $response, 'phonenumber' => $phone, 'time' => $time, 'report' => $report];
-            } else {
-                return ['result' => 'error', 'data' => $response, 'report' => $report];
-            }
-        } else {
-            return ['result' => 'error'];;
-        }
-    }
-    public function saveQualityClearSendMessage($applicant_msg_text, $applicant_phone, $applicant_msg_time)
-    {
-        $user_id = Auth::user()->id;
-        $applicant_data = Applicant::select('id')->where(['applicant_phone' => $applicant_phone, 'status' => 'active'])->first();
-        if ($applicant_data) {
-            $applicant_id = $applicant_data->id;
-            $applicant_msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
-            $date_arr = explode(" ", $applicant_msg_time);
-            $msg_date = $date_arr[0];
-            $msg_time = $date_arr[1];
-            $applicant_msg = new ApplicantMessage();
-            $applicant_msg->applicant_id = $applicant_id;
-            $applicant_msg->user_id = $user_id;
-            $applicant_msg->msg_id = $applicant_msg_id;
-            $applicant_msg->message = $applicant_msg_text;
-            $applicant_msg->phone_number = $applicant_phone;
-            $applicant_msg->date = $msg_date;
-            $applicant_msg->time = $msg_time;
-            $applicant_msg->status = 'outgoing';
-            $applicant_msg->is_read = '1';
-            $applicant_msg->created_at = $applicant_msg_time;
-            $applicant_msg->updated_at = $applicant_msg_time;
-            $res = $applicant_msg->save();
-            return $res;
-        } else {
-            return false;
         }
     }
     public function getQualityNotesHistory(Request $request)

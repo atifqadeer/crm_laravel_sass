@@ -156,7 +156,6 @@ class DashboardController extends Controller
             $prev_user_stats['CRM_start_date'] = 0;
             $prev_user_stats['CRM_invoice'] = 0;
             $prev_user_stats['CRM_paid'] = 0;
-            $user_stats_updated = '';
 
             if (in_array($user_role, ['Sales', 'Sale and CRM'])) {
                 $sales = Sale::where('user_id', $user_id)
@@ -185,12 +184,6 @@ class DashboardController extends Controller
                         ->select('applicant_id', 'sale_id')
                         ->get();
 
-                    $user_stats_updated = CVNote::where('user_id', '=', $user_id)
-                        ->select('applicant_id', 'sale_id')
-                        ->where('created_at', '<', $start_date)
-                        ->whereBetween('updated_at', [$start_date, $end_date])
-                        ->get();
-
                     foreach ($send_cvs_from_cv_notes as $send_cvs_from_cv_note) {
                         $quality_stats['send_cvs_from_cv_notes'][] = $send_cvs_from_cv_note;
 
@@ -206,13 +199,6 @@ class DashboardController extends Controller
                                 ->get();
 
                 $quality_stats['cvs_sent'] = $quality_stats['send_cvs_from_cv_notes']->count();
-
-                $user_stats_updated = CVNote::where('user_id', '=', $user_id)
-                    ->select('applicant_id', 'sale_id')
-                    ->where('created_at', '<', $start_date)
-                    ->whereBetween('updated_at', [$start_date, $end_date])
-                    ->get();
-
             }
 
             $quality_stats['cvs_rejected'] = 0;
@@ -395,15 +381,25 @@ class DashboardController extends Controller
 
 
             // ---------------------------------------------------Last month stats -------------------------------------------------------------
+            // Get previous month's date range
+            $user_prev_month_data = [];
 
-            if ($user_stats_updated) {
-                foreach ($user_stats_updated as $key => $cv) {
+            $prevMonthStart = Carbon::now()->subMonth()->startOfMonth()->format('Y-m-d') . ' 00:00:00';
+            $prevMonthEnd = Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d') . ' 23:59:59';
+
+            $user_prev_month_data = CVNote::where('user_id', '=', $user_id)
+                ->select('applicant_id', 'sale_id')
+                ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
+                ->get();
+
+            if ($user_prev_month_data) {
+                foreach ($user_prev_month_data as $key => $cv) {
                     /*** Start Date */
                     $crm_start_date = History::where([
                         'history.sub_stage' => 'crm_start_date', 
                         'applicant_id' => $cv->applicant_id, 
                         'sale_id' => $cv->sale_id])
-                    ->whereBetween('created_at', [$start_date, $end_date])
+                    ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
                     ->first();
 
                     $crm_start_date_back = History::where([
@@ -413,13 +409,13 @@ class DashboardController extends Controller
                     ])
                     ->whereIn('id', function ($query) {
                         $query->select(DB::raw('MAX(id) FROM history h WHERE h.sub_stage="crm_start_date_back" and h.sale_id=history.sale_id and h.applicant_id=history.applicant_id'));
-                    })->whereBetween('created_at', [$start_date, $end_date])
+                    })->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
                     ->first();
 
                     if (($crm_start_date && !$crm_start_date_back) || ($crm_start_date && $crm_start_date_back)) {
                         $prev_user_stats['CRM_start_date']++;
-                        $crm_start_date = $crm_start_date_back ? $crm_start_date_back : $crm_start_date;
                     }
+                    
                     /*** Invoice */
                     $crm_invoice = History::where([
                         'history.sub_stage' => 'crm_invoice',
@@ -429,7 +425,7 @@ class DashboardController extends Controller
                     ->whereIn('id', function ($query) {
                         $query->select(DB::raw('MAX(id) FROM history h WHERE h.sub_stage="crm_invoice" and h.sale_id=history.sale_id and h.applicant_id=history.applicant_id'));
                     })
-                    ->whereBetween('created_at', [$start_date, $end_date])
+                    ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
                     ->first();
 
                     if ($crm_invoice) {
@@ -438,13 +434,13 @@ class DashboardController extends Controller
 
                     /*** Paid */
                     $crm_paid = History::where(['sub_stage' => 'crm_paid', 'applicant_id' => $cv->applicant_id, 'sale_id' => $cv->sale_id])
-                        ->whereBetween('created_at', [$start_date, $end_date])->first();
+                        ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])->first();
                     if ($crm_paid) {
                         $prev_user_stats['CRM_paid']++;
                     }
-
                 }
             }
+
             unset($quality_stats['send_cvs_from_cv_notes']);
             unset($user_stats['all_send_cvs_from_cv_notes']);
 

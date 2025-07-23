@@ -58,6 +58,7 @@ class SendBulkEmails extends Command
                             'subject' => $email->subject ?? 'Bulk Email',
                             'template' => $email->template ?? 'This is a bulk email sent via cron job.',
                             'from_address' => $smtp->from_address,
+                            'from_name' => $smtp->from_name,
                             'base64Image' => $base64Image,
                         ], function ($message) use ($email, $smtp, $ccEmails) {
                             $message->to($email->sent_to)

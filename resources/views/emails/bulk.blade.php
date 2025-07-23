@@ -70,8 +70,7 @@
                 {!! $template !!}
             </div>
             <div class="email-footer">
-                Sent from: {{ $from_address }}<br>
-                &copy; {{ date('Y') }} Your Company Name. All rights reserved.
+                &copy; {{ date('Y') }} {{ $from_name }}. All rights reserved.
             </div>
         </div>
     </div>

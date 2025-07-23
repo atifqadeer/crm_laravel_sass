@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Illuminate\Support\Facades\Log;
 use Horsefly\Setting;
+use Illuminate\Support\Facades\DB;
 
 trait Geocode
 {
@@ -51,6 +52,19 @@ trait Geocode
                     $lng = $json['results'][0]['geometry']['location']['lng'] ?? null;
 
                     if ($lat && $lng) {
+                        // Assume $postcode is already extracted or clean
+                        $postcode = $address; // Ideally, extract actual postcode here
+
+                        $postcodeModel = DB::table('postcodes')->where('postcode', $postcode)->first();
+
+                        if (!$postcodeModel) {
+                            DB::table('postcodes')->insert([
+                                'postcode' => $postcode,
+                                'lat' => $lat,
+                                'lng' => $lng,
+                            ]);
+                        }
+
                         return ['lat' => $lat, 'lng' => $lng];
                     }
 

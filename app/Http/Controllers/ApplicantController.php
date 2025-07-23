@@ -188,19 +188,19 @@ class ApplicantController extends Controller
             $jobCategoryName = $jobCategory ? $jobCategory->name : '';
 
             /** Send Email */
-            $email_template = EmailTemplate::where('title', 'applicant_welcome_email')
+            $email_template = EmailTemplate::where('slug', 'applicant_welcome_email')
                 ->where('is_active', 1)
                 ->first();
 
-            if ($email_template) {
+            if ($email_template && !empty($email_template->template)) {
                 $email_to = $applicant->applicant_email;
                 $email_from = $email_template->from_email;
                 $email_subject = $email_template->subject;
                 $email_body = $email_template->template;
                 $email_title = $email_template->title;
 
-                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $email_from];
-                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(from_email)'];
+                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName];
+                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)'];
 
                 $newPhrase = str_replace($prev_val, $replace, $email_body);
                 $formattedMessage = nl2br($newPhrase);
@@ -215,11 +215,11 @@ class ApplicantController extends Controller
             }
 
             // Fetch SMS template from the database
-            $sms_template = SmsTemplate::where('title', 'applicant_welcome_sms')
+            $sms_template = SmsTemplate::where('slug', 'applicant_welcome_sms')
                 ->where('status', 1)
                 ->first();
 
-            if ($sms_template) {
+            if ($sms_template && !empty($sms_template->template)) {
                 $sms_to = $applicant->applicant_phone;
                 $sms_template = $sms_template->template;
 

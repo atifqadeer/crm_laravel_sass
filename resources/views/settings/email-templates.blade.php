@@ -149,7 +149,7 @@
                     ['fontsize', ['fontsize']],
                     ['color', []],
                     ['para', ['ul', 'ol', 'paragraph']],
-                    ['insert', []],
+                    ['insert', ['link']],
                     ['view', []]
                 ]
             });
@@ -184,12 +184,12 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'title', name: 'sms_templates.title' },
-                    { data: 'slug', name: 'sms_templates.title' },
-                    { data: 'from_email', name: 'sms_templates.from_email' },
-                    { data: 'subject', name: 'sms_templates.subject' },
-                    { data: 'template', name: 'sms_templates.template'  },
-                    { data: 'status', name: 'sms_templates.status' },
+                    { data: 'title', name: 'email_templates.title' },
+                    { data: 'slug', name: 'email_templates.title' },
+                    { data: 'from_email', name: 'email_templates.from_email' },
+                    { data: 'subject', name: 'email_templates.subject' },
+                    { data: 'template', name: 'email_templates.template'  },
+                    { data: 'in_active', name: 'email_templates.in_active' },
                     { data: 'action', name: 'action', orderable: false }
                 ],
                 rowId: function(data) {
@@ -414,7 +414,7 @@
                             ['fontsize', ['fontsize']],
                             ['color', []],
                             ['para', ['ul', 'ol', 'paragraph']],
-                            ['insert', []],
+                            ['insert', ['link']],
                             ['view', []]
                         ]
                     });

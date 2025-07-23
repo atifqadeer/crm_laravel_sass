@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('applicant_messages', function (Blueprint $table) {
             $table->id(); // bigint(20) auto_increment primary key
             // Other columns
-            $table->string('msg_uid', 255)
+            $table->string('msg_id', 255)
                   ->nullable()
                   ->default(null);
             // Foreign keys
@@ -44,7 +44,7 @@ return new class extends Migration
             // Indexes
             $table->index('applicant_id');
             $table->index('user_id');
-            $table->index('msg_uid');
+            $table->index('msg_id');
         });
     }
 

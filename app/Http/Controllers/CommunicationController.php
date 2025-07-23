@@ -73,7 +73,7 @@ class CommunicationController extends Controller
         ];
         $prev_val = ['(agent_name)', '(job_category)', '(unit_name)', '(salary)', '(qualification)', '(job_type)', '(timing)', '(experience)', '(location)'];
 
-        if($template){
+        if($template && !empty($template->template)){
             $newPhrase = str_replace($prev_val, $replace, $template->template);
             $formattedMessage = nl2br($newPhrase);
         }else{
@@ -384,7 +384,7 @@ class CommunicationController extends Controller
             'messages' => $messages->map(function ($message) {
                 return [
                     'id' => $message->id,
-                    'msg_uid' => $message->msg_uid,
+                    'msg_id' => $message->msg_id,
                     'user_id' => $message->user_id,
                     'user_name' => $message->user ? $message->user->name : 'Unknown',
                     'message' => $message->message,
@@ -412,19 +412,17 @@ class CommunicationController extends Controller
         $message = new ApplicantMessage();
         $message->applicant_id = $request->applicant_id;
         $message->user_id = Auth::id();
-        $message->msg_uid = Str::uuid();
+        $message->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
         $message->message = $request->message;
         $message->phone_number = $request->phone_number;
         $message->date = now()->toDateString();
         $message->time = now()->toTimeString();
-        $message->status = 'sent';
-        $message->is_sent = 1;
-        $message->is_read = 0;
+        $message->status = 'outgoing';
         $message->save();
 
         return response()->json([
             'id' => $message->id,
-            'msg_uid' => $message->msg_uid,
+            'msg_id' => $message->msg_id,
             'user_id' => $message->user_id,
             'user_name' => Auth::user()->name,
             'message' => $message->message,
@@ -489,7 +487,7 @@ class CommunicationController extends Controller
                 $applicant_msg = new ApplicantMessage();
                 $applicant_msg->applicant_id = $applicant_data['id'];
                 $applicant_msg->user_id = '1';
-                $applicant_msg->msg_uid = $msg_id;
+                $applicant_msg->msg_id = $msg_id;
                 $applicant_msg->message = $message;
                 $applicant_msg->phone_number = $phoneNumber;
                 $applicant_msg->date = $date;
