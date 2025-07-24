@@ -258,7 +258,7 @@ class ApplicantController extends Controller
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
+        $titleFilters = $request->input('title_filters', ''); // Default is empty (no filter)
         $searchTerm = $request->input('search', ''); // This will get the search query
 
         $model = Applicant::query()
@@ -369,8 +369,8 @@ class ApplicantController extends Controller
         }
 
         // Filter by type if it's not empty
-        if ($titleFilter) {
-            $model->where('applicants.job_title_id', $titleFilter);
+        if ($titleFilters) {
+            $model->whereIn('applicants.job_title_id', $titleFilters);
         }
 
         if ($request->ajax()) {

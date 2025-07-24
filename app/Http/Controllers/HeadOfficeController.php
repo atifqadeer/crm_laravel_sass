@@ -167,6 +167,111 @@ class HeadOfficeController extends Controller
             ], 500);
         }
     }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        try {
+            $file = $request->file('csv_file');
+            $filename = $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename);
+            $filePath = storage_path("app/{$path}");
+
+            $data = array_map('str_getcsv', file($filePath));
+
+            if (count($data) < 2) {
+                return response()->json(['error' => 'CSV file is empty or invalid.'], 400);
+            }
+
+            $headers = array_map('trim', $data[0]);
+
+            for ($i = 1; $i < count($data); $i++) {
+                // Ensure row has same number of columns
+                if (count($data[$i]) !== count($headers)) {
+                    Log::warning("Skipped row {$i} due to mismatched columns.", ['row' => $data[$i]]);
+                    continue;
+                }
+
+                $row = array_combine($headers, $data[$i]);
+
+                if (!$row || empty($row['office_name']) || empty($row['office_postcode'])) {
+                    continue; // Skip invalid row
+                }
+
+                try {
+                    $createdAt = !empty($row['created_at']) 
+                        ? Carbon::createFromFormat('m/d/Y H:i', $row['created_at'])->format('Y-m-d H:i:s') 
+                        : now();
+
+                    $updatedAt = !empty($row['updated_at']) 
+                        ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s') 
+                        : now();
+                } catch (\Exception $e) {
+                    Log::error("Date format error on row {$i}: " . $e->getMessage());
+                    continue;
+                }
+
+                try {
+                    $cleanPostcode = preg_replace('/[^A-Za-z0-9 ]/', '', $row['office_postcode']);
+
+                    $office = Office::updateOrCreate(
+                        ['id' => $row['id']],
+                        [
+                            'office_uid' => md5($row['id']),
+                            'office_name' => $row['office_name'],
+                            'user_id' => $row['user_id'] ?? null,
+                            'office_website' => $row['office_website'] ?? null,
+                            'office_notes' => $row['office_notes'] ?? null,
+                            'office_lat' => $row['lat'] ?? null,
+                            'office_lng' => $row['lng'] ?? null,
+                            'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
+                            'office_postcode' => $cleanPostcode,
+                            'office_type' => 'head_office',
+                            'created_at' => $createdAt,
+                            'updated_at' => $updatedAt,
+                        ]
+                    );
+
+                    // Create associated contacts only if present
+                    if ($request->has('office_contact_name')) {
+                        foreach ($request->input('office_contact_name', []) as $index => $contactName) {
+                            try {
+                                $contactData = [
+                                    'contact_name' => $contactName,
+                                    'contact_email' => $request->input('office_email')[$index] ?? null,
+                                    'contact_phone' => isset($request->input('office_contact_phone')[$index])
+                                        ? preg_replace('/[^0-9]/', '', $request->input('office_contact_phone')[$index])
+                                        : null,
+                                    'contact_landline' => isset($request->input('office_contact_landline')[$index])
+                                        ? preg_replace('/[^0-9]/', '', $request->input('office_contact_landline')[$index])
+                                        : null,
+                                    'contact_note' => null,
+                                ];
+
+                                $office->contact()->create($contactData);
+                            } catch (\Exception $e) {
+                                Log::error("Failed to create contact for office ID {$office->id}: " . $e->getMessage());
+                                continue;
+                            }
+                        }
+                    }
+
+                    $office->update(['office_uid' => md5($office->id)]);
+                } catch (\Exception $e) {
+                    Log::error("Office insert/update failed for row {$i}: " . $e->getMessage());
+                    continue;
+                }
+            }
+
+            return response()->json(['message' => 'CSV imported and offices saved successfully.']);
+        } catch (\Exception $e) {
+            Log::error('Office CSV import failed: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while importing the file.'], 500);
+        }
+    }
+
     public function getHeadOffices(Request $request)
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)

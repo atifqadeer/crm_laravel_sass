@@ -38,16 +38,23 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
                                 <!-- Title Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                        <a class="dropdown-item title-filter" href="#">All Titles</a>
-                                        @foreach($jobTitles as $title)
-                                            <a class="dropdown-item title-filter" href="#" data-title-id="{{ $title->id }}">{{ strtoupper($title->name) }}</a>
-                                        @endforeach
-                                    </div>
-                                </div>
+    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+    </button>
+    <div class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton2" style="min-width: 250px;">
+        <div class="form-check">
+            <input class="form-check-input title-filter" type="checkbox" value="" id="all-titles" data-title-id="">
+            <label class="form-check-label" for="all-titles">All Titles</label>
+        </div>
+        @foreach($jobTitles as $title)
+            <div class="form-check">
+                <input class="form-check-input title-filter" type="checkbox" value="{{ $title->id }}" id="title_{{ $title->id }}" data-title-id="{{ $title->id }}">
+                <label class="form-check-label" for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+            </div>
+        @endforeach
+    </div>
+</div>
+
                                 
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
@@ -177,7 +184,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             let currentFilter = '';
             let currentTypeFilter = '';
             let currentCategoryFilter = '';
-            let currentTitleFilter = '';
+            let currentTitleFilters = [];
 
             const loadingRow = document.createElement('tr');
             loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
@@ -249,7 +256,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         d.status_filter = currentFilter;
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilter;
-                        d.title_filter = currentTitleFilter;
+                        d.title_filters = currentTitleFilters;
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -380,20 +387,35 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 table.ajax.reload();
             });
 
-            $('.title-filter').on('click', function () {
-                const titleName = $(this).text().trim();
-                currentTitleFilter = $(this).data('title-id') ?? ''; // nullish fallback for "All Titles"
+            $('.title-filter').on('change', function () {
+                const id = $(this).data('title-id');
 
-                const formattedText = titleName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentTitleFilters = [];
+                    $('.title-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentTitleFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.title-filter[data-title-id=""]').prop('checked', false);
+                    } else {
+                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
+                    }
+                }
 
-                $('#showFilterTitle').html(formattedText); // Update displayed name
+                // Update dropdown display text
+                const selectedLabels = $('.title-filter:checked')
+                    .map(function () {
+                        return $(this).next('label').text().trim();
+                    }).get();
+
+                $('#showFilterTitle').text(selectedLabels.length ? selectedLabels.join(', ') : 'All Titles');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-
         });
 
         function goToPage(totalPages) {

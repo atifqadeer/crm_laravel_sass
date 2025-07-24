@@ -39,13 +39,6 @@ class SendBulkSMS extends Command
                 $this->processMessages($messages, $apiUrl, $port, $username, $password);
             });
 
-        // Process sending messages (is_sent = 3)
-        // ApplicantMessage::where('status', 'outgoing')
-        //     ->where('is_sent', 3)
-        //     ->chunk(50, function ($messages) use ($apiUrl, $port, $username, $password) {
-        //         $this->processMessages($messages, $apiUrl, $port, $username, $password, true);
-        //     });
-
         $this->info('SMS sending process completed.');
         return 0;
     }
@@ -53,7 +46,7 @@ class SendBulkSMS extends Command
     protected function processMessages($messages, $apiUrl, $port, $username, $password, $isRetry = false)
     {
         foreach ($messages as $message) {
-            try {
+            // try {
                 // URL encode the message
                 $encodedMessage = urlencode($message->message);
 
@@ -68,69 +61,44 @@ class SendBulkSMS extends Command
                     'timeout'     => '0',
                 ]);
 
-                $url = "$apiUrl?$queryString";
-
-                // Send SMS via cURL
-                $ch = curl_init();
-                curl_setopt_array($ch, [
-                    CURLOPT_URL            => $url,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT        => 30,
-                    CURLOPT_FAILONERROR    => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                ]);
-
-                $response = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-
-                $decoded = json_decode($response, true);
-
-                if ($httpCode >= 200 && $httpCode < 300 && $decoded && isset($decoded['result'])) {
-                    $result = strtolower($decoded['result']);
-                    $time = $decoded['time'] ?? null;
-                    $phone = $decoded['phonenumber'] ?? $message->phone_number;
-
-                    if ($result === 'success') {
-                        $message->update([
-                            'is_sent' => 1,
-                            'status' => 'sent',
-                            'sent_at' => now(),
-                            'retry_count' => 0,
-                        ]);
-                        Log::info("SMS sent successfully to {$phone} (ID: {$message->id}, Time: {$time})");
-                    } elseif ($result === 'sending') {
-                        $message->update([
-                            'is_sent' => 3
-                        ]);
-                        Log::info("SMS to {$phone} (ID: {$message->id}, Time: {$time}) is sending");
+                $urls = "$apiUrl?$queryString";
+dd($urls);
+                $url = str_replace(" ","%20",$urls);
+                $link = curl_init();
+                curl_setopt($link, CURLOPT_HEADER, 0);
+                curl_setopt($link, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($link, CURLOPT_URL, $url);
+                $response = curl_exec($link);
+                curl_close($link);
+                $report = explode("\"",strchr($response,"result"))[2];
+                $time = explode("\"",strchr($response,"time"))[2];
+                $phone = explode("\"",strchr($response,"phonenumber"))[2];
+                if($response)
+                {
+                    if ($report == "success") {
+                        return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
+            
+                    } elseif ($report == "sending") {
+                                    return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
+            
                     } else {
-                        $message->update([
-                            'is_sent' => 2,
-                            'status' => 'failed',
-                            'sent_at' => now(),
-                            'retry_count' => 0,
-                        ]);
-                        Log::error("SMS to {$phone} (ID: {$message->id}) failed with result: {$result}");
+                        return ['result'=> 'error','data'=>$response,'report'=>$report];
                     }
-                } else {
-                    $message->update([
-                        'is_sent' => 2,
-                        'status' => 'failed',
-                        'sent_at' => now(),
-                        'retry_count' => 0,
-                    ]);
-                    Log::error("SMS to {$message->phone_number} (ID: {$message->id}) failed: " . ($response ?: 'No response'));
                 }
-            } catch (\Exception $e) {
-                $message->update([
-                    'is_sent' => 2,
-                    'status' => 'failed',
-                    'sent_at' => now(),
-                    'retry_count' => 0,
-                ]);
-                Log::error("Error sending SMS to {$message->phone_number} (ID: {$message->id}): {$e->getMessage()}");
-            }
+                else
+                {
+                    return ['result'=> 'error'];;
+
+                }
+            // } catch (\Exception $e) {
+            //     $message->update([
+            //         'is_sent' => 2,
+            //         'status' => 'failed',
+            //         'sent_at' => now(),
+            //         'retry_count' => 0,
+            //     ]);
+            //     Log::error("Error sending SMS to {$message->phone_number} (ID: {$message->id}): {$e->getMessage()}");
+            // }
 
             // Add delay for retries to avoid overwhelming the API
             if ($isRetry) {

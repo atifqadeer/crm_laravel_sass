@@ -11,6 +11,7 @@ class Office extends Model
 
     protected $table = 'offices';
     protected $fillable = [
+        'id',
         'office_uid',
         'user_id',
         'office_name',
@@ -20,6 +21,9 @@ class Office extends Model
         'office_notes',
         'office_lat',
         'office_lng',
+        'created_at',
+        'updated_at',
+        'status'
     ];
     protected $hidden = [
         'created_at',

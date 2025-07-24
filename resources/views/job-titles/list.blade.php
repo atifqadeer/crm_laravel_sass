@@ -466,6 +466,9 @@
         });
 
         function createTitle() {
+            // Properly reset the form before showing the modal
+            $('#createTitleForm')[0].reset();
+            $('#createTitleModal').find('.invalid-feedback').remove();
             $('#createTitleModal').modal('show');
 
             $('#savecreateTitleButton').off('click').on('click', function () {
@@ -475,6 +478,10 @@
                 // Clear previous errors
                 form.find('.is-invalid').removeClass('is-invalid');
                 form.find('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
                 $.ajax({
                     url: '{{ route("job-titles.store") }}',
@@ -498,13 +505,13 @@
                         } else {
                             alert('An error occurred.');
                         }
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-
-
-
     </script>
 @endsection
 @endsection                        

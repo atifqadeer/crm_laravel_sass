@@ -40,101 +40,29 @@
                     <div class="dropdown topbar-item">
                          <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <i class="ri-notification-3-line fs-24"></i>
-                              <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">3<span class="visually-hidden">unread messages</span></span>
+                              <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="unread-count">0<span class="visually-hidden">unread messages</span></span>
                          </button>
                          <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
                               <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
                                    <div class="row align-items-center">
                                         <div class="col">
-                                             <h6 class="m-0 fs-16 fw-semibold"> Notifications</h6>
+                                             <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
                                         </div>
                                         <div class="col-auto">
-                                             <a href="javascript: void(0);" class="text-dark text-decoration-underline">
-                                                  <small>Clear All</small>
-                                             </a>
+                                             {{-- <a href="javascript:void(0);" class="text-dark text-decoration-underline" id="clear-notifications">
+                                             <small>Clear All</small>
+                                             </a> --}}
                                         </div>
                                    </div>
                               </div>
-                              <div data-simplebar style="max-height: 280px;">
-                                   <!-- Item -->
-                                   <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
-                                        <div class="d-flex">
-                                             <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-1.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-1" />
-                                             </div>
-                                             <div class="flex-grow-1">
-                                                  <p class="mb-0"><span class="fw-medium">Josephine Thompson </span>commented on admin panel <span>" Wow 😍! this admin looks good and awesome design"</span></p>
-                                             </div>
-                                        </div>
-                                   </a>
-                                   <!-- Item -->
-                                   <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
-                                        <div class="d-flex">
-                                             <div class="flex-shrink-0">
-                                                  <div class="avatar-sm me-2">
-                                                       <span class="avatar-title bg-soft-info text-info fs-20 rounded-circle">
-                                                            D
-                                                       </span>
-                                                  </div>
-                                             </div>
-                                             <div class="flex-grow-1">
-                                                  <p class="mb-0 fw-semibold">Donoghue Susan</p>
-                                                  <p class="mb-0 text-wrap">
-                                                       Hi, How are you? What about our next meeting
-                                                  </p>
-                                             </div>
-                                        </div>
-                                   </a>
-                                   <!-- Item -->
-                                   <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
-                                        <div class="d-flex">
-                                             <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-3.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-3" />
-                                             </div>
-                                             <div class="flex-grow-1">
-                                                  <p class="mb-0 fw-semibold">Jacob Gines</p>
-                                                  <p class="mb-0 text-wrap">
-                                                       Answered to your comment on the cash flow forecast's graph 🔔.
-                                                  </p>
-                                             </div>
-                                        </div>
-                                   </a>
-                                   <!-- Item -->
-                                   <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
-                                        <div class="d-flex">
-                                             <div class="flex-shrink-0">
-                                                  <div class="avatar-sm me-2">
-                                                       <span class="avatar-title bg-soft-warning text-warning fs-20 rounded-circle">
-                                                            <iconify-icon icon="solar:leaf-broken"></iconify-icon>
-                                                       </span>
-                                                  </div>
-                                             </div>
-                                             <div class="flex-grow-1">
-                                                  <p class="mb-0 fw-semibold text-wrap">You have received <b>20</b> new messages in the
-                                                       conversation</p>
-                                             </div>
-                                        </div>
-                                   </a>
-                                   <!-- Item -->
-                                   <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
-                                        <div class="d-flex">
-                                             <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-5.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-5" />
-                                             </div>
-                                             <div class="flex-grow-1">
-                                                  <p class="mb-0 fw-semibold">Shawn Bunch</p>
-                                                  <p class="mb-0 text-wrap">
-                                                       Commented on Admin
-                                                  </p>
-                                             </div>
-                                        </div>
-                                   </a>
+                              <div data-simplebar style="max-height: 280px;" id="notification-items">
+                                   <!-- Notifications will be dynamically populated here -->
                               </div>
                               <div class="text-center py-3">
-                                   <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notification <i class="ri-arrow-right-line ms-1"></i></a>
+                                   <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notifications <i class="ri-arrow-right-line ms-1"></i></a>
                               </div>
                          </div>
-                    </div>
+                         </div>
 
                     <!-- Theme Setting -->
                     {{-- <div class="topbar-item d-none d-md-flex">
@@ -147,23 +75,12 @@
                     <div class="dropdown topbar-item">
                          <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <span class="d-flex align-items-center">
-                                   <img class="rounded-circle" width="32" src="/images/users/avatar-1.jpg" alt="avatar-3">
+                                   <img class="rounded-circle" width="32" src="{{ asset('images/users/boy.png') ?? asset('images/users/default.jpg') }}" alt="avatar-3">
                               </span>
                          </a>
                          <div class="dropdown-menu dropdown-menu-end">
                               <!-- item-->
                               <h6 class="dropdown-header">Welcome {{ \Auth::user()->name }}!</h6>
-
-                              <a class="dropdown-item" href="{{ route('second', ['pages', 'calendar'])}}">
-                                   <iconify-icon icon="solar:calendar-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">My Schedules</span>
-                              </a>
-
-                              <a class="dropdown-item" href="{{ route('second', ['pages', 'pricing'])}}">
-                                   <iconify-icon icon="solar:wallet-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Pricing</span>
-                              </a>
-                              <a class="dropdown-item" href="{{ route('second', ['pages', 'faqs'])}}">
-                                   <iconify-icon icon="solar:help-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Help</span>
-                              </a>
                               <a class="dropdown-item" href="{{ route('second', ['auth', 'lock-screen'])}}">
                                    <iconify-icon icon="solar:lock-keyhole-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Lock screen</span>
                               </a>
@@ -177,5 +94,6 @@
                     </div>
                </div>
           </div>
-     </div></div>
+     </div>
+</div>
 </header>

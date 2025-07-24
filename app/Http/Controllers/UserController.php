@@ -7,6 +7,7 @@ use Horsefly\Audit;
 use Horsefly\User;
 use App\Http\Controllers\Controller;
 use Horsefly\LoginDetail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
@@ -82,6 +83,70 @@ class UserController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while creating the user. Please try again.'
             ], 500);
+        }
+    }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,xlsx|max:20480',
+        ]);
+
+        try {
+            $file = $request->file('csv_file');
+            $filename = $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename);
+            $filePath = storage_path("app/{$path}");
+
+            $data = array_map('str_getcsv', file($filePath));
+
+            if (count($data) < 2) {
+                return response()->json(['error' => 'CSV file is empty or invalid.'], 400);
+            }
+
+            $headers = array_map('trim', $data[0]);
+
+            for ($i = 1; $i < count($data); $i++) {
+                $row = array_combine($headers, $data[$i]);
+
+                if (!$row || !isset($row['name'], $row['email'])) {
+                    continue; // Skip incomplete row
+                }
+
+                try {
+                    $createdAt = !empty($row['created_at']) 
+                        ? Carbon::createFromFormat('m/d/Y H:i', $row['created_at'])->format('Y-m-d H:i:s') 
+                        : now();
+
+                    $updatedAt = !empty($row['updated_at']) 
+                        ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s') 
+                        : now();
+                } catch (\Exception $e) {
+                    Log::error('Date format error: ' . $e->getMessage());
+                    continue; // Skip row with bad date
+                }
+
+                try {
+                    User::updateOrInsert(
+                        ['id' => $row['id']], // Match by ID
+                        [
+                            'name' => $row['name'],
+                            'email' => $row['email'],
+                            'password' => $row['password'],
+                            'created_at' => $createdAt,
+                            'updated_at' => $updatedAt,
+                        ]
+                    );
+                } catch (\Exception $e) {
+                    Log::error("Failed to import user: " . json_encode($row) . ' — ' . $e->getMessage());
+                    continue; // Skip row on DB error
+                }
+            }
+
+            return response()->json(['message' => 'CSV imported and users saved successfully.']);
+
+        } catch (\Exception $e) {
+            Log::error('CSV import failed: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
         }
     }
     public function getUsers(Request $request)

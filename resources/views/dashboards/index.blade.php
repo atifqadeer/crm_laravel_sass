@@ -474,7 +474,7 @@
                         <div class="modal-dialog modal-lg modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">Unit Details</h5>
+                                    <h5 class="modal-title" id="${modalId}Label">User Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body modal-body-text-left">
@@ -500,7 +500,7 @@
             setTimeout(() => {
                 $(modalSelector + ' .modal-body').html(`
                     <table class="table table-bordered mb-0">
-                        <tr><th>Unit ID</th><td>${id}</td></tr>
+                        <tr><th>User ID</th><td>${id}</td></tr>
                         <tr><th>User Name</th><td>${name}</td></tr>
                         <tr><th>Email</th><td>${email}</td></tr>
                         <tr><th>Role</th><td>${role}</td></tr>
@@ -759,6 +759,6 @@
         fetchWeeklySales();
         setInterval(fetchWeeklySales, 60000);
     </script>
-    
+   
     @vite(['resources/js/pages/dashboard-analytics.js'])
 @endsection

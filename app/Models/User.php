@@ -21,11 +21,14 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'id',
         'name',
         'email',
         'password',
         'is_admin',
-        'is_active'
+        'is_active',
+        'created_at',
+        'updated_at'
     ];
 
     /**
@@ -38,6 +41,8 @@ class User extends Authenticatable
         'remember_token',
         'deleted_at'
     ];
+    protected $guarded = []; // allows all columns to be mass assignable (only if you're confident)
+
 
     /**
      * Get the attributes that should be cast.

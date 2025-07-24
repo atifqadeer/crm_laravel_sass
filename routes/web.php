@@ -56,6 +56,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::POST('getUserStatistics', [DashboardController::class, 'getUserStatistics'])->name('getUserStatistics');
     Route::get('/get-weekly-sales', [DashboardController::class, 'getWeeklySales']);
     Route::get('/get-sales-analytic', [DashboardController::class, 'getSalesAnalytic']);
+    Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
 
     Route::group(['prefix' => 'applicants'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');
@@ -99,6 +100,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
     Route::get('officesExport', [HeadOfficeController::class, 'export'])->name('officesExport');
+    Route::post('offices/import', [HeadOfficeController::class, 'import'])->name('offices.import');
     Route::get('getHeadOffices', [HeadOfficeController::class, 'getHeadOffices'])->name('getHeadOffices');
     Route::post('storeHeadOfficeShortNotes', [HeadOfficeController::class, 'storeHeadOfficeShortNotes'])->name('storeHeadOfficeShortNotes');
     Route::get('getModuleContacts', [HeadOfficeController::class, 'getModuleContacts'])->name('getModuleContacts');
@@ -197,8 +199,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('activity-logs', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
     });
     Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
+    Route::post('users/import', [UserController::class, 'import'])->name('users.import');
     Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
     Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
+    
 
     Route::group(['prefix' => 'reports'], function () {
         Route::get('users-login-report', [UserController::class, 'userLogin'])->name('reports.usersLoginReport');
