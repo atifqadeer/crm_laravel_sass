@@ -14,7 +14,7 @@ use Horsefly\CrmNote;
 use Horsefly\Applicant;
 use Horsefly\RevertStage;
 use Horsefly\SmsTemplate;
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Horsefly\ModuleNote;
 use App\Observers\ActionObserver;
 use App\Http\Controllers\Controller;

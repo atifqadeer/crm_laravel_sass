@@ -59,7 +59,7 @@
                                    <!-- Notifications will be dynamically populated here -->
                               </div>
                               <div class="text-center py-3">
-                                   <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notifications <i class="ri-arrow-right-line ms-1"></i></a>
+                                   <a href="{{ route('messages.index') }}" class="btn btn-primary btn-sm">View All Notifications <i class="ri-arrow-right-line ms-1"></i></a>
                               </div>
                          </div>
                          </div>
@@ -97,3 +97,8 @@
      </div>
 </div>
 </header>
+<script>
+    window.laravelRoutes = {
+        unreadMessages: "{{ route('unread-messages') }}"
+    };
+</script>

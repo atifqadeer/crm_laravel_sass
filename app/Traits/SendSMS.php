@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Illuminate\Support\Facades\Log;
 use Horsefly\SmsTemplate;
 use Illuminate\Support\Facades\Auth;
@@ -10,11 +10,12 @@ use Illuminate\Support\Carbon;
 
 trait SendSMS
 {
-    public function saveSMSDB($sms_to, $message, $applicant_id)
+    public function saveSMSDB($sms_to, $message, $moduleType = null, $moduleId = null)
     {
         try {
-            $sent_sms = new ApplicantMessage();
-            $sent_sms->applicant_id  = $applicant_id;
+            $sent_sms = new Message();
+            $sent_sms->module_id  = $moduleId;
+            $sent_sms->module_type  = $moduleType;
             $sent_sms->user_id       = Auth::id();
             $sent_sms->message       = $message;
             $sent_sms->phone_number  = $sms_to;

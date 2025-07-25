@@ -12,7 +12,7 @@ use Horsefly\History;
 use Horsefly\QualityNotes;
 use Horsefly\Applicant;
 use Horsefly\EmailTemplate;
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Horsefly\User;
 use Horsefly\Interview;
 use Horsefly\SentEmail;
@@ -1499,8 +1499,9 @@ class CrmController extends Controller
                                 $emailText = '<span class="badge bg-warning"><i class="ri-inbox-line text-white" title="Sent"></i> Email Pending</span>';
                             }
 
-                            $applicant_msgs = ApplicantMessage::where([
-                                    'phone_number' => $applicant->applicant_phone, 
+                            $applicant_msgs = Message::where([
+                                    'phone_number' => $applicant->applicant_phone,
+                                    'module_type' => 'Horsefly\Applicant',
                                     'status' => 'incoming'
                                 ])
                                 ->orderBy('created_at', 'desc')->first();
@@ -1587,9 +1588,10 @@ class CrmController extends Controller
                                 $emailText = 'Pending';
                             }
 
-                            $applicant_msgs = ApplicantMessage::where([
+                            $applicant_msgs = Message::where([
                                     'phone_number' => $applicant->applicant_phone, 
-                                    'status' => 'incoming'
+                                    'status' => 'incoming',
+                                    'module_type' => 'Horsefly\Applicant'
                                 ])
                                 ->orderBy('created_at', 'desc')->first();
 

@@ -19,7 +19,7 @@ class CreateOfficesTable extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('office_name', 255);
             $table->string('office_postcode', 50);
-            $table->string('office_website', 255);
+            $table->string('office_website', 255)->nullable();
             $table->string('office_notes', 255);
             $table->float('office_lat', 15, 6)->nullable()->default(null);
             $table->float('office_lng', 15, 6)->nullable()->default(null);

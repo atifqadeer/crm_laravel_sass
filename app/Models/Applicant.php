@@ -192,14 +192,14 @@ class Applicant extends Model
     {
         return $this->jobSource ? $this->jobSource->name : '-';
     }
-    public function audits()
-    {
-        return $this->morphMany(Audit::class, 'auditable');
-    }
-    public function module_note()
-    {
-        return $this->morphMany(ModuleNote::class, 'module_noteable');
-    }
+    // public function audits()
+    // {
+    //     return $this->morphMany(Audit::class, 'auditable');
+    // }
+    // public function module_note()
+    // {
+    //     return $this->morphMany(ModuleNote::class, 'module_noteable');
+    // }
     public function crm_notes()
     {
         return $this->hasMany(CrmNote::class, 'applicant_id');
@@ -245,6 +245,8 @@ class Applicant extends Model
     }
     public function messages()
     {
-        return $this->hasMany(ApplicantMessage::class, 'applicant_id');
+        return $this->hasMany(Message::class, 'module_id')
+            ->where('module_type', 'Horsefly\\Applicant');
     }
+
 }

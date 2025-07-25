@@ -287,17 +287,25 @@
 
                @canany(['message-index', 'email-index', 'sent-email-index'])
                     <li class="menu-title">Communication</li>
-                    @canany(['message-index', 'email-index', 'sent-email-index'])
+                    @canany(['message-index'])
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('any', 'messages')}}">
+                              <a class="nav-link" href="{{ route('messages.write')}}">
                                    <span class="nav-icon">
-                                        <i class="ri-discuss-line"></i>
+                                        <i class="ri-edit-line"></i>
                                    </span>
-                                   <span class="nav-text">Messages</span>
+                                   <span class="nav-text">Write Message</span>
+                              </a>
+                         </li>
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('messages.index')}}">
+                                   <span class="nav-icon">
+                                        <i class="ri-chat-3-line"></i>
+                                   </span>
+                                   <span class="nav-text">Message Chats</span>
                               </a>
                          </li>
                     @endcanany
-                    @canany(['message-index', 'email-index', 'sent-email-index'])
+                    @canany(['email-index'])
                          <li class="nav-item">
                               <a class="nav-link" href="{{ route('emails.inbox')}}">
                                    <span class="nav-icon">
@@ -307,7 +315,7 @@
                               </a>
                          </li>
                     @endcanany
-                    @canany(['message-index', 'email-index', 'sent-email-index'])
+                    @canany(['sent-email-index'])
                          <li class="nav-item">
                               <a class="nav-link" href="{{ route('emails.sent_emails')}}">
                                    <span class="nav-icon">

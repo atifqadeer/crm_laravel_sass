@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Illuminate\Support\Facades\Log;
 use Horsefly\Setting;
 
@@ -33,7 +33,7 @@ class SendBulkSMS extends Command
         }
 
         // Process new and failed messages (is_sent = 0 or 2)
-        ApplicantMessage::where('status', 'outgoing')
+        Message::where('status', 'outgoing')
             ->whereIn('is_sent', [0, 2])
             ->chunk(50, function ($messages) use ($apiUrl, $port, $username, $password) {
                 $this->processMessages($messages, $apiUrl, $port, $username, $password);
@@ -62,7 +62,7 @@ class SendBulkSMS extends Command
                 ]);
 
                 $urls = "$apiUrl?$queryString";
-dd($urls);
+
                 $url = str_replace(" ","%20",$urls);
                 $link = curl_init();
                 curl_setopt($link, CURLOPT_HEADER, 0);

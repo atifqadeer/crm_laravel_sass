@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\Unit;
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Horsefly\EmailTemplate;
 use Horsefly\Applicant;
 use App\Http\Controllers\Controller;
@@ -13,12 +13,14 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Exception;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
 use Horsefly\SentEmail;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
+use Horsefly\Contact;
 use Illuminate\Support\Str;
 
 class CommunicationController extends Controller
@@ -33,6 +35,14 @@ class CommunicationController extends Controller
     {
         return view('emails.inbox');
     }
+    public function Messagesindex()
+    {
+        return view('messages.index');
+    }
+    public function writeMessageindex()
+    {
+        return view('messages.write');
+    }
     public function sendEmailsToApplicants(Request $request)
 	{
         $radius = 15; //kilometers
@@ -46,7 +56,6 @@ class CommunicationController extends Controller
        
         $nearby_applicants = $this->distance($sale->lat, $sale->lng, $radius, $job_title, $job_category);
         $emails = is_null($nearby_applicants) ? '' : implode(',', $nearby_applicants->toArray());
-        $template = EmailTemplate::where('slug','send_job_vacancy_details')->where('is_active', 1)->first();
 
         $user_name = Auth::user()->name;
 
@@ -72,15 +81,18 @@ class CommunicationController extends Controller
             '-', 
         ];
         $prev_val = ['(agent_name)', '(job_category)', '(unit_name)', '(salary)', '(qualification)', '(job_type)', '(timing)', '(experience)', '(location)'];
+        
+        $formattedMessage = '';
+        $subject = '';
 
+        $template = EmailTemplate::where('slug','send_job_vacancy_details')->where('is_active', 1)->first();
         if($template && !empty($template->template)){
             $newPhrase = str_replace($prev_val, $replace, $template->template);
             $formattedMessage = nl2br($newPhrase);
-        }else{
-            $template = '';
+            $subject = $template->subject;
         }
 
-		return view('emails.send-email-to-applicant', compact('sale', 'unit', 'template', 'formattedMessage', 'emails'));
+		return view('emails.send-email-to-applicant', compact('sale', 'unit', 'subject', 'formattedMessage', 'emails'));
     }
     function distance($lat, $lon, $radius, $job_title_id, $job_category_id)
     {
@@ -216,27 +228,42 @@ class CommunicationController extends Controller
     {
         try {
             $request->validate([
-                'phone_number' => 'required|string',
-                'message' => 'required|string',
-                'applicant_id' => 'nullable|integer',
+                'phone_number' => 'required',
+                'message' => 'required',
             ]);
 
-            $phone_number = $request->input('phone_number');
+            $phone_numbers = explode(',',$request->input('phone_number'));
             $message = $request->input('message');
             $applicant_id = $request->input('applicant_id');
 
-            $is_saved = $this->saveSMSDB($phone_number, $message, $applicant_id);
+            foreach($phone_numbers as $phone){
+                $applicant = Applicant::where('applicant_phone', $phone)->orWhere('applicant_landline')->first();
+                
+                if($applicant){
+                    $is_saved = $this->saveSMSDB($phone, $message, 'Horsefly\Applicant', $applicant->id);
+                }else{
+                    $contact = Contact::where('contact_phone', $phone)->first();
+                    if($contact){
+                        $is_saved = $this->saveSMSDB($phone, $message, $contact->contactable_type, $contact->contactable_id);
+                    }else{
+                        $is_saved = $this->saveSMSDB($phone, $message, 'unknown', null);
+                    }
+                }
 
-            if (!$is_saved) {
-                Log::warning("SMS saving failed for applicant ID: {$applicant_id}");
-                throw new \Exception('Failed to store SMS in the database.');
+                if (!$is_saved) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'SMS saving failed.',
+                    ]);
+                }
             }
 
             return response()->json([
-                'success' => 'SMS sent and stored successfully.',
+                'success' => true,
+                'message' => 'SMS sent and stored successfully.',
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $ve) {
+        } catch (ValidationException $ve) {
             // Validation errors will be caught separately
             return response()->json([
                 'error' => $ve->validator->errors()->first(),
@@ -374,7 +401,8 @@ class CommunicationController extends Controller
     /*************************************** */
     public function getMessages($applicantId)
     {
-        $messages = ApplicantMessage::where('applicant_id', $applicantId)
+        $messages = Message::where('module_id', $applicantId)
+            ->where('module_type', 'Horsefly\Applicant')
             ->with(['user', 'applicant'])
             ->orderBy('date', 'asc')
             ->orderBy('time', 'asc')
@@ -409,7 +437,7 @@ class CommunicationController extends Controller
             'phone_number' => 'required|string|max:50',
         ]);
 
-        $message = new ApplicantMessage();
+        $message = new Message();
         $message->applicant_id = $request->applicant_id;
         $message->user_id = Auth::id();
         $message->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
@@ -436,13 +464,13 @@ class CommunicationController extends Controller
             'created_at' => date('H:i', strtotime($message->time)),
         ]);
     }
-    public function getApplicants()
+    public function getApplicantsForMessage()
     {
         $applicants = Applicant::with(['messages' => function ($query) {
             $query->where('user_id', Auth::id())
                   ->orWhereIn('phone_number', function ($subQuery) {
                       $subQuery->select('phone_number')
-                               ->from('applicant_messages')
+                               ->from('messages')
                                ->where('user_id', Auth::id());
                   })
                   ->latest()
@@ -460,7 +488,8 @@ class CommunicationController extends Controller
                         'time' => $lastMessage->time,
                         'is_sent' => $lastMessage->is_sent,
                         'is_read' => $lastMessage->is_read,
-                        'unread_count' => ApplicantMessage::where('applicant_id', $applicant->id)
+                        'unread_count' => Message::where('module_id', $applicant->id)
+                            ->where('module_type', 'Horsefly\Applicant')
                             ->where('is_read', 0)
                             ->where('user_id', '!=', Auth::id())
                             ->count(),
@@ -482,10 +511,22 @@ class CommunicationController extends Controller
             $date = str_replace("/", "-", $date_res);
             $time = $date_time_arr[1];
 
-            $applicant_data = Applicant::where('applicant_phone', $phoneNumber)->first();
-            if ($applicant_data) {
-                $applicant_msg = new ApplicantMessage();
-                $applicant_msg->applicant_id = $applicant_data['id'];
+            $data = [];
+
+            $applicant = Applicant::where('applicant_phone', $phoneNumber)->first();
+            if($applicant){
+                $data['module_id'] = $applicant->id;
+                $data['module_type'] = 'Horsefly\Applicant';
+            }else{
+                $contact = Contact::where('contact_phone', $phoneNumber)->first();
+                $data['module_id'] = $contact->contactable_id;
+                $data['module_type'] = $contact->contactable_type;
+            }
+            
+            if ($data) {
+                $applicant_msg = new Message();
+                $applicant_msg->module_id = $data['module_id'];
+                $applicant_msg->module_type = $data['module_type'];
                 $applicant_msg->user_id = '1';
                 $applicant_msg->msg_id = $msg_id;
                 $applicant_msg->message = $message;

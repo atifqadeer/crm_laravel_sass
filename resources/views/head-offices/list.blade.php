@@ -750,7 +750,7 @@
                             .text('Upload Complete');
 
                         form[0].reset();
-                        $('#users_table').DataTable().ajax.reload();
+                        $('#headOffice_table').DataTable().ajax.reload();
 
                         // ✅ Close modal after short delay
                         setTimeout(() => {

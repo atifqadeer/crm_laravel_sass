@@ -719,7 +719,7 @@ class ToastNotification {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function (e) {
+document.addEventListener('DOMContentLoaded', function () {
     new Components().init();
     new FormValidation().init();
     new FormAdvanced().init();
@@ -728,5 +728,57 @@ document.addEventListener('DOMContentLoaded', function (e) {
     new Dragula().init();
     new SwiperSlider().init();
     new ToastNotification().init();
+
+    // Only run if route is available
+    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000);
+    }
 });
+
+function fetchNotifications() {
+    $.ajax({
+        url: window.laravelRoutes.unreadMessages,
+        method: 'GET',
+        success: function (response) {
+            if (response.success) {
+                $('#unread-count').text(response.unread_count || 0);
+                $('#notification-items').empty();
+
+                if (response.messages.length === 0) {
+                    $('#notification-items').append(
+                        '<div class="text-center py-3 text-muted">No new notifications</div>'
+                    );
+                } else {
+                    response.messages.forEach(function (message) {
+                        const html = `
+                            <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <img src="${message.avatar}" class="img-fluid me-2 avatar-sm rounded-circle" alt="user-avatar" />
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0">
+                                            <span class="fw-medium">${message.user_name}</span><br>
+                                            <span>${message.message}</span>
+                                        </p>
+                                        <small class="text-muted">${message.created_at}</small>
+                                    </div>
+                                </div>
+                            </a>`;
+                        $('#notification-items').append(html);
+                    });
+                }
+            } else {
+                console.error('Error fetching notifications:', response.error);
+            }
+        },
+        error: function (xhr) {
+            console.error('AJAX error:', xhr.responseText);
+        }
+    });
+}
+
+
+
 

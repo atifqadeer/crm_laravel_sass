@@ -183,10 +183,14 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('saveEmailsForApplicants', [CommunicationController::class, 'saveEmailsForApplicants'])->name('emails.saveEmailsForApplicants');
     Route::get('getSentEmailsAjaxRequest', [CommunicationController::class, 'getSentEmailsAjaxRequest'])->name('getSentEmailsAjaxRequest');
     Route::post('sendMessageToApplicant', [CommunicationController::class, 'sendMessageToApplicant'])->name('sendMessageToApplicant');
-
+    
+    Route::group(['prefix' => 'messages'], function () {
+        Route::get('', [CommunicationController::class, 'Messagesindex'])->name('messages.index');
+        Route::get('write-message', [CommunicationController::class, 'writeMessageindex'])->name('messages.write');
+    });
     Route::post('/messages/{applicantId}', [CommunicationController::class, 'getMessages'])->name('messages.get');
     Route::post('/messages/send', [CommunicationController::class, 'sendMessage'])->name('messages.send');
-    Route::get('/getApplicants', [CommunicationController::class, 'getApplicants'])->name('applicants.get');
+    Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
     Route::get('message_receive', [CommunicationController::class, 'messageReceive']);
 
     Route::group(['prefix' => 'users'], function () {

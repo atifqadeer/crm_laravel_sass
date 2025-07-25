@@ -5,9 +5,9 @@ namespace Horsefly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
-class ApplicantMessage extends Model
+class Message extends Model
 {
-    protected $table = 'applicant_messages';
+    protected $table = 'messages';
     protected $fillable=[
       'time',
       'date',
@@ -18,7 +18,8 @@ class ApplicantMessage extends Model
       'phone_number',
       'msg_id',
       'user_id',
-      'applicant_id'
+      'module_id',
+      'module_type'
     ];
     protected $appends = ['FormattedTime'];
 
@@ -27,8 +28,10 @@ class ApplicantMessage extends Model
         return $this->belongsTo(User::class,'user_id');
     }
 
-    public function applicants(){
-        return $this->belongsTo(Applicant::class,'applicant_id');
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'module_id')
+            ->where('module_type', 'Horsefly\\Applicant');
     }
 
     public function getFormattedTimeAttribute()

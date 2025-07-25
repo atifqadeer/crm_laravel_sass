@@ -1,4 +1,3 @@
-```blade
 @extends('layouts.vertical', ['title' => 'Messages', 'subTitle' => 'Real Estate'])
 
 @section('css')
@@ -20,9 +19,6 @@
                             <button type="submit" class="btn btn-sm btn-link search-icon p-0 fs-15"><i class="ri-search-eye-line"></i></button>
                         </div>
                     </form>
-                    <a href="#user-setting" class="fs-20" type="button" data-bs-toggle="offcanvas" aria-haspopup="true" aria-expanded="true">
-                        <i class="ri-settings-2-line"></i>
-                    </a>
                 </div>
                 <h4 class="card-title mb-3 mx-3">Active Applicants</h4>
                 <div class="swiper mySwiper mx-3">
@@ -72,7 +68,7 @@
                 <div class="d-flex align-items-center" id="chatHeader">
                     <!-- Chat header will be updated via AJAX -->
                 </div>
-                <div class="flex-grow-1">
+                {{-- <div class="flex-grow-1">
                     <ul class="list-inline float-end d-flex gap-1 mb-0 align-items-center">
                         <li class="list-inline-item fs-20 dropdown">
                             <a href="javascript: void(0);" class="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20" data-bs-toggle="modal" data-bs-target="#videocall">
@@ -102,7 +98,7 @@
                             </div>
                         </li>
                     </ul>
-                </div>
+                </div> --}}
             </div>
             <div class="chat-box">
                 <ul class="chat-conversation-list p-3 chatbox-height" id="chatConversation">
@@ -146,7 +142,7 @@ $(document).ready(function() {
     // Load applicants
     function loadApplicants() {
         $.ajax({
-            url: '{{ route("applicants.get") }}',
+            url: '{{ route("getApplicantsForMessage") }}',
             method: 'GET',
             success: function(response) {
                 let applicantsHtml = '';
@@ -361,4 +357,3 @@ $(document).ready(function() {
 
 </script>
 @endsection
-```

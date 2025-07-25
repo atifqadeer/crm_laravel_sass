@@ -28,7 +28,7 @@
 
                         <div class="mb-3">
                             <input type="text" class="form-control" id="subject" name="subject" placeholder="Subject"
-                                value="{{ $template['subject'] ?? '' }}">
+                                value="{{ $subject }}">
                             <div class="invalid-feedback">Please provide subject</div>
                         </div>
 

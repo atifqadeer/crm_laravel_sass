@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Horsefly\User;
 use Horsefly\Sale;
 use Horsefly\Office;
-use Horsefly\ApplicantMessage;
+use Horsefly\Message;
 use Horsefly\Audit;
 use Horsefly\CVNote;
 use Horsefly\CrmNote;
@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -462,10 +463,11 @@ class DashboardController extends Controller
     public function getUnreadMessages()
     {
         try {
-            $messages = ApplicantMessage::query()
+            $messages = Message::query()
                 ->where('status', 'incoming')
+                ->where('module_type', 'Horsefly\Applicant')
                 ->where('is_read', 0)
-                ->with(['user' => fn ($query) => $query->select('id', 'name', 'avatar')])
+                ->with(['user' => fn ($query) => $query->select('id', 'name')])
                 ->select('id', 'user_id', 'message', 'created_at')
                 ->latest()
                 ->take(5)
@@ -473,14 +475,15 @@ class DashboardController extends Controller
                 ->map(function ($message) {
                     return [
                         'id' => $message->id,
-                        'user_name' => $message->user->name ?? 'Unknown User',
+                        'user_name' => $message->applicant->applicant_name ?? 'Unknown',
                         'avatar' => asset('images/users/boy.png') ?? asset('images/users/default.jpg') ,
-                        'message' => $message->message,
+                        'message' => Str::limit(strip_tags($message->message), 150),
                         'created_at' => $message->created_at->diffForHumans(),
                     ];
                 });
 
-            $unreadCount = ApplicantMessage::where('status', 'incoming')
+            $unreadCount = Message::where('status', 'incoming')
+                ->where('module_type', 'Horsefly\Applicant')
                 ->where('is_read', 0)
                 ->count();
 
@@ -492,7 +495,7 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to fetch messages',
+                'error' => 'Failed to fetch messages: ' . $e->getMessage(),
             ], 500);
         }
     }

@@ -90,6 +90,6 @@ class User extends Authenticatable
     }
     public function messages()
     {
-        return $this->hasMany(ApplicantMessage::class);
+        return $this->hasMany(Message::class, 'user_id');
     }
 }

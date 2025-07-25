@@ -11,17 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('applicant_messages', function (Blueprint $table) {
+        Schema::create('messages', function (Blueprint $table) {
             $table->id(); // bigint(20) auto_increment primary key
             // Other columns
             $table->string('msg_id', 255)
                   ->nullable()
                   ->default(null);
             // Foreign keys
-            $table->foreignId('applicant_id')
-                  ->nullable()
-                  ->constrained('applicants')
-                  ->nullOnDelete();
+            $table->bigInteger('module_id')
+                  ->nullable();
+            $table->string('module_type', 255);
                   
             $table->foreignId('user_id')
                   ->nullable()
@@ -53,6 +52,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('applicant_messages');
+        Schema::dropIfExists('messages');
     }
 };

@@ -167,7 +167,7 @@ class HeadOfficeController extends Controller
             ], 500);
         }
     }
-    public function import(Request $request)
+    public function importt(Request $request)
     {
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt|max:20480',
@@ -191,44 +191,47 @@ class HeadOfficeController extends Controller
                 // Ensure row has same number of columns
                 if (count($data[$i]) !== count($headers)) {
                     Log::warning("Skipped row {$i} due to mismatched columns.", ['row' => $data[$i]]);
+                    Log::info("Row {$i} skipped due to missing office_name or postcode", $row);
+
                     continue;
                 }
 
                 $row = array_combine($headers, $data[$i]);
-
+                
                 if (!$row || empty($row['office_name']) || empty($row['office_postcode'])) {
                     continue; // Skip invalid row
                 }
 
-                try {
+              try {
                     $createdAt = !empty($row['created_at']) 
-                        ? Carbon::createFromFormat('m/d/Y H:i', $row['created_at'])->format('Y-m-d H:i:s') 
+                        ? Carbon::parse($row['created_at'])->format('Y-m-d H:i:s') 
                         : now();
 
                     $updatedAt = !empty($row['updated_at']) 
-                        ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s') 
+                        ? Carbon::parse($row['updated_at'])->format('Y-m-d H:i:s') 
                         : now();
                 } catch (\Exception $e) {
                     Log::error("Date format error on row {$i}: " . $e->getMessage());
                     continue;
                 }
 
+
                 try {
-                    $cleanPostcode = preg_replace('/[^A-Za-z0-9 ]/', '', $row['office_postcode']);
+                    $cleanPostcode = substr($row['office_postcode'], 0, 8);
 
                     $office = Office::updateOrCreate(
                         ['id' => $row['id']],
                         [
                             'office_uid' => md5($row['id']),
-                            'office_name' => $row['office_name'],
-                            'user_id' => $row['user_id'] ?? null,
+                            'user_id' => $row['user_id'],
+                            'office_name' => preg_replace('/\s+/', ' ', trim($row['office_name'])),
+                            'office_type' => 'head_office',
                             'office_website' => $row['office_website'] ?? null,
                             'office_notes' => $row['office_notes'] ?? null,
                             'office_lat' => $row['lat'] ?? null,
                             'office_lng' => $row['lng'] ?? null,
+                            'office_postcode' => $cleanPostcode ?: '0',
                             'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
-                            'office_postcode' => $cleanPostcode,
-                            'office_type' => 'head_office',
                             'created_at' => $createdAt,
                             'updated_at' => $updatedAt,
                         ]
@@ -257,8 +260,6 @@ class HeadOfficeController extends Controller
                             }
                         }
                     }
-
-                    $office->update(['office_uid' => md5($office->id)]);
                 } catch (\Exception $e) {
                     Log::error("Office insert/update failed for row {$i}: " . $e->getMessage());
                     continue;
@@ -271,7 +272,116 @@ class HeadOfficeController extends Controller
             return response()->json(['error' => 'An error occurred while importing the file.'], 500);
         }
     }
+public function import(Request $request)
+{
+    $request->validate([
+        'csv_file' => 'required|file|mimes:csv,xlsx|max:20480',
+    ]);
 
+    try {
+        $file = $request->file('csv_file');
+        $filename = $file->getClientOriginalName();
+        $path = $file->storeAs('uploads/import_files', $filename);
+        $filePath = storage_path("app/{$path}");
+        Log::info('File stored at: ' . $filePath);
+
+        // Read and parse CSV
+        $data = array_map(function ($line) {
+            return str_getcsv($line, ',', '"', '\\'); // Handle delimiters, enclosures, and escapes
+        }, file($filePath, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES));
+
+        Log::info('Raw CSV data: ', $data);
+        if (count($data) < 2) {
+            Log::warning('CSV file is empty or invalid');
+            return response()->json(['error' => 'CSV file is empty or invalid.'], 400);
+        }
+
+        $headers = array_map('trim', $data[0]);
+        $expectedColumnCount = count($headers);
+        Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+        // Prepare data
+        $processedData = [];
+        for ($i = 1; $i < count($data); $i++) {
+            Log::info("Processing row {$i}: " . json_encode($data[$i]));
+            if (count($data[$i]) !== $expectedColumnCount) {
+                Log::warning("Skipped row {$i} due to mismatched columns. Expected {$expectedColumnCount}, got " . count($data[$i]), ['row' => $data[$i]]);
+                continue;
+            }
+
+            $row = array_combine($headers, array_pad($data[$i], $expectedColumnCount, null));
+            Log::info("Combined row {$i}: " . json_encode($row));
+
+            // Validate and format row data
+            try {
+                $createdAt = !empty($row['created_at']) 
+                    ? Carbon::createFromFormat('m/d/Y H:i', $row['created_at'])->format('Y-m-d H:i:s') 
+                    : now();
+                $updatedAt = !empty($row['updated_at']) 
+                    ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s') 
+                    : now();
+                Log::info("Dates for row {$i}: created_at={$createdAt}, updated_at={$updatedAt}");
+            } catch (\Exception $e) {
+                Log::error("Date format error on row {$i}: " . $e->getMessage() . ', Data: ' . json_encode($row));
+                continue;
+            }
+
+            $cleanPostcode = !empty($row['office_postcode']) ? substr(trim($row['office_postcode']), 0, 8) : '0';
+
+            $processedRow = [
+                'id' => $row['id'] ?? null,
+                'office_uid' => $row['office_uid'] ?? md5($row['id'] ?? uniqid()),
+                'user_id' => $row['user_id'] ?? null,
+                'office_name' => preg_replace('/\s+/', ' ', trim($row['office_name'])),
+                'office_type' => $row['office_type'] ?? 'head_office',
+                'office_website' => $row['office_website'] ?? null,
+                'office_notes' => $row['office_notes'] ?? null,
+                'office_lat' => $row['lat'] ?? null,
+                'office_lng' => $row['lng'] ?? null,
+                'office_postcode' => $cleanPostcode,
+                'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
+                'created_at' => $createdAt,
+                'updated_at' => $updatedAt,
+                'contact' => [
+                    'contact_name' => $row['office_contact_name'] ?? 'N/A',
+                    'contact_email' => $row['office_email'] ?? 'N/A',
+                    'contact_phone' => $row['office_contact_phone'] ?? '0',
+                    'contact_landline' => $row['office_contact_landline'] ?? '0',
+                    'contact_note' => null,
+                ],
+            ];
+
+            $processedData[] = $processedRow;
+        }
+
+        Log::info('Processed data count: ' . count($processedData));
+
+        // Save data to database
+        foreach ($processedData as $index => $row) {
+            try {
+                $office = Office::updateOrCreate(
+                    ['id' => $row['id']],
+                    array_diff_key($row, ['contact' => ''])
+                );
+                Log::info("Office created/updated for row " . ($index + 1) . ": ID={$office->id}");
+
+                $contactData = $row['contact'];
+                $office->contact()->create($contactData);
+                Log::info("Contact created for office ID {$office->id}");
+
+            } catch (\Exception $e) {
+                Log::error("Failed to save row " . ($index + 1) . ": " . $e->getMessage() . ', Data: ' . json_encode($row));
+                continue;
+            }
+        }
+
+        return response()->json(['message' => 'CSV imported and offices saved successfully.']);
+
+    } catch (\Exception $e) {
+        Log::error('CSV import failed: ' . $e->getMessage());
+        return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
+    }
+}
     public function getHeadOffices(Request $request)
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
