@@ -310,13 +310,7 @@ class ApplicantController extends Controller
 
                 $headers = $csv->getHeader();
                 $records = $csv->getRecords();
-            } elseif ($extension === 'xlsx') {
-                // Process XLSX
-                $spreadsheet = IOFactory::load($filePath);
-                $worksheet = $spreadsheet->getActiveSheet();
-                $rows = $worksheet->toArray();
-                $headers = array_shift($rows); // First row is header
-                $records = new \ArrayIterator(array_map(fn($row) => array_combine($headers, $row), $rows));
+           
             } else {
                 Log::channel('daily')->error("Unsupported file extension: {$extension}");
                 throw new \Exception('Unsupported file type.');
