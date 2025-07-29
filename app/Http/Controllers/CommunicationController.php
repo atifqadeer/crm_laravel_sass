@@ -33,7 +33,7 @@ class CommunicationController extends Controller
     }
     public function index()
     {
-        return view('emails.inbox');
+        return view('emails.compose-email');
     }
     public function Messagesindex()
     {
@@ -388,6 +388,38 @@ class CommunicationController extends Controller
                     if (!$is_save) {
                         // Optional: throw or log
                         Log::warning('Email saved to DB failed for applicant ID: ' . $applicant->id);
+                        throw new \Exception('Email is not stored in DB');
+                    }
+                }
+            }
+            return response()->json(['success' => true, 'message' => 'Email saved successfully']);
+        }catch (\Exception $e){
+        return  response()->json(['status'=>false,'message'=>$e->getMessage()],422);
+        }
+    }
+    public function saveComposedEmail(Request $request)
+    {
+        try {
+            $emailData = $request->input('app_email');
+
+            if ($emailData!=null){
+                $dataEmail = explode(',',$emailData);
+
+                $email_from = 'info@kingsburypersonnel.com';
+                $email_subject = $request->input('email_subject');
+                $email_body = $request->input('email_body');
+                $email_title = $request->input('email_subject');
+
+                foreach($dataEmail as $email){
+                    $applicant = Applicant::where('applicant_email', $email)->orWhere('applicant_email_secondary', $email)->first();
+                    if($applicant){
+                        $is_save = $this->saveEmailDB($email, $email_from, $email_subject, $email_body, $email_title, $applicant->id);
+                    }else{
+                        $is_save = $this->saveEmailDB($email, $email_from, $email_subject, $email_body, $email_title, null);
+                    }
+                    if (!$is_save) {
+                        // Optional: throw or log
+                        Log::warning('Email saved to DB failed');
                         throw new \Exception('Email is not stored in DB');
                     }
                 }

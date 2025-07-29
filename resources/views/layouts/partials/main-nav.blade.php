@@ -309,9 +309,9 @@
                          <li class="nav-item">
                               <a class="nav-link" href="{{ route('emails.inbox')}}">
                                    <span class="nav-icon">
-                                        <i class="ri-inbox-line"></i>
+                                        <i class="ri-edit-line"></i>
                                    </span>
-                                   <span class="nav-text">Emails</span>
+                                   <span class="nav-text">Compose Email</span>
                               </a>
                          </li>
                     @endcanany

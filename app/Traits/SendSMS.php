@@ -35,59 +35,5 @@ trait SendSMS
             return false;
         }
     }
-    // private function applicantSms($applicant_number, $applicant_name)
-    // {
-    //     // Clean and sanitize the name
-    //     $applicant_name = trim(preg_replace('/[^a-zA-Z\s]/', '', $applicant_name));
-
-    //     // Fetch SMS template from the database
-    //     $template = SmsTemplate::where('title', 'applicant_welcome_sms')->where('status', 1)->first();
-
-    //     if (!$template) {
-    //         Log::warning('SMS template "applicant_welcome_sms" not found or inactive.');
-    //         return false;
-    //     }
-
-    //     // Replace placeholders in template
-    //     $message = str_replace('(applicant_name)', $applicant_name, $template->template);
-
-    //     // URL encode the message
-    //     $encoded_message = urlencode($message);
-
-    //     // Build API query string
-    //     $query_string = "http://milkyway.tranzcript.com:1008/sendsms?" . http_build_query([
-    //         'username'     => 'admin',
-    //         'password'     => 'admin',
-    //         'phonenumber'  => $applicant_number,
-    //         'message'      => $message,
-    //         'port'         => '1',
-    //         'report'       => 'JSON',
-    //         'timeout'      => '0',
-    //     ]);
-
-    //     // Send SMS via cURL
-    //     try {
-    //         $ch = curl_init();
-    //         curl_setopt($ch, CURLOPT_URL, $query_string);
-    //         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    //         $response = curl_exec($ch);
-    //         curl_close($ch);
-
-    //         $decoded = json_decode($response, true);
-
-    //         if (!$decoded || !isset($decoded['result'])) {
-    //             Log::error('Invalid SMS response: ' . $response);
-    //             return false;
-    //         }
-
-    //         $result = strtolower($decoded['result']);
-
-    //         return in_array($result, ['success', 'sending']);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error sending SMS: ' . $e->getMessage());
-    //         return false;
-    //     }
-    // }
 
 }

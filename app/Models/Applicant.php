@@ -12,6 +12,7 @@ class Applicant extends Model
 
     protected $table = 'applicants';
     protected $fillable = [
+        'id',
         'applicant_uid',
         'user_id',
         'job_source_id',
@@ -64,7 +65,9 @@ class Applicant extends Model
         // Status fields
         'status',
         'paid_status',
-        'paid_timestamp'
+        'paid_timestamp',
+        'created_at',
+        'updated_at'
     ];
     protected $casts = [
         'is_blocked' => 'boolean',
@@ -192,14 +195,14 @@ class Applicant extends Model
     {
         return $this->jobSource ? $this->jobSource->name : '-';
     }
-    // public function audits()
-    // {
-    //     return $this->morphMany(Audit::class, 'auditable');
-    // }
-    // public function module_note()
-    // {
-    //     return $this->morphMany(ModuleNote::class, 'module_noteable');
-    // }
+    public function audits()
+    {
+        return $this->morphMany(Audit::class, 'auditable');
+    }
+    public function module_note()
+    {
+        return $this->morphMany(ModuleNote::class, 'module_noteable');
+    }
     public function crm_notes()
     {
         return $this->hasMany(CrmNote::class, 'applicant_id');

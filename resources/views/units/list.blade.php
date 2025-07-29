@@ -49,7 +49,7 @@
                             </div>
                             @endcanany
                             @canany(['unit-import'])
-                            <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import CSV">
+                           <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
                                 <i class="ri-upload-line"></i>
                             </button>
                             @endcanany
@@ -81,7 +81,7 @@
                                 <th>Contact Phone</th>
                                 <th>Contact Landline</th>
                                 @canany(['unit-view-note', 'unit-add-note'])
-                                <th>Notes</th>
+                                <th width="20%">Notes</th>
                                 @endcanany
                                 <th>Status</th>
                                 <th>Action</th>
@@ -97,6 +97,33 @@
         </div>
     </div>
 
+</div>
+
+<!-- Import CSV Modal -->
+<div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="csvImportForm" enctype="multipart/form-data">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="csvFile" class="form-label">Choose CSV File</label>
+            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+          </div>
+          <div class="progress" style="height: 20px;">
+            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%">0%</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 @section('script')
@@ -185,6 +212,9 @@
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                        if (d.search && d.search.value) {
+                            d.search.value = d.search.value.toString().trim();
+                        }
                     }
                 },
                 columns: columns,
@@ -669,6 +699,77 @@
                 }
             });
         }
+
+        $(document).ready(function () {
+            $('#csvImportForm').on('submit', function (e) {
+                e.preventDefault();
+
+                let form = $(this);
+                let submitBtn = form.find('button[type="submit"]');
+                let formData = new FormData(this);
+                let xhr = new XMLHttpRequest();
+
+                // Disable button
+                submitBtn.prop('disabled', true).text('Uploading...');
+
+                xhr.open('POST', '{{ route("units.import") }}', true);
+                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                xhr.upload.addEventListener("progress", function (event) {
+                    if (event.lengthComputable) {
+                        let percent = Math.round((event.loaded / event.total) * 100);
+                        $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
+                        console.log('Uploading: ' + percent + '%');
+                    }
+                });
+
+                xhr.onload = function () {
+                    console.log('Upload response:', xhr.status, xhr.responseText);
+
+                    if (xhr.status === 200) {
+                        $('#uploadProgressBar')
+                            .removeClass('bg-danger')
+                            .addClass('bg-success')
+                            .text('Upload Complete');
+
+                        form[0].reset();
+                        $('#units_table').DataTable().ajax.reload();
+
+                        // ✅ Close modal after short delay
+                        setTimeout(() => {
+                            $('#csvImportModal').modal('hide');
+                            $('#uploadProgressBar')
+                                .css('width', '0%')
+                                .removeClass('bg-success bg-danger')
+                                .text('0%');
+                        }, 800);
+                    } else {
+                        $('#uploadProgressBar')
+                            .removeClass('bg-success')
+                            .addClass('bg-danger')
+                            .text('Upload Failed');
+                        alert('Server Error: ' + xhr.responseText);
+                    }
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.onerror = function () {
+                    console.error('XHR error:', xhr.responseText);
+                    $('#uploadProgressBar')
+                        .removeClass('bg-success')
+                        .addClass('bg-danger')
+                        .text('Upload Error');
+                    alert('XHR Error: ' + xhr.responseText);
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.send(formData);
+            });
+        });
 
     </script>
     

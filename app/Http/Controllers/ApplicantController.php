@@ -40,6 +40,7 @@ use App\Traits\Geocode;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Str;
+use League\Csv\Reader;
 
 class ApplicantController extends Controller
 {
@@ -251,6 +252,371 @@ class ApplicantController extends Controller
                 'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
+        }
+    }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,xlsx|max:50480',
+        ]);
+
+        ini_set('max_execution_time', 1500);
+        ini_set('memory_limit', '512M');
+
+        try {
+            // Initialize logging
+            Log::channel('daily')->debug('Starting CSV/XLSX import process.');
+
+            $file = $request->file('csv_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename, 'local');
+            $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->debug("File stored at: {$filePath}");
+
+            // Preload data
+            $jobCategories = JobCategory::pluck('id', 'name')->mapKeys(fn($key) => strtolower($key))->toArray();
+            $jobTitles = JobTitle::select('id', 'name', 'job_category_id', 'type')
+                ->get()
+                ->groupBy('job_category_id')
+                ->map(fn($titles) => $titles->pluck('type', 'id')->mapKeys(fn($key) => strtolower($key))->toArray())
+                ->toArray();
+            $jobSources = JobSource::pluck('id', 'name')->mapKeys(fn($key) => strtolower(preg_replace('/\s+/', ' ', trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $key)))))->toArray();
+
+            $processedData = [];
+            $failedRows = [];
+            $rowIndex = 1;
+
+            // Determine file type and process
+            $extension = strtolower($file->getClientOriginalExtension());
+            if ($extension === 'csv') {
+                // Process CSV
+                $content = file_get_contents($filePath);
+                $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+                if ($encoding === false) {
+                    Log::channel('daily')->error("Failed to detect encoding for CSV: {$filePath}");
+                    throw new \Exception('Unable to detect CSV encoding.');
+                }
+                if ($encoding !== 'UTF-8') {
+                    $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                    file_put_contents($filePath, $content);
+                    Log::channel('daily')->debug("Converted CSV to UTF-8 from {$encoding}");
+                }
+
+                $csv = Reader::createFromPath($filePath, 'r');
+                $csv->setHeaderOffset(0);
+                $csv->setDelimiter(',');
+                $csv->setEnclosure('"');
+                $csv->setEscape('\\');
+
+                $headers = $csv->getHeader();
+                $records = $csv->getRecords();
+            } elseif ($extension === 'xlsx') {
+                // Process XLSX
+                $spreadsheet = IOFactory::load($filePath);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rows = $worksheet->toArray();
+                $headers = array_shift($rows); // First row is header
+                $records = new \ArrayIterator(array_map(fn($row) => array_combine($headers, $row), $rows));
+            } else {
+                Log::channel('daily')->error("Unsupported file extension: {$extension}");
+                throw new \Exception('Unsupported file type.');
+            }
+
+            $expectedColumnCount = count($headers);
+            Log::channel('daily')->debug('Headers: ' . json_encode($headers) . ", Count: {$expectedColumnCount}");
+
+            foreach ($records as $row) {
+                $rowIndex++;
+                Log::channel('daily')->debug("Processing row {$rowIndex}: " . json_encode($row));
+
+                // Validate required fields
+                if (empty($row['job_category']) || empty($row['applicant_job_title'])) {
+                    Log::channel('daily')->warning("Row {$rowIndex}: Missing job_category or applicant_job_title");
+                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing job_category or applicant_job_title'];
+                    continue;
+                }
+
+                // Ensure row matches header count
+                $row = array_pad($row, $expectedColumnCount, null);
+                $row = array_slice($row, 0, $expectedColumnCount);
+                $row = array_combine($headers, $row);
+                if ($row === false) {
+                    Log::channel('daily')->warning("Row {$rowIndex}: Header mismatch");
+                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
+                    continue;
+                }
+
+                // Sanitize row data
+                $row = array_map(function ($value) {
+                    if (is_string($value)) {
+                        $value = preg_replace('/\s+/', ' ', trim($value));
+                        $value = preg_replace('/[^\p{L}\p{N}\s.,-]/u', '', $value);
+                    }
+                    return $value ?: null; // Convert empty strings to null
+                }, $row);
+
+                // Parse dates
+                try {
+                    $createdAt = !empty($row['created_at'])
+                        ? Carbon::parse($row['created_at'])->format('Y-m-d H:i:s')
+                        : now()->format('Y-m-d H:i:s');
+                    $updatedAt = !empty($row['updated_at'])
+                        ? Carbon::parse($row['updated_at'])->format('Y-m-d H:i:s')
+                        : now()->format('Y-m-d H:i:s');
+                    $paid_timestamp = !empty($row['paid_timestamp'])
+                        ? Carbon::parse($row['paid_timestamp'])->format('Y-m-d H:i:s')
+                        : null;
+                } catch (\Exception $e) {
+                    Log::channel('daily')->error("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
+                    $failedRows[] = ['row' => $rowIndex, 'error' => "Invalid date format: {$e->getMessage()}"];
+                    continue;
+                }
+
+                // Handle postcode and geolocation
+                $cleanPostcode = '0';
+                if (!empty($row['applicant_postcode'])) {
+                    preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
+                    $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
+                }
+                $lat = is_numeric($row['lat']) ? (float) $row['lat'] : 0.0;
+                $lng = is_numeric($row['lng']) ? (float) $row['lng'] : 0.0;
+                if ($lat == 0.0 && $lng == 0.0 && $cleanPostcode !== '0') {
+                    $postcodeQuery = strlen($cleanPostcode) < 6
+                        ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
+                        : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
+                    if ($postcodeQuery) {
+                        $lat = $postcodeQuery->lat;
+                        $lng = $postcodeQuery->lng;
+                    } else {
+                        Log::channel('daily')->warning("Row {$rowIndex}: No geolocation data for postcode {$cleanPostcode}");
+                    }
+                }
+
+                // Handle job category and title
+                $job_category_id = null;
+                $job_title_id = null;
+                $job_type = '';
+                $category_map = [
+                    'nurse' => 'nurse specialist',
+                    'non-nurse' => 'nonnurse specialist',
+                ];
+                $requested_category = strtolower(trim($row['job_category']));
+                $specialist_title = $category_map[$requested_category] ?? null;
+                if ($specialist_title) {
+                    $job_category_name = $requested_category === 'non-nurse' ? 'non nurse' : $requested_category;
+                    $job_category_id = $jobCategories[$job_category_name] ?? null;
+                    if ($job_category_id) {
+                        $requested_job_title = strtolower(trim($row['applicant_job_title']));
+                        $titles = $jobTitles[$job_category_id] ?? [];
+                        $job_title_id = array_key_first(array_filter($titles, fn($_, $id) => $id === $requested_job_title, ARRAY_FILTER_USE_BOTH));
+                        $job_type = $job_title_id ? $titles[$job_title_id] : '';
+                        if (!$job_title_id) {
+                            Log::channel('daily')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title} for category ID: {$job_category_id}");
+                            $failedRows[] = ['row' => $rowIndex, 'error' => "Job title not found: {$requested_job_title}"];
+                            continue;
+                        }
+                    } else {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Job category not found: {$job_category_name}");
+                        $failedRows[] = ['row' => $rowIndex, 'error' => "Job category not found: {$job_category_name}"];
+                        continue;
+                    }
+                } else {
+                    Log::channel('daily')->warning("Row {$rowIndex}: Invalid job category: {$requested_category}");
+                    $failedRows[] = ['row' => $rowIndex, 'error' => "Invalid job category: {$requested_category}"];
+                    continue;
+                }
+
+                // Handle job source
+                $sourceRaw = $row['applicant_source'] ?? '';
+                $cleanedSource = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))));
+                $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
+                $jobSourceId = $jobSources[$firstTwoWordsSource] ?? 2; // Default to Reed (ID 2)
+
+                // Handle applicant name and landline
+                $rawName = $row['applicant_name'] ?? '';
+                $cleanedName = preg_replace('/\s+/', ' ', trim($rawName));
+                preg_match('/\d{10,}/', $cleanedName, $matches);
+                $extractedNumber = $matches[0] ?? null;
+                $cleanedNumber = $extractedNumber ? preg_replace('/\D/', '', $extractedNumber) : null;
+                $applicantLandline = $row['applicant_landline'] ?? null;
+                if (!$applicantLandline && $cleanedNumber) {
+                    $applicantLandline = $cleanedNumber;
+                }
+                $finalName = trim(preg_replace('/\d+/', '', $cleanedName)) ?: null;
+
+                // Handle applicant home phone
+                $rawLandline = $row['applicant_homePhone'] ?? '';
+                $digitsOnly = preg_replace('/\D/', '', $rawLandline);
+                $startsWithHyphen = ltrim($rawLandline) && ltrim($rawLandline)[0] === '-';
+                $homePhone = null;
+                if (strlen($digitsOnly) === 11) {
+                    $homePhone = $digitsOnly;
+                } elseif (strlen($digitsOnly) === 10 && ($startsWithHyphen || ($digitsOnly && $digitsOnly[0] === '7'))) {
+                    $homePhone = '0' . $digitsOnly;
+                }
+
+                // Handle applicant phone
+                $rawPhone = $row['applicant_phone'] ?? '';
+                $parts = array_map('trim', explode('/', $rawPhone));
+                $firstRaw = $parts[0] ?? '';
+                $secondRaw = $parts[1] ?? '';
+                $normalizePhone = function ($input) {
+                    $digits = preg_replace('/\D/', '', $input);
+                    $startsWithHyphen = ltrim($input) && ltrim($input)[0] === '-';
+                    if (strlen($digits) === 11) {
+                        return $digits;
+                    } elseif (strlen($digits) === 10 && ($startsWithHyphen || ($digits && $digits[0] === '7'))) {
+                        return '0' . $digits;
+                    }
+                    return null;
+                };
+                $phone = $normalizePhone($firstRaw);
+                $landlinePhone = $normalizePhone($secondRaw);
+
+                // Handle is_crm_interview_attended
+                $is_crm_interview_attended = match (strtolower($row['is_crm_interview_attended'] ?? '')) {
+                    'yes' => 1,
+                    'pending' => 2,
+                    'no' => 0,
+                    default => null,
+                };
+
+                // Link to office (if office_id is provided)
+                $office = null;
+                if (!empty($row['office_id'])) {
+                    $office = Office::find($row['office_id']);
+                    if (!$office) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Office ID {$row['office_id']} not found");
+                        $failedRows[] = ['row' => $rowIndex, 'error' => "Office ID {$row['office_id']} not found"];
+                        continue;
+                    }
+                }
+
+                $processedRow = [
+                    'id' => $row['id'] ?? null,
+                    'applicant_uid' => $row['id'] ? md5($row['id']) : null,
+                    'user_id' => $row['applicant_user_id'] ?? null,
+                    'applicant_name' => $finalName,
+                    'applicant_email' => $row['applicant_email'] ?? null,
+                    'applicant_notes' => $row['applicant_notes'] ?? null,
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'applicant_cv' => $row['applicant_cv'] ?? null,
+                    'updated_cv' => $row['updated_cv'] ?? null,
+                    'applicant_postcode' => $cleanPostcode,
+                    'applicant_experience' => $row['applicant_experience'] ?? null,
+                    'job_category_id' => $job_category_id,
+                    'job_source_id' => $jobSourceId,
+                    'job_title_id' => $job_title_id,
+                    'job_type' => $job_type,
+                    'applicant_phone' => $phone,
+                    'applicant_landline' => $homePhone ?? $landlinePhone ?? $applicantLandline,
+                    'is_blocked' => $row['is_blocked'] ?? 0,
+                    'is_no_job' => ($row['is_no_job'] ?? 0) == '1' ? 1 : 0,
+                    'is_temp_not_interested' => $row['temp_not_interested'] ?? 0,
+                    'is_no_response' => $row['no_response'] ?? 0,
+                    'is_circuit_busy' => $row['is_circuit_busy'] ?? 0,
+                    'is_callback_enable' => ($row['is_callback_enable'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_nurse_home' => ($row['is_in_nurse_home'] ?? '') == 'yes' ? 1 : 0,
+                    'is_cv_in_quality' => ($row['is_cv_in_quality'] ?? '') == 'yes' ? 1 : 0,
+                    'is_cv_in_quality_clear' => ($row['is_cv_in_quality_clear'] ?? '') == 'yes' ? 1 : 0,
+                    'is_cv_sent' => ($row['is_CV_sent'] ?? '') == 'yes' ? 1 : 0,
+                    'is_cv_reject' => ($row['is_CV_reject'] ?? '') == 'yes' ? 1 : 0,
+                    'is_interview_confirm' => ($row['is_interview_confirm'] ?? '') == 'yes' ? 1 : 0,
+                    'is_interview_attend' => ($row['is_interview_attend'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_request' => ($row['is_in_crm_request'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_reject' => ($row['is_in_crm_reject'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_request_reject' => ($row['is_in_crm_request_reject'] ?? '') == 'yes' ? 1 : 0,
+                    'is_crm_request_confirm' => ($row['is_crm_request_confirm'] ?? '') == 'yes' ? 1 : 0,
+                    'is_crm_interview_attended' => $is_crm_interview_attended,
+                    'is_in_crm_start_date' => ($row['is_in_crm_start_date'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_invoice' => ($row['is_in_crm_invoice'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_invoice_sent' => ($row['is_in_crm_invoice_sent'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_start_date_hold' => ($row['is_in_crm_start_date_hold'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_paid' => ($row['is_in_crm_paid'] ?? '') == 'yes' ? 1 : 0,
+                    'is_in_crm_dispute' => ($row['is_in_crm_dispute'] ?? '') == 'yes' ? 1 : 0,
+                    'is_job_within_radius' => $row['is_job_within_radius'] ?? 0,
+                    'have_nursing_home_experience' => $row['have_nursing_home_experience'] ?? 0,
+                    'paid_status' => $row['paid_status'] ?? null,
+                    'paid_timestamp' => $paid_timestamp,
+                    'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
+                    'created_at' => $createdAt,
+                    'updated_at' => $updatedAt,
+                ];
+
+                $processedData[] = ['row' => $rowIndex, 'data' => $processedRow, 'office' => $office];
+            }
+
+            // Batch insert/update
+            $successfulRows = 0;
+            foreach (array_chunk($processedData, 100) as $chunk) {
+                try {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
+                        foreach ($chunk as $index => $item) {
+                            $rowIndex = $item['row'];
+                            $row = $item['data'];
+                            $office = $item['office'];
+                            try {
+                                $applicant = Applicant::updateOrCreate(
+                                    ['id' => $row['id']],
+                                    array_filter($row, fn($value) => !is_null($value))
+                                );
+                                if ($office) {
+                                    $applicant->contacts()->updateOrCreate(
+                                        [
+                                            'contactable_id' => $office->id,
+                                            'contactable_type' => Office::class,
+                                        ],
+                                        [
+                                            'contact_name' => $row['applicant_name'],
+                                            'contact_email' => $row['applicant_email'],
+                                            'contact_phone' => $row['applicant_phone'],
+                                            'contact_landline' => $row['applicant_landline'],
+                                        ]
+                                    );
+                                    Log::channel('daily')->debug("Linked applicant ID {$applicant->id} to office ID {$office->id} for row {$rowIndex}");
+                                }
+                                Log::channel('daily')->info("Applicant created/updated: ID={$applicant->id}, Row={$rowIndex}");
+                                $successfulRows++;
+                            } catch (\Exception $e) {
+                                Log::channel('daily')->error("Row {$rowIndex}: Failed to save applicant - {$e->getMessage()}");
+                                $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                            }
+                        }
+                    });
+                } catch (\Exception $e) {
+                    Log::channel('daily')->error("Failed to process chunk: {$e->getMessage()}");
+                    $failedRows[] = ['row' => $index + 1, 'error' => "Chunk failed: {$e->getMessage()}"];
+                }
+            }
+
+            // Clean up uploaded file
+            if (file_exists($filePath)) {
+                unlink($filePath);
+                Log::channel('daily')->debug("Deleted temporary file: {$filePath}");
+            }
+
+            Log::channel('daily')->info("CSV/XLSX import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            return response()->json([
+                'message' => 'File import completed.',
+                'successful_rows' => $successfulRows,
+                'failed_rows' => count($failedRows),
+                'failed_details' => $failedRows,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::channel('daily')->error("Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            if (file_exists($filePath)) {
+                unlink($filePath);
+                Log::channel('daily')->debug("Deleted temporary file after error: {$filePath}");
+            }
+            return response()->json([
+                'error' => 'File import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
+        } finally {
+            // Ensure logs are flushed
+            Log::close();
         }
     }
     public function getApplicantsAjaxRequest(Request $request)

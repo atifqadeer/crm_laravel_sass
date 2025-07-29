@@ -85,6 +85,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     ->name('getApplicantNoNursingHomeNotes');
     Route::get('getApplicanCallbackNotes', [ApplicantController::class, 'getApplicanCallbackNotes'])
     ->name('getApplicanCallbackNotes');
+    Route::post('applicants/import', [ApplicantController::class, 'import'])->name('applicants.import');
+
 
     Route::group(['prefix' => 'postcode-finder'], function () {
         Route::get('', [PostcodeController::class, 'index'])->name('postcode-finder.index');
@@ -114,6 +116,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
     Route::get('unitsExport', [UnitController::class, 'export'])->name('unitsExport');
+    Route::post('units/import', [UnitController::class, 'import'])->name('units.import');
     Route::get('getUnits', [UnitController::class, 'getUnits'])->name('getUnits');
     Route::post('storeUnitShortNotes', [UnitController::class, 'storeUnitShortNotes'])->name('storeUnitShortNotes');
 
@@ -176,11 +179,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 	Route::post('exportDirectApplicantsEmails', [ResourceController::class, 'exportDirectApplicantsEmails'])->name('exportDirectApplicantsEmails');
 
     Route::group(['prefix' => 'emails'], function () {
-        Route::get('', [CommunicationController::class, 'index'])->name('emails.inbox');
+        Route::get('compose-email', [CommunicationController::class, 'index'])->name('emails.inbox');
         Route::get('sent-emails', [CommunicationController::class, 'sentEmails'])->name('emails.sent_emails');
     });
     Route::get('send-email-to-applicant', [CommunicationController::class, 'sendEmailsToApplicants'])->name('emails.sendemailstoapplicants');
     Route::post('saveEmailsForApplicants', [CommunicationController::class, 'saveEmailsForApplicants'])->name('emails.saveEmailsForApplicants');
+    Route::post('saveComposedEmail', [CommunicationController::class, 'saveComposedEmail'])->name('emails.saveComposedEmail');
     Route::get('getSentEmailsAjaxRequest', [CommunicationController::class, 'getSentEmailsAjaxRequest'])->name('getSentEmailsAjaxRequest');
     Route::post('sendMessageToApplicant', [CommunicationController::class, 'sendMessageToApplicant'])->name('sendMessageToApplicant');
     

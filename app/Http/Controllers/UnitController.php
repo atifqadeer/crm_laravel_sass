@@ -19,6 +19,8 @@ use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Carbon;
 use App\Observers\ActionObserver;
+use League\Csv\Reader;
+
 class UnitController extends Controller
 {
     use Geocode;
@@ -169,14 +171,254 @@ class UnitController extends Controller
             ], 500);
         }
     }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,xlsx|max:20480',
+        ]);
+
+        ini_set('max_execution_time', 300); // 300 seconds = 5 minutes
+
+        try {
+            $file = $request->file('csv_file');
+            $filename = $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename);
+            $filePath = storage_path("app/{$path}");
+            Log::info('File stored at: ' . $filePath);
+
+            // Convert file to UTF-8 if needed
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding !== 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+            }
+
+            // Load CSV with League\CSV
+            $csv = Reader::createFromPath($filePath, 'r');
+            $csv->setHeaderOffset(0); // First row is header
+            $csv->setDelimiter(','); // Ensure correct delimiter
+            $csv->setEnclosure('"');
+            $csv->setEscape('\\');
+
+            $records = $csv->getRecords();
+            $headers = $csv->getHeader();
+            $expectedColumnCount = count($headers);
+            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            $processedData = [];
+            $failedRows = [];
+            $rowIndex = 1; // Start from 1 to skip header
+
+            foreach ($records as $row) {
+                if($row['head_office'] != 'Select Office'){
+                    $rowIndex++;
+                    Log::info("Processing row {$rowIndex}: " . json_encode($row));
+
+                    // Pad or truncate row to match header count
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+
+                    // Combine headers with row data
+                    $row = array_combine($headers, $row);
+                    if ($row === false) {
+                        Log::warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
+                        continue;
+                    }
+
+                    // Clean and normalize data
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            // Remove extra whitespace and line breaks
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            // Remove non-ASCII characters
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                        }
+                        return $value;
+                    }, $row);
+
+                    // Validate and format dates
+                    try {
+                        $createdAt = !empty($row['created_at'])
+                            ? Carbon::parse($row['created_at'])->format('Y-m-d H:i:s')
+                            : now();
+                        $updatedAt = !empty($row['updated_at'])
+                            ? Carbon::parse($row['updated_at'])->format('Y-m-d H:i:s')
+                            : now();
+                        Log::info("Dates for row {$rowIndex}: created_at={$createdAt}, updated_at={$updatedAt}");
+                    } catch (\Exception $e) {
+                        Log::error("Date format error on row {$rowIndex}: " . $e->getMessage() . ', Data: ' . json_encode($row));
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid date format'];
+                        continue;
+                    }
+
+                    // Clean postcode (extract valid postcode, e.g., DN16 2AB)
+                    $cleanPostcode = '0';
+                    if (!empty($row['unit_postcode'])) {
+                        preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['unit_postcode'], $matches);
+                        $cleanPostcode = $matches[0] ?? substr(trim($row['unit_postcode']), 0, 8);
+                    }
+
+                    $office_id = $row['head_office'];
+
+                    if($office_id == 'Select Office'){
+                        $office_id = 0;
+                    }
+
+                    $names = array_map('trim', explode(',', $row['contact_name'] ?? ''));
+                    $emails = array_map('trim', explode(',', $row['contact_email'] ?? ''));
+                    $phones = array_map('trim', explode(',', $row['contact_phone_number'] ?? ''));
+                    $landlines = array_map('trim', explode(',', $row['contact_landline'] ?? ''));
+
+                    $contacts = [];
+                    $maxContacts = max(count($names), count($emails), count($phones), count($landlines));
+
+                    for ($i = 0; $i < $maxContacts; $i++) {
+                        $contacts[] = [
+                            'contact_name'     => $names[$i] ?? 'N/A',
+                            'contact_email'    => $emails[$i] ?? 'N/A',
+                            'contact_phone'    => isset($phones[$i]) ? preg_replace('/[^0-9]/', '', $phones[$i]) : '0',
+                            'contact_landline' => isset($landlines[$i]) ? preg_replace('/[^0-9]/', '', $landlines[$i]) : '0',
+                            'contact_note'     => null,
+                        ];
+                    }
+
+                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
+                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
+
+                    if ($lat === null && $lng === null || $lat === 'null' && $lng === 'null') {
+                        $postcode_query = strlen($cleanPostcode) < 6
+                            ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
+                            : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
+
+                        // if (!$postcode_query) {
+                        //     try {
+                        //         $result = $this->geocode($cleanPostcode);
+
+                        //         // If geocode fails, throw
+                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
+                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        //         }
+
+                        //         $applicantData['lat'] = $result['lat'];
+                        //         $applicantData['lng'] = $result['lng'];
+                        //     } catch (\Exception $e) {
+                        //         return response()->json([
+                        //             'success' => false,
+                        //             'message' => 'Unable to locate address: ' . $e->getMessage()
+                        //         ], 400);
+                        //     }
+                        // } else {
+                            $lat = $postcode_query->lat;
+                            $lng = $postcode_query->lng;
+                        // }
+
+                        /** ✅ Validate lat/lng presence before inserting */
+                        // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
+                        //     return response()->json([
+                        //         'success' => false,
+                        //         'message' => 'Postcode location is required. Please provide a valid postcode.'
+                        //     ], 400);
+                        // }
+
+                    }
+
+                    // Keep whitespace intact
+                    if (strlen($cleanPostcode) === 8) {
+                        $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
+
+                        if (!$exists) {
+                            DB::table('postcodes')->insert([
+                                'postcode'   => $cleanPostcode,
+                                'lat'        => $lat,
+                                'lng'        => $lng,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+
+                    } elseif (strlen($cleanPostcode) < 6) {
+                        $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
+
+                        if (!$exists) {
+                            DB::table('outcodepostcodes')->insert([
+                                'outcode'    => $cleanPostcode,
+                                'lat'        => $lat,
+                                'lng'        => $lng,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    $processedRow = [
+                        'id' => $row['id'] ?? null,
+                        'unit_uid' => md5($row['id']),
+                        'office_id' => $office_id,
+                        'user_id' => $row['user_id'] ?? null,
+                        'unit_name' => preg_replace('/\s+/', ' ', trim($row['unit_name'] ?? '')),
+                        'unit_website' => $row['website'] ?? null,
+                        'unit_notes' => $row['units_notes'] ?? null,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'unit_postcode' => $cleanPostcode,
+                        'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                        'contacts' => $contacts,
+                    ];
+
+                    $processedData[] = $processedRow;
+                }
+            }
+
+            Log::info('Processed data count: ' . count($processedData));
+
+            // Save data to database
+            $successfulRows = 0;
+            foreach ($processedData as $index => $row) {
+                try {
+                    $unit = Unit::updateOrCreate(
+                        ['id' => $row['id']],
+                        array_diff_key($row, ['contact' => ''])
+                    );
+                    Log::info("Unit created/updated for row " . ($index + 1) . ": ID={$unit->id}");
+
+                    foreach ($row['contacts'] as $contactData) {
+                        $unit->contact()->create($contactData);
+                    }
+                    Log::info("Contact created for unit ID {$unit->id}");
+                    $successfulRows++;
+                } catch (\Exception $e) {
+                    Log::error("Failed to save row " . ($index + 1) . ": " . $e->getMessage() . ', Data: ' . json_encode($row));
+                    $failedRows[] = ['row' => $index + 1, 'error' => $e->getMessage()];
+                }
+            }
+
+            // Prepare response with summary
+            $response = [
+                'message' => 'CSV import completed.',
+                'successful_rows' => $successfulRows,
+                'failed_rows' => count($failedRows),
+                'failed_details' => $failedRows,
+            ];
+
+            return response()->json($response);
+
+        } catch (\Exception $e) {
+            Log::error('CSV import failed: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
+        }
+    }
     public function getUnits(Request $request)
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
-
+        ini_set('max_execution_time', 300); // 300 seconds = 5 minutes
         $model = Unit::query()
             ->select([
                 'units.*',
-                'offices.office_name as office_name',
+                'offices.office_name as office_name'
             ])
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->with(['office','contact']);
@@ -202,10 +444,14 @@ class UnitController extends Controller
                         ->orWhereRaw('LOWER(units.unit_name) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(units.unit_postcode) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(units.unit_website) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(units.created_at) LIKE ?', [$likeSearch]);
+                        ->orWhereRaw('LOWER(units.created_at) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(contacts.contact_name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(contacts.contact_email) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('contacts.contact_phone LIKE ?', [$likeSearch])
+                        ->orWhereRaw('contacts.contact_landline LIKE ?', [$likeSearch]);
 
                         $query->orWhereHas('office', function ($q) use ($likeSearch) {
-                            $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
+                            $q->whereRaw('offices.office_name LIKE ?', [$likeSearch]);
                         });
                 });
             }

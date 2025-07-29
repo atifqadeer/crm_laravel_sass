@@ -12,6 +12,7 @@ class Unit extends Model
 
     protected $table = 'units';
     protected $fillable = [
+        'id',
         'unit_uid',
         'user_id',
         'office_id',
@@ -22,6 +23,8 @@ class Unit extends Model
         'lat',
         'lng',
         'status',
+        'created_at',
+        'updated_at'
     ];
 
     public function getFormattedUnitNameAttribute()
@@ -56,8 +59,8 @@ class Unit extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-    // public function audits()
-    // {
-    //     return $this->morphMany(Audit::class, 'auditable');
-    // }
+    public function audits()
+    {
+        return $this->morphMany(Audit::class, 'auditable');
+    }
 }

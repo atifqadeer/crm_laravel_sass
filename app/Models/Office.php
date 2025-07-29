@@ -61,15 +61,15 @@ class Office extends Model
     }
     public function contact()
     {
-        return $this->morphMany(Contact::class, 'contactable');
+        return $this->hasMany(Contact::class, 'contactable_id')->where('contactable_type', Office::class);
     }
-    // public function audits()
-    // {
-    //     return $this->morphMany(Audit::class, 'auditable');
-    // }
-    // public function module_note()
-    // {
-    //     return $this->morphMany(ModuleNote::class, 'module_noteable');
-    // }
+    public function audits()
+    {
+        return $this->morphMany(Audit::class, 'auditable');
+    }
+    public function module_note()
+    {
+        return $this->morphMany(ModuleNote::class, 'module_noteable');
+    }
 
 }

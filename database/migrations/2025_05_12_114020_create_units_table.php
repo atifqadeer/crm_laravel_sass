@@ -21,7 +21,7 @@ class CreateUnitsTable extends Migration
             $table->string('unit_name', 255);
             $table->string('unit_postcode', 50);
             $table->string('unit_website', 255)->nullable();
-            $table->string('unit_notes', 255)->nullable();
+            $table->longText('unit_notes')->nullable();
             $table->float('lat', 15, 6)->nullable()->default(null);
             $table->float('lng', 15, 6)->nullable()->default(null);
             $table->tinyInteger('status')->default(1);  // assuming default status is active (1)

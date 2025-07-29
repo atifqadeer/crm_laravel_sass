@@ -46,9 +46,9 @@ class SendBulkSMS extends Command
     protected function processMessages($messages, $apiUrl, $port, $username, $password, $isRetry = false)
     {
         foreach ($messages as $message) {
-            // try {
+            try {
                 // URL encode the message
-                $encodedMessage = urlencode($message->message);
+                $encodedMessage = $message->message;
 
                 // Build API query string to match provided format
                 $queryString = http_build_query([
@@ -76,12 +76,20 @@ class SendBulkSMS extends Command
                 if($response)
                 {
                     if ($report == "success") {
+                        $message->update([
+                            'is_sent' => 1 /** sent */
+                        ]);
                         return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
             
                     } elseif ($report == "sending") {
-                                    return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
-            
+                        $message->update([
+                            'is_sent' => 1 /** sent */
+                        ]);
+                        return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
                     } else {
+                        $message->update([
+                            'is_sent' => 2 /** failed */
+                        ]);
                         return ['result'=> 'error','data'=>$response,'report'=>$report];
                     }
                 }
@@ -90,15 +98,12 @@ class SendBulkSMS extends Command
                     return ['result'=> 'error'];;
 
                 }
-            // } catch (\Exception $e) {
-            //     $message->update([
-            //         'is_sent' => 2,
-            //         'status' => 'failed',
-            //         'sent_at' => now(),
-            //         'retry_count' => 0,
-            //     ]);
-            //     Log::error("Error sending SMS to {$message->phone_number} (ID: {$message->id}): {$e->getMessage()}");
-            // }
+            } catch (\Exception $e) {
+                $message->update([
+                    'is_sent' => 2 /** failed */
+                ]);
+                Log::error("Error sending SMS to {$message->phone_number} (ID: {$message->id}): {$e->getMessage()}");
+            }
 
             // Add delay for retries to avoid overwhelming the API
             if ($isRetry) {
