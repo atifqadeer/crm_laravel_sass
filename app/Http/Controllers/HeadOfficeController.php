@@ -256,13 +256,23 @@ class HeadOfficeController extends Controller
                     $cleanPostcode = $matches[0] ?? substr(trim($row['office_postcode']), 0, 8);
                 }
 
-                // Clean phone numbers
-                $cleanPhone = !empty($row['office_contact_phone'])
-                    ? preg_replace('/[^0-9]/', '', $row['office_contact_phone'])
-                    : '0';
-                $cleanLandline = !empty($row['office_contact_landline'])
-                    ? preg_replace('/[^0-9]/', '', $row['office_contact_landline'])
-                    : '0';
+                $names = array_map('trim', explode(',', $row['office_contact_name'] ?? ''));
+                $emails = array_map('trim', explode(',', $row['office_email'] ?? ''));
+                $phones = array_map('trim', explode(',', $row['office_contact_phone'] ?? ''));
+                $landlines = array_map('trim', explode(',', $row['office_contact_landline'] ?? ''));
+
+                $contacts = [];
+                $maxContacts = max(count($names), count($emails), count($phones), count($landlines));
+
+                for ($i = 0; $i < $maxContacts; $i++) {
+                    $contacts[] = [
+                        'contact_name'     => $names[$i] ?? 'N/A',
+                        'contact_email'    => $emails[$i] ?? 'N/A',
+                        'contact_phone'    => isset($phones[$i]) ? preg_replace('/[^0-9]/', '', $phones[$i]) : '0',
+                        'contact_landline' => isset($landlines[$i]) ? preg_replace('/[^0-9]/', '', $landlines[$i]) : '0',
+                        'contact_note'     => null,
+                    ];
+                }
 
                 $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
                 $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
@@ -346,13 +356,7 @@ class HeadOfficeController extends Controller
                     'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
-                    'contact' => [
-                        'contact_name' => $row['office_contact_name'] ?? 'N/A',
-                        'contact_email' => $row['office_email'] ?? 'N/A',
-                        'contact_phone' => $cleanPhone,
-                        'contact_landline' => $cleanLandline,
-                        'contact_note' => null,
-                    ],
+                    'contacts' => $contacts
                 ];
 
                 $processedData[] = $processedRow;
@@ -370,8 +374,9 @@ class HeadOfficeController extends Controller
                     );
                     Log::info("Office created/updated for row " . ($index + 1) . ": ID={$office->id}");
 
-                    $contactData = $row['contact'];
-                    $office->contact()->create($contactData);
+                    foreach ($row['contacts'] as $contactData) {
+                        $office->contact()->create($contactData);
+                    }
                     Log::info("Contact created for office ID {$office->id}");
                     $successfulRows++;
                 } catch (\Exception $e) {

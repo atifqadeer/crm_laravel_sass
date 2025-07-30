@@ -14,7 +14,9 @@ return new class extends Migration {
             $table->string('type')->default('string'); // string, boolean, json, etc.
             $table->string('group')->nullable(); // e.g. general, smtp, app
             $table->timestamps();
+
         });
+        
     }
 
     public function down(): void

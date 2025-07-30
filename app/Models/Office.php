@@ -61,7 +61,7 @@ class Office extends Model
     }
     public function contact()
     {
-        return $this->hasMany(Contact::class, 'contactable_id')->where('contactable_type', Office::class);
+        return $this->morphMany(Contact::class, 'contactable');
     }
     public function audits()
     {

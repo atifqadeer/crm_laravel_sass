@@ -38,24 +38,31 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
                                 <!-- Title Filter Dropdown -->
                                 <div class="dropdown d-inline">
-    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-    </button>
-    <div class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton2" style="min-width: 250px;">
-        <div class="form-check">
-            <input class="form-check-input title-filter" type="checkbox" value="" id="all-titles" data-title-id="">
-            <label class="form-check-label" for="all-titles">All Titles</label>
-        </div>
-        @foreach($jobTitles as $title)
-            <div class="form-check">
-                <input class="form-check-input title-filter" type="checkbox" value="{{ $title->id }}" id="title_{{ $title->id }}" data-title-id="{{ $title->id }}">
-                <label class="form-check-label" for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
-            </div>
-        @endforeach
-    </div>
-</div>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+                                    </button>
 
-                                
+                                    <div class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton2" style="min-width: 250px;">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="titleSearchInput" placeholder="Search titles...">
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="titleList" style="max-height: 400px; overflow-y: auto;">
+                                            <div class="form-check">
+                                                <input class="form-check-input title-filter" type="checkbox" value="" id="all-titles" data-title-id="">
+                                                <label class="form-check-label" for="all-titles">All Titles</label>
+                                            </div>
+                                            @foreach($jobTitles as $title)
+                                                <div class="form-check">
+                                                    <input class="form-check-input title-filter" type="checkbox" value="{{ $title->id }}" id="title_{{ $title->id }}" data-title-id="{{ $title->id }}">
+                                                    <label class="form-check-label" for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
@@ -438,10 +445,20 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterTitle').text(selectedLabels.length ? selectedLabels.join(', ') : 'All Titles');
+                $('#showFilterTitle').text(selectedLabels.length ? 'All Titles (' + selectedLabels.length +')': 'All Titles');
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+        });
+
+        document.getElementById('titleSearchInput').addEventListener('keyup', function () {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function (item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
 

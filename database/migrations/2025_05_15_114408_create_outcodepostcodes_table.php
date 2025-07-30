@@ -20,6 +20,9 @@ class CreateoutcodepostcodesTable extends Migration
             $table->float('lng');  // Longitude coordinate
              $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('outcode');
         });
     }
 

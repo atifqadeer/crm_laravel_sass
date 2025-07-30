@@ -25,6 +25,10 @@ class CreateSaleNotesTable extends Migration
             // Foreign keys
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+
+            // Optional indexes for better performance
+            $table->index('user_id');
+            $table->index('sale_id');
         });
     }
 

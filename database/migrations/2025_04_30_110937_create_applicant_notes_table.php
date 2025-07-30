@@ -26,6 +26,12 @@ return new class extends Migration
             // Explicit timestamp definitions with CURRENT_TIMESTAMP
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            
+            // Optional indexes for better performance
+            $table->index('user_id');
+            $table->index('applicant_id');
+            $table->index('moved_tab_to');
             
         });
 

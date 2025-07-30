@@ -26,6 +26,10 @@ return new class extends Migration
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
 
             $table->foreign('job_category_id')->references('id')->on('job_categories')->onDelete('set null'); // Changed from 'cascade'
+
+            // Optional indexes for better performance
+            $table->index('name');
+            $table->index('job_category_id');
         });
     }
 

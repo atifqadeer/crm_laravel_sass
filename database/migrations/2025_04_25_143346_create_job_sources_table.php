@@ -21,7 +21,9 @@ return new class extends Migration
             // Timestamps with default values and automatic update on change
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
-
+            
+            // Optional indexes for better performance
+            $table->index('name');
         });
     }
 

@@ -25,6 +25,10 @@ return new class extends Migration
 
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('name');
+            $table->index('email');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

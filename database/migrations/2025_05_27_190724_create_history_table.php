@@ -30,6 +30,12 @@ class CreateHistoryTable extends Migration
             $table->foreign('applicant_id')->references('id')->on('applicants')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
+
+            // Optional indexes for better performance
+            $table->index('applicant_id');
+            $table->index('user_id');
+            $table->index('sale_id');
+            $table->index('sub_stage');
         });
     }
 

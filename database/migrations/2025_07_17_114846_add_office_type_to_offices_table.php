@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::table('offices', function (Blueprint $table) {
             $table->string('office_type', 50)->nullable()->after('office_name'); // adjust 'after' as needed
+
+            $table->index('office_type');
         });
     }
 

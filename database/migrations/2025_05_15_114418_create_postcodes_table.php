@@ -18,8 +18,11 @@ class CreatepostcodesTable extends Migration
             $table->string('postcode', 10);  // The actual postcode value
             $table->float('lat');  // Latitude coordinate
             $table->float('lng');  // Longitude coordinate
-             $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('postcode');
         });
     }
 

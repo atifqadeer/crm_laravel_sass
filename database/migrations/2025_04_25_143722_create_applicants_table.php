@@ -31,7 +31,6 @@ class CreateApplicantsTable extends Migration
             $table->string('updated_cv', 255)->nullable();
             $table->string('applicant_notes', 255)->nullable();
             $table->string('applicant_experience', 255)->nullable();
-            $table->enum('gender', ['m', 'f', 'u'])->default('u');
             $table->float('lat', 15, 6)->nullable();
             $table->float('lng', 15, 6)->nullable();
 
@@ -61,7 +60,7 @@ class CreateApplicantsTable extends Migration
             $table->boolean('is_in_crm_paid')->default(false);
             $table->boolean('is_in_crm_dispute')->default(false);
             $table->boolean('is_job_within_radius')->default(true);
-            $table->tinyInteger('have_nursing_home_experience')->default(null);
+            $table->tinyInteger('have_nursing_home_experience')->nullable();
 
             $table->tinyInteger('status')->default(1);
             $table->string('paid_status', 20)->default('pending');
@@ -78,6 +77,13 @@ class CreateApplicantsTable extends Migration
             $table->foreign('job_source_id')->references('id')->on('job_sources')->onDelete('set null');
             $table->foreign('job_title_id')->references('id')->on('job_titles')->onDelete('set null');
             $table->foreign('job_category_id')->references('id')->on('job_categories')->onDelete('set null');
+
+            // Optional indexes for better performance
+            $table->index('user_id');
+            $table->index('applicant_name');
+            $table->index('applicant_postcode');
+            $table->index('job_category_id');
+            $table->index('job_title_id');
         });
     }
 

@@ -18,6 +18,10 @@ class CreateAuditsTable extends Migration
             
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('auditable_id');
+            $table->index('auditable_type');
         });
     }
 

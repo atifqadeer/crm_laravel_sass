@@ -44,6 +44,14 @@ class CreateSalesTable extends Migration
             $table->foreign('unit_id')->references('id')->on('units');
             $table->foreign('job_category_id')->references('id')->on('job_categories');
             $table->foreign('job_title_id')->references('id')->on('job_titles');
+
+            // Optional indexes for better performance
+            $table->index('office_id');
+            $table->index('user_id');
+            $table->index('unit_id');
+            $table->index('job_category_id');
+            $table->index('job_title_id');
+            $table->index('sale_postcode');
         });
     }
 

@@ -22,6 +22,11 @@ class CreateCvNotesTable extends Migration
             
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('applicant_id');
+            $table->index('user_id');
+            $table->index('sale_id');
         });
     }
 

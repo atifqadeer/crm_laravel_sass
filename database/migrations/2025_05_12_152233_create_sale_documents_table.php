@@ -21,6 +21,9 @@ class CreateSaleDocumentsTable extends Migration
 
             // Foreign key constraints
             $table->foreign('sale_id')->references('id')->on('sales');
+
+            // Optional indexes for better performance
+            $table->index('sale_id');
         });
     }
 

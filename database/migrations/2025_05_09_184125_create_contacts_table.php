@@ -23,6 +23,14 @@ return new class extends Migration
 
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('contact_name');
+            $table->index('contact_email');
+            $table->index('contact_phone');
+            $table->index('contact_landline');
+            $table->index('contactable_id');
+            $table->index('contactable_type');
         });
     }
 

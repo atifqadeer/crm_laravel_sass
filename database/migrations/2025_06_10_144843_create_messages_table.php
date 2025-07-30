@@ -41,7 +41,8 @@ return new class extends Migration
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             
             // Indexes
-            $table->index('applicant_id');
+            $table->index('module_id');
+            $table->index('module_type');
             $table->index('user_id');
             $table->index('msg_id');
         });

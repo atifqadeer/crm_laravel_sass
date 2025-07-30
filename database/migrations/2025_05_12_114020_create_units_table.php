@@ -30,6 +30,10 @@ class CreateUnitsTable extends Migration
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             
             $table->softDeletes(); // This adds the 'deleted_at' column for soft deletes
+
+            // Optional indexes for better performance
+            $table->index('user_id');
+            $table->index('office_id');
         });
     }
 

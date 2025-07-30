@@ -26,6 +26,11 @@ return new class extends Migration
 
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            // Optional indexes for better performance
+            $table->index('user_id');
+            $table->index('module_noteable_id');
+            $table->index('module_noteable_type');
         });
     }
     /**
