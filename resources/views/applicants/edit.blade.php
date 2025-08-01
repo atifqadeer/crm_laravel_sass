@@ -84,7 +84,7 @@ $applicant = \Horsefly\Applicant::find($applicant_id);
                                     <option value="">Choose Gender</option>
                                     <option value="m" {{ old('gender', $applicant->gender == 'm' ? 'selected':'') }}>Male</option>
                                     <option value="f" {{ old('gender', $applicant->gender == 'f' ? 'selected':'') }}>Female</option>
-                                    <option value="f" {{ old('gender', $applicant->gender == 'u' ? 'selected':'') }}>Unknown</option>
+                                    <option value="u" {{ old('gender', $applicant->gender == 'u' ? 'selected':'') }}>Unknown</option>
                                 </select>
                                 <div class="invalid-feedback">Please provide gender</div>
                             </div>

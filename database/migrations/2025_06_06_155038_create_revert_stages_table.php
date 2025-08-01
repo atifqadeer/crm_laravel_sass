@@ -18,7 +18,7 @@ class CreateRevertStagesTable extends Migration
             $table->foreignId('applicant_id')->constrained()->onDelete('cascade');
             $table->foreignId('sale_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('notes', 255)->nullable();
+            $table->longText('notes')->nullable();
             $table->string('stage', 100);  // stage as a tinyint (boolean or small number)
 
             $table->timestamp('created_at')->useCurrent();

@@ -181,7 +181,7 @@ class CommunicationController extends Controller
                     $query->where('sent_emails.sent_to', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('sent_emails.sent_from', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('sent_emails.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sent_emails.cc_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('sent_emails.cc_emails', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('sent_emails.subject', 'LIKE', "%{$searchTerm}%");
                 });
             }

@@ -17,7 +17,7 @@ class CreateNotesForRangeApplicantsTable extends Migration
             $table->bigIncrements('id');
             $table->string('range_uid', 255)->nullable()->default(null);
             $table->unsignedBigInteger('applicants_pivot_sales_id');
-            $table->string('reason', 255);
+            $table->longText('reason');
             $table->tinyInteger('status')->default(1);
             
             $table->timestamp('created_at')->useCurrent();

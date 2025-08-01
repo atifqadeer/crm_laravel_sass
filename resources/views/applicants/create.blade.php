@@ -79,7 +79,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                     <option value="">Choose Gender</option>
                                     <option value="m" {{ old('gender' == 'm' ? 'selected':'') }}>Male</option>
                                     <option value="f" {{ old('gender' == 'f' ? 'selected':'') }}>Female</option>
-                                    <option value="f" {{ old('gender' == 'u' ? 'selected':'') }} selected>Unknown</option>
+                                    <option value="u" {{ old('gender' == 'u' ? 'selected':'') }} selected>Unknown</option>
                                 </select>
                                 <div class="invalid-feedback">Please provide gender</div>
                             </div>

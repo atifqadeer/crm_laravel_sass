@@ -14,11 +14,11 @@ class HeadOfficeObserver
     public function created(Office $headOffice): void
     {
         // Create the audit log entry
-        $headOffice->audits()->create([
-            "user_id" => Auth::id(),
-            "data" => $headOffice->toJson(),
-            "message" => "Head Office '{$headOffice->office_name}' has been created successfully at {$headOffice->created_at}",
-        ]);
+        // $headOffice->audits()->create([
+        //     "user_id" => Auth::id(),
+        //     "data" => $headOffice->toJson(),
+        //     "message" => "Head Office '{$headOffice->office_name}' has been created successfully at {$headOffice->created_at}",
+        // ]);
     }
 
     /**

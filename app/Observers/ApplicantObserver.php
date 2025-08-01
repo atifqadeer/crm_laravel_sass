@@ -14,11 +14,11 @@ class ApplicantObserver
     public function created(Applicant $applicant): void
     {
         // Create the audit log entry
-        $applicant->audits()->create([
-            "user_id" => Auth::id(),
-            "data" => $applicant->toJson(),
-            "message" => "Applicant '{$applicant->applicant_name}' has been created successfully at {$applicant->created_at}",
-        ]);
+        // $applicant->audits()->create([
+        //     "user_id" => Auth::id(),
+        //     "data" => $applicant->toJson(),
+        //     "message" => "Applicant '{$applicant->applicant_name}' has been created successfully at {$applicant->created_at}",
+        // ]);
     }
 
     /**
@@ -35,9 +35,6 @@ class ApplicantObserver
         if (empty($columns)) {
             return; // No real changes
         }
-
-        // Check the dirty columns
-        $columns = $applicant->getDirty();
 
         $applicant['changes_made'] = $columns;  // You may want to use a model method to store changes
 

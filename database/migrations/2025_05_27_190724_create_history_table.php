@@ -20,7 +20,7 @@ class CreateHistoryTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('sale_id');
             $table->string('stage', 50);
-            $table->string('sub_stage', 50);
+            $table->string('sub_stage', 255);
             $table->boolean('status')->default(1);
             
             $table->timestamp('created_at')->useCurrent();

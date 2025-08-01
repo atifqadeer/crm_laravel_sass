@@ -11,7 +11,7 @@ class CreateSentEmailsTable extends Migration
             $table->bigIncrements('id');
 
             // Foreign keys
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('applicant_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('sale_id')->nullable()->constrained()->onDelete('set null');
 

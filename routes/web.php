@@ -21,6 +21,7 @@ use App\Http\Controllers\QualityController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\FreePBXController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImportController;
 use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 use App\Http\Middleware\IPAddress;
 
@@ -85,8 +86,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     ->name('getApplicantNoNursingHomeNotes');
     Route::get('getApplicanCallbackNotes', [ApplicantController::class, 'getApplicanCallbackNotes'])
     ->name('getApplicanCallbackNotes');
-    Route::post('applicants/import', [ApplicantController::class, 'import'])->name('applicants.import');
-
 
     Route::group(['prefix' => 'postcode-finder'], function () {
         Route::get('', [PostcodeController::class, 'index'])->name('postcode-finder.index');
@@ -102,7 +101,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
     Route::get('officesExport', [HeadOfficeController::class, 'export'])->name('officesExport');
-    Route::post('offices/import', [HeadOfficeController::class, 'import'])->name('offices.import');
     Route::get('getHeadOffices', [HeadOfficeController::class, 'getHeadOffices'])->name('getHeadOffices');
     Route::post('storeHeadOfficeShortNotes', [HeadOfficeController::class, 'storeHeadOfficeShortNotes'])->name('storeHeadOfficeShortNotes');
     Route::get('getModuleContacts', [HeadOfficeController::class, 'getModuleContacts'])->name('getModuleContacts');
@@ -116,7 +114,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
     Route::get('unitsExport', [UnitController::class, 'export'])->name('unitsExport');
-    Route::post('units/import', [UnitController::class, 'import'])->name('units.import');
     Route::get('getUnits', [UnitController::class, 'getUnits'])->name('getUnits');
     Route::post('storeUnitShortNotes', [UnitController::class, 'storeUnitShortNotes'])->name('storeUnitShortNotes');
 
@@ -207,10 +204,33 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('activity-logs', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
     });
     Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
-    Route::post('users/import', [UserController::class, 'import'])->name('users.import');
     Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
     Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
-    
+
+    Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
+    Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
+    Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
+    Route::post('offices/import', [ImportController::class, 'officesImport'])->name('offices.import');
+    Route::post('units/import', [ImportController::class, 'unitsImport'])->name('units.import');
+    Route::post('sales/import', [ImportController::class, 'salesImport'])->name('sales.import');
+    Route::post('applicant-message/import', [ImportController::class, 'messagesImport'])->name('messages.import');
+    Route::post('applicant-notes/import', [ImportController::class, 'applicantNotesImport'])->name('applicantNotes.import');
+    Route::post('applicant-pivot-sales/import', [ImportController::class, 'applicantPivotSaleImport'])->name('applicantPivotSale.import');
+    Route::post('notes-pivot-sales/import', [ImportController::class, 'notesRangeForPivotSaleImport'])->name('notesRangeForPivotSale.import');
+    Route::post('audits/import', [ImportController::class, 'auditsImport'])->name('audits.import');
+    Route::post('crm-notes/import', [ImportController::class, 'crmNotesImport'])->name('crmNotes.import');
+    Route::post('crm-rejected-cv/import', [ImportController::class, 'crmRejectedCvImport'])->name('crmRejectedCv.import');
+    Route::post('cv-notes/import', [ImportController::class, 'cvNotesImport'])->name('cvNotes.import');
+    Route::post('history-data/import', [ImportController::class, 'historyImport'])->name('history.import');//
+    Route::post('interview/import', [ImportController::class, 'interviewImport'])->name('interview.import');
+    Route::post('ipAddress/import', [ImportController::class, 'ipAddressImport'])->name('ipAddress.import');
+    Route::post('module-notes-data/import', [ImportController::class, 'moduleNotesImport'])->name('moduleNotes.import');
+    Route::post('quality-notes/import', [ImportController::class, 'qualityNotesImport'])->name('qualityNotes.import');
+    Route::post('regions/import', [ImportController::class, 'regionsImport'])->name('regions.import');
+    Route::post('revert-stage/import', [ImportController::class, 'revertStageImport'])->name('revertStage.import');
+    Route::post('sale-documents/import', [ImportController::class, 'saleDocumentsImport'])->name('saleDocuments.import');
+    Route::post('sale-notes/import', [ImportController::class, 'saleNotesImport'])->name('saleNotes.import');
+    Route::post('sent-emails-data/import', [ImportController::class, 'sentEmailDataImport'])->name('sentEmailData.import');
 
     Route::group(['prefix' => 'reports'], function () {
         Route::get('users-login-report', [UserController::class, 'userLogin'])->name('reports.usersLoginReport');

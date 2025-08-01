@@ -12,6 +12,7 @@ class Sale extends Model
 
     protected $table = 'sales';
     protected $fillable = [
+        'id',
         'sale_uid',
         'user_id',
         'office_id',
@@ -34,6 +35,8 @@ class Sale extends Model
         'status',
         'is_on_hold',
         'is_re_open',
+        'created_at',
+        'updated_at'
     ];
 
     public function getFormattedPostcodeAttribute()
@@ -68,10 +71,10 @@ class Sale extends Model
     {
         return $this->hasMany(SaleDocument::class);
     }
-    public function audits()
-    {
-        return $this->morphMany(Audit::class, 'auditable');
-    }
+    // public function audits()
+    // {
+    //     return $this->morphMany(Audit::class, 'auditable');
+    // }
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -80,11 +83,11 @@ class Sale extends Model
     {
         return $this->hasMany(CvNote::class, 'sale_id', 'id')->where('status', 1);
     }
-    public function updated_by_audits()
-    {
-        return $this->morphMany(Audit::class, 'auditable')->with('user')
-            ->where('message', 'like', '%has been updated%');
-    }
+    // public function updated_by_audits()
+    // {
+    //     return $this->morphMany(Audit::class, 'auditable')->with('user')
+    //         ->where('message', 'like', '%has been updated%');
+    // }
     public function created_by_audit()
     {
         return $this->morphOne(Audit::class, 'auditable')->with('user')

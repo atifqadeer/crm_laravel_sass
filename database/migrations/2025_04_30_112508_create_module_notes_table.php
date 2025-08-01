@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedBigInteger('module_noteable_id'); // bigint(20)
             $table->string('module_noteable_type', 50); // varchar(50)
 
-            $table->text('details');
+            $table->longText('details');
             $table->tinyInteger('status')->default(1); // tinyint(1) with default 1
 
             $table->timestamp('created_at')->useCurrent();

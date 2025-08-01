@@ -9,17 +9,20 @@ class Message extends Model
 {
     protected $table = 'messages';
     protected $fillable=[
-      'time',
-      'date',
-      'is_read',
-      'is_sent',
-      'message',
-      'status',
-      'phone_number',
-      'msg_id',
-      'user_id',
-      'module_id',
-      'module_type'
+        'id',
+        'msg_id',
+        'module_id',
+        'module_type',
+        'user_id',
+        'message',
+        'phone_number',
+        'date',
+        'time',
+        'status',
+        'is_sent',
+        'is_read',
+        'created_at',
+        'updated_at'
     ];
     protected $appends = ['FormattedTime'];
 

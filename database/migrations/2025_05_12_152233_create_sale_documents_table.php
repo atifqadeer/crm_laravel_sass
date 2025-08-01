@@ -11,6 +11,7 @@ class CreateSaleDocumentsTable extends Migration
         Schema::create('sale_documents', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('sale_id');
+            $table->unsignedBigInteger('user_id');
             $table->string('document_name', 255);
             $table->string('document_path', 255);
             $table->string('document_size', 10)->nullable()->default(null);
@@ -21,9 +22,11 @@ class CreateSaleDocumentsTable extends Migration
 
             // Foreign key constraints
             $table->foreign('sale_id')->references('id')->on('sales');
+            $table->foreign('user_id')->references('id')->on('users');
 
             // Optional indexes for better performance
             $table->index('sale_id');
+            $table->index('user_id');
         });
     }
 

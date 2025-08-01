@@ -8,10 +8,13 @@ class ApplicantPivotSale extends Model
 {
     protected $table = 'applicants_pivot_sales';
     protected $fillable = [
+        'id',
         'pivot_uid',
         'applicant_id',
         'sale_id',
-        'is_interested'
+        'is_interested',
+        'created_at',
+        'updated_at'
     ];
 
     public function applicant()

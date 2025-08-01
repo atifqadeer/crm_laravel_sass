@@ -8,13 +8,16 @@ class CrmNote extends Model
 {
     protected $table = 'crm_notes';
     protected $fillable = [
+        'id',
         'crm_notes_uid',
         'user_id',
         'applicant_id',
         'sale_id',
         'details',
         'moved_tab_to',
-        'status'
+        'status',
+        'created_at',
+        'updated_at'
     ];
 
     public function getFormattedCreatedAtAttribute()

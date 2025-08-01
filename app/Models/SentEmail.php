@@ -8,6 +8,7 @@ class SentEmail extends Model
 {
     protected $table = 'sent_emails';
     protected $fillable = [
+        'id',
         'user_id',
         'applicant_id',
         'sale_id',
@@ -18,6 +19,8 @@ class SentEmail extends Model
         'subject',
         'title',
         'template',
-        'status'
+        'status',
+        'created_at',
+        'updated_at'
     ];
 }

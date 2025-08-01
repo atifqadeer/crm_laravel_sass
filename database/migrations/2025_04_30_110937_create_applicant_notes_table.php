@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('applicant_id')->constrained('applicants');
             
-            $table->string('details', 255);
+            $table->longText('details');
             $table->string('moved_tab_to', 50)->nullable();
             $table->tinyInteger('status')->default(1);
             

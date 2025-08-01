@@ -8,12 +8,15 @@ class ApplicantNote extends Model
 {
     protected $table = 'applicant_notes';
     protected $fillable = [
-        'applicant_id',
+        'id',
         'note_uid',
         'user_id',
+        'applicant_id',
         'details',
         'moved_tab_to',
-        'status'
+        'status',
+        'created_at',
+        'updated_at'
     ];
 
     public function applicant()

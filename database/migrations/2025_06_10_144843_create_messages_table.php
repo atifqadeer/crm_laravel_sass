@@ -27,7 +27,7 @@ return new class extends Migration
                   ->constrained('users')
                   ->nullOnDelete();
                   
-            $table->string('message', 255);
+            $table->text('message');
             $table->string('phone_number', 50);
             
             $table->date('date');

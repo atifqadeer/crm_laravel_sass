@@ -16,7 +16,7 @@ class CreateSaleNotesTable extends Migration
             $table->string('sales_notes_uid')->nullable();
             $table->unsignedBigInteger('sale_id');
             $table->unsignedBigInteger('user_id');
-            $table->text('sale_note');
+            $table->longText('sale_note');
             $table->tinyInteger('status')->default(1);
 
             $table->timestamp('created_at')->useCurrent();

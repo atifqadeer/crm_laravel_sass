@@ -482,6 +482,14 @@
                                    <span class="nav-text">Settings</span>
                               </a>
                          </li>
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('import.index')}}">
+                                   <span class="nav-icon">
+                                        <i class="ri-upload-line"></i>
+                                   </span>
+                                   <span class="nav-text">Import</span>
+                              </a>
+                         </li>
                          <!-- end settings Menu -->
                     @endcanany
                @endcanany

@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Settings', 'subTitle' => 'Home'])
+@extends('layouts.vertical', ['title' => 'Settings', 'subTitle' => 'Administrator'])
 
 @section('style')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
