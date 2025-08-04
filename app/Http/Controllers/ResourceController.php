@@ -1896,7 +1896,6 @@ class ResourceController extends Controller
         $dateRangeFilter = $request->input('date_range_filter', ''); // Default is empty (no filter)
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
-
         $model = Applicant::query()->select([
                 'applicants.*',
                 'job_titles.name as job_title_name',
@@ -1927,7 +1926,7 @@ class ResourceController extends Controller
             ->leftJoin(DB::raw("(
                     SELECT module_noteable_id, MAX(created_at) as latest_note_created
                     FROM module_notes
-                    WHERE module_noteable_type = 'Horsefly\\\Applicant'
+                    WHERE module_noteable_type = 'Horsefly\\Applicant'
                     GROUP BY module_noteable_id
                 ) as latest_module_note"), 'applicants.id', '=', 'latest_module_note.module_noteable_id')
             ->where(function ($query) {
@@ -2287,11 +2286,11 @@ class ResourceController extends Controller
                         $color_class = 'bg-info';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
+                            if ($value->status == 1) {
                                 $status_value = 'sent';
                                 $color_class = 'bg-success';
                                 break;
-                            } elseif ($value->status == 'disable') {
+                            } elseif ($value->status == 0) {
                                 $status_value = 'reject';
                                 $color_class = 'bg-danger';
                             }
@@ -2365,6 +2364,33 @@ class ResourceController extends Controller
 
                         return $html;
                 })
+                // ->setRowClass(function ($applicant) {
+                //     $row_class = '';
+
+                //     // First check nursing home experience status
+                //     if (isset($applicant->have_nursing_home_experience) && $applicant->have_nursing_home_experience == 0) {
+                //         $row_class = 'have-no-nursing-home-exp';  // Specific class for no experience
+                //     }elseif (isset($applicant->have_nursing_home_experience) && $applicant->have_nursing_home_experience == 1) {
+                //         $row_class = 'have-nursing-home-exp';  // Specific class for no experience
+                //     } else {
+                //         if ($applicant->paid_status == 'close') {
+                //             $row_class = 'class_dark';
+                //         } elseif ($applicant->is_no_job == true) {
+                //             $row_class = 'class_noJob';
+                //         } else {
+                //             /*** $applicant->paid_status == 'open' || $applicant->paid_status == 'pending' */
+                //             foreach ($applicant->cv_notes as $key => $value) {
+                //                 if ($value->status == 1) {
+                //                     $row_class = 'class_success';
+                //                     break;
+                //                 } elseif ($value->status == 0) {
+                //                     $row_class = 'class_danger';
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     return $row_class;
+                // })
                 ->rawColumns(['checkbox', 'applicant_email', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }

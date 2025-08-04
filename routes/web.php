@@ -189,10 +189,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [CommunicationController::class, 'Messagesindex'])->name('messages.index');
         Route::get('write-message', [CommunicationController::class, 'writeMessageindex'])->name('messages.write');
     });
-    Route::post('/messages/{applicantId}', [CommunicationController::class, 'getMessages'])->name('messages.get');
-    Route::post('/messages/send', [CommunicationController::class, 'sendMessage'])->name('messages.send');
+    Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
+
+    Route::post('getChatBoxMessages', [CommunicationController::class, 'getChatBoxMessages'])->name('getChatBoxMessages');
+    Route::post('sendChatBoxMsg', [CommunicationController::class, 'sendChatBoxMsg'])->name('sendChatBoxMsg');
     Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
-    Route::get('message_receive', [CommunicationController::class, 'messageReceive']);
+    Route::get('getUserChats', [CommunicationController::class, 'getUserChats'])->name('getUserChats');
 
     Route::group(['prefix' => 'users'], function () {
         Route::get('', [UserController::class, 'index'])->name('users.list');

@@ -17,6 +17,7 @@ use Illuminate\Validation\ValidationException;
 use Exception;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
+use Horsefly\User;
 use Horsefly\SentEmail;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
@@ -431,50 +432,88 @@ class CommunicationController extends Controller
     }
 
     /*************************************** */
-    public function getMessages($applicantId)
+    public function getChatBoxMessages(Request $request)
     {
-        $messages = Message::where('module_id', $applicantId)
-            ->where('module_type', 'Horsefly\Applicant')
-            ->with(['user', 'applicant'])
-            ->orderBy('date', 'asc')
-            ->orderBy('time', 'asc')
-            ->get();
+        try {
+            // Validate input
+            $request->validate([
+                'recipient_id' => 'required',
+                'recipient_type' => 'required|in:applicant,user',
+            ]);
 
-        return response()->json([
-            'messages' => $messages->map(function ($message) {
-                return [
-                    'id' => $message->id,
-                    'msg_id' => $message->msg_id,
-                    'user_id' => $message->user_id,
-                    'user_name' => $message->user ? $message->user->name : 'Unknown',
-                    'message' => $message->message,
-                    'phone_number' => $message->phone_number,
-                    'date' => $message->date,
-                    'time' => $message->time,
-                    'status' => $message->status,
-                    'is_sent' => $message->is_sent,
-                    'is_read' => $message->is_read,
-                    'is_sender' => $message->user_id == Auth::id(),
-                    'created_at' => date('H:i', strtotime($message->time)),
-                ];
-            }),
-            'applicant' => Applicant::findOrFail($applicantId),
-        ]);
+            $recipientId = $request->input('recipient_id');
+            $recipientType = $request->input('recipient_type');
+            $moduleType = $recipientType === 'applicant' ? 'Horsefly\Applicant' : 'Horsefly\User';
+            $recipient_id = '';
+            $recipient_name = '';
+            // Fetch recipient
+            if($moduleType == Applicant::class){
+                $recipient = Applicant::class::findOrFail($recipientId);
+                $recipient_id = $recipient->id ?? '';
+                $recipient_name = $recipient->applicant_name ?? '';
+            }else{
+                $recipient = User::class::findOrFail($recipientId);
+                $recipient_id = $recipient->id ?? '';
+                $recipient_name = $recipient->name ?? '';
+            }
+
+            Message::where('module_id', $recipientId)
+                ->where('module_type', $moduleType)->update(['is_read' => 1]);
+
+            // Fetch messages
+            $messages = Message::where('module_id', $recipientId)
+                ->where('module_type', $moduleType)
+                ->with('user') // Load only the user relationship
+                ->orderBy('created_at', 'asc') // Use created_at instead of date/time
+                ->get()
+                ->map(function ($message) {
+                    return [
+                        'message' => $message->message,
+                        'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
+                        'is_sender' => $message->user_id == Auth::id(),
+                        'user_name' => $message->user ? $message->user->name : 'Unknown',
+                        'is_read' => $message->is_read ?? 0,
+                        'is_sent' => $message->is_sent ?? 0,
+                        'phone_number' => $message->phone_number,
+                        'status' => $message->status == 'outgoing' ? 'Sent' : 'Received',
+                    ];
+                });
+
+            return response()->json([
+                'recipient' => [
+                    'id' => $recipient_id,
+                    'name' => $recipient_name,
+                ],
+                'messages' => $messages,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getChatBoxMessages: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while fetching messages'], 500);
+        }
     }
-    public function sendMessage(Request $request)
+    public function sendChatBoxMsg(Request $request)
     {
         $request->validate([
-            'applicant_id' => 'required|exists:applicants,id',
+            'recipient_id' => 'required',
+            'recipient_type' => 'required',
+            'recipient_phone' => 'required|string|max:50',
             'message' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:50',
         ]);
 
+        if($request->recipient_type == 'user')
+        {
+            $recipient_type = 'Horsefly\User';
+        }else{
+            $recipient_type = 'Horsefly\Applicant';
+        }
+
         $message = new Message();
-        $message->applicant_id = $request->applicant_id;
+        $message->module_id = $request->recipient_id;
+        $message->module_type = $recipient_type;
         $message->user_id = Auth::id();
         $message->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
         $message->message = $request->message;
-        $message->phone_number = $request->phone_number;
+        $message->phone_number = $request->recipient_phone;
         $message->date = now()->toDateString();
         $message->time = now()->toTimeString();
         $message->status = 'outgoing';
@@ -486,7 +525,7 @@ class CommunicationController extends Controller
             'user_id' => $message->user_id,
             'user_name' => Auth::user()->name,
             'message' => $message->message,
-            'phone_number' => $message->phone_number,
+            'phone_number' => $message->recipient_phone,
             'date' => $message->date,
             'time' => $message->time,
             'status' => $message->status,
@@ -499,36 +538,31 @@ class CommunicationController extends Controller
     public function getApplicantsForMessage()
     {
         $applicants = Applicant::with(['messages' => function ($query) {
-            $query->where('user_id', Auth::id())
-                  ->orWhereIn('phone_number', function ($subQuery) {
-                      $subQuery->select('phone_number')
-                               ->from('messages')
-                               ->where('user_id', Auth::id());
-                  })
-                  ->latest()
-                  ->first();
-        }])->get();
+            $query->latest()->take(1); // Get only the latest message
+        }])
+        ->withCount(['messages as unread_count' => function ($query) {
+            $query->where('module_type', 'Horsefly\Applicant')
+                ->where('is_read', 0);
+        }])
+        ->take(50)
+        ->get()
+        ->map(function ($applicant) {
+            $lastMessage = $applicant->messages->first();
 
-        return response()->json(
-            $applicants->map(function ($applicant) {
-                $lastMessage = $applicant->messages->first();
-                return [
-                    'id' => $applicant->id,
-                    'name' => $applicant->name,
-                    'last_message' => $lastMessage ? [
-                        'message' => $lastMessage->message,
-                        'time' => $lastMessage->time,
-                        'is_sent' => $lastMessage->is_sent,
-                        'is_read' => $lastMessage->is_read,
-                        'unread_count' => Message::where('module_id', $applicant->id)
-                            ->where('module_type', 'Horsefly\Applicant')
-                            ->where('is_read', 0)
-                            ->where('user_id', '!=', Auth::id())
-                            ->count(),
-                    ] : null,
-                ];
-            })
-        );
+            return [
+                'id' => $applicant->id,
+                'name' => $applicant->applicant_name,
+                'last_message' => $lastMessage ? [
+                    'message' => Str::limit($lastMessage->message, 50),
+                    'time' => Carbon::parse($lastMessage->time)->format('h:i A'),
+                    'is_sent' => $lastMessage->is_sent ?? 0,
+                    'is_read' => $lastMessage->is_read ?? 0,
+                    'unread_count' => $applicant->unread_count,
+                ] : null,
+            ];
+        });
+
+        return response()->json($applicants);
     }
     public function messageReceive(Request $request)
     {
@@ -574,6 +608,51 @@ class CommunicationController extends Controller
             }
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to save message: ' . $e->getMessage()], 500);
+        }
+    }
+    public function getUserChats()
+    {
+        try {
+            // Get the authenticated user's ID
+            $currentUserId = Auth::id();
+
+            // Fetch users excluding the current user
+            $users = User::where('id', '!=', $currentUserId)
+                ->select('id', 'name')
+                ->get()
+                ->map(function ($user) use ($currentUserId) {
+                    // Get the last message for this user (sent or received by the current user)
+                    $lastMessage = Message::where(function ($query) use ($user, $currentUserId) {
+                        $query->where('user_id', $currentUserId)
+                            ->where('module_type', 'Horsefly\Applicant');
+                    })->orWhere(function ($query) use ($user, $currentUserId) {
+                        $query->where('user_id', $currentUserId)
+                            ->where('module_type', 'Horsefly\Applicant');
+                    })->orderBy('created_at', 'desc')
+                    ->first();
+
+                    // Get unread message count for this user
+                    $unreadCount = Message::where('user_id', $currentUserId)
+                        ->where('module_type', 'Horsefly\Applicant')
+                        ->where('is_read', false)
+                        ->count();
+
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'last_message' => $lastMessage ? [
+                            'message' => $lastMessage->message,
+                            'time' => $lastMessage->created_at->format('Y-m-d H:i:s'), // Adjust format as needed
+                            'unread_count' => $unreadCount,
+                        ] : null,
+                    ];
+                });
+
+            return response()->json($users);
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error('Error fetching users for messages: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch users'], 500);
         }
     }
 }

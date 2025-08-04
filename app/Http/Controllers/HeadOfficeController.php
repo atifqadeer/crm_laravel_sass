@@ -18,7 +18,7 @@ use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\ActionObserver;
 use Carbon\Carbon;
-use League\Csv\Reader;
+use Illuminate\Support\Facades\Cache;
 
 class HeadOfficeController extends Controller
 {
@@ -170,165 +170,167 @@ class HeadOfficeController extends Controller
     }
     public function getHeadOffices(Request $request)
     {
-        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
+        $statusFilter = $request->input('status_filter', '');
 
-        $model = Office::query()->with('contact');
+        // Cache key for query results
+        $cacheKey = 'head_offices_' . md5($statusFilter . '_' . $request->input('search.value', '') . '_' . $request->input('order.0.column', '') . '_' . $request->input('order.0.dir', 'asc'));
 
-        // Filter by status if it's not empty
-        switch($statusFilter){
-            case 'active':
-                $model->where('offices.status', 1);
-                break;
-            case 'inactive':
-                $model->where('offices.status', 0);
-                break;
+        // Query builder with minimal selected columns
+        $model = Office::query()
+            ->with(['contact' => function ($query) {
+                $query->select('id', 'contactable_id', 'contactable_type', 'contact_name', 'contact_phone', 'contact_landline', 'contact_email');
+            }])
+            ->leftJoin('contacts', function ($join) {
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                     ->where('contacts.contactable_type', '=', 'Horsefly\\Office');
+            })
+            ->select(
+                'offices.id',
+                'offices.office_name',
+                'offices.office_postcode',
+                'offices.office_type',
+                'offices.office_notes',
+                'offices.status',
+                'offices.created_at',
+                'offices.updated_at',
+                'contacts.contact_name',
+                'contacts.contact_phone',
+                'contacts.contact_landline',
+                'contacts.contact_email'
+            ); // Ensure unique offices when joining contacts
+
+        // Apply status filter
+        if (!empty($statusFilter)) {
+            $model->where('offices.status', $statusFilter === 'active' ? 1 : 0);
         }
 
+        // Search logic with full-text index support
         if ($request->has('search.value')) {
-            $searchTerm = strtolower($request->input('search.value'));
+            $searchTerm = $request->input('search.value');
 
             $model->where(function ($query) use ($searchTerm) {
-                $like = '%' . $searchTerm . '%';
+                if (!empty($searchTerm)) {
+                    // Use full-text search for offices table if index exists
+                    $query->whereFullText(['offices.office_name', 'offices.office_postcode', 'offices.office_type', 'offices.office_notes'], $searchTerm);
+                }
 
-                $query->whereRaw('LOWER(office_name) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(office_postcode) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(office_type) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(office_notes) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(created_at) LIKE ?', [$like]);
+                // Search contact fields
+                $query->orWhereHas('contact', function ($q) use ($searchTerm) {
+                    $like = '%' . $searchTerm . '%';
+                    $q->whereRaw('LOWER(contact_name) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(contact_email) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(contact_phone) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(contact_landline) LIKE ?', [$like]);
+                });
             });
         }
 
         // Sorting logic
         if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderColumn = $request->input("columns.$orderColumnIndex.data");
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-
-            // Default case for valid columns
-            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
+            if ($orderColumn === 'contact') {
+                $model->orderBy('contacts.contact_name', $orderDirection);
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
+                $model->orderBy($column, $orderDirection);
+            } else {
                 $model->orderBy('offices.created_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
             $model->orderBy('offices.created_at', 'desc');
         }
 
         if ($request->ajax()) {
-            return DataTables::eloquent($model)
-                ->addIndexColumn() // This will automatically add a serial number to the rows
-                ->addColumn('office_name', function ($office) {
-                    return $office->formatted_office_name; // Using accessor
-                })
-                ->addColumn('office_postcode', function ($office) {
-                    return $office->formatted_postcode; // Using accessor
-                })
-                ->addColumn('office_type', function ($office) {
-                    return ucwords(str_replace('_',' ',$office->office_type)); // Using accessor
-                })
-                ->addColumn('contact_email', function ($office) {
-                    $contact = $office->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $email = [];
-                        foreach ($contact as $c) {
-                            $email[] = $c->contact_email ? e($c->contact_email) : '-';
+            // Cache the query result for 5 minutes
+            $dataTable = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($model) {
+                return DataTables::eloquent($model)
+                    ->addIndexColumn()
+                    ->addColumn('office_name', function ($office) {
+                        return $office->formatted_office_name;
+                    })
+                    ->addColumn('office_postcode', function ($office) {
+                        return $office->formatted_postcode;
+                    })
+                    ->addColumn('office_type', function ($office) {
+                        return ucwords(str_replace('_', ' ', $office->office_type));
+                    })
+                    ->addColumn('contact_email', function ($office) {
+                        $contacts = $office->contact; // morphMany relationship
+                        if ($contacts && $contacts->count() > 0) {
+                            $emails = $contacts->pluck('contact_email')->filter()->map(function ($email) {
+                                return e($email);
+                            })->toArray();
+                            return $emails ? implode('<br>', $emails) : '-';
                         }
-                        return implode('<br>', $email);
-                    }
-                    return '-';
-                })
-                ->addColumn('contact_landline', function ($office) {
-                    $contact = $office->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $landline = [];
-                        foreach ($contact as $c) {
-                            $landline[] = $c->contact_landline ? e($c->contact_landline) : '-';
+                        return '-';
+                    })
+                    ->addColumn('contact_landline', function ($office) {
+                        $contacts = $office->contact;
+                        if ($contacts && $contacts->count() > 0) {
+                            $landlines = $contacts->pluck('contact_landline')->filter()->map(function ($landline) {
+                                return e($landline);
+                            })->toArray();
+                            return $landlines ? implode('<br>', $landlines) : '-';
                         }
-                        return implode('<br>', $landline);
-                    }
-                    return '-';
-                })
-                ->addColumn('contact_phone', function ($office) {
-                    $contact = $office->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $phones = [];
-                        foreach ($contact as $c) {
-                            $phones[] = $c->contact_phone ? e($c->contact_phone) : '-';
+                        return '-';
+                    })
+                    ->addColumn('contact_phone', function ($office) {
+                        $contacts = $office->contact;
+                        if ($contacts && $contacts->count() > 0) {
+                            $phones = $contacts->pluck('contact_phone')->filter()->map(function ($phone) {
+                                return e($phone);
+                            })->toArray();
+                            return $phones ? implode('<br>', $phones) : '-';
                         }
-                        return implode('<br>', $phones);
-                    }
-                    return '-';
-                })
-                ->addColumn('updated_at', function ($office) {
-                    return $office->formatted_updated_at; // Using accessor
-                })
-                ->addColumn('created_at', function ($office) {
-                    return $office->formatted_created_at; // Using accessor
-                })
-                ->addColumn('office_notes', function ($office) {
-                    $notes = nl2br(htmlspecialchars($office->office_notes, ENT_QUOTES, 'UTF-8'));
-                    return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">
-                            ' . $notes . '
-                        </a>
-                    ';
-                })
-                ->addColumn('status', function ($office) {
-                    $status = '';
-                    if ($office->status) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } else {
-                        $status = '<span class="badge bg-secondary">Inactive</span>';
-                    }
+                        return '-';
+                    })
+                    ->addColumn('updated_at', function ($office) {
+                        return $office->formatted_updated_at;
+                    })
+                    ->addColumn('created_at', function ($office) {
+                        return $office->formatted_created_at;
+                    })
+                    ->addColumn('office_notes', function ($office) {
+                        $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
+                        return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
+                    })
+                    ->addColumn('status', function ($office) {
+                        return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    })
+                    ->addColumn('action', function ($office) {
+                        $postcode = $office->formatted_postcode;
+                        $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                        $html = '<div class="btn-group dropstart">
+                                    <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                    </button>
+                                    <ul class="dropdown-menu">';
+                        if (Gate::allows('office-edit')) {
+                            $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
+                        }
+                        if (Gate::allows('office-view')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
+                        }
+                        if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
+                            $html .= '<li><hr class="dropdown-divider"></li>';
+                        }
+                        if (Gate::allows('office-view-notes-history')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
+                        }
+                        if (Gate::allows('office-view-manager-details')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
+                        }
+                        $html .= '</ul></div>';
+                        return $html;
+                    })
+                    ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
+                    ->toJson();
+            });
 
-                    return $status;
-                })
-                ->addColumn('action', function ($office) {
-                    $postcode = $office->formatted_postcode;
-                    $status = '';
-
-                    if ($office->status) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } else {
-                        $status = '<span class="badge bg-secondary">Inactive</span>';
-                    }
-                    $html = '';
-                    $html .= '<div class="btn-group dropstart">
-                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-                                </button>
-                                <ul class="dropdown-menu">';
-                                if(Gate::allows('office-edit')){
-                                    $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
-                                }
-                                if(Gate::allows('office-view')){
-                                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                        ' . (int)$office->id . ',
-                                        \'' . addslashes(htmlspecialchars($office->office_name)) . '\',
-                                        \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                        \'' . addslashes(htmlspecialchars($status)) . '\'
-                                    )">View</a></li>';
-                                }
-                                if(Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')){
-                                    $html .= '<li><hr class="dropdown-divider"></li>';
-                                }
-                                if(Gate::allows('office-view-notes-history')){   
-                                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
-                                }
-                                if(Gate::allows('office-view-manager-details')){
-                                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
-                                }
-                               $html .= '</ul>
-                            </div>';
-
-                    return $html;
-                })
-
-                ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action', 'website'])
-                ->make(true);
+            return $dataTable;
         }
     }
     public function storeHeadOfficeShortNotes(Request $request)

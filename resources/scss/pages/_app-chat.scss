@@ -124,6 +124,34 @@
             border-radius: 10px 0 10px 10px;
         }
     }
+
+    .even {
+        .chat-conversation-text {
+            float: left !important;
+            text-align: left !important;
+            // margin-right: 10px;
+            clear: both;
+
+            //    .chat-ctext-wrap {
+            //         &::before {
+            //             left: auto !important;
+            //             right: 0;
+            //             transform: translateX(100%) !important;
+            //             border-color: transparent;
+            //             border-left-color: $primary;
+            //             border-top-color: $primary;
+            //             right: 3px;
+            //             left: auto;
+            //         }
+            //     }
+        }
+
+        .chat-ctext-wrap {
+            background-color: $secondary;
+            color: $white;
+            border-radius: 0px 10px 10px 10px;
+        }
+    }
 }
 
 .chat-user-status-box {

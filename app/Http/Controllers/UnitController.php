@@ -175,12 +175,20 @@ class UnitController extends Controller
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
         ini_set('max_execution_time', 300); // 300 seconds = 5 minutes
+
         $model = Unit::query()
             ->select([
                 'units.*',
-                'offices.office_name as office_name'
+                'offices.office_name as office_name',
+                'contacts.contact_name',
+                'contacts.contact_phone',
+                'contacts.contact_landline'
             ])
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
+            ->leftJoin('contacts', function($join) {
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                    ->where('contacts.contactable_type', '=', 'Horsefly\\Unit');
+            })
             ->with(['office','contact']);
 
         // Filter by status if it's not empty
@@ -225,8 +233,7 @@ class UnitController extends Controller
             // Default case for valid columns
             if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $model->orderBy($orderColumn, $orderDirection);
-            }
-            else {
+            }else {
                 $model->orderBy('units.created_at', 'desc');
             }
         } else {

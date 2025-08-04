@@ -260,7 +260,6 @@ class ApplicantController extends Controller
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilters = $request->input('title_filters', ''); // Default is empty (no filter)
-        $searchTerm = $request->input('search', ''); // This will get the search query
 
         $model = Applicant::query()
             ->select([

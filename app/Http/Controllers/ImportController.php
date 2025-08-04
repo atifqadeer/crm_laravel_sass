@@ -4460,7 +4460,7 @@ class ImportController extends Controller
                 // Prepare row for insertion
                 $processedRow = [
                     'id' => $row['id'] ?? null,
-                    'ip_address' => md5($row['ip_address']),
+                    'ip_address' => $row['ip_address'],
                     'user_id' => $row['user_id'] ?? null,
                     'mac_address' => $row['mac_address'],
                     'device_type' => $row['device_type'],
