@@ -44,7 +44,7 @@ require __DIR__ . '/auth.php';
 // });
 
 Route::get('logout', [LoginController::class, 'logout'])->name('logout');
-
+Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('', [RoutingController::class, 'index'])->name('root');
     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
@@ -189,12 +189,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [CommunicationController::class, 'Messagesindex'])->name('messages.index');
         Route::get('write-message', [CommunicationController::class, 'writeMessageindex'])->name('messages.write');
     });
-    Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
 
-    Route::post('getChatBoxMessages', [CommunicationController::class, 'getChatBoxMessages'])->name('getChatBoxMessages');
-    Route::post('sendChatBoxMsg', [CommunicationController::class, 'sendChatBoxMsg'])->name('sendChatBoxMsg');
-    Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
+    Route::post('/getChatBoxMessages', [CommunicationController::class, 'getChatBoxMessages'])->name('getChatBoxMessages');
+    Route::post('/sendChatBoxMsg', [CommunicationController::class, 'sendChatBoxMsg'])->name('sendChatBoxMsg');
     Route::get('getUserChats', [CommunicationController::class, 'getUserChats'])->name('getUserChats');
+    Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
 
     Route::group(['prefix' => 'users'], function () {
         Route::get('', [UserController::class, 'index'])->name('users.list');

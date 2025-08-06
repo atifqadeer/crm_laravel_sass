@@ -63,14 +63,6 @@
                               </div>
                          </div>
                          </div>
-
-                    <!-- Theme Setting -->
-                    {{-- <div class="topbar-item d-none d-md-flex">
-                         <button type="button" class="topbar-button" id="theme-settings-btn" data-bs-toggle="offcanvas" data-bs-target="#theme-settings-offcanvas" aria-controls="theme-settings-offcanvas">
-                              <i class="ri-settings-4-line fs-24"></i>
-                         </button>
-                    </div> --}}
-
                     <!-- User -->
                     <div class="dropdown topbar-item">
                          <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

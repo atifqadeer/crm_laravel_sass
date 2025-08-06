@@ -81,9 +81,42 @@ class CreateApplicantsTable extends Migration
             // Optional indexes for better performance
             $table->index('user_id');
             $table->index('applicant_name');
+            $table->index('applicant_email');
             $table->index('applicant_postcode');
+            $table->index('applicant_phone');
+            $table->index('applicant_landline');
             $table->index('job_category_id');
+            $table->index('job_source_id');
             $table->index('job_title_id');
+            $table->index('job_type');
+            $table->index('is_blocked');
+            $table->index('is_temp_not_interested');
+            $table->index('is_callback_enable');
+            $table->index('is_no_job');
+            $table->index('is_no_response');
+            $table->index('is_in_nurse_home');
+            $table->index('is_circuit_busy');
+            $table->index('is_cv_in_quality');
+            $table->index('is_cv_in_quality_clear');
+            $table->index('is_cv_sent');
+            $table->index('is_cv_reject');
+            $table->index('is_interview_confirm');
+            $table->index('is_interview_attend');
+            $table->index('is_in_crm_request');
+            $table->index('is_in_crm_reject');
+            $table->index('is_in_crm_request_reject');
+            $table->index('is_crm_request_confirm');
+            $table->index('is_crm_interview_attended');
+            $table->index('is_in_crm_start_date');
+            $table->index('is_in_crm_invoice');
+            $table->index('is_in_crm_invoice_sent');
+            $table->index('is_in_crm_start_date_hold');
+            $table->index('is_in_crm_paid');
+            $table->index('is_in_crm_dispute');
+            $table->index('is_job_within_radius');
+            $table->index('have_nursing_home_experience');
+            $table->index('paid_status');
+            $table->index('status');
         });
     }
 

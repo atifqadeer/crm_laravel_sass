@@ -1,16 +1,16 @@
 @extends('layouts.auth', ['title' => 'Login'])
 
 @section('content')
-    <div class="col-xl-5">
+    <div class="col-xl-5 col-lg-5 col-md-8">
         <div class="card auth-card">
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-dark">
-                        <img src="/images/logo-dark.png" height="60" alt="logo dark">
+                    <a href="{{ route('dashboard.index')}}" class="logo-dark">
+                        <img src="{{ asset('images/logo-dark.png') }}" height="60" alt="crm">
                     </a>
 
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-light">
-                        <img src="/images/logo-light.png" height="60" alt="logo light">
+                    <a href="{{ route('dashboard.index')}}" class="logo-light">
+                        <img src="{{ asset('images/logo-light.png') }}" height="60" alt="crm">
                     </a>
                 </div>
 

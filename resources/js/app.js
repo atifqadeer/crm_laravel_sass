@@ -770,15 +770,164 @@ function fetchNotifications() {
                     });
                 }
             } else {
-                console.error('Error fetching notifications:', response.error);
+                console.log('Error fetching notifications:', response.error);
             }
         },
         error: function (xhr) {
-            console.error('AJAX error:', xhr.responseText);
+            console.log('AJAX error:', xhr.responseText);
         }
     });
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize offcanvas
+    const chatOffcanvas = new bootstrap.Offcanvas(document.getElementById('chatOffcanvas'));
 
+    // Handle chat button clicks
+    $(document).on('click', '.chat-btn', function() {
+        const applicantId = $(this).data('applicant-id');
+        const phone = $(this).data('phone');
+        const name = $(this).data('name');
 
+        // Set chat header info
+        $('#chatUserName').text(name);
+        $('#chatUserPhone').text(phone);
+        $('#applicantId').val(applicantId);
 
+        // Load messages
+        loadMessages(applicantId, phone);
+
+        // Show offcanvas
+        chatOffcanvas.show();
+    });
+
+    // Function to load messages
+    function loadMessages(applicantId, phone) {
+        $('#messagesContainer').html(`
+                <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                </div>
+                </div>
+            `);
+
+        // Get CSRF token from meta tag
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+        $.ajax({
+            url: '/getChatBoxMessages',
+            method: 'POST',
+            data: {
+                recipient_id: applicantId,
+                recipient_type: 'applicant',
+                 _token: csrfToken,  // Use the token from meta tag
+                list_ref : 'applicant'
+            },
+            success: function(response) {
+                const messages = response.messages;
+                const recipient = response.recipient;
+                let messagesHtml = '';
+                let recipientPhone = recipient.phone ?? '';
+
+                if (!messages || messages.length === 0) {
+                    // Show "No Chat Available" message if no messages
+                    $('#noChatMessage').show();
+                } else {
+                    messages.forEach(message => {
+                        const isSender = message.is_sender;
+                        const avatar = isSender ? '/images/users/avatar-1.jpg' : `/images/users/avatar-${recipient.id % 10 || 1}.jpg`;
+                        const sendStatusIcon = message.is_sent ? '<i class="ri-check-double-line fs-18 text-info"></i>' : '<i class="ri-check-line fs-18 text-muted"></i>';
+                        const receiveStatusIcon = message.is_read ? '<i class="ri-check-double-line fs-18 text-info"></i>' : '<i class="ri-check-line fs-18 text-muted"></i>';
+                    
+                        if (message.status == 'Sent') {
+                            messagesHtml += `
+                                <li class="d-flex gap-2 clearfix justify-content-end odd">
+                                    <div class="chat-conversation-text ms-0">
+                                        <div>
+                                            <p class="mb-2 fs-12"><span class="text-dark fw-medium me-1">${isSender ? 'You' : message.user_name}</span> ${message.created_at}</p>
+                                        </div>
+                                        <div class="d-flex justify-content-end">
+                                            <div class="incoming">
+                                                <p>${message.message}</p>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center"><small class="text-muted">${message.phone_number || ''} | ${message.status}</small>&nbsp;&nbsp;<span>${sendStatusIcon}</span></div>
+                                    </div>
+                                    <div class="chat-avatar text-center">
+                                        <img src="${avatar}" alt="" class="avatar rounded-circle">
+                                    </div>
+                                </li>
+                            `;
+                        } else {
+                            messagesHtml += `
+                                <li class="d-flex gap-2 clearfix justify-content-start even">
+                                    <div class="chat-avatar text-center">
+                                        <img src="/images/users/avatar-${recipient.id % 10 || 1}.jpg" alt="avatar-${recipient.id % 10 || 1}" class="avatar rounded-circle">
+                                    </div>
+                                    <div class="chat-conversation-text ms-0">
+                                        <div>
+                                            <p class="mb-2 fs-12"><span class="text-dark fw-medium me-1"><em class="text-muted">Replied</em> </span> ${message.created_at}</p>
+                                        </div>
+                                        <div class="d-flex align-items-start">
+                                            <div class="outgoing">
+                                                <p>${message.message}</p>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center"><small class="text-muted">${message.phone_number || ''} | Seen </small>&nbsp;&nbsp;<span>${receiveStatusIcon}</span></div>
+                                    </div>
+                                </li>
+                            `;
+                        }
+                    });
+                }
+
+                $('#messagesContainer').html(messagesHtml);
+            },
+            error: function(xhr) {
+                console.error('Error loading messages:', xhr);
+            }
+        });
+    }
+
+    // Handle message submission
+    $('#messageForm').submit(function(e) {
+        e.preventDefault();
+
+        const message = $('#messageInput').val().trim();
+        const applicantId = $('#applicantId').val();
+        const phone = $('#chatUserPhone').text();
+
+        // Get CSRF token from meta tag
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+        if (message) {
+            $.ajax({
+                url: "/sendChatBoxMsg",
+                method: 'POST',
+                data: {
+                    recipient_id: applicantId,
+                    recipient_type: 'applicant',
+                    recipient_phone: phone,
+                    message: message,
+                    _token: csrfToken,  // Use the token from meta tag
+                },
+                success: function(response) {
+                    $('#messageInput').val('');
+                    // Add the sent message to the chat
+                    const newMessageHtml = `
+        <div class="d-flex justify-content-end mb-3">
+            <div class="bg-primary text-white p-3 rounded-3" style="max-width: 75%">
+            <p class="mb-1">${message}</p>
+            <small class="d-block text-end text-white-50">Just now</small>
+            </div>
+        </div>
+        `;
+                    $('#messagesContainer').append(newMessageHtml);
+                    $('#messagesContainer').scrollTop($('#messagesContainer')[0]
+                        .scrollHeight);
+                    $('#noMessages').hide();
+                }
+            });
+        }
+    });
+});

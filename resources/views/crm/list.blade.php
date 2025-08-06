@@ -519,29 +519,6 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 table.ajax.reload();
             });
 
-            // Pagination functions
-            window.movePage = function(direction) {
-                const api = $('#applicants_table').DataTable();
-                if (direction === 'previous') {
-                    api.page('previous').draw('page');
-                } else if (direction === 'next') {
-                    api.page('next').draw('page');
-                } else {
-                    api.page(direction - 1).draw('page');
-                }
-            };
-
-            window.goToPage = function(maxPages) {
-                const pageInput = $('#goToPageInput').val();
-                const page = parseInt(pageInput);
-                const errorElement = $('#goToPageError');
-                if (isNaN(page) || page < 1 || page > maxPages) {
-                    errorElement.text(`Please enter a valid page number between 1 and ${maxPages}.`);
-                    return;
-                }
-                errorElement.text('');
-                $('#applicants_table').DataTable().page(page - 1).draw('page');
-            };
         });
 
         function goToPage(totalPages) {

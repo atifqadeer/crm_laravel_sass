@@ -50,9 +50,6 @@ class CrmController extends Controller
         $searchTerm = $request->input('search', ''); // This will get the search query
         $tabFilter = $request->input('tab_filter', ''); // Default is empty (no filter)
 
-        // Cache key for query results
-        $cacheKey = 'applicants_' . md5($tabFilter . '_' . $request->input('search.value', '') . '_' . $request->input('order.0.column', '') . '_' . $request->input('order.0.dir', 'asc'));
-
         // Base query with minimal selected columns and eager loading
         $model = Applicant::query()
             ->with([
@@ -82,7 +79,7 @@ class CrmController extends Controller
             ->where('applicants.status', 1)
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id');
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')->take(20);
 
         // Subquery to get the latest cv_note per applicant and sale
         $model->leftJoinSub(
@@ -429,6 +426,7 @@ class CrmController extends Controller
         if ($titleFilter) {
             $model->where('applicants.job_title_id', $titleFilter);
         }
+        $model->take(20);
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
@@ -486,7 +484,7 @@ class CrmController extends Controller
                                         <h5 class="modal-title" id="' . $modalId . '-label">Applicant\'s CRM Notes</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body">
+                                    <div class="modal-body modal-body-text-left">
                                         <p><strong>Name:</strong> ' . $name . '</p>
                                         <p><strong>Postcode:</strong> ' . $postcode . '</p>
                                         <p><strong>Date:</strong> ' . $notes_created_at . '</p>
@@ -536,8 +534,8 @@ class CrmController extends Controller
                         . '\'' . htmlspecialchars($applicant->office_name, ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars($applicant->unit_name, ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars($applicant->sale_postcode, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->job_category_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->job_title_name, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars($applicant->job_category, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars($applicant->job_title, ENT_QUOTES) . '\','
                         . '\'' . $escapedStatus . '\','
                         . '\'' . htmlspecialchars($applicant->timing, ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars($applicant->sale_experience, ENT_QUOTES) . '\','
@@ -605,6 +603,9 @@ class CrmController extends Controller
                                         onclick="crmRevertInQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
                                         Revert In Quality
                                     </a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
                                 if (!empty($applicant_msgs)) {
                                     if ($applicant_msgs['is_read'] == 0) {
@@ -797,7 +798,9 @@ class CrmController extends Controller
                                             onclick="crmMoveToconfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Move to Confirmation
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" >Send SMS</a></li>';
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
@@ -868,7 +871,9 @@ class CrmController extends Controller
                                             onclick="crmMoveToconfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Move to Confirmation
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" >Send SMS</a></li>';
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
@@ -931,7 +936,9 @@ class CrmController extends Controller
                                             onclick="crmRevertConfirmationToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Request
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                     ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
@@ -958,7 +965,9 @@ class CrmController extends Controller
                                             onclick="crmRevertRebookToConfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Confirmation
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                     ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
@@ -985,7 +994,9 @@ class CrmController extends Controller
                                             onclick="crmRevertAttendToRebookModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Rebook
                                         </a></li>
-                                        <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                         <li><a class="dropdown-item" href="#" >Send Email</a></li>
                                     ';
 
@@ -1061,7 +1072,9 @@ class CrmController extends Controller
                                         onclick="crmRevertStartDateToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Attended
                                     </a></li>
-                                    <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -1116,7 +1129,9 @@ class CrmController extends Controller
                                         onclick="crmRevertInvoiceToStartDateModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Start Date
                                     </a></li>
-                                    <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -1135,7 +1150,9 @@ class CrmController extends Controller
                                         onclick="crmInvoiceSentAcceptCVModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Accept CV
                                     </a></li>
-                                    <li><a class="dropdown-item" href="#" >Send SMS</a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -1213,6 +1230,9 @@ class CrmController extends Controller
                                     onclick="crmRevertInQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
                                     Revert In Quality
                                 </a></li>
+                                <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                             ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
