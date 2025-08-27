@@ -52,6 +52,9 @@ use Horsefly\SaleDocument;
 use Horsefly\SaleNote;
 use Illuminate\Support\Str;
 use League\Csv\Reader;
+use Spatie\PdfToText\Pdf;
+use PhpOffice\PhpWord\IOFactory;
+
 
 class ImportController extends Controller
 {
@@ -5776,5 +5779,124 @@ class ImportController extends Controller
         $sample = fread($handle, 4096);
         fclose($handle);
         return mb_detect_encoding($sample, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true) ?: 'UTF-8';
+    }
+    public function applicantsProcessFile(Request $request)
+    {
+      
+        // $request->validate([
+        //     'file' => 'required|file|mimes:pdf,doc,docx|max:2048',
+        //     'keywords' => 'required|string',
+        // ]);
+
+        $file = $request->file('process_file');
+        $keywords = explode(',', $request->input('keywords'));
+        $keywords = array_map('trim', $keywords);
+
+        // Extract text based on file type
+        $text = $this->extractText($file);
+        return $text;
+        if (!$text) {
+            return back()->with('error', 'Unable to extract text from the file.');
+        }
+
+        // Search for keywords
+        $foundKeywords = $this->searchKeywords($text, $keywords);
+
+        // Save to database
+        $document = $this->saveToDatabase($file, $foundKeywords);
+
+        return back()->with('success', 'File processed successfully. Found keywords: ' . implode(', ', $foundKeywords));
+    }
+
+    private function extractText($file)
+    {
+        $extension = $file->getClientOriginalExtension();
+        $path = $file->store('documents');
+
+        if ($extension === 'pdf') {
+            // try {
+                return Pdf::getText(Storage::path($path), 'C:\poppler\bin\pdftotext.exe'); // Adjust path if needed
+            // } catch (\Exception $e) {
+            //     Log::error('PDF text extraction failed: ' . $e->getMessage());
+            //     return null;
+            // }
+        } elseif (in_array($extension, ['doc', 'docx'])) {
+            try {
+                $phpWord = IOFactory::load(Storage::path($path));
+                $text = '';
+                foreach ($phpWord->getSections() as $section) {
+                    foreach ($section->getElements() as $element) {
+                        if (method_exists($element, 'getText')) {
+                            // $text .= $element->getText() . ' ';
+                        }
+                    }
+                }
+                return $text;
+            } catch (\Exception $e) {
+                Log::error('DOC text extraction failed: ' . $e->getMessage());
+                return null;
+            }
+        } elseif ($extension === 'csv') {
+            try {
+                $csv = Reader::createFromPath(Storage::path($path), 'r');
+                $csv->setHeaderOffset(0); // Assumes first row is header, adjust if needed
+                $text = '';
+                foreach ($csv->getRecords() as $record) {
+                    $text .= implode(' ', $record) . ' ';
+                }
+                return $text;
+            } catch (\Exception $e) {
+                Log::error('CSV text extraction failed: ' . $e->getMessage());
+                return null;
+            }
+        } elseif (in_array($extension, ['xlsx', 'xls'])) {
+            try {
+                $sheets = Excel::toArray([], Storage::path($path));
+                $text = '';
+                foreach ($sheets as $sheet) {
+                    foreach ($sheet as $row) {
+                        $text .= implode(' ', array_filter($row, fn($cell) => !is_null($cell))) . ' ';
+                    }
+                }
+                return $text;
+            } catch (\Exception $e) {
+                Log::error('Excel text extraction failed: ' . $e->getMessage());
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private function searchKeywords($text, $keywords)
+    {
+        $keywords = ['skills','qualification','education','name','contact','phone','experience','postcode'];
+        $found = [];
+        foreach ($keywords as $keyword) {
+            if (stripos($text, $keyword) !== false) {
+                $found[] = $keyword;
+            }
+        }
+        return $found;
+    }
+
+    private function saveToDatabase($file, $foundKeywords)
+    {
+        return Applicant::create([
+            'job_category_id',
+            'job_type',
+            'job_title_id',
+            'job_source_id',
+            'applicant_name',
+            'applicant_email',
+            'applicant_email_secondary',
+            'applicant_postcode',
+            'applicant_phone',
+            'applicant_landline',
+            'applicant_experience',
+            'applicant_notes',
+            'have_nursing_home_experience',
+            'gender',
+        ]);
     }
 }

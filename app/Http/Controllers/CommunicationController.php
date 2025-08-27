@@ -467,7 +467,7 @@ class CommunicationController extends Controller
                 $applicant_msg = new Message();
                 $applicant_msg->module_id = $data['module_id'];
                 $applicant_msg->module_type = $data['module_type'];
-                $applicant_msg->user_id = $lastMessage ? $lastMessage->user_id : '1';
+                $applicant_msg->user_id = $lastMessage ? $lastMessage->user_id : null;
                 $applicant_msg->msg_id = $msg_id;
                 $applicant_msg->message = $message;
                 $applicant_msg->phone_number = $phoneNumber;

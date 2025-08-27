@@ -955,37 +955,46 @@ class ApplicantController extends Controller
     }
     public function uploadCv(Request $request)
     {
-        // Validate the request (check if a file was uploaded)
+        // Validate the request
         $request->validate([
-            'resume' => 'required|file|mimes:pdf,doc,docx|max:10240', // Validating file type and size
-            'applicant_id' => 'required|integer|exists:applicants,id', // Validate applicant ID
+            'resume' => 'required|file|mimes:pdf,doc,docx|max:10240',
+            'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
-        // Get the file from the request
+        // Get file and applicant data
         $file = $request->file('resume');
-
-        // Get the applicant ID from the request
         $applicantId = $request->input('applicant_id');
+        
+        // Generate directory structure based on current date
+        $year = now()->year;
+        $month = now()->month;
+        $day = now()->day;
+        
+        // Create storage path
+        $directory = "uploads/resume/{$year}/{$month}/{$day}";
+        $storagePath = "public/{$directory}";
+        
+        // Ensure directory exists
+        if (!Storage::exists($storagePath)) {
+            Storage::makeDirectory($storagePath, 0755, true); // recursive creation
+        }
+        
+        // Generate unique filename
+        $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
 
-        // Define the file path where you want to store the resume
-        // You can optionally use a unique name for the file, or keep the original name
-        $fileName = time() . $applicantId . '.' . $file->getClientOriginalExtension();
-
-        // Store the file in public/storage/uploads directory
-        // The 'public' disk will store the file in the 'public/storage' directory
-        $filePath = $file->storeAs('uploads/resume/', $fileName, 'public');
-
-        // Retrieve the applicant
+        // Store the file
+        $filePath = $file->storeAs($directory, $fileName, 'public');
+        
+        // Update applicant record
         $applicant = Applicant::findOrFail($applicantId);
-
-        // If applicant_cv is null, save the file path in 'applicant_cv'
         $applicant->update(['applicant_cv' => $filePath]);
-
-        // Return success response
+        
+        // Return response
         return response()->json([
             'success' => true,
             'message' => 'File uploaded successfully',
-            'file_path' => $filePath, // You can return the path or save it in the database if needed
+            'file_path' => $filePath,
+            'file_url' => Storage::url($filePath), // Full public URL
         ]);
     }
     public function crmuploadCv(Request $request)
@@ -1002,13 +1011,25 @@ class ApplicantController extends Controller
         // Get the applicant ID from the request
         $applicantId = $request->input('applicant_id');
 
-        // Define the file path where you want to store the resume
-        // You can optionally use a unique name for the file, or keep the original name
-        $fileName = time() . $applicantId . '.' . $file->getClientOriginalExtension();
+        // Generate directory structure based on current date
+        $year = now()->year;
+        $month = now()->month;
+        $day = now()->day;
+        
+        // Create storage path
+        $directory = "uploads/resume/{$year}/{$month}/{$day}";
+        $storagePath = "public/{$directory}";
+        
+        // Ensure directory exists
+        if (!Storage::exists($storagePath)) {
+            Storage::makeDirectory($storagePath, 0755, true); // recursive creation
+        }
 
-        // Store the file in public/storage/uploads directory
+        // You can optionally use a unique name for the file, or keep the original name
+        $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
+
         // The 'public' disk will store the file in the 'public/storage' directory
-        $filePath = $file->storeAs('uploads/resume/', $fileName, 'public');
+        $filePath = $file->storeAs($directory, $fileName, 'public');
 
         // Retrieve the applicant
         $applicant = Applicant::findOrFail($applicantId);

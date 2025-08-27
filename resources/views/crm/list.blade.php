@@ -72,7 +72,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterTab">Sent CVs</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4" style="max-height: 400px; overflow-y: auto;">
                                     <a class="dropdown-item tab-filter" href="#">Sent CVs</a>
                                     <a class="dropdown-item tab-filter" href="#">Open CVs</a>
                                     <a class="dropdown-item tab-filter" href="#">Sent CVs (No Job)</a>
@@ -99,7 +99,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1" style="max-height: 400px; overflow-y: auto;">
                                     <a class="dropdown-item category-filter" href="#">All Category</a>
                                     @foreach($jobCategories as $category)
                                         <a class="dropdown-item category-filter" href="#" data-category-id="{{ $category->id }}">{{ $category->name }}</a>
@@ -112,7 +112,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2" style="max-height: 400px; overflow-y: auto;">
                                     <a class="dropdown-item title-filter" href="#">All Titles</a>
                                     @foreach($jobTitles as $title)
                                         <a class="dropdown-item title-filter" href="#" data-title-id="{{ $title->id }}">{{ $title->name }}</a>
@@ -249,277 +249,281 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         });
 
         $(document).ready(function() {
-            // Store filter values
-            var tabFilter = '';
-            var currentTypeFilter = '';
-            var currentCategoryFilter = '';
-            var currentTitleFilter = '';
+    // Store filter values
+    var tabFilter = '';
+    var currentTypeFilter = '';
+    var currentCategoryFilter = '';
+    var currentTitleFilter = '';
 
-            // Create loader row
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td>`;
-            $('#applicants_table tbody').append(loadingRow);
+    // Create loader row
+    const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </td></tr>`;
 
-            // Initialize DataTable
-            var table = $('#applicants_table').DataTable({
-                processing: false,
-                serverSide: true,
-                ajax: {
-                    url: '{{ route('getCrmApplicantsAjaxRequest') }}',
-                    type: 'GET',
-                    data: function(d) {
-                        d.tab_filter = tabFilter;
-                        d.type_filter = currentTypeFilter;
-                        d.category_filter = currentCategoryFilter;
-                        d.title_filter = currentTitleFilter;
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
+    // Function to show loader
+    function showLoader() {
+        $('#applicants_table tbody').empty().append(loadingRow);
+    }
+
+    // Initialize DataTable
+    var table = $('#applicants_table').DataTable({
+        processing: false,
+        serverSide: true,
+        ajax: {
+            url: '{{ route('getCrmApplicantsAjaxRequest') }}',
+            type: 'GET',
+            data: function(d) {
+                d.tab_filter = tabFilter;
+                d.type_filter = currentTypeFilter;
+                d.category_filter = currentCategoryFilter;
+                d.title_filter = currentTitleFilter;
+                if (d.search && d.search.value) {
+                    d.search.value = d.search.value.toString().trim();
+                }
+            },
+            beforeSend: function() {
+                showLoader(); // Show loader before AJAX request starts
+            },
+            error: function(xhr) {
+                console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+            }
+        },
+        columns: [
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+            { data: 'updated_at', name: 'applicants.updated_at' },
+            { data: 'user_name', name: 'users.name' },
+            { 
+                data: 'schedule_date', 
+                name: 'interviews.schedule_date', 
+                visible: tabFilter.toLowerCase() === 'confirmation',
+                createdCell: function(td, cellData, rowData, row, col) {
+                    if (cellData) {
+                        $(td).text(cellData); // Use moment.js if needed, e.g., moment(cellData).format('YYYY-MM-DD')
+                    }
+                }
+            },
+            { data: 'applicant_name', name: 'applicants.applicant_name' },
+            { data: 'applicant_email', name: 'applicants.applicant_email' },
+            { data: 'job_title', name: 'job_titles.name' },
+            { data: 'job_category', name: 'job_categories.name' },
+            { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
+            { data: 'job_details', name: 'job_details' },
+            { data: 'office_name', name: 'offices.office_name' },
+            { data: 'unit_name', name: 'units.unit_name' },
+            { data: 'sale_postcode', name: 'sales.sale_postcode' },
+            { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
+            { 
+                data: 'paid_status', 
+                name: 'applicants.paid_status', 
+                visible: tabFilter.toLowerCase() === 'paid',
+                createdCell: function(td, cellData, rowData, row, col) {
+                    if (cellData) {
+                        let badgeClass = 'bg-secondary';
+                        let label = cellData;
+                        if (cellData.toLowerCase() === 'open') {
+                            badgeClass = 'bg-success';
+                        } else if (cellData.toLowerCase() === 'pending') {
+                            badgeClass = 'bg-warning text-dark';
+                        } else if (cellData.toLowerCase() === 'close') {
+                            badgeClass = 'bg-dark';
                         }
-                    },
-                    error: function(xhr) {
-                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+                        $(td).html(`<span class="badge ${badgeClass}">${label}</span>`);
+                    } else {
+                        $(td).html('');
                     }
-                },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'updated_at', name: 'applicants.updated_at' },
-                    { data: 'user_name', name: 'users.name' },
-                    { 
-                        data: 'schedule_date', 
-                        name: 'interviews.schedule_date', 
-                        visible: tabFilter.toLowerCase() === 'confirmation',
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            if (cellData) {
-                                $(td).text(cellData); // Format with moment.js if needed, e.g., moment(cellData).format('YYYY-MM-DD')
-                            }
-                        }
-                    },
-                    { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'job_details', name: 'job_details' },
-                    { data: 'office_name', name: 'offices.office_name' },
-                    { data: 'unit_name', name: 'units.unit_name' },
-                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
-                    { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
-                    { 
-                        data: 'paid_status', 
-                        name: 'applicants.paid_status', 
-                        visible: tabFilter.toLowerCase() === 'paid',
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            // Show badge for paid_status
-                            if (cellData) {
-                                let badgeClass = 'bg-secondary';
-                                let label = cellData;
-                                if (cellData.toLowerCase() === 'open') {
-                                    badgeClass = 'bg-success';
-                                } else if (cellData.toLowerCase() === 'pending') {
-                                    badgeClass = 'bg-warning text-warning';
-                                } else if (cellData.toLowerCase() === 'close') {
-                                    badgeClass = 'bg-dark';
-                                }
-                                // toCapitalizeCase() is not a standard JS function, so this will fail unless defined elsewhere.
-                                // Use this instead:
-                                label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
-                                $(td).html(`<span class="badge ${badgeClass}">${label}</span>`);
-                            
-                            } else {
-                                $(td).html('');
-                            }
-                        }
-                    },
-                    { data: 'action', name: 'action', orderable: false, searchable: false }
-                ],
-                columnDefs: [
-                    {
-                        targets: 8, // job_details
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');
-                        }
-                    },
-                    {
-                        targets: 13, // notes_detail
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');
-                        }
-                    }
-                ],
-                rowId: function(data) {
-                    return 'row_' + data.id;
-                },
-                dom: 'flrtip',
-                drawCallback: function (settings) {
-                    const api = this.api();
-                    const pagination = $(api.table().container()).find('.dataTables_paginate');
-                    pagination.empty();
-
-                    const pageInfo = api.page.info();
-                    const currentPage = pageInfo.page + 1;
-                    const totalPages = pageInfo.pages;
-
-                    if (pageInfo.recordsTotal === 0) {
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
-                        return;
-                    }
-
-                    let paginationHtml = `
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination pagination-rounded mb-0">
-                                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                            <span aria-hidden="true">«</span>
-                                        </a>
-                                    </li>`;
-
-                    const visiblePages = 3;
-                    let start = Math.max(2, currentPage - 1);
-                    let end = Math.min(totalPages - 1, currentPage + 1);
-
-                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                        <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                    </li>`;
-
-                    if (start > 2) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                    }
-
-                    for (let i = start; i <= end; i++) {
-                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                        </li>`;
-                    }
-
-                    if (end < totalPages - 1) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                    }
-
-                    if (totalPages > 1) {
-                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                        </li>`;
-                    }
-
-                    paginationHtml += `
-                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                            <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                <span aria-hidden="true">»</span>
-                            </a>
-                        </li>
-                    </ul>
-                    </nav>
-                    <div class="d-flex align-items-center ms-3 text-primary">
-                        <span class="me-2">Go to page:</span>
-                        <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                            onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                    </div>
-                    <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                    </div>`;
-
-                    pagination.html(paginationHtml);
                 }
-            });
-
-            // Type filter handler
-            $('.type-filter').on('click', function () {
-                currentTypeFilter = $(this).text().toLowerCase();
-                const formattedText = currentTypeFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                $('#showFilterType').html(formattedText);
-                table.ajax.reload();
-            });
-
-            // Status filter handler
-            $('.tab-filter').on('click', function () {
-                tabFilter = $(this).text().toLowerCase();
-
-                const formattedText = tabFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                $('#showFilterTab').html(formattedText);
-
-                // Toggle schedule_date column visibility
-                table.column(3).visible(formattedText === 'Confirmation');
-                table.column(14).visible(formattedText === 'Paid');
-
-                if (formattedText === 'Paid') {
-                    $('#openToPaid').show();
-                } else {
-                    $('#openToPaid').hide();
+            },
+            { data: 'action', name: 'action', orderable: false, searchable: false }
+        ],
+        columnDefs: [
+            {
+                targets: [8, 9, 12, 15], // job_details, office_name, sale_postcode, notes_detail
+                createdCell: function (td, cellData, rowData, row, col) {
+                    $(td).css('text-align', 'center');
                 }
-                if (formattedText === 'Confirmation') {
-                    $('#schedule_date').show();
-                } else {
-                    $('#schedule_date').hide();
-                }
-                if (formattedText === 'Declined') {
-                    $('#declined_export_email').removeClass('d-none');
-                } else {
-                    $('#declined_export_email').addClass('d-none');
-                }
-                if (formattedText === 'Not Attended') {
-                    $('#not_attended_export_email').removeClass('d-none');
-                } else {
-                    $('#not_attended_export_email').addClass('d-none');
-                }
-                if (formattedText === 'Start Date Hold') {
-                    $('#start_date_hold_export_email').removeClass('d-none');
-                } else {
-                    $('#start_date_hold_export_email').addClass('d-none');
-                }
-                if (formattedText === 'Dispute') {
-                    $('#dispute_export_email').removeClass('d-none');
-                } else {
-                    $('#dispute_export_email').addClass('d-none');
-                }
-                if (formattedText === 'Paid') {
-                    $('#paid_export_email').removeClass('d-none');
-                    $('#paid_status').show();
-                } else {
-                    $('#paid_export_email').addClass('d-none');
-                    $('#paid_status').hide();
-                }
+            }
+        ],
+        rowId: function(data) {
+            return 'row_' + data.id;
+        },
+        dom: 'flrtip',
+        drawCallback: function(settings) {
+            const api = this.api();
+            const pagination = $(api.table().container()).find('.dataTables_paginate');
+            pagination.empty();
 
-                table.ajax.reload();
-            });
+            const pageInfo = api.page.info();
+            const currentPage = pageInfo.page + 1;
+            const totalPages = pageInfo.pages;
 
-            // Category filter handler
-            $('.category-filter').on('click', function () {
-                const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ?? '';
-                const formattedText = categoryName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                $('#showFilterCategory').html(formattedText);
-                table.ajax.reload();
-            });
+            if (pageInfo.recordsTotal === 0) {
+                $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                return;
+            }
 
-            // Title filter handler
-            $('.title-filter').on('click', function () {
-                const titleName = $(this).text().trim();
-                currentTitleFilter = $(this).data('title-id') ?? '';
-                const formattedText = titleName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                $('#showFilterTitle').html(formattedText);
-                table.ajax.reload();
-            });
+            let paginationHtml = `
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-rounded mb-0">
+                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                    <span aria-hidden="true">«</span>
+                                </a>
+                            </li>`;
 
-        });
+            const visiblePages = 3;
+            let start = Math.max(2, currentPage - 1);
+            let end = Math.min(totalPages - 1, currentPage + 1);
+
+            paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+            </li>`;
+
+            if (start > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+
+            for (let i = start; i <= end; i++) {
+                paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                </li>`;
+            }
+
+            if (end < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+
+            if (totalPages > 1) {
+                paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                </li>`;
+            }
+
+            paginationHtml += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                        <span aria-hidden="true">»</span>
+                    </a>
+                </li>
+            </ul>
+            </nav>
+            <div class="d-flex align-items-center ms-3 text-primary">
+                <span class="me-2">Go to page:</span>
+                <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                    onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+            </div>
+            <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+            </div>`;
+
+            pagination.html(paginationHtml);
+        }
+    });
+
+    // Type filter handler
+    $('.type-filter').on('click', function() {
+        currentTypeFilter = $(this).text().toLowerCase();
+        const formattedText = currentTypeFilter
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterType').html(formattedText);
+        showLoader();
+        table.ajax.reload();
+    });
+
+    // Status filter handler
+    $('.tab-filter').on('click', function() {
+        tabFilter = $(this).text().toLowerCase();
+        const formattedText = tabFilter
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterTab').html(formattedText);
+        showLoader();
+
+        // Toggle column visibility
+        table.column(3).visible(formattedText === 'Confirmation');
+        table.column(14).visible(formattedText === 'Paid');
+
+        // Toggle UI elements
+        $('#openToPaid').toggle(formattedText === 'Paid');
+        $('#schedule_date').toggle(formattedText === 'Confirmation');
+        $('#declined_export_email').toggleClass('d-none', formattedText !== 'Declined');
+        $('#not_attended_export_email').toggleClass('d-none', formattedText !== 'Not Attended');
+        $('#start_date_hold_export_email').toggleClass('d-none', formattedText !== 'Start Date Hold');
+        $('#dispute_export_email').toggleClass('d-none', formattedText !== 'Dispute');
+        $('#paid_export_email').toggleClass('d-none', formattedText !== 'Paid');
+        $('#paid_status').toggle(formattedText === 'Paid');
+
+        table.ajax.reload();
+    });
+
+    // Category filter handler
+    $('.category-filter').on('click', function() {
+        const categoryName = $(this).text().trim();
+        currentCategoryFilter = $(this).data('category-id') ?? '';
+        const formattedText = categoryName
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterCategory').html(formattedText);
+        showLoader();
+        table.ajax.reload();
+    });
+
+    // Title filter handler
+    $('.title-filter').on('click', function() {
+        const titleName = $(this).text().trim();
+        currentTitleFilter = $(this).data('title-id') ?? '';
+        const formattedText = titleName
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        $('#showFilterTitle').html(formattedText);
+        showLoader();
+        table.ajax.reload();
+    });
+
+    // Pagination functions
+    window.movePage = function(directionOrPage) {
+        const api = table;
+        const pageInfo = api.page.info();
+        let targetPage;
+
+        if (directionOrPage === 'previous') {
+            targetPage = pageInfo.page - 1;
+        } else if (directionOrPage === 'next') {
+            targetPage = pageInfo.page + 1;
+        } else {
+            targetPage = directionOrPage - 1;
+        }
+
+        if (targetPage >= 0 && targetPage < pageInfo.pages) {
+            showLoader();
+            api.page(targetPage).draw('page');
+        }
+    };
+
+    window.goToPage = function(maxPages) {
+        const pageInput = $('#goToPageInput').val();
+        const pageNumber = parseInt(pageInput, 10);
+
+        if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > maxPages) {
+            $('#goToPageError').text(`Please enter a valid page number between 1 and ${maxPages}.`);
+            return;
+        }
+
+        $('#goToPageError').text('');
+        showLoader();
+        table.page(pageNumber - 1).draw('page');
+    };
+});
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');

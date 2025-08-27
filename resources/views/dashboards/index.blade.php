@@ -463,6 +463,7 @@
                 table.page(page - 1).draw('page');  // Move to the selected page
             }
         }
+        
         function showDetailsModal(id, name, email, role, status) {
             const modalId = `showDetailsModal-${id}`;
             const modalSelector = `#${modalId}`;
@@ -509,6 +510,7 @@
                 `);
             }, 500); // optional loading delay
         }
+
         $(function () {
             const today = moment().format('YYYY-MM-DD');
 
@@ -557,6 +559,7 @@
                 $('#sales_table').DataTable().ajax.reload();
             });
         });
+
         function showStatisticsModal(id) {
             const modalId = 'showStatisticsModal-' + id;
             $('#' + modalId).remove(); // Remove existing modal
@@ -719,8 +722,7 @@
                 }
             });
         }
-    </script>
-    <script>
+
         function fetchWeeklySales() {
             fetch('/get-weekly-sales')
                 .then(response => response.json())

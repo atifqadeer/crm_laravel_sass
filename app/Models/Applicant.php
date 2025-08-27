@@ -221,7 +221,7 @@ class Applicant extends Model
     }
     public function cv_notes()
     {
-        return $this->hasMany(CVNote::class)->select('status', 'applicant_id', 'sale_id');
+        return $this->hasMany(CVNote::class, 'applicant_id', 'id');
     }
     public function pivotSales()
     {
@@ -250,6 +250,19 @@ class Applicant extends Model
     {
         return $this->hasMany(Message::class, 'module_id')
             ->where('module_type', 'Horsefly\\Applicant');
+    }
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where(function ($query) use ($searchTerm) {
+            $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
+                // ... Add other direct column searches here
+                ->orWhereHas('jobTitle', fn ($q) => $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%"))
+                ->orWhereHas('jobCategory', fn ($q) => $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%"))
+                ->orWhereHas('jobSource', fn ($q) => $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%"))
+                ->orWhereHas('user', fn ($q) => $q->where('users.name', 'LIKE', "%{$searchTerm}%"));
+        });
     }
 
 }

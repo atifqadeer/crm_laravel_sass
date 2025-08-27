@@ -211,6 +211,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
     Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
     Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
+    Route::post('applicants/process-file', [ImportController::class, 'applicantsProcessFile'])->name('process.file');
     Route::post('offices/import', [ImportController::class, 'officesImport'])->name('offices.import');
     Route::post('units/import', [ImportController::class, 'unitsImport'])->name('units.import');
     Route::post('sales/import', [ImportController::class, 'salesImport'])->name('sales.import');

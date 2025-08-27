@@ -800,6 +800,23 @@ document.addEventListener('DOMContentLoaded', function () {
         // Show offcanvas
         chatOffcanvas.show();
     });
+   
+    $(document).on('click', '.email-btn', function() {
+        const applicantId = $(this).data('applicant-id');
+        const email = $(this).data('email');
+        const name = $(this).data('name');
+
+        // Set chat header info
+        $('#chatUserName').text(name);
+        $('#chatUserEmail').text(email);
+        $('#applicantId').val(applicantId);
+
+        // Load messages
+        loadMessages(applicantId, phone);
+
+        // Show offcanvas
+        chatOffcanvas.show();
+    });
 
     // Function to load messages
     function loadMessages(applicantId, phone) {
@@ -862,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             messagesHtml += `
                                 <li class="d-flex gap-2 clearfix justify-content-start even">
                                     <div class="chat-avatar text-center">
-                                        <img src="/images/users/avatar-${recipient.id % 10 || 1}.jpg" alt="avatar-${recipient.id % 10 || 1}" class="avatar rounded-circle">
+                                        <img src="/images/users/avatar-${recipient.id % 5 || 1}.jpg" alt="avatar-${recipient.id % 5 || 1}" class="avatar rounded-circle">
                                     </div>
                                     <div class="chat-conversation-text ms-0">
                                         <div>
