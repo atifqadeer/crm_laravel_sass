@@ -112,6 +112,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
                                 </button>
+
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2" style="max-height: 400px; overflow-y: auto;">
                                     <a class="dropdown-item title-filter" href="#">All Titles</a>
                                     @foreach($jobTitles as $title)
@@ -2294,11 +2295,8 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                     }
                 });
 
-                $(`${formId} .savecrmConfirmationButton`).off('click').on('click', () => handleSubmit('confirm'));
+                $(`${formId} .savecrmMoveToconfirmationRequestButton`).off('click').on('click', () => handleSubmit('confirm'));
                 $(`${formId} .savecrmConfirmationSaveButton`).off('click').on('click', () => handleSubmit('save'));
-                $(`${formId} .savecrmConfirmationSendSMSButton`).off('click').on('click', () => {
-                    // Add SMS functionality here
-                });
 
                 $(modalId).off('hidden.bs.modal').on('hidden.bs.modal', () => {
                     $(formId)[0].reset();

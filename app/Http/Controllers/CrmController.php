@@ -1282,45 +1282,56 @@ class CrmController extends Controller
 
                 break;
             case 'paid':
-                $model->joinSub(
+                    $model->joinSub(
                         DB::table('crm_notes')
                             ->select('applicant_id', 'sale_id', 'details', 'created_at')
                             ->where('status', 1)
-                            ->whereIn('moved_tab_to', ["paid"])
-                            ->whereIn('id', fn ($subQuery) => 
+                            ->where('moved_tab_to', 'paid') // Simplified single value check
+                            ->whereIn('id', function ($subQuery) {
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
                                     ->where('status', 1)
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
                         'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                        function ($join) {
+                            $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                        }
                     )
                     ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
                     ->join('offices', 'sales.office_id', '=', 'offices.id')
                     ->join('units', 'sales.unit_id', '=', 'units.id')
                     ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_paid"])
-                            ->where("history.status", 1);
+                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                            ->where('history.sub_stage', 'crm_paid') // Simplified whereIn to single value
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
-                        $join->on('applicants.id', '=', 'interviews.applicant_id');
-                        $join->on('sales.id', '=', 'interviews.sale_id');
-                        $join->where('interviews.status', 1);
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
                     })
-                    ->leftJoin('cv_notes', fn ($join) => 
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id')
-                            ->where('cv_notes.status', 1)
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id') // Changed to leftJoin to handle NULL cv_notes
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
                         'offices.office_name as office_name',
-                        // sale
+                        // Sale fields
                         'sales.id as sale_id',
                         'sales.job_category_id as sale_category_id',
                         'sales.job_title_id as sale_title_id',
@@ -1336,20 +1347,19 @@ class CrmController extends Controller
                         'sales.position_type',
                         'sales.status as sale_status',
                         'sales.created_at as sale_posted_date',
-
-                        // units
+                        // Unit fields
                         'units.unit_name',
                         'units.unit_postcode',
                         'units.unit_website',
-
+                        // Interview fields
                         'interviews.schedule_time',
                         'interviews.schedule_date',
                         'interviews.status as interview_status',
-
+                        // User field
                         'users.name as user_name'
                     ]);
 
-                break;
+                    break;
             default:
                 $model->joinSub(
                         DB::table('quality_notes')
@@ -1460,8 +1470,8 @@ class CrmController extends Controller
         }
 
         // Search logic
-        $tabsWithInterviews = ['request', 'request (no job)', 'confirmation'];
-        $hasInterviewsJoin = in_array($tabFilter, $tabsWithInterviews);
+        // $tabsWithInterviews = ['request', 'request (no job)', 'confirmation'];
+        // $hasInterviewsJoin = in_array($tabFilter, $tabsWithInterviews);
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
@@ -1588,7 +1598,7 @@ class CrmController extends Controller
                     ';
                 })
                 ->addColumn('updated_at', function ($applicant) {
-                    return $applicant->formatted_updated_at; // Using accessor
+                    return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; // Using accessor
