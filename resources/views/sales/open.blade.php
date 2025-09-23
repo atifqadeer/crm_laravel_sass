@@ -10,12 +10,6 @@
 </style>
 @endsection
 @section('content')
-@php
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-$offices = \Horsefly\Office::where('status', 1)->orderBy('office_name','asc')->get();
-$users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
-@endphp
 <div class="row">
     <div class="col-lg-12">
         <div class="card">
@@ -46,27 +40,66 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                             </div>
                             <!-- Date flock filter -->
                             
+                            <!-- user Filter Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item user-filter" href="#">All Users</a>
-                                    @foreach($users as $user)
-                                        <a class="dropdown-item user-filter" href="#" data-user-id="{{ $user->id }}">{{ ucwords($user->name) }}</a>
-                                    @endforeach
+
+                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton5">
+                                    <!-- Search input -->
+                                    <input type="text" class="form-control mb-2" id="userSearchInput"
+                                        placeholder="Search user...">
+
+                                    <!-- Scrollable checkbox list -->
+                                    <div id="usersList">
+                                        <div class="form-check">
+                                            <input class="form-check-input user-filter" type="checkbox" value=""
+                                                id="all-Users" data-title-id="">
+                                            <label class="form-check-label" for="all-Users">All Users</label>
+                                        </div>
+
+                                        @foreach($users as $user)
+                                            <div class="form-check">
+                                                <input class="form-check-input user-filter" type="checkbox"
+                                                    value="{{ $user->id }}" id="user_{{ $user->id }}"
+                                                    data-user-id="{{ $user->id }}">
+                                                <label class="form-check-label"
+                                                    for="user_{{ $user->id }}">{{ ucwords($user->name) }}</label>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
-                             <!-- head office Filter Dropdown -->
+                            <!-- head office Filter Dropdown -->
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton6">
-                                    <a class="dropdown-item office-filter" href="#">All Head Office</a>
-                                    @foreach($offices as $office)
-                                        <a class="dropdown-item office-filter" href="#" data-office-id="{{ $office->id }}">{{ ucwords($office->office_name) }}</a>
-                                    @endforeach
+
+                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton6">
+                                    <!-- Search input -->
+                                    <input type="text" class="form-control mb-2" id="officeSearchInput"
+                                        placeholder="Search office...">
+
+                                    <!-- Scrollable checkbox list -->
+                                    <div id="officesList">
+                                        <div class="form-check">
+                                            <input class="form-check-input office-filter" type="checkbox" value=""
+                                                id="all-offices" data-title-id="">
+                                            <label class="form-check-label" for="all-offices">All Head Office</label>
+                                        </div>
+
+                                        @foreach($offices as $office)
+                                            <div class="form-check">
+                                                <input class="form-check-input office-filter" type="checkbox"
+                                                    value="{{ $office->id }}" id="office_{{ $office->id }}"
+                                                    data-office-id="{{ $office->id }}">
+                                                <label class="form-check-label"
+                                                    for="office_{{ $office->id }}">{{ ucwords($office->office_name) }}</label>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
                             <!-- Category Filter Dropdown -->
@@ -74,11 +107,30 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item category-filter" href="#">All Category</a>
-                                    @foreach($jobCategories as $category)
-                                        <a class="dropdown-item category-filter" href="#" data-category-id="{{ $category->id }}">{{ ucwords($category->name) }}</a>
-                                    @endforeach
+
+                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
+                                    <!-- Search input -->
+                                    <input type="text" class="form-control mb-2" id="categorySearchInput"
+                                        placeholder="Search category...">
+
+                                    <!-- Scrollable checkbox list -->
+                                    <div id="categoryList">
+                                        <div class="form-check">
+                                            <input class="form-check-input category-filter" type="checkbox" value=""
+                                                id="all-categories" data-title-id="">
+                                            <label class="form-check-label" for="all-categories">All Category</label>
+                                        </div>
+
+                                        @foreach($jobCategories as $category)
+                                            <div class="form-check">
+                                                <input class="form-check-input category-filter" type="checkbox"
+                                                    value="{{ $category->id }}" id="category_{{ $category->id }}"
+                                                    data-category-id="{{ $category->id }}">
+                                                <label class="form-check-label"
+                                                    for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
                             <!-- Type Filter Dropdown -->
@@ -92,16 +144,36 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                     <a class="dropdown-item type-filter" href="#">Regular</a>
                                 </div>
                             </div>
-                             <!-- Title Filter Dropdown -->
+                            <!-- Title Filter Dropdown -->
                             <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                    id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item title-filter" href="#">All Titles</a>
-                                    @foreach($jobTitles as $title)
-                                        <a class="dropdown-item title-filter" href="#" data-title-id="{{ $title->id }}">{{ strtoupper($title->name) }}</a>
-                                    @endforeach
+
+                                <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
+                                    style="min-width: 250px;">
+                                    <!-- Search input -->
+                                    <input type="text" class="form-control mb-2" id="titleSearchInput"
+                                        placeholder="Search titles...">
+
+                                    <!-- Scrollable checkbox list -->
+                                    <div id="titleList">
+                                        <div class="form-check">
+                                            <input class="form-check-input title-filter" type="checkbox" value=""
+                                                id="all-titles" data-title-id="">
+                                            <label class="form-check-label" for="all-titles">All Titles</label>
+                                        </div>
+                                        @foreach ($jobTitles as $title)
+                                            <div class="form-check">
+                                                <input class="form-check-input title-filter" type="checkbox"
+                                                    value="{{ $title->id }}" id="title_{{ $title->id }}"
+                                                    data-title-id="{{ $title->id }}">
+                                                <label class="form-check-label"
+                                                    for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
                              <!-- cv limit Filter Dropdown -->
@@ -174,23 +246,35 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
     
     <script>
         $(function() {
@@ -234,22 +318,23 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
             var currentTypeFilter = '';
             var currentDateRangeFilter = '';
             var currentDateFlockFilter = '';
-            var currentCategoryFilter = '';
-            var currentUserFilter = '';
-            var currentTitleFilter = '';
-            var currentOfficeFilter = '';
+            var currentCategoryFilters = [];
+            var currentUserFilters = [];
+            var currentTitleFilters = [];
+            var currentOfficeFilters = [];
             var currentCVLimitFilter = '';
 
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+             // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#sales_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#sales_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#sales_table').DataTable({
@@ -264,11 +349,18 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
                         d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
                         d.date_flock_filter = currentDateFlockFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
-                        d.office_filter = currentOfficeFilter;  // Send the current filter value as a parameter
-                        d.user_filter = currentUserFilter;  // Send the current filter value as a parameter
+                        d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
+                        d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
+                        d.office_filter = currentOfficeFilters;  // Send the current filter value as a parameter
+                        d.user_filter = currentUserFilters;  // Send the current filter value as a parameter
                         d.cv_limit_filter = currentCVLimitFilter;  // Send the current filter value as a parameter
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -422,19 +514,6 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 table.ajax.reload(); // Reload with updated status filter
             });
             // Status filter dropdown handler
-            $('.status-filter').on('click', function () {
-                currentFilter = $(this).text().toLowerCase();
-
-                // Capitalize each word
-                const formattedText = currentFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterStatus').html(formattedText);
-                table.ajax.reload(); // Reload with updated status filter
-            });
-            // Status filter dropdown handler
             $('.date-flock-filter').on('click', function () {
                 // Get the clicked text and convert to lowercase
                 currentDateFlockFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
@@ -455,65 +534,168 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 // Reload table (assuming it uses currentDateRangeFilter somehow)
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.category-filter').on('click', function () {
-                const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ?? ''; // nullish fallback for "All Category"
+            /*** Category filter handler ***/
+            $('.category-filter').on('click', function() {
+                const id = $(this).data('category-id');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentCategoryFilters = [];
+                    $('.category-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentCategoryFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.category-filter[data-category-id=""]').prop('checked', false);
+                    } else {
+                        currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
+                    }
+                }
 
-                const formattedText = categoryName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Update dropdown display text
+                const selectedLabels = $('.category-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
 
-                $('#showFilterCategory').html(formattedText); // Update displayed name
+                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
+                    ')' : 'All Categories');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.title-filter').on('click', function () {
-                const titleName = $(this).text().trim();
-                currentTitleFilter = $(this).data('title-id') ?? ''; // nullish fallback for "All Titles"
+            /*** Title Filter Handler ***/
+            $('.title-filter').on('change', function() {
+                const id = $(this).data('title-id');
 
-                const formattedText = titleName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentTitleFilters = [];
+                    $('.title-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentTitleFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.title-filter[data-title-id=""]').prop('checked', false);
+                    } else {
+                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
+                    }
+                }
 
-                $('#showFilterTitle').html(formattedText); // Update displayed name
+                // Update dropdown display text
+                const selectedLabels = $('.title-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
+
+                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
+                    ')' : 'All Titles');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.user-filter').on('click', function () {
-                const userName = $(this).text().trim();
-                currentUserFilter = $(this).data('user-id') ?? ''; // nullish fallback for "All Category"
+            /*** User Filter Handler ***/
+            $('.user-filter').on('change', function() {
+                const id = $(this).data('user-id');
 
-                const formattedText = userName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentUserFilters = [];
+                    $('.user-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentUserFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.user-filter[data-user-id=""]').prop('checked', false);
+                    } else {
+                        currentUserFilters = currentUserFilters.filter(x => x !== id);
+                    }
+                }
 
-                $('#showFilterUser').html(formattedText); // Update displayed name
+                // Update dropdown display text
+                const selectedLabels = $('.user-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
+
+                $('#showFilterUser').text(selectedLabels.length ? 'Selected Users (' + selectedLabels.length +
+                    ')' : 'All Users');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.office-filter').on('click', function () {
-                const officeName = $(this).text().trim();
-                currentOfficeFilter = $(this).data('office-id') ?? ''; // nullish fallback for "All Category"
+            /*** Office Filter Handler ***/
+            $('.office-filter').on('change', function() {
+                const id = $(this).data('office-id');
 
-                const formattedText = officeName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentOfficeFilters = [];
+                    $('.office-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentOfficeFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.office-filter[data-office-id=""]').prop('checked', false);
+                    } else {
+                        currentOfficeFilters = currentOfficeFilters.filter(x => x !== id);
+                    }
+                }
 
-                $('#showFilterOffice').html(formattedText); // Update displayed name
+                // Update dropdown display text
+                const selectedLabels = $('.office-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
+
+                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
+                    ')' : 'All Offices');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-             // Handle the DataTable search
-            $('#sales_table_filter input').on('keyup', function() {
-                table.search(this.value).draw(); // Manually trigger search
+        });
+
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#categoryList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('titleSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('userSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#usersList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+        
+        document.getElementById('officeSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#officesList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
 
@@ -623,7 +805,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                    <button type="button" class="btn btn-success" id="${saveBtnId}">Save</button>
                                 </div>
                             </div>
                         </div>
@@ -680,7 +862,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                         toastr.success('Notes saved successfully!');
 
                         $(`#${modalId}`).modal('hide');
-                        $(`#formId}`)[0].reset();
+                        $(`#${formId}`)[0].reset();
                         $(`#${textareaId}`).removeClass('is-valid');
 
                         $('#sales_table').DataTable().ajax.reload();
@@ -729,7 +911,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="saveNotesButton_${saleID}">Save</button>
+                                    <button type="button" class="btn btn-success" id="saveNotesButton_${saleID}">Save</button>
                                 </div>
                             </div>
                         </div>
@@ -856,7 +1038,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                    <button type="button" class="btn btn-success" id="${saveBtnId}">Save</button>
                                 </div>
                             </div>
                         </div>
@@ -981,7 +1163,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
             setTimeout(() => {
                 const tableHTML = `
                     <table class="table table-bordered mb-0">
-                        <tr><th>Sale ID</th><td>${saleId}</td></tr>
+                        <tr><th>Sale ID#</th><td>${saleId}</td></tr>
                         <tr><th>Posted On</th><td>${postedOn}</td></tr>
                         <tr><th>Head Office Name</th><td>${officeName}</td></tr>
                         <tr><th>Unit Name</th><td>${name}</td></tr>
@@ -1054,7 +1236,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     } else {
                         response.data.forEach(doc => {
                             const created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            const filePath = '/storage/' + doc.document_path;
+                            const filePath = '/storage/uploads/' + doc.document_path;
                             const docName = doc.document_name;
 
                             contentHtml += `

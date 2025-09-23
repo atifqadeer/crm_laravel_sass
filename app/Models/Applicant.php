@@ -203,6 +203,14 @@ class Applicant extends Model
     {
         return $this->morphMany(ModuleNote::class, 'module_noteable');
     }
+    public function crmNotes()
+    {
+        return $this->hasMany(CrmNote::class, 'applicant_id');
+    }
+    public function history()
+    {
+        return $this->hasMany(History::class, 'applicant_id');
+    }
     public function crm_notes()
     {
         return $this->hasMany(CrmNote::class, 'applicant_id');
@@ -251,18 +259,8 @@ class Applicant extends Model
         return $this->hasMany(Message::class, 'module_id')
             ->where('module_type', 'Horsefly\\Applicant');
     }
-    public function scopeSearch($query, $searchTerm)
+    public function qualityNotes()
     {
-        return $query->where(function ($query) use ($searchTerm) {
-            $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                // ... Add other direct column searches here
-                ->orWhereHas('jobTitle', fn ($q) => $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%"))
-                ->orWhereHas('jobCategory', fn ($q) => $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%"))
-                ->orWhereHas('jobSource', fn ($q) => $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%"))
-                ->orWhereHas('user', fn ($q) => $q->where('users.name', 'LIKE', "%{$searchTerm}%"));
-        });
+        return $this->hasMany(QualityNotes::class, 'applicant_id', 'id');
     }
-
 }

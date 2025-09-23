@@ -66,7 +66,7 @@ class LoginController extends Controller
         }
 
         // Attempt to log the user in
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $request->has('remember'))) {
             // Get the authenticated user
             $user = Auth::user();
 
@@ -91,6 +91,9 @@ class LoginController extends Controller
                         'login_at' => Carbon::now(),
                     ]);
                 }
+
+                // Regenerate session to prevent session fixation
+                $request->session()->regenerate();
 
                 // Redirect to the dashboard if active
                 return redirect('/dashboard');

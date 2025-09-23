@@ -1525,7 +1525,7 @@ class ImportController extends Controller
                 }else{
                     foreach ($specialists as $specialist) {
                         if ($specialist['id'] == $row['job_title_prof']) {
-                            $job_title = JobTitle::whereRaw('LOWER(name) = ?', [$specialist['specialist_prof']])->first();
+                            $job_title = JobTitle::whereRaw('LOWER(name) = ?', [strtolower($specialist['specialist_prof'])])->first();
                             if ($job_title) {
                                 $job_title_id = $job_title->id;
                                 $job_type = $job_title->type;

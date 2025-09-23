@@ -1,6 +1,36 @@
 @extends('layouts.vertical', ['title' => 'Job Details', 'subTitle' => 'Sales'])
 
 @section('content')
+<style>
+    .triangle-green {
+        position: relative;
+    }
+
+    .triangle-green::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px; /* thickness of the bar */
+        height: 100%; /* full row height */
+        background-color: #5cc184; /* main green bar */
+        z-index: 2;
+    }
+    .triangle-red {
+        position: relative;
+    }
+
+    .triangle-red::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background-color: #e96767; /* main red bar */
+        z-index: 2;
+    }
+</style>
 <div class="row">
     <div class="col-lg-12">
         <div class="card card-highlight">
@@ -124,7 +154,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <ul class="list-unstyled mb-0">
-                                <input type="hidden" id="sale_id" value="">
+                                <input type="hidden" id="sale_id" value="{{ $sale->id }}">
 
                                 <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
                                 <li><strong>Posted On:</strong> {{ \Carbon\Carbon::parse($sale->created_at)->format('d M Y, h:i A') }}</li>
@@ -240,6 +270,7 @@
                                         <a class="dropdown-item status-filter" href="#">Not Interested</a>
                                         <a class="dropdown-item status-filter" href="#">No Job</a>
                                         <a class="dropdown-item status-filter" href="#">Blocked</a>
+                                        <a class="dropdown-item status-filter" href="#">Callback</a>
                                         <a class="dropdown-item status-filter" href="#">Have Nursing Home Experience</a>
                                     </div>
                                 </div>
@@ -275,7 +306,7 @@
                                             <tr>
                                                 <th><input type="checkbox" id="master-checkbox"></th>
                                                 <th>Date</th>
-                                                <th>Name</th>
+                                                <th>Applicant Name</th>
                                                 <th>Email</th>
                                                 <th>Title</th>
                                                 <th>Category</th>
@@ -304,35 +335,50 @@
         </div>
     </div>
 </div>
+
 @section('script')
-     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
     <script>
         $(document).ready(function() {
             var currentFilter = '';
 
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#applicants_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#applicants_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#applicants_table').DataTable({
@@ -349,6 +395,13 @@
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -395,6 +448,17 @@
                         }
                     }
                 ],
+                createdRow: function(row, data, dataIndex) {
+                    const firstCell = $('td:eq(0)', row); // first column only
+
+                    if (data.have_nursing_home_experience == 1) {
+                        firstCell.addClass('triangle-green')
+                                .attr('title', 'Has Nursing Home Experience');
+                    } else if (data.have_nursing_home_experience == 0) {
+                        firstCell.addClass('triangle-red')
+                                .attr('title', 'No Nursing Home Experience');
+                    }
+                },
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
@@ -543,7 +607,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                    <button type="button" class="btn btn-success" id="${saveBtnId}">Save</button>
                                 </div>
                             </div>
                         </div>
@@ -635,7 +699,7 @@
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary saveShortNotesButton" data-applicant-id="' + applicantID + '">Save</button>' +
+                                    '<button type="button" class="btn btn-success saveShortNotesButton" data-applicant-id="' + applicantID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -906,7 +970,7 @@
                                 '</div>'+
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveCVBtn_' + applicantID + '_' + saleID + '">Save</button>' +
+                                    '<button type="button" class="btn btn-success" id="saveCVBtn_' + applicantID + '_' + saleID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -1019,7 +1083,7 @@
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="' + saveButtonID + '">Save</button>' +
+                                    '<button type="button" class="btn btn-success" id="' + saveButtonID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -1110,7 +1174,7 @@
                                 '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="' + saveButtonID + '">Save</button>' +
+                                    '<button type="button" class="btn btn-success" id="' + saveButtonID + '">Save</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -1300,13 +1364,15 @@
             if ($('#viewSaleDescriptionModal').length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="viewSaleDescriptionModal" tabindex="-1" aria-labelledby="viewSaleDescriptionModalLabel">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-scrollablemodal-dialog-top">' +
+                        '<div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="viewSaleDescriptionModalLabel">Sale Description</h5>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                                 '</div>' +
-                                '<div class="modal-body">' + description + '</div>' +
+                                '<div class="modal-body" style="white-space: pre-wrap; word-wrap: break-word;">' +
+                                    description +
+                                '</div>' +
                                 '<div class="modal-footer">' +
                                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
                                 '</div>' +
@@ -1322,6 +1388,7 @@
             // Show the modal
             $('#viewSaleDescriptionModal').modal('show');
         });
+
         
         $('#viewDocuments').on('click', function () {
             // Make an AJAX call to retrieve notes history data
@@ -1345,7 +1412,7 @@
                         response.data.forEach(function(doc) {
                             var doc_name = doc.document_name;
                             var created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            var file_path = '/storage/' + doc.document_path;
+                            var file_path = '/storage/uploads/' + doc.document_path;
 
                             // Append each document's details to the notesHtml string, with a button to open in new tab
                             notesHtml += 

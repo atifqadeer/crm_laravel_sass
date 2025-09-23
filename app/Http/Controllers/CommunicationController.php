@@ -453,14 +453,16 @@ class CommunicationController extends Controller
                 ->first();
 
             $applicant = Applicant::where('applicant_phone', $phoneNumber)->orWhere('applicant_landline', $phoneNumber)->first();
+            $contact = Contact::where('contact_phone', $phoneNumber)->first();
 
             if($applicant){
                 $data['module_id'] = $applicant->id;
                 $data['module_type'] = 'Horsefly\Applicant';
-            }else{
-                $contact = Contact::where('contact_phone', $phoneNumber)->first();
+            }elseif($contact){
                 $data['module_id'] = $contact->contactable_id;
                 $data['module_type'] = $contact->contactable_type;
+            }else{
+                $data['module_type'] = 'unknown';
             }
             
             if ($data) {

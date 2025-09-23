@@ -1,23 +1,5 @@
 @section('content')
-@php
-$sale_id = request()->query('id');
-$sale = \Horsefly\Sale::withCount('active_cvs')->find($sale_id);   
-$office = \Horsefly\Office::where('id', $sale->office_id)->select('office_name')->first();
-$unit = \Horsefly\Unit::where('id', $sale->unit_id)->select('unit_name')->first();
-$jobCategory = \Horsefly\JobCategory::where('id', $sale->job_category_id)->select('name')->first();
-$jobTitle = \Horsefly\JobTitle::where('id', $sale->job_title_id)->select('name')->first();
-$jobType = ucwords(str_replace('-', ' ', $sale->job_type));
-$jobType = $jobType == 'Specialist' ? ' (' . $jobType . ')' : '';
-$postcode = ucwords($sale->sale_postcode);
-$active_cvs_count = $sale->active_cvs_count;
-$cv_limit = $sale->cv_limit;
-$badgeColor = '';
-if($cv_limit <= $active_cvs_count){
-    $badgeColor = 'bg-danger';
-}else{
-    $badgeColor = 'bg-success';
-}
-@endphp
+
 @extends('layouts.vertical', ['title' => $office->office_name. '`s Sale History ' , 'subTitle' => 'Sales'])
 
 <div class="row">
@@ -68,8 +50,8 @@ if($cv_limit <= $active_cvs_count){
                 </div>
                 <div class="row d-flex justify-content-start">
                     <div class="col-lg-12">
-                        <button class="btn btn-md btn-primary" onclick="showSaleAllNotes('{{ $sale_id }}')">All Sale Notes</button>
-                        <button class="btn btn-md btn-secondary" onclick="showSaleUpdateHistory('{{ $sale_id }}')">Update History</button>
+                        <button class="btn btn-md btn-primary" onclick="showSaleAllNotes('{{ $sale->id }}')">All Sale Notes</button>
+                        <button class="btn btn-md btn-secondary" onclick="showSaleUpdateHistory('{{ $sale->id }}')">Update History</button>
                     </div>
                 </div>
             </div>
@@ -100,6 +82,7 @@ if($cv_limit <= $active_cvs_count){
                                                 <th>Stage</th>
                                                 <th>Sub Stage</th>
                                                 <th>Notes</th>
+                                                <th>Notes History</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -118,26 +101,45 @@ if($cv_limit <= $active_cvs_count){
 </div>
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
     <script>
         $(document).ready(function() {
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#history_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#history_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#history_table').DataTable({
@@ -147,11 +149,18 @@ if($cv_limit <= $active_cvs_count){
                     url: "{{ route('getSaleHistoryAjaxRequest')}}",
                     type: 'GET',
                     data: function(d) {
-                        d.sale_id = {{ $sale_id }};
+                        d.sale_id = {{ $sale->id }};
                         // Clean up search parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -166,10 +175,17 @@ if($cv_limit <= $active_cvs_count){
                     { data: 'stage', name: 'history.stage' },
                     { data: 'sub_stage', name: 'history.sub_stage' },
                     { data: 'details', name: 'crm_notes.details', orderable: false},
+                    { data: 'action', name: 'action', orderable: false},
                 ],
                 columnDefs: [
                     {
                         targets: 9,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 11,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
@@ -256,6 +272,7 @@ if($cv_limit <= $active_cvs_count){
                 },
             });
         });
+
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
             const errorMessage = document.getElementById('goToPageError');
@@ -283,6 +300,7 @@ if($cv_limit <= $active_cvs_count){
                 table.page(page - 1).draw('page');  // Move to the selected page
             }
         }
+        
         // Function to show the notes modal
         function showNotesModal(applicantID, notes, applicantName, applicantPostcode, createdAt) {
             const modalID = `showNotesModal${applicantID}`;

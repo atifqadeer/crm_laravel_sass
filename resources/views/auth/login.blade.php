@@ -42,12 +42,12 @@
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
                                    placeholder="Enter your password" name="password">
                         </div>
-                        <div class="mb-3">
+                        {{-- <div class="mb-3">
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="checkbox-signin">
+                                <input type="checkbox" class="form-check-input" name="remember" id="checkbox-signin">
                                 <label class="form-check-label" for="checkbox-signin">Remember me</label>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="mb-1 text-center d-grid">
                             <button class="btn btn-danger py-2 fw-medium" type="submit">Sign In</button>

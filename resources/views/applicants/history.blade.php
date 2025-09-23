@@ -1,16 +1,5 @@
 @section('content')
-@php
-$applicant_id = request()->query('id');
-$applicant = \Horsefly\Applicant::find($applicant_id);   
-$jobCategory = \Horsefly\JobCategory::where('id', $applicant->job_category_id)->select('name')->first();
-$jobTitle = \Horsefly\JobCategory::where('id', $applicant->job_title_id)->select('name')->first();
-$jobSource = \Horsefly\JobSource::where('id', $applicant->job_source_id)->select('name')->first();
-$jobType = ucwords(str_replace('-', ' ', $applicant->job_type));
-$jobType = $jobType == 'Specialist' ? ' (' . $jobType . ')' : '';
-$postcode = ucwords($applicant->applicant_postcode);
-
-@endphp
-@extends('layouts.vertical', ['title' => $applicant->applicant_name. '`s Job History', 'subTitle' => 'Applicants'])
+@extends('layouts.vertical', ['title' => ucwords($applicant->applicant_name). '`s Job History', 'subTitle' => 'Applicants'])
 
 <div class="row">
     <div class="col-lg-12">
@@ -21,9 +10,9 @@ $postcode = ucwords($applicant->applicant_postcode);
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <ul class="list-unstyled mb-0">
-                                <li><strong>Name:</strong> {{ $applicant->applicant_name ?? 'N/A' }}</li>
-                                <li><strong>Email <small>(Primary)</small>:</strong> {{ $applicant->applicant_email ?? 'N/A' }}</li>
-                                <li><strong>Email <small>(Secondary)</small>:</strong> {{ $applicant->applicant_email_secondary ?? 'N/A' }}</li>
+                                <li><strong>Name:</strong> {{ ucwords($applicant->applicant_name) ?? 'N/A' }}</li>
+                                <li><strong>Email <small>(Primary)</small>:</strong> {{ strtolower($applicant->applicant_email) ?? 'N/A' }}</li>
+                                <li><strong>Email <small>(Secondary)</small>:</strong> {{ strtolower($applicant->applicant_email_secondary) ?? 'N/A' }}</li>
                                 <li><strong>Phone:</strong> {{ $applicant->applicant_phone ?? 'N/A' }}</li>
                                 <li><strong>Landline:</strong> {{ $applicant->applicant_landline ?? 'N/A' }}</li>
                                 <li><strong>Gender:</strong>
@@ -32,7 +21,7 @@ $postcode = ucwords($applicant->applicant_postcode);
                                     @elseif($applicant->gender == 'f')
                                         Female
                                     @else
-                                        N/A
+                                        Unknown
                                     @endif
                                 </li>
                             </ul>
@@ -62,9 +51,9 @@ $postcode = ucwords($applicant->applicant_postcode);
                 </div>
                 <div class="row d-flex justify-content-start">
                     <div class="col-lg-12">
-                        <button class="btn btn-md btn-dark" onclick="showNoNursingHomeNotes('{{ $applicant_id }}')">No Nursing Home Notes</button>
-                        <button class="btn btn-md btn-secondary" onclick="showCallbackNotes('{{ $applicant_id }}')">Callback Notes</button>
-                        <button class="btn btn-md btn-primary" onclick="showUpdateHistory('{{ $applicant_id }}')">Update History</button>
+                        <button class="btn btn-md btn-dark" onclick="showNoNursingHomeNotes('{{ $applicant->id }}')">No Nursing Home Notes</button>
+                        <button class="btn btn-md btn-secondary" onclick="showCallbackNotes('{{ $applicant->id }}')">Callback Notes</button>
+                        <button class="btn btn-md btn-primary" onclick="showUpdateHistory('{{ $applicant->id }}')">Update History</button>
                     </div>
                 </div>
             </div>
@@ -93,7 +82,7 @@ $postcode = ucwords($applicant->applicant_postcode);
                                                 <th>Category</th>
                                                 <th>Stage</th>
                                                 <th>Notes</th>
-                                                <th>Action</th>
+                                                <th>Notes History</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -112,14 +101,31 @@ $postcode = ucwords($applicant->applicant_postcode);
 </div>
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <script>
         $(document).ready(function() {
@@ -142,7 +148,7 @@ $postcode = ucwords($applicant->applicant_postcode);
                     url: "{{ route('getApplicantHistoryAjaxRequest')}}",
                     type: 'GET',
                     data: function(d) {
-                        d.applicant_id = {{ $applicant_id }};
+                        d.applicant_id = {{ $applicant->id }};
                         // Clean up search parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();

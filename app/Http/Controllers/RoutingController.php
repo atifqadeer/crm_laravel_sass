@@ -54,8 +54,29 @@ class RoutingController extends BaseController
     /**
      * third level route
      */
-    public function thirdLevel(Request $request, $first, $second, $third)
+    public function thirdLevel(Request $request, $firstLevel, $secondLevel, $thirdLevel)
     {
-        return view($first . '.' . $second . '.' . $third);
+        // Check if the request is for .well-known
+        if ($firstLevel === '.well-known') {
+            // Handle specific .well-known paths
+            if ($secondLevel === 'appspecific' && $thirdLevel === 'com.chrome.devtools.json') {
+                // Option 1: Return a 404 if the file doesn't exist
+                abort(404, 'File not found');
+
+                // Option 2: Serve a static JSON file if it exists
+                // $filePath = public_path('.well-known/appspecific/com.chrome.devtools.json');
+                // if (file_exists($filePath)) {
+                //     return response()->file($filePath);
+                // }
+                // abort(404, 'File not found');
+
+                // Option 3: Return a JSON response
+                // return response()->json(['error' => 'Not supported'], 404);
+            }
+        }
+
+        // Existing logic for other routes
+        $viewName = "$firstLevel.$secondLevel.$thirdLevel";
+        return view($viewName);
     }
 }

@@ -172,18 +172,11 @@ class HeadOfficeController extends Controller
     {
         $statusFilter = $request->input('status_filter', '');
 
-        // Cache key for query results
-        $cacheKey = 'head_offices_' . md5($statusFilter . '_' . $request->input('search.value', '') . '_' . $request->input('order.0.column', '') . '_' . $request->input('order.0.dir', 'asc'));
-
         // Query builder with minimal selected columns
         $model = Office::query()
             ->with(['contact' => function ($query) {
                 $query->select('id', 'contactable_id', 'contactable_type', 'contact_name', 'contact_phone', 'contact_landline', 'contact_email');
             }])
-            ->leftJoin('contacts', function ($join) {
-                $join->on('contacts.contactable_id', '=', 'offices.id')
-                     ->where('contacts.contactable_type', '=', 'Horsefly\\Office');
-            })
             ->select(
                 'offices.id',
                 'offices.office_name',
@@ -192,39 +185,43 @@ class HeadOfficeController extends Controller
                 'offices.office_notes',
                 'offices.status',
                 'offices.created_at',
-                'offices.updated_at',
-                'contacts.contact_name',
-                'contacts.contact_phone',
-                'contacts.contact_landline',
-                'contacts.contact_email'
-            ); // Ensure unique offices when joining contacts
+                'offices.updated_at'
+            );
 
-        // Apply status filter
-        if (!empty($statusFilter)) {
-            $model->where('offices.status', $statusFilter === 'active' ? 1 : 0);
+        // Apply status filter if provided
+        switch ($statusFilter) {
+            case 'active':
+                $model->where('offices.status', 1);
+                break;
+            case 'inactive':
+                $model->where('offices.status', 0);
+                break;
+            default:
+                // No status filter applied
+                break;
         }
 
-        // Search logic with full-text index support
-        if ($request->has('search.value')) {
-            $searchTerm = $request->input('search.value');
+        // Search logic with optimized LIKE-based search
+        $searchTerm = $request->input('search.value');
 
-            $model->where(function ($query) use ($searchTerm) {
-                if (!empty($searchTerm)) {
-                    // Use full-text search for offices table if index exists
-                    $query->whereFullText(['offices.office_name', 'offices.office_postcode', 'offices.office_type', 'offices.office_notes'], $searchTerm);
-                }
+        if (!empty($searchTerm)) {
+            $likeSearch = "%{$searchTerm}%";
+            $model->where(function ($query) use ($likeSearch) {
+                $query->where('offices.office_name', 'LIKE', $likeSearch)
+                      ->orWhere('offices.office_postcode', 'LIKE', $likeSearch)
+                      ->orWhere('offices.office_type', 'LIKE', $likeSearch)
+                      ->orWhere('offices.office_notes', 'LIKE', $likeSearch);
 
                 // Search contact fields
-                $query->orWhereHas('contact', function ($q) use ($searchTerm) {
-                    $like = '%' . $searchTerm . '%';
-                    $q->whereRaw('LOWER(contact_name) LIKE ?', [$like])
-                      ->orWhereRaw('LOWER(contact_email) LIKE ?', [$like])
-                      ->orWhereRaw('LOWER(contact_phone) LIKE ?', [$like])
-                      ->orWhereRaw('LOWER(contact_landline) LIKE ?', [$like]);
+                $query->orWhereHas('contact', function ($q) use ($likeSearch) {
+                    $q->where('contact_name', 'LIKE', $likeSearch)
+                      ->orWhere('contact_email', 'LIKE', $likeSearch)
+                      ->orWhere('contact_phone', 'LIKE', $likeSearch)
+                      ->orWhere('contact_landline', 'LIKE', $likeSearch);
                 });
             });
         }
-
+        
         // Sorting logic
         if ($request->has('order')) {
             $orderColumnIndex = $request->input('order.0.column');
@@ -232,8 +229,17 @@ class HeadOfficeController extends Controller
             $orderDirection = $request->input('order.0.dir', 'asc');
 
             if ($orderColumn === 'contact') {
-                $model->orderBy('contacts.contact_name', $orderDirection);
+                // Sorting by contact_name requires joining or subquery if not using leftJoin
+                $model->orderBy(
+                    Contact::select('contact_name')
+                        ->whereColumn('contacts.contactable_id', 'offices.id')
+                        ->where('contacts.contactable_type', 'Horsefly\\Office')
+                        ->orderBy('contact_name', $orderDirection)
+                        ->limit(1),
+                    $orderDirection
+                );
             } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                // Handle contact.* columns differently if needed
                 $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
                 $model->orderBy($column, $orderDirection);
             } else {
@@ -244,8 +250,6 @@ class HeadOfficeController extends Controller
         }
 
         if ($request->ajax()) {
-            // Cache the query result for 5 minutes
-            $dataTable = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($model) {
                 return DataTables::eloquent($model)
                     ->addIndexColumn()
                     ->addColumn('office_name', function ($office) {
@@ -328,9 +332,6 @@ class HeadOfficeController extends Controller
                     })
                     ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
                     ->toJson();
-            });
-
-            return $dataTable;
         }
     }
     public function storeHeadOfficeShortNotes(Request $request)
@@ -381,13 +382,15 @@ class HeadOfficeController extends Controller
         Log::info('Trying to edit head office with ID: ' . $id);
 
         $office = Office::find($id);
+        $contacts = \Horsefly\Contact::where('contactable_id',$office->id)
+                ->where('contactable_type','Horsefly\Office')->get();
 
         // Check if the applicant is found
         if (!$office) {
             Log::info('Head Office not found with ID: ' . $id);
         }
 
-        return view('head-offices.edit', compact('office'));
+        return view('head-offices.edit', compact('office','contacts'));
     }
     public function update(Request $request)
     {

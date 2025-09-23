@@ -6,6 +6,7 @@ use Horsefly\Sale;
 use Horsefly\Audit;
 use Horsefly\JobTitle;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class SaleObserver
 {
@@ -33,6 +34,8 @@ class SaleObserver
             return;
         }
 
+        $updated_at = Carbon::now();
+
         $columns = $sale->getDirty();
         if (empty($columns)) {
             return; // No real changes
@@ -47,7 +50,7 @@ class SaleObserver
         $sale->audits()->create([
             "user_id" => Auth::id(),
             "data" => $sale->toJson(),
-            "message" => "Sale '{$jobTitle?->name}' has been updated successfully at {$sale->updated}",
+            "message" => "Sale '{$jobTitle?->name}' has been updated successfully at {$updated_at}",
         ]);
     }
 

@@ -365,7 +365,7 @@ class ApplicantController extends Controller
 
         // Filter by type if it's not empty
         if ($categoryFilter) {
-            $model->where('applicants.job_category_id', $categoryFilter);
+            $model->whereIn('applicants.job_category_id', $categoryFilter);
         }
 
         // Filter by type if it's not empty
@@ -469,28 +469,28 @@ class ApplicantController extends Controller
                     return $applicant->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
-                    if (!$applicant->is_blocked) {
-                        $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
-                            ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
-                            <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
-                            : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
-                    } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    $filePath = $applicant->applicant_cv;
+                    $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+
+                    if (!$applicant->is_blocked && $fileExists) {
+                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                            '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
                     }
 
-                    return $applicant_cv;
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
-                    if (!$applicant->is_blocked) {
-                        $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
-                            ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
-                            <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
-                            : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
-                    } else {
-                        $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    $filePath = $applicant->updated_cv;
+                    $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+
+                    if (!$applicant->is_blocked && $fileExists) {
+                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                            '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
                     }
 
-                    return $updated_cv;
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status = '';
@@ -781,13 +781,35 @@ class ApplicantController extends Controller
         Log::info('Trying to edit applicant with ID: ' . $id);
 
         $applicant = Applicant::find($id);
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         // Check if the applicant is found
         if (!$applicant) {
             Log::info('Applicant not found with ID: ' . $id);
         }
 
-        return view('applicants.edit', compact('applicant'));
+        return view('applicants.edit', compact('applicant', 'jobCategories', 'jobSources'));
+    }
+    public function history($id)
+    {
+        // Debug the incoming id
+        Log::info('Trying to edit applicant with ID: ' . $id);
+
+        $applicant = Applicant::find($id);   
+        $jobCategory = JobCategory::where('id', $applicant->job_category_id)->select('name')->first();
+        $jobTitle = JobTitle::where('id', $applicant->job_title_id)->select('name')->first();
+        $jobSource = JobSource::where('id', $applicant->job_source_id)->select('name')->first();
+        $jobTypeStr = ucwords(str_replace('-', ' ', $applicant->job_type));
+        $jobType = $jobTypeStr == 'Specialist' ? ' (' . $jobTypeStr . ')' : '';
+        $postcode = ucwords($applicant->applicant_postcode);
+
+        // Check if the applicant is found
+        if (!$applicant) {
+            Log::info('Applicant not found with ID: ' . $id);
+        }
+
+        return view('applicants.history', compact('applicant', 'jobCategory', 'jobTitle', 'jobSource', 'jobType', 'postcode'));
     }
     public function update(Request $request)
     {
@@ -1281,7 +1303,7 @@ class ApplicantController extends Controller
                 ->addColumn('action', function ($row) {
                     // Tooltip content with additional data-bs-placement and title
                     return '<a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->app_id . '\',\'' . (int)$row->sale_id . '\')">
-                                <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                                <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
                 ->rawColumns(['details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
@@ -1420,147 +1442,146 @@ class ApplicantController extends Controller
             ], 500);
         }
     }
-    public function importApplicantsFromCSV(Request $request)
-    {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+    // public function importApplicantsFromCSV(Request $request)
+    // {
+    //     $request->validate([
+    //         'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+    //     ]);
 
-        $file = $request->file('csv_file');
-        $path = $file->getRealPath();
-        $handle = fopen($path, 'r');
+    //     $file = $request->file('csv_file');
+    //     $path = $file->getRealPath();
+    //     $handle = fopen($path, 'r');
 
-        if (!$handle) {
-            return back()->with('error', 'Unable to open file.');
-        }
+    //     if (!$handle) {
+    //         return back()->with('error', 'Unable to open file.');
+    //     }
 
-        $header = fgetcsv($handle); // Get header row
-        $inserted = 0;
-        $skipped = 0;
+    //     $header = fgetcsv($handle); // Get header row
+    //     $inserted = 0;
+    //     $skipped = 0;
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $data = array_combine($header, $row);
+    //     while (($row = fgetcsv($handle)) !== false) {
+    //         $data = array_combine($header, $row);
 
-            // Skip if mandatory fields missing
-            if (empty($data['applicant_email']) || empty($data['applicant_name'])) {
-                $skipped++;
-                continue;
-            }
+    //         // Skip if mandatory fields missing
+    //         if (empty($data['applicant_email']) || empty($data['applicant_name'])) {
+    //             $skipped++;
+    //             continue;
+    //         }
 
-            // Pattern to detect email
-            $emailPattern = '/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i';
+    //         // Pattern to detect email
+    //         $emailPattern = '/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i';
 
-            // Check in applicant_name
-            if (preg_match($emailPattern, $data['applicant_name'], $matches)) {
-                $data['applicant_email_secondary'] = $matches[0];
-                $data['applicant_name'] = preg_replace($emailPattern, '', $data['applicant_name']);
-            }
+    //         // Check in applicant_name
+    //         if (preg_match($emailPattern, $data['applicant_name'], $matches)) {
+    //             $data['applicant_email_secondary'] = $matches[0];
+    //             $data['applicant_name'] = preg_replace($emailPattern, '', $data['applicant_name']);
+    //         }
 
-            // Check in applicant_postcode
-            if (preg_match($emailPattern, $data['applicant_postcode'], $matches)) {
-                $data['applicant_email_secondary'] = $matches[0];
-                $data['applicant_postcode'] = preg_replace($emailPattern, '', $data['applicant_postcode']);
-            }
+    //         // Check in applicant_postcode
+    //         if (preg_match($emailPattern, $data['applicant_postcode'], $matches)) {
+    //             $data['applicant_email_secondary'] = $matches[0];
+    //             $data['applicant_postcode'] = preg_replace($emailPattern, '', $data['applicant_postcode']);
+    //         }
 
-            if (!empty($data['job_title_id'])) {
-                if ($data['job_title_id'] == 'nonnurse specialist') {
-                    $jobType = 'specialist';
-                } else {
-                    $jobType = 'regular';
-                }
+    //         if (!empty($data['job_title_id'])) {
+    //             if ($data['job_title_id'] == 'nonnurse specialist') {
+    //                 $jobType = 'specialist';
+    //             } else {
+    //                 $jobType = 'regular';
+    //             }
 
-                $data['job_type'] = $jobType;
-            }
+    //             $data['job_type'] = $jobType;
+    //         }
 
-            if (!empty($data['job_category'])) {
-                $jobCategorySlug = str_replace('-', ' ', $data['job_category']);
+    //         if (!empty($data['job_category'])) {
+    //             $jobCategorySlug = str_replace('-', ' ', $data['job_category']);
 
-                // Lookup job category ID by slug (assuming you store slugs in DB)
-                $category = JobCategory::where('name', $jobCategorySlug)->first();
+    //             // Lookup job category ID by slug (assuming you store slugs in DB)
+    //             $category = JobCategory::where('name', $jobCategorySlug)->first();
 
-                if ($category) {
-                    $data['job_category_id'] = $category->id;
-                }
-            }
+    //             if ($category) {
+    //                 $data['job_category_id'] = $category->id;
+    //             }
+    //         }
 
-            if (!empty($data['applicant_source'])) {
-                // Lookup job category ID by slug (assuming you store slugs in DB)
-                $source = JobSource::where('name', $data['applicant_source'])->first();
+    //         if (!empty($data['applicant_source'])) {
+    //             // Lookup job category ID by slug (assuming you store slugs in DB)
+    //             $source = JobSource::where('name', $data['applicant_source'])->first();
 
-                if ($source) {
-                    $data['job_source_id'] = $source->id;
-                }
-            }
+    //             if ($source) {
+    //                 $data['job_source_id'] = $source->id;
+    //             }
+    //         }
 
-            if (!empty($data['job_title_prof'])) {
-                $specialistJobTitles = [
-                    ['id' => 1, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Navigator'],
-                    ['id' => 2, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Legal Executive'],
-                    ['id' => 3, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Lawyer'],
-                    ['id' => 4, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Conveyancer'],
-                    ['id' => 5, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Solicitor'],
-                    ['id' => 6, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Practice Manager'],
-                    ['id' => 7, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Paralegals'],
-                    ['id' => 8, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dentist'],
-                    ['id' => 9, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Associate Dentist'],
-                    ['id' => 10, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Orthodontics'],
-                    ['id' => 11, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dental Receptionist'],
-                    ['id' => 12, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Fee Earner'],
-                    ['id' => 13, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Secretary'],
-                ];
+    //         if (!empty($data['job_title_prof'])) {
+    //             $specialistJobTitles = [
+    //                 ['id' => 1, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Navigator'],
+    //                 ['id' => 2, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Legal Executive'],
+    //                 ['id' => 3, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Lawyer'],
+    //                 ['id' => 4, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Conveyancer'],
+    //                 ['id' => 5, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Solicitor'],
+    //                 ['id' => 6, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Practice Manager'],
+    //                 ['id' => 7, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Paralegals'],
+    //                 ['id' => 8, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dentist'],
+    //                 ['id' => 9, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Associate Dentist'],
+    //                 ['id' => 10, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Orthodontics'],
+    //                 ['id' => 11, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dental Receptionist'],
+    //                 ['id' => 12, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Fee Earner'],
+    //                 ['id' => 13, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Secretary'],
+    //             ];
 
-                foreach ($specialistJobTitles as $job) {
-                    JobTitle::create($job);
-                }
-                // Lookup job category ID by slug (assuming you store slugs in DB)
-                $title = JobTitle::where('name', $data['job_title_prof'])->first();
+    //             foreach ($specialistJobTitles as $job) {
+    //                 JobTitle::create($job);
+    //             }
+    //             // Lookup job category ID by slug (assuming you store slugs in DB)
+    //             $title = JobTitle::where('name', $data['job_title_prof'])->first();
 
-                if ($title) {
-                    $data['job_title_prof'] = $title->id;
-                }
-            }
+    //             if ($title) {
+    //                 $data['job_title_prof'] = $title->id;
+    //             }
+    //         }
 
-            // Transformations
-            $data['status'] = strtolower($data['status']) === 'active' ? 1 : 0;
-            $data['is_blocked'] = (int) $data['is_blocked'] ?? 0;
-            $data['applicant_postcode'] = preg_replace('/[^A-Za-z0-9 ]/', '', $data['applicant_postcode']);
-            $data['applicant_email'] = preg_replace('/\s+/', '', $data['applicant_email']);
+    //         // Transformations
+    //         $data['status'] = strtolower($data['status']) === 'active' ? 1 : 0;
+    //         $data['is_blocked'] = (int) $data['is_blocked'] ?? 0;
+    //         $data['applicant_postcode'] = preg_replace('/[^A-Za-z0-9 ]/', '', $data['applicant_postcode']);
+    //         $data['applicant_email'] = preg_replace('/\s+/', '', $data['applicant_email']);
 
-            try {
-                Applicant::updateOrCreate(
-                    ['applicant_uid' => $data['applicant_u_id']],
-                    [
-                        'user_id '     => $data['applicant_user_id'],
-                        'applicant_name'     => $data['applicant_name'],
-                        'applicant_email' => $data['applicant_email'],
-                        'applicant_email_secondary' => $data['applicant_email_secondary'],
-                        'applicant_postcode' => $data['applicant_postcode'],
-                        'applicant_phone'    => $data['applicant_phone'],
-                        'applicant_landline'    => $data['applicant_homePhone'],
-                        'job_category_id'    => $data['job_category_id'],
-                        'job_title_id'    => $data['job_title_id'],
-                        'job_source_id'    => $data['job_source_id'],
-                        'job_type'           => $data['job_type'],
-                        'lat'                => $data['lat'] ?? null,
-                        'lng'                => $data['lng'] ?? null,
-                        'status'             => $data['status'],
-                        'is_blocked'         => $data['is_blocked'] ?? 0,
-                        'created_at'         => now(),
-                        'updated_at'         => now(),
-                    ]
-                );
-                $inserted++;
-            } catch (\Exception $e) {
-                Log::error('Import failed: ' . $e->getMessage());
-                $skipped++;
-            }
-        }
+    //         try {
+    //             Applicant::updateOrCreate(
+    //                 ['applicant_uid' => $data['applicant_u_id']],
+    //                 [
+    //                     'user_id '     => $data['applicant_user_id'],
+    //                     'applicant_name'     => $data['applicant_name'],
+    //                     'applicant_email' => $data['applicant_email'],
+    //                     'applicant_email_secondary' => $data['applicant_email_secondary'],
+    //                     'applicant_postcode' => $data['applicant_postcode'],
+    //                     'applicant_phone'    => $data['applicant_phone'],
+    //                     'applicant_landline'    => $data['applicant_homePhone'],
+    //                     'job_category_id'    => $data['job_category_id'],
+    //                     'job_title_id'    => $data['job_title_id'],
+    //                     'job_source_id'    => $data['job_source_id'],
+    //                     'job_type'           => $data['job_type'],
+    //                     'lat'                => $data['lat'] ?? null,
+    //                     'lng'                => $data['lng'] ?? null,
+    //                     'status'             => $data['status'],
+    //                     'is_blocked'         => $data['is_blocked'] ?? 0,
+    //                     'created_at'         => now(),
+    //                     'updated_at'         => now(),
+    //                 ]
+    //             );
+    //             $inserted++;
+    //         } catch (\Exception $e) {
+    //             Log::error('Import failed: ' . $e->getMessage());
+    //             $skipped++;
+    //         }
+    //     }
 
-        fclose($handle);
+    //     fclose($handle);
 
-        return back()->with('success', "$inserted applicants imported. $skipped skipped.");
-    }
-
+    //     return back()->with('success', "$inserted applicants imported. $skipped skipped.");
+    // }
     // Helper methods
     private function handleHangupCall($request, $user, $applicant, $sale, $notes)
     {
@@ -1724,16 +1745,12 @@ class ApplicantController extends Controller
     }
     public function getAvailableJobs(Request $request)
     {
-        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
-        $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
-        $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
-        $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
-        $applicant_id = $request->input('applicant_id'); // Default is empty (no filter)
-        $radius = $request->input('radius'); // Default is empty (no filter)
+        $statusFilter = $request->input('status_filter', '');
+        $applicant_id = $request->input('applicant_id');
+        $radius       = $request->input('radius');
 
-        $applicant = Applicant::with('cv_notes')->find($applicant_id);
+        $applicant = Applicant::with('cv_notes')->findOrFail($applicant_id);
+
         $lat = $applicant->lat;
         $lon = $applicant->lng;
 
@@ -1747,7 +1764,8 @@ class ApplicantController extends Controller
                 'users.name as user_name',
                 DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
                         COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) 
-                        AS distance")
+                        AS distance"),
+                DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv")
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
@@ -1760,21 +1778,17 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
-            ->where('sales.status', 1) // Only active sales
+            ->where('sales.status', 1)
             ->having("distance", "<", $radius)
-            ->orderBy("distance")
-            ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
-            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+            ->orderBy("distance");
 
-
+        /** 🔹 Job Title Filtering */
         $jobTitle = JobTitle::find($applicant->job_title_id);
 
-        // Decode related_titles safely and normalize
         $relatedTitles = is_array($jobTitle->related_titles)
             ? $jobTitle->related_titles
             : json_decode($jobTitle->related_titles ?? '[]', true);
 
-        // Make sure it's an array, lowercase all, and add main title
         $titles = collect($relatedTitles)
             ->map(fn($item) => strtolower(trim($item)))
             ->push(strtolower(trim($jobTitle->name)))
@@ -1782,18 +1796,18 @@ class ApplicantController extends Controller
             ->values()
             ->toArray();
 
-
         $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
 
         $model->whereIn('sales.job_title_id', $jobTitleIds);
 
+        /** 🔹 Search */
         if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
+            $searchTerm = strtolower(trim((string) $request->input('search.value')));
 
             if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
-                    $likeSearch = "%{$searchTerm}%";
+                $likeSearch = "%{$searchTerm}%";
 
+                $model->where(function ($query) use ($likeSearch, $searchTerm) {
                     $query->whereRaw('LOWER(sales.sale_postcode) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.experience) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.timing) LIKE ?', [$likeSearch])
@@ -1803,105 +1817,88 @@ class ApplicantController extends Controller
                         ->orWhereRaw('LOWER(sales.cv_limit) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.salary) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.benefits) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch]);
-
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($likeSearch) {
-                        $q->where('job_titles.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($likeSearch) {
-                        $q->where('job_categories.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('unit', function ($q) use ($likeSearch) {
-                        $q->where('units.unit_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('office', function ($q) use ($likeSearch) {
-                        $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('user', function ($q) use ($likeSearch) {
-                        $q->where('users.name', 'LIKE', "%{$likeSearch}%");
-                    });
+                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(job_titles.name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(job_categories.name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(units.unit_name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(offices.office_name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(users.name) LIKE ?', [$likeSearch]);
                 });
             }
         }
 
         // Filter by status if it's not empty
-        switch ($statusFilter) {
-            case 'active':
-                $model->where('sales.status', 1);
-                break;
-            case 'closed':
-                $model->where('sales.status', 0)
-                    ->where('sales.is_on_hold', 0);
-                break;
-            case 'pending':
-                $model->where('sales.status', 2);
-                break;
-            case 'rejected':
-                $model->where('sales.status', 3);
-                break;
-            case 'on hold':
-                $model->where('sales.is_on_hold', true);
-                break;
+        if (!empty($statusFilter)) {
+            switch (strtolower($statusFilter)) {
+                case 'sent':
+                    $model->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('cv_notes as cn')
+                            ->whereColumn('cn.sale_id', 'sales.id')
+                            ->where('cn.id', function ($sub) {
+                                $sub->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
+                            })
+                            ->where('cn.status', 1);
+                    });
+                    break;
+
+                case 'reject job':
+                    $model->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('cv_notes as cn')
+                            ->whereColumn('cn.sale_id', 'sales.id')
+                            ->where('cn.id', function ($sub) {
+                                $sub->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
+                            })
+                            ->where('cn.status', 0);
+                    });
+                    break;
+
+                case 'paid':
+                    $model->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('cv_notes as cn')
+                            ->whereColumn('cn.sale_id', 'sales.id')
+                            ->where('cn.id', function ($sub) {
+                                $sub->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
+                            })
+                            ->where('cn.status', 2);
+                    });
+                    break;
+
+                case 'open': // sales with no cv_notes at all
+                    $model->whereNotExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('cv_notes')
+                            ->whereColumn('cv_notes.sale_id', 'sales.id');
+                    });
+                    break;
+            }
         }
 
-        // Filter by type if it's not empty
-        switch ($typeFilter) {
-            case 'specialist':
-                $model->where('sales.job_type', 'specialist');
-                break;
-            case 'regular':
-                $model->where('sales.job_type', 'regular');
-                break;
-        }
-
-        // Filter by category if it's not empty
-        if ($officeFilter) {
-            $model->where('sales.office_id', $officeFilter);
-        }
-
-        // Filter by category if it's not empty
-        if ($limitCountFilter) {
-            $model->where('sales.cv_limit', $limitCountFilter);
-        }
-
-        // Filter by category if it's not empty
-        if ($categoryFilter) {
-            $model->where('sales.job_category_id', $categoryFilter);
-        }
-
-        // Filter by category if it's not empty
-        if ($titleFilter) {
-            $model->where('sales.job_title_id', $titleFilter);
-        }
-
-        // Sorting logic
+        /** 🔹 Sorting */
         if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
+            } else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -1964,6 +1961,68 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
+                ->addColumn('qualification', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->qualification), 80);
+                    $full = e($sale->qualification);
+                    $id = 'qalf-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
+                ->addColumn('salary', function ($sale) {
+                    $short = Str::limit(strip_tags($sale->salary), 80);
+                    $full = e($sale->salary);
+                    $id = 'slry-' . $sale->id;
+
+                    return '
+                        <a href="#" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Salary</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
                 ->addColumn('sale_postcode', function ($sale) {
                     return $sale->formatted_postcode; // Using accessor
                 })
@@ -1974,7 +2033,7 @@ class ApplicantController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {                   
-                    $short = Str::limit(strip_tags($sale->sale_notes), 100);
+                    $short = Str::limit(strip_tags($sale->sale_notes), 80);
                     $full = e($sale->sale_notes);
                     $id = 'notes-' . $sale->id;
 
@@ -2066,7 +2125,10 @@ class ApplicantController extends Controller
                             $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
-                        $html .= '<li><a href="#" class="disabled dropdown-item">Locked</a></li>';
+                        $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
+                                    <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
+                                </button>';
+
                     }
 
                     $html .= '</ul>
@@ -2074,7 +2136,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -2419,7 +2481,9 @@ class ApplicantController extends Controller
                             $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
-                        $html .= '<li><a href="#" class="disabled dropdown-item">Locked</a></li>';
+                        $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
+                                    <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
+                                </button>';
                     }
 
                     $html .= '</ul>

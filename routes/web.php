@@ -38,18 +38,14 @@ use App\Http\Middleware\IPAddress;
 
 require __DIR__ . '/auth.php';
 
-// Route::middleware(IPAddress::class)->group(function () {
-    Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
-// });
-
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('login', [LoginController::class, 'login']);
 Route::get('logout', [LoginController::class, 'logout'])->name('logout');
-Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
-Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
-    Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
 
+Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
+
+// Route group with authentication middleware
+Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::group(['prefix' => 'dashboard'], function () {
         Route::get('', [DashboardController::class, 'index'])->name('dashboard.index');
     });
@@ -63,12 +59,13 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');
         Route::get('create', [ApplicantController::class, 'create'])->name('applicants.create');
         Route::post('store', [ApplicantController::class, 'store'])->name('applicants.store');
-        Route::get('edit', [ApplicantController::class, 'edit'])->name('applicants.edit');
+        Route::get('{id}/edit', [ApplicantController::class, 'edit'])->name('applicants.edit');
         Route::post('update', [ApplicantController::class, 'update'])->name('applicants.update');
         Route::post('uploadCv', [ApplicantController::class, 'uploadCv'])->name('applicants.uploadCv');
         Route::post('crmuploadCv', [ApplicantController::class, 'crmuploadCv'])->name('applicants.crmuploadCv');
-        Route::get('history', [ApplicantController::class, 'history'])->name('applicants.history');
+        Route::get('{id}/history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
+    
     Route::get('/applicants/available-no-jobs/{id}/{radius?}', [ApplicantController::class, 'availableNoJobsIndex'])->name('applicants.available_no_job');
     Route::get('/applicants/available-jobs/{id}/{radius?}', [ApplicantController::class, 'availableJobsIndex'])->name('applicantsAvailableJobs');
     Route::get('getAvailableJobs', [ApplicantController::class, 'getAvailableJobs'])->name('getAvailableJobs');
@@ -96,7 +93,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [HeadOfficeController::class, 'index'])->name('head-offices.list');
         Route::get('create', [HeadOfficeController::class, 'create'])->name('head-offices.create');
         Route::post('store', [HeadOfficeController::class, 'store'])->name('head-offices.store');
-        Route::get('edit', [HeadOfficeController::class, 'edit'])->name('head-offices.edit');
+        Route::get('{id}/edit', [HeadOfficeController::class, 'edit'])->name('head-offices.edit');
         Route::post('update', [HeadOfficeController::class, 'update'])->name('head-offices.update');
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
@@ -109,7 +106,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [UnitController::class, 'index'])->name('units.list');
         Route::get('create', [UnitController::class, 'create'])->name('units.create');
         Route::post('store', [UnitController::class, 'store'])->name('units.store');
-        Route::get('edit', [UnitController::class, 'edit'])->name('units.edit');
+        Route::get('{id}/edit', [UnitController::class, 'edit'])->name('units.edit');
         Route::post('update', [UnitController::class, 'update'])->name('units.update');
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
@@ -121,9 +118,9 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [SaleController::class, 'index'])->name('sales.list');
         Route::get('create', [SaleController::class, 'create'])->name('sales.create');
         Route::post('store', [SaleController::class, 'store'])->name('sales.store');
-        Route::get('edit', [SaleController::class, 'edit'])->name('sales.edit');
+        Route::get('{id}/edit', [SaleController::class, 'edit'])->name('sales.edit');
         Route::post('update', [SaleController::class, 'update'])->name('sales.update');
-        Route::get('history', [SaleController::class, 'saleHistoryIndex'])->name('sales.history');
+        Route::get('{id}/history', [SaleController::class, 'saleHistoryIndex'])->name('sales.history');
         Route::get('direct', [SaleController::class, 'directSaleIndex'])->name('sales.direct');
         Route::get('open', [SaleController::class, 'openSaleIndex'])->name('sales.open');
         Route::get('closed', [SaleController::class, 'closeSaleIndex'])->name('sales.closed');
@@ -293,7 +290,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     /** crm */ 
     Route::group(['prefix' => 'crm'], function () {
         Route::get('', [CrmController::class, 'index'])->name('crm.list');
-        Route::get('{id}', [CrmController::class, 'changeStatus'])->name('crm.changeStatus');
+        // Route::get('{id}', [CrmController::class, 'changeStatus'])->name('crm.changeStatus');
         Route::post('notes-history', [CrmController::class, 'crmNotesHistoryIndex'])->name('crmNotesHistoryIndex');
     });
     Route::get('getCrmApplicantsAjaxRequest', [CrmController::class, 'getCrmApplicantsAjaxRequest'])->name('getCrmApplicantsAjaxRequest');
@@ -429,6 +426,23 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     });
     Route::get('getFreepbxAjaxRequest', [FreePBXController::class, 'getFreepbxAjaxRequest'])->name('getFreepbxAjaxRequest');
 
+    Route::get('', [RoutingController::class, 'index'])->name('root');
 
-    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
+    // Dynamic routes (Root, second-level, and third-level)
+    Route::get('{first}', [RoutingController::class, 'root'])->name('root');
+    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+
+    // Handle .well-known paths specifically
+    Route::get('.well-known/{any}', function () {
+        // Return 404 for all .well-known requests
+        abort(404, 'File not found');
+
+        // Or serve a specific file
+        // $filePath = public_path('.well-known/' . request()->segment(2));
+        // if (file_exists($filePath)) {
+        //     return response()->file($filePath);
+        // }
+        // abort(404, 'File not found');
+    })->where('any', '.*');
 });

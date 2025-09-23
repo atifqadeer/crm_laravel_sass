@@ -25,17 +25,33 @@
                                 @canany(['applicant-filters'])
                                     <!-- Category Filter Dropdown -->
                                     <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                                Category</span>
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
                                         </button>
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1" style="max-height: 400px; overflow-y: auto;">
-                                            <a class="dropdown-item category-filter" href="#">All Category</a>
-                                            @foreach ($jobCategories as $category)
-                                                <a class="dropdown-item category-filter" href="#"
-                                                    data-category-id="{{ $category->id }}">{{ $category->name }}</a>
-                                            @endforeach
+
+                                        <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
+                                            <!-- Search input -->
+                                            <input type="text" class="form-control mb-2" id="categorySearchInput"
+                                                placeholder="Search category...">
+
+                                            <!-- Scrollable checkbox list -->
+                                            <div id="categoryList">
+                                                <div class="form-check">
+                                                    <input class="form-check-input category-filter" type="checkbox" value=""
+                                                        id="all-categories" data-title-id="">
+                                                    <label class="form-check-label" for="all-categories">All Category</label>
+                                                </div>
+
+                                                @foreach($jobCategories as $category)
+                                                    <div class="form-check">
+                                                        <input class="form-check-input category-filter" type="checkbox"
+                                                            value="{{ $category->id }}" id="category_{{ $category->id }}"
+                                                            data-category-id="{{ $category->id }}">
+                                                        <label class="form-check-label"
+                                                            for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     </div>
 
@@ -46,14 +62,14 @@
                                             <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
                                         </button>
 
-                                        <div class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton2"
+                                        <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
                                             style="min-width: 250px;">
                                             <!-- Search input -->
                                             <input type="text" class="form-control mb-2" id="titleSearchInput"
                                                 placeholder="Search titles...">
 
                                             <!-- Scrollable checkbox list -->
-                                            <div id="titleList" style="max-height: 400px; overflow-y: auto;">
+                                            <div id="titleList">
                                                 <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox" value=""
                                                         id="all-titles" data-title-id="">
@@ -156,7 +172,8 @@
                             <thead class="bg-light-subtle">
                                 <tr>
                                     <th>#</th>
-                                    <th>Date</th>
+                                    <th>Created Date</th>
+                                    {{-- <th>Updated Date</th> --}}
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Title</th>
@@ -246,19 +263,31 @@
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <script>
         const hasResumePermission = @json(auth()->user()->can('applicant-download-resume'));
@@ -268,16 +297,20 @@
         $(document).ready(function() {
             let currentFilter = '';
             let currentTypeFilter = '';
-            let currentCategoryFilter = '';
+            let currentCategoryFilters = [];
             let currentTitleFilters = [];
 
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
-            $('#applicants_table tbody').append(loadingRow);
+            </td></tr>`;
+
+            // Function to show loader
+            function showLoader() {
+                $('#applicants_table tbody').empty().append(loadingRow);
+            }
 
             let columns = [{
                     data: 'DT_RowIndex',
@@ -286,9 +319,13 @@
                     searchable: false
                 },
                 {
-                    data: 'updated_at',
-                    name: 'applicants.updated_at'
+                    data: 'created_at',
+                    name: 'applicants.created_at'
                 },
+                // {
+                //     data: 'updated_at',
+                //     name: 'applicants.updated_at'
+                // },
                 {
                     data: 'applicant_name',
                     name: 'applicants.applicant_name'
@@ -385,11 +422,18 @@
                     data: function(d) {
                         d.status_filter = currentFilter;
                         d.type_filter = currentTypeFilter;
-                        d.category_filter = currentCategoryFilter;
+                        d.category_filter = currentCategoryFilters;
                         d.title_filters = currentTitleFilters;
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: columns,
@@ -477,7 +521,7 @@
                 },
             });
 
-            // Type filter dropdown handler
+            /*** Type filter dropdown handler ***/
             $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
@@ -491,7 +535,7 @@
                 table.ajax.reload(); // Reload with updated type filter
             });
 
-            // Status filter dropdown handler
+            /*** Status filter dropdown handler ***/
             $('.status-filter').on('click', function() {
                 currentFilter = $(this).text().toLowerCase();
 
@@ -505,22 +549,38 @@
                 table.ajax.reload(); // Reload with updated status filter
             });
 
-            // Status filter dropdown handler
+            /*** Category filter handler ***/
             $('.category-filter').on('click', function() {
-                const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ??
-                ''; // nullish fallback for "All Category"
+                const id = $(this).data('category-id');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentCategoryFilters = [];
+                    $('.category-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentCategoryFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.category-filter[data-category-id=""]').prop('checked', false);
+                    } else {
+                        currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
+                    }
+                }
 
-                const formattedText = categoryName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+                // Update dropdown display text
+                const selectedLabels = $('.category-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
 
-                $('#showFilterCategory').html(formattedText); // Update displayed name
+                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
+                    ')' : 'All Categories');
+
+                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
 
+            /*** Title Filter Handler ***/
             $('.title-filter').on('change', function() {
                 const id = $(this).data('title-id');
 
@@ -545,11 +605,21 @@
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'All Titles (' + selectedLabels.length +
+                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
                     ')' : 'All Titles');
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+        });
+
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#categoryList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
 

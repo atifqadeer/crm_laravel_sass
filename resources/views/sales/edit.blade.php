@@ -5,21 +5,12 @@
 @endsection
 
 @section('content')
-@php
-$offices = \Horsefly\Office::where('status', 1)->select('id','office_name')->get();
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
-
-$sale_id = request()->query('id');
-$sale = \Horsefly\Sale::with('documents')->find($sale_id);
-
-@endphp
 
 <div class="row">
     <div class="col-xl-12 col-lg-12">
         <form id="editSaleForm" action="{{ route('sales.update') }}" method="POST" class="needs-validation" novalidate enctype="multipart/form-data">
             @csrf
-            <input type="hidden" name="sale_id" value="{{ $sale_id }}">
+            <input type="hidden" name="sale_id" value="{{ $sale->id }}">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Sale Information</h4>
@@ -201,7 +192,14 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                                 </li>
                             </ul>
                         </div> -->
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
+                            <div class="mb-3">
+                                <label for="sale_notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                <div class="invalid-feedback">Please provide notes</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-12">
                             <div class="mb-3">
                                 <div class="form-group">
                                     <label for="attachment">Attachment</label>
@@ -209,7 +207,7 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                                     <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
                                 </div>
                                 @if($sale->documents->isNotEmpty())
-                                    <div class="col-lg-6">
+                                    <div class="col-lg-12">
                                         <div class="mt-3">
                                             <label for="sale_documents" class="form-label">Already Attached Files</label>
                                             <ul class="list-group">
@@ -230,21 +228,14 @@ $sale = \Horsefly\Sale::with('documents')->find($sale_id);
                                 @endif
                             </div>
                         </div>
-                         <div class="col-lg-6">
-                            <div class="mb-3">
-                                <label for="sale_notes" class="form-label">Notes</label>
-                                <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
-                                <div class="invalid-feedback">Please provide notes</div>
-                            </div>
-                        </div>
+                         
                     </div>
                 </div>
             </div>
             <div class="mb-3 rounded">
                 <div class="row justify-content-end g-2">
-                    
                     <div class="col-lg-2">
-                        <a href="{{ route('units.list') }}" class="btn btn-dark w-100">Cancel</a>
+                        <a href="{{ route('sales.list') }}" class="btn btn-dark w-100">Cancel</a>
                     </div>
                     <div class="col-lg-2">
                         <button type="submit" class="btn btn-primary w-100">

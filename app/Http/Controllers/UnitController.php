@@ -173,189 +173,143 @@ class UnitController extends Controller
     }
     public function getUnits(Request $request)
     {
-        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
-        ini_set('max_execution_time', 300); // 300 seconds = 5 minutes
+        $statusFilter = $request->input('status_filter', '');
 
-        $model = Unit::query()
+        $query = Unit::query()
             ->select([
-                'units.*',
-                'offices.office_name as office_name',
-                'contacts.contact_name',
-                'contacts.contact_phone',
-                'contacts.contact_landline'
+                'units.id',
+                'units.office_id',
+                'units.unit_name',
+                'units.unit_postcode',
+                'units.unit_website',
+                'units.unit_notes',
+                'units.status',
+                'units.created_at',
+                'units.updated_at',
+                DB::raw('offices.office_name as office_name') // include joined office name
             ])
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-            ->leftJoin('contacts', function($join) {
-                $join->on('contacts.contactable_id', '=', 'offices.id')
-                    ->where('contacts.contactable_type', '=', 'Horsefly\\Unit');
-            })
-            ->with(['office','contact']);
+            ->with('contact'); // eager load contacts for pluck() later
 
-        // Filter by status if it's not empty
-        switch($statusFilter){
-            case 'active':
-                $model->where('units.status', 1);
-                break;
-            case 'inactive':
-                $model->where('units.status', 0);
-                break;
+        // Filter by status
+        if ($statusFilter === 'active') {
+            $query->where('units.status', 1);
+        } elseif ($statusFilter === 'inactive') {
+            $query->where('units.status', 0);
         }
 
+        // Searching
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
-
             if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
+                $query->where(function ($query) use ($searchTerm) {
                     $likeSearch = "%{$searchTerm}%";
 
-                    $query->whereRaw('LOWER(units.unit_postcode) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(units.unit_name) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(units.unit_postcode) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(units.unit_website) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(units.created_at) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(contacts.contact_name) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(contacts.contact_email) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('contacts.contact_phone LIKE ?', [$likeSearch])
-                        ->orWhereRaw('contacts.contact_landline LIKE ?', [$likeSearch]);
-
-                        $query->orWhereHas('office', function ($q) use ($likeSearch) {
-                            $q->whereRaw('offices.office_name LIKE ?', [$likeSearch]);
+                    $query->where(function ($q) use ($likeSearch) {
+                        $q->where('units.unit_postcode', 'LIKE', $likeSearch)
+                        ->orWhere('units.unit_name', 'LIKE', $likeSearch)
+                        ->orWhere('units.unit_website', 'LIKE', $likeSearch)
+                        ->orWhere('units.created_at', 'LIKE', $likeSearch)
+                        ->orWhere('offices.office_name', 'LIKE', $likeSearch) // direct search on joined table
+                        ->orWhereHas('contact', function ($c) use ($likeSearch) {
+                            $c->where('contact_name', 'LIKE', $likeSearch)
+                                ->orWhere('contact_email', 'LIKE', $likeSearch)
+                                ->orWhere('contact_phone', 'LIKE', $likeSearch)
+                                ->orWhere('contact_landline', 'LIKE', $likeSearch);
                         });
+                    });
                 });
             }
         }
 
-         // Sorting logic
+        // Sorting: prefer columns[index].name if set, otherwise columns[index].data
         if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
+            $orderIndex = $request->input('order.0.column');
+            $orderDir = $request->input('order.0.dir', 'asc');
 
-            // Default case for valid columns
+            $colName = $request->input("columns.$orderIndex.name") ?? $request->input("columns.$orderIndex.data");
+
+            // Map friendly names to fully-qualified DB columns (extend as needed)
+            $map = [
+                'office_name'   => 'offices.office_name',
+                'unit_name'     => 'units.unit_name',
+                'unit_postcode' => 'units.unit_postcode',
+                'created_at'    => 'units.created_at',
+                'status'        => 'units.status',
+                'id'            => 'units.id',
+            ];
+
+            $orderColumn = $map[$colName] ?? $colName;
+
             if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            }else {
-                $model->orderBy('units.created_at', 'desc');
+                $query->orderBy($orderColumn, $orderDir);
+            } else {
+                $query->orderBy('units.created_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
-            $model->orderBy('units.created_at', 'desc');
+            $query->orderBy('units.created_at', 'desc');
         }
 
         if ($request->ajax()) {
-            return DataTables::eloquent($model)
-                ->addIndexColumn() // This will automatically add a serial number to the rows
-                ->addColumn('office_name', function ($unit) {
-                    $office_id = $unit->office_id;
-                    $office = Office::find($office_id);
-                    return $office ? $office->office_name : '-';
-                })
-                ->addColumn('unit_name', function ($unit) {
-                    return $unit->formatted_unit_name; // Using accessor
-                })
-                ->addColumn('unit_postcode', function ($unit) {
-                    return $unit->formatted_postcode; // Using accessor
-                })
+            return DataTables::eloquent($query)
+                ->addIndexColumn()
+                ->addColumn('office_name', fn($unit) => $unit->office_name ?? '-')
+                ->addColumn('unit_name', fn($unit) => $unit->formatted_unit_name)
+                ->addColumn('unit_postcode', fn($unit) => $unit->formatted_postcode)
                 ->addColumn('contact_email', function ($unit) {
-                    $contact = $unit->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $email = [];
-                        foreach ($contact as $c) {
-                            $email[] = $c->contact_email ? e($c->contact_email) : '-';
-                        }
-                        return implode('<br>', $email);
-                    }
-                    return '-';
+                    return $unit->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
                 })
                 ->addColumn('contact_landline', function ($unit) {
-                    $contact = $unit->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $landline = [];
-                        foreach ($contact as $c) {
-                            $landline[] = $c->contact_landline ? e($c->contact_landline) : '-';
-                        }
-                        return implode('<br>', $landline);
-                    }
-                    return '-';
+                    return $unit->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
                 })
                 ->addColumn('contact_phone', function ($unit) {
-                    $contact = $unit->contact;
-                    if ($contact && $contact->count() > 0) {
-                        $phones = [];
-                        foreach ($contact as $c) {
-                            $phones[] = $c->contact_phone ? e($c->contact_phone) : '-';
-                        }
-                        return implode('<br>', $phones);
-                    }
-                    return '-';
+                    return $unit->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
                 })
-                ->addColumn('created_at', function ($unit) {
-                    return $unit->formatted_created_at; // Using accessor
-                })
-                ->addColumn('updated_at', function ($unit) {
-                    return $unit->formatted_updated_at; // Using accessor
-                })
+                ->addColumn('created_at', fn($unit) => $unit->formatted_created_at)
+                ->addColumn('updated_at', fn($unit) => $unit->formatted_updated_at)
                 ->addColumn('unit_notes', function ($unit) {
-                    $notes = nl2br(htmlspecialchars($unit->unit_notes, ENT_QUOTES, 'UTF-8'));
-                    return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">
-                            ' . $notes . '
-                        </a>
-                    ';
+                    $notes = nl2br(e($unit->unit_notes));
+                    return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(' . (int)$unit->id . ')">' . $notes . '</a>';
                 })
-                ->addColumn('status', function ($unit) {
-                    $status = '';
-                    if ($unit->status) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } else {
-                        $status = '<span class="badge bg-secondary">Inactive</span>';
-                    }
-
-                    return $status;
-                })
+                ->addColumn('status', fn($unit) => $unit->status
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-secondary">Inactive</span>')
                 ->addColumn('action', function ($unit) {
                     $postcode = $unit->formatted_postcode;
-                    $office_id = $unit->office_id;
-                    $office = Office::find($office_id);
-                    $office_name = $office ? $office->office_name : '-';
-                    $status = '';
+                    $office_name = $unit->office_name ?? '-';
+                    $status = $unit->status
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>';
 
-                    if ($unit->status) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } else {
-                        $status = '<span class="badge bg-secondary">Inactive</span>';
-                    }
-                    $html = '';
-                    $html .= '<div class="btn-group dropstart">
+                    $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">';
-                                    if(Gate::allows('unit-edit')){
-                                        $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
-                                    }
-                                    if(Gate::allows('unit-view')){
-                                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                            ' . (int)$unit->id . ',
-                                            \'' . addslashes(htmlspecialchars($office_name)) . '\',
-                                            \'' . addslashes(htmlspecialchars($unit->unit_name)) . '\',
-                                            \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                            \'' . addslashes(htmlspecialchars($status)) . '\'
-                                        )">View</a></li>';
-                                    }
-                                    if(Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')){
-                                        $html .= '<li><hr class="dropdown-divider"></li>';
-                                    }
-                                    if(Gate::allows('unit-view-notes-history')){
-                                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $unit->id . ')">Notes History</a></li>';
-                                    }
-                                    if(Gate::allows('unit-view-manager-details')){
-                                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $unit->id . ')">Manager Details</a></li>';
-                                    }
-                                $html .= '</ul>
-                            </div>';
-                        return $html;
-                })
+                    if (Gate::allows('unit-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('unit-view')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
+                            . (int)$unit->id . ', '
+                            . '\'' . e($office_name) . '\', '
+                            . '\'' . e($unit->unit_name) . '\', '
+                            . '\'' . e($postcode) . '\', '
+                            . '\'' . e($status) . '\')">View</a></li>';
+                    }
+                    if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
+                    if (Gate::allows('unit-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $unit->id . ')">Notes History</a></li>';
+                    }
+                    if (Gate::allows('unit-view-manager-details')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $unit->id . ')">Manager Details</a></li>';
+                    }
+                    $html .= '</ul></div>';
 
+                    return $html;
+                })
                 ->rawColumns(['unit_notes', 'unit_name', 'contact_email', 'contact_landline', 'contact_phone', 'office_name', 'status', 'action'])
                 ->make(true);
         }
@@ -405,7 +359,13 @@ class UnitController extends Controller
     }
     public function edit($id)
     {
-        return view('units.edit', compact('office'));
+        $offices = Office::where('status', 1)->select('id','office_name')->get();
+        $unit = Unit::find($id);
+        $contacts = Contact::where('contactable_id',$unit->id)
+                        ->where('contactable_type','Horsefly\Unit')
+                        ->get();
+
+        return view('units.edit', compact('offices','unit','contacts'));
     }
     public function update(Request $request)
     {

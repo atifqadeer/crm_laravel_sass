@@ -147,7 +147,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                                     <div class="invalid-feedback"></div>
                                 </div>
                             </div>
-                            <div class="col-lg-6">
+                            <div class="col-lg-12">
                                 <div class="mb-3">
                                     <div class="form-group">
                                         <label for="attachment">Attachment</label>
@@ -156,7 +156,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->get();
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6">
+                            <div class="col-lg-12">
                                 <div class="mb-3">
                                     <label for="sale_notes" class="form-label">Notes</label>
                                     <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>

@@ -30,7 +30,7 @@ class CreateSalesTable extends Migration
             $table->tinyInteger('is_on_hold')->default(0)->comment('0=Not On Hold, 1=On Hold, 2=Pending');
             $table->tinyInteger('is_re_open')->default(0)->comment('0=No, 1=Yes, 2=Requested');
             $table->tinyInteger('cv_limit')->default(8);
-            $table->string('sale_notes', 255)->nullable();
+            $table->text('sale_notes')->nullable();
             $table->tinyInteger('status')->default(2)->comment('0=Inactive/deleted, 1=Active, 2=Pending, 3=Rejected'); // 'pending' assumed as 2
 
             $table->timestamp('created_at')->useCurrent();

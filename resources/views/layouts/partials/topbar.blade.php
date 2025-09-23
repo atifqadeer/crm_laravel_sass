@@ -55,7 +55,7 @@
                                         </div>
                                    </div>
                               </div>
-                              <div data-simplebar style="max-height: 280px;" id="notification-items">
+                              <div data-simplebar style="max-height: 280px;overflow:scroll;" id="notification-items">
                                    <!-- Notifications will be dynamically populated here -->
                               </div>
                               <div class="text-center py-3">

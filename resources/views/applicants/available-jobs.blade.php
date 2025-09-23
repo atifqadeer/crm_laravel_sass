@@ -62,20 +62,19 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h4 class="card-title">Active Jobs within {{ $radius }}KMs / {{ $radiusInMiles }}Miles</h4>
                             <div>
-                                    <!-- Button Dropdown -->
-                                {{-- <div class="dropdown d-inline">
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
                                         <a class="dropdown-item status-filter" href="#">All</a>
-                                        <a class="dropdown-item status-filter" href="#">Interested</a>
-                                        <a class="dropdown-item status-filter" href="#">Not Interested</a>
-                                        <a class="dropdown-item status-filter" href="#">No Job</a>
-                                        <a class="dropdown-item status-filter" href="#">Blocked</a>
-                                        <a class="dropdown-item status-filter" href="#">Have Nursing Home Experience</a>
+                                        <a class="dropdown-item status-filter" href="#">Open</a>
+                                        <a class="dropdown-item status-filter" href="#">Sent</a>
+                                        <a class="dropdown-item status-filter" href="#">Reject Job</a>
+                                        <a class="dropdown-item status-filter" href="#">Paid</a>
                                     </div>
-                                </div> --}}
+                                </div>
                                 {{-- <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
@@ -125,41 +124,48 @@
 </div>
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <script>
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
-            var currentTypeFilter = '';
-            var currentCategoryFilter = '';
-            var currentUserFilter = '';
-            var currentTitleFilter = '';
-            var currentOfficeFilter = '';
-            var showFilterCvLimit = '';
 
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#sales_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#sales_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#sales_table').DataTable({
@@ -172,13 +178,18 @@
                         d.applicant_id = {{ $applicant->id }};
                         d.radius = {{ $radius }};
                         // Add the current filter to the request parameters
-                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
-                        d.office_filter = currentOfficeFilter;  // Send the current filter value as a parameter
-                        d.user_filter = currentUserFilter;  // Send the current filter value as a parameter
-                        d.cv_limit_filter = showFilterCvLimit;  // Send the current filter value as a parameter
+                        d.status_filter = currentFilter;
+                        // Clean up search parameter
+                        if (d.search && d.search.value) {
+                            d.search.value = d.search.value.toString().trim();
+                        }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -297,32 +308,6 @@
                     pagination.html(paginationHtml);
                 },
             });
-            // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
-                currentTypeFilter = $(this).text().toLowerCase();
-
-                // Capitalize each word
-                const formattedText = currentTypeFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterType').html(formattedText);
-                table.ajax.reload(); // Reload with updated type filter
-            });
-            // cv limit filter dropdown handler
-            $('.cv-limit-filter').on('click', function () {
-                currentCVLimitFilter = $(this).text().toLowerCase();
-
-                // Capitalize each word
-                const formattedText = currentCVLimitFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterCvLimit').html(formattedText);
-                table.ajax.reload(); // Reload with updated status filter
-            });
             // Status filter dropdown handler
             $('.status-filter').on('click', function () {
                 currentFilter = $(this).text().toLowerCase();
@@ -335,66 +320,6 @@
 
                 $('#showFilterStatus').html(formattedText);
                 table.ajax.reload(); // Reload with updated status filter
-            });
-            // Status filter dropdown handler
-            $('.category-filter').on('click', function () {
-                const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ?? ''; // nullish fallback for "All Category"
-
-                const formattedText = categoryName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterCategory').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-            // Status filter dropdown handler
-            $('.title-filter').on('click', function () {
-                const titleName = $(this).text().trim();
-                currentTitleFilter = $(this).data('title-id') ?? ''; // nullish fallback for "All Titles"
-
-                const formattedText = titleName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterTitle').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-            // Status filter dropdown handler
-            $('.user-filter').on('click', function () {
-                const userName = $(this).text().trim();
-                currentUserFilter = $(this).data('user-id') ?? ''; // nullish fallback for "All Category"
-
-                const formattedText = userName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterUser').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-            // Status filter dropdown handler
-            $('.office-filter').on('click', function () {
-                const officeName = $(this).text().trim();
-                currentOfficeFilter = $(this).data('office-id') ?? ''; // nullish fallback for "All Category"
-
-                const formattedText = officeName
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterOffice').html(formattedText); // Update displayed name
-                table.ajax.reload();
-            });
-             // Handle the DataTable search
-            $('#sales_table_filter input').on('keyup', function() {
-                table.search(this.value).draw(); // Manually trigger search
             });
         });
 
