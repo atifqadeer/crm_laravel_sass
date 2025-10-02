@@ -10,277 +10,291 @@
 </style>
 @endsection
 @section('content')
-@php
-    $roles = \Horsefly\Role::orderBy('name', 'asc')->get();
-@endphp
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i>  <span id="showFilterStatus">All</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item" href="#">All</a>
-                                    <a class="dropdown-item" href="#">Active</a>
-                                    <a class="dropdown-item" href="#">Inactive</a>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i>  <span id="showFilterStatus">All</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item" href="#">All</a>
+                                        <a class="dropdown-item" href="#">Active</a>
+                                        <a class="dropdown-item" href="#">Inactive</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item" href="{{ route('usersExport', ['type' => 'all']) }}">Export All Data</a>
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> Export
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item" href="{{ route('usersExport', ['type' => 'all']) }}">Export All Data</a>
+                                    </div>
                                 </div>
+                                <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
+                                    <i class="ri-upload-line"></i>
+                                </button>
+                                <!-- Create User Button triggers modal -->
+                                <button type="button" class="btn btn-success ml-1 my-1" onclick="createUser()">
+                                    <i class="ri-add-line"></i> Create User
+                                </button>
                             </div>
-                            <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
-                                <i class="ri-upload-line"></i>
-                            </button>
-                            <!-- Create User Button triggers modal -->
-                            <button type="button" class="btn btn-success ml-1 my-1" onclick="createUser()">
-                                <i class="ri-add-line"></i> Create User
-                            </button>
                         </div>
+                        <!-- end col-->
                     </div>
-                    <!-- end col-->
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="users_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="users_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
                 </div>
-                <!-- end table-responsive -->
             </div>
         </div>
     </div>
-</div>
 
-<!-- Create User Modal -->
-<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-top">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createUserForm">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="userName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="userName" name="name" placeholder="Enter Full Name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="userEmail" name="email" placeholder="Enter Valid Email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userRole" class="form-label">Role</label>
-                        <select class="form-select" id="userRole" name="role" required>
-                            <option value="">Select Role</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ ucwords($role->name) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userPassword" class="form-label">Password</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="userPassword" name="password" placeholder="Type Password" autocomplete="new-password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPassword">
-                                <i class="ri-eye-off-line"></i>
-                            </button>
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-top">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="userName" name="name" placeholder="Enter Full Name" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userPasswordConfirmation" class="form-label">Confirm Password</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="userPasswordConfirmation" name="password_confirmation" placeholder="Re-type Password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPasswordConfirmation">
-                                <i class="ri-eye-off-line"></i>
-                            </button>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="userEmail" name="email" placeholder="Enter Valid Email" required>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="savecreateUserButton">Save</button>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">Role</label>
+                            <select class="form-select" id="userRole" name="role" required>
+                                <option value="">Select Role</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}">{{ ucwords($role->name) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="userPassword" name="password" placeholder="Type Password" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPassword">
+                                    <i class="ri-eye-off-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPasswordConfirmation" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="userPasswordConfirmation" name="password_confirmation" placeholder="Re-type Password" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPasswordConfirmation">
+                                    <i class="ri-eye-off-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" id="savecreateUserButton">Save</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- edit User Modal -->
-<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-top">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editUserForm">
-                    @csrf
-                    <input type="hidden" id="userId" name="id">
-                    <div class="mb-3">
-                        <label for="editUserName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="editUserName" name="name" placeholder="Enter Full Name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="editUserEmail" name="email" placeholder="Enter Valid Email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserRole" class="form-label">Role</label>
-                        <select class="form-select" id="editUserRole" name="role" required>
-                            <option value="">Select Role</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ ucwords($role->name) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserPassword" class="form-label">Password</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="editUserPassword" name="password" placeholder="Type Password" autocomplete="new-password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPassword">
-                                <i class="ri-eye-off-line"></i>
-                            </button>
+    <!-- edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-top">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        @csrf
+                        <input type="hidden" id="userId" name="id">
+                        <div class="mb-3">
+                            <label for="editUserName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="editUserName" name="name" placeholder="Enter Full Name" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserPasswordConfirmation" class="form-label">Confirm Password</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="editUserPasswordConfirmation" name="password_confirmation" placeholder="Re-type Password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPasswordConfirmation">
-                                <i class="ri-eye-off-line"></i>
-                            </button>
+                        <div class="mb-3">
+                            <label for="editUserEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editUserEmail" name="email" placeholder="Enter Valid Email" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserStatus" class="form-label">Status</label>
-                        <select class="form-select" id="editUserStatus" name="status" required>
-                            <option value="">Select Status</option>
-                            <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="saveEditUserButton">Save</button>
+                        <div class="mb-3">
+                            <label for="editUserRole" class="form-label">Role</label>
+                            <select class="form-select" id="editUserRole" name="role" required>
+                                <option value="">Select Role</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}">{{ ucwords($role->name) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserPassword" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="editUserPassword" name="password" placeholder="Type Password" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPassword">
+                                    <i class="ri-eye-off-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserPasswordConfirmation" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="editUserPasswordConfirmation" name="password_confirmation" placeholder="Re-type Password" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#userPasswordConfirmation">
+                                    <i class="ri-eye-off-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserStatus" class="form-label">Status</label>
+                            <select class="form-select" id="editUserStatus" name="status" required>
+                                <option value="">Select Status</option>
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" id="saveEditUserButton">Save</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="changeStatusModal" tabindex="-1">
+    <div class="modal fade" id="changeStatusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Status Change</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to change this user's status?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="saveStatusButton" class="btn btn-success">Yes, Change</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
     <div class="modal-dialog">
+        <form id="csvImportForm" enctype="multipart/form-data">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Confirm Status Change</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Are you sure you want to change this user's status?
+            <div class="mb-3">
+                <label for="csvFile" class="form-label">Choose CSV File</label>
+                <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+            </div>
+            <div class="progress" style="height: 20px;">
+                <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar" style="width: 0%">0%</div>
+            </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="saveStatusButton" class="btn btn-primary">Yes, Change</button>
+            <button type="submit" class="btn btn-primary">Upload</button>
             </div>
         </div>
+        </form>
     </div>
-</div>
-
-<!-- Import CSV Modal -->
-<div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="csvImportForm" enctype="multipart/form-data">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="csvFile" class="form-label">Choose CSV File</label>
-            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
-          </div>
-          <div class="progress" style="height: 20px;">
-            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                 role="progressbar" style="width: 0%">0%</div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Upload</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-   
-    <!-- Toastr css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
+    <!-- Add daterangepicker -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentFilter = '';
 
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#users_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#users_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#users_table').DataTable({
@@ -292,6 +306,13 @@
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#users_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -410,11 +431,6 @@
 
                 $('#showFilterStatus').html(formattedText);
                 table.ajax.reload(); // Reload with updated status filter
-            });
-
-             // Handle the DataTable search
-            $('#users_table_filter input').on('keyup', function() {
-                table.search(this.value).draw(); // Manually trigger search
             });
         });
 

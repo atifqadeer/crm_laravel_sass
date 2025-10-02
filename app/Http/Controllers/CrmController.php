@@ -1471,7 +1471,7 @@ class CrmController extends Controller
 
                     break;
             default:
-               case 'sent cvs':
+                case 'sent cvs':
                     // Derived table for latest quality_notes (uncorrelated, runs once)
                     $latestQuality = DB::table('quality_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')  // Include id for join if needed
@@ -1693,8 +1693,8 @@ class CrmController extends Controller
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     if ($applicant->lat != null && $applicant->lng != null) {
-                        $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="' . $url . '" style="color:blue;">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+                        $button = '<a href="' . $url . '" style="color:blue;" target="_blank">' . $applicant->formatted_postcode . '</a>'; // Using accessor
                     } else {
                         $button = $applicant->formatted_postcode;
                     }

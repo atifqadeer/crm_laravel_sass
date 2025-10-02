@@ -5,108 +5,108 @@
 @endsection
 
 @section('content')
-@php
-    $role_id = request()->query('id');
-    $role = \DB::table('roles')->where('id', $role_id)->first();
-    $permissions = \DB::table('permissions')->get();
-    $rolePermissions = \DB::table('role_has_permissions')->where('role_id', $role_id)->pluck('permission_id')->toArray();
-    $rolePermissions = array_map('intval', $rolePermissions);
-
-    // Group permissions by first word before the hyphen
-    $groupedPermissions = collect($permissions)->groupBy(function ($permission) {
-        return explode('-', $permission->name)[0];
-    });
-@endphp
-
-<div class="row">
-    <div class="col-xl-12 col-lg-12">
-        <form id="editRoleForm" action="{{ route('roles.update') }}" method="POST" class="needs-validation" novalidate>
-            @csrf
-            @method('PUT')
-            <div class="card">
-                <input type="hidden" name="role_id" value="{{ $role->id }}">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0"></h4>
-                    <a href="{{ route('permissions.list') }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                        <i class="mdi mdi-plus"></i> Create Permission
-                    </a>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="role_name" class="form-label">Role Name</label>
-                        <input type="text" id="role_name" class="form-control" name="name"
-                            value="{{ old('name', $role->name) }}" placeholder="Role Name" required>
-                        <div class="invalid-feedback">Please provide a role name</div>
+    <div class="row">
+        <div class="col-xl-12 col-lg-12">
+            <form id="editRoleForm" action="{{ route('roles.update') }}" method="POST" class="needs-validation" novalidate>
+                @csrf
+                @method('PUT')
+                <div class="card">
+                    <input type="hidden" name="role_id" value="{{ $role->id }}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0"></h4>
+                        <a href="{{ route('permissions.list') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="mdi mdi-plus"></i> Create Permission
+                        </a>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Assign Permissions</label>
-                        <div class="border rounded py-3 px-2" style="max-height: 500px; overflow-y: auto;">
-                            @forelse($groupedPermissions as $group => $groupPermissions)
-                                <div class="mb-2">
-                                    {{-- Group Parent Checkbox --}}
-                                    <div class="form-check form-check-inline mb-2">
-                                        <input type="checkbox" class="form-check-input group-parent" id="group_{{ $group }}">
-                                        <label class="form-check-label fw-bold text-uppercase" for="group_{{ $group }}">
-                                            {{ ucfirst($group) }}
-                                        </label>
-                                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="role_name" class="form-label">Role Name</label>
+                            <input type="text" id="role_name" class="form-control" name="name"
+                                value="{{ old('name', $role->name) }}" placeholder="Role Name" required>
+                            <div class="invalid-feedback">Please provide a role name</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Assign Permissions</label>
+                            <div class="border rounded py-3 px-2" style="max-height: 500px; overflow-y: auto;">
+                                @forelse($groupedPermissions as $group => $groupPermissions)
+                                    <div class="mb-2">
+                                        {{-- Group Parent Checkbox --}}
+                                        <div class="form-check form-check-inline mb-2">
+                                            <input type="checkbox" class="form-check-input group-parent" id="group_{{ $group }}">
+                                            <label class="form-check-label fw-bold text-uppercase" for="group_{{ $group }}">
+                                                {{ ucfirst($group) }}
+                                            </label>
+                                        </div>
 
-                                    <div class="row ms-2">
-                                        @foreach($groupPermissions as $permission)
-                                            <div class="col-md-2">
-                                                <div class="form-check mb-2">
-                                                    <input class="form-check-input group-{{ $group }}" type="checkbox"
-                                                        name="permissions[]"
-                                                        value="{{ $permission->name }}"
-                                                        id="perm_{{ $permission->id }}"
-                                                        {{ in_array($permission->id, old('permissions', $rolePermissions)) ? 'checked' : '' }}>
-                                                    <label class="form-check-label" for="perm_{{ $permission->id }}">
-                                                        {{ ucfirst(Str::after($permission->name, '-')) }}
-                                                    </label>
+                                        <div class="row ms-2">
+                                            @foreach($groupPermissions as $permission)
+                                                <div class="col-md-2">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input group-{{ $group }}" type="checkbox"
+                                                            name="permissions[]"
+                                                            value="{{ $permission->name }}"
+                                                            id="perm_{{ $permission->id }}"
+                                                            {{ in_array($permission->id, old('permissions', $rolePermissions)) ? 'checked' : '' }}>
+                                                        <label class="form-check-label" for="perm_{{ $permission->id }}">
+                                                            {{ ucfirst(Str::after($permission->name, '-')) }}
+                                                        </label>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endforeach
+                                            @endforeach
+                                        </div>
+                                        <hr>
                                     </div>
-                                    <hr>
-                                </div>
-                            @empty
-                                <div class="text-muted">No permissions available.</div>
-                            @endforelse
-                        </div>
-                        <div class="invalid-feedback">Please assign at least one permission</div>
-                    </div>
-                </div>
-                <div class="mb-3 rounded">
-                    <div class="row justify-content-end g-2">
-                        <div class="col-lg-2">
-                            <a href="{{ route('roles.list') }}" class="btn btn-dark w-100">Cancel</a>
-                        </div>
-                        <div class="col-lg-2">
-                            <button type="submit" class="btn btn-primary w-100">Update</button>
+                                @empty
+                                    <div class="text-muted">No permissions available.</div>
+                                @endforelse
+                            </div>
+                            <div class="invalid-feedback">Please assign at least one permission</div>
                         </div>
                     </div>
+                    <div class="mb-3 rounded">
+                        <div class="row justify-content-end g-2">
+                            <div class="col-lg-2">
+                                <a href="{{ route('roles.list') }}" class="btn btn-dark w-100">Cancel</a>
+                            </div>
+                            <div class="col-lg-2">
+                                <button type="submit" class="btn btn-success w-100">Update</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 
 @endsection
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
     <script>
         // Form validation
         (function () {
@@ -177,9 +177,9 @@
                         } else {
                             if (data.errors) {
                                 let errorMessages = Object.values(data.errors).flat().join('\n');
-                                alert('Validation Errors:\n' + errorMessages);
+                                toastr.error('Validation Errors:\n' + errorMessages);
                             } else {
-                                alert(data.message);
+                                toastr.error(data.message);
                             }
                         }
                     }
@@ -187,7 +187,7 @@
                 .catch(error => {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Save';
-                    alert('An unexpected error occurred. Please try again.');
+                    toastr.error('An unexpected error occurred. Please try again.');
                     console.error('Error:', error);
                 });
             });

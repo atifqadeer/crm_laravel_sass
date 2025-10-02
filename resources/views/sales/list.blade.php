@@ -11,283 +11,262 @@
 </style>
 @endsection
 @section('content')
-@php
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-$offices = \Horsefly\Office::where('status', 1)->orderBy('office_name','asc')->get();
-$users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
-@endphp
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                            <!-- user Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
-                                </button>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <!-- user Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
+                                    </button>
 
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton5">
-                                    <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="userSearchInput"
-                                        placeholder="Search user...">
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton5">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="userSearchInput"
+                                            placeholder="Search user...">
 
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="usersList">
-                                        <div class="form-check">
-                                            <input class="form-check-input user-filter" type="checkbox" value=""
-                                                id="all-Users" data-title-id="">
-                                            <label class="form-check-label" for="all-Users">All Users</label>
-                                        </div>
-
-                                        @foreach($users as $user)
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="usersList">
                                             <div class="form-check">
-                                                <input class="form-check-input user-filter" type="checkbox"
-                                                    value="{{ $user->id }}" id="user_{{ $user->id }}"
-                                                    data-user-id="{{ $user->id }}">
-                                                <label class="form-check-label"
-                                                    for="user_{{ $user->id }}">{{ ucwords($user->name) }}</label>
+                                                <input class="form-check-input user-filter" type="checkbox" value=""
+                                                    id="all-Users" data-title-id="">
+                                                <label class="form-check-label" for="all-Users">All Users</label>
                                             </div>
-                                        @endforeach
+
+                                            @foreach($users as $user)
+                                                <div class="form-check">
+                                                    <input class="form-check-input user-filter" type="checkbox"
+                                                        value="{{ $user->id }}" id="user_{{ $user->id }}"
+                                                        data-user-id="{{ $user->id }}">
+                                                    <label class="form-check-label"
+                                                        for="user_{{ $user->id }}">{{ ucwords($user->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- head office Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
-                                </button>
+                                <!-- head office Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
+                                    </button>
 
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton6">
-                                    <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="officeSearchInput"
-                                        placeholder="Search office...">
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton6">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="officeSearchInput"
+                                            placeholder="Search office...">
 
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="officesList">
-                                        <div class="form-check">
-                                            <input class="form-check-input office-filter" type="checkbox" value=""
-                                                id="all-offices" data-title-id="">
-                                            <label class="form-check-label" for="all-offices">All Head Office</label>
-                                        </div>
-
-                                        @foreach($offices as $office)
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="officesList">
                                             <div class="form-check">
-                                                <input class="form-check-input office-filter" type="checkbox"
-                                                    value="{{ $office->id }}" id="office_{{ $office->id }}"
-                                                    data-office-id="{{ $office->id }}">
-                                                <label class="form-check-label"
-                                                    for="office_{{ $office->id }}">{{ ucwords($office->office_name) }}</label>
+                                                <input class="form-check-input office-filter" type="checkbox" value=""
+                                                    id="all-offices" data-title-id="">
+                                                <label class="form-check-label" for="all-offices">All Head Office</label>
                                             </div>
-                                        @endforeach
+
+                                            @foreach($offices as $office)
+                                                <div class="form-check">
+                                                    <input class="form-check-input office-filter" type="checkbox"
+                                                        value="{{ $office->id }}" id="office_{{ $office->id }}"
+                                                        data-office-id="{{ $office->id }}">
+                                                    <label class="form-check-label"
+                                                        for="office_{{ $office->id }}">{{ ucwords($office->office_name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- Category Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
-                                </button>
+                                <!-- Category Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    </button>
 
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
-                                    <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="categorySearchInput"
-                                        placeholder="Search category...">
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="categorySearchInput"
+                                            placeholder="Search category...">
 
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="categoryList">
-                                        <div class="form-check">
-                                            <input class="form-check-input category-filter" type="checkbox" value=""
-                                                id="all-categories" data-title-id="">
-                                            <label class="form-check-label" for="all-categories">All Category</label>
-                                        </div>
-
-                                        @foreach($jobCategories as $category)
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="categoryList">
                                             <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox"
-                                                    value="{{ $category->id }}" id="category_{{ $category->id }}"
-                                                    data-category-id="{{ $category->id }}">
-                                                <label class="form-check-label"
-                                                    for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                <input class="form-check-input category-filter" type="checkbox" value=""
+                                                    id="all-categories" data-title-id="">
+                                                <label class="form-check-label" for="all-categories">All Category</label>
                                             </div>
-                                        @endforeach
+
+                                            @foreach($jobCategories as $category)
+                                                <div class="form-check">
+                                                    <input class="form-check-input category-filter" type="checkbox"
+                                                        value="{{ $category->id }}" id="category_{{ $category->id }}"
+                                                        data-category-id="{{ $category->id }}">
+                                                    <label class="form-check-label"
+                                                        for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- Type Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
-                                    <a class="dropdown-item type-filter" href="#">All Types</a>
-                                    <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Regular</a>
-                                </div>
-                            </div>
-                            <!-- Title Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                    id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                </button>
-
-                                <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
-                                    style="min-width: 250px;">
-                                    <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="titleSearchInput"
-                                        placeholder="Search titles...">
-
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="titleList">
-                                        <div class="form-check">
-                                            <input class="form-check-input title-filter" type="checkbox" value=""
-                                                id="all-titles" data-title-id="">
-                                            <label class="form-check-label" for="all-titles">All Titles</label>
-                                        </div>
-                                        @foreach ($jobTitles as $title)
-                                            <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox"
-                                                    value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                    data-title-id="{{ $title->id }}">
-                                                <label class="form-check-label"
-                                                    for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
-                                            </div>
-                                        @endforeach
+                                <!-- Type Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                        <a class="dropdown-item type-filter" href="#">All Types</a>
+                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                        <a class="dropdown-item type-filter" href="#">Regular</a>
                                     </div>
                                 </div>
-                            </div>
-                             <!-- cv limit Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCvLimit">All Count</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton7">
-                                    <a class="dropdown-item cv-limit-filter" href="#">All Count</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Zero</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Not Max</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Max</a>
+                                <!-- Title Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+                                    </button>
+
+                                    <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
+                                        style="min-width: 250px;">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="titleSearchInput"
+                                            placeholder="Search titles...">
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="titleList">
+                                            <div class="form-check">
+                                                <input class="form-check-input title-filter" type="checkbox" value=""
+                                                    id="all-titles" data-title-id="">
+                                                <label class="form-check-label" for="all-titles">All Titles</label>
+                                            </div>
+                                            @foreach ($jobTitles as $title)
+                                                <div class="form-check">
+                                                    <input class="form-check-input title-filter" type="checkbox"
+                                                        value="{{ $title->id }}" id="title_{{ $title->id }}"
+                                                        data-title-id="{{ $title->id }}">
+                                                    <label class="form-check-label"
+                                                        for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <!-- Status Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Open</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item status-filter" href="#">Open</a>
-                                    <a class="dropdown-item status-filter" href="#">Closed</a>
-                                    <a class="dropdown-item status-filter" href="#">Pending</a>
-                                    <a class="dropdown-item status-filter" href="#">Rejected</a>
-                                    <a class="dropdown-item status-filter" href="#">On Hold</a>
+                                <!-- cv limit Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCvLimit">All Count</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton7">
+                                        <a class="dropdown-item cv-limit-filter" href="#">All Count</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Zero</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Not Max</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Max</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'all']) }}">Export All Data</a>
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'emails']) }}">Export Emails</a>
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                <!-- Status Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Open</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                                        <a class="dropdown-item status-filter" href="#">Open</a>
+                                        <a class="dropdown-item status-filter" href="#">Closed</a>
+                                        <a class="dropdown-item status-filter" href="#">Pending</a>
+                                        <a class="dropdown-item status-filter" href="#">Rejected</a>
+                                        <a class="dropdown-item status-filter" href="#">On Hold</a>
+                                    </div>
                                 </div>
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> Export
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
+                                        <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'all']) }}">Export All Data</a>
+                                        <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'emails']) }}">Export Emails</a>
+                                        <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
+                                    <i class="ri-upload-line"></i>
+                                </button>
+                                <a href="{{ route('sales.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Sale</button></a>
                             </div>
-                            <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
-                                <i class="ri-upload-line"></i>
-                            </button>
-                            <a href="{{ route('sales.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Sale</button></a>
-                        </div>
-                    </div><!-- end col-->
+                        </div><!-- end col-->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="sales_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Created Date</th>
-                                <th>Updated Date</th>
-                                <th>Open Date</th>
-                                <th>Agent</th>
-                                <th>Head Office</th>
-                                <th>Unit Name</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>PostCode</th>
-                                <th>Experience</th>
-                                <th>Qualification</th>
-                                <th>Salary</th>
-                                <th>CV Limit</th>
-                                <th>Notes</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="sales_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Created Date</th>
+                                    <th>Updated Date</th>
+                                    <th>Open Date</th>
+                                    <th>Agent</th>
+                                    <th>Head Office</th>
+                                    <th>Unit Name</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>PostCode</th>
+                                    <th>Experience</th>
+                                    <th>Qualification</th>
+                                    <th>Salary</th>
+                                    <th>CV Limit</th>
+                                    <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
                 </div>
-                <!-- end table-responsive -->
             </div>
         </div>
+
     </div>
 
-</div>
-
-<!-- Experience Modal -->
-<div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="experienceModalBody">
-        <!-- Experience will be injected here -->
-      </div>
+    <!-- Import CSV Modal -->
+    <div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="csvImportForm" enctype="multipart/form-data">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <div class="mb-3">
+                <label for="csvFile" class="form-label">Choose CSV File</label>
+                <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+            </div>
+            <div class="progress" style="height: 20px;">
+                <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar" style="width: 0%">0%</div>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
+        </div>
+        </form>
     </div>
-  </div>
-</div>
-
-<!-- Import CSV Modal -->
-<div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="csvImportForm" enctype="multipart/form-data">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="csvFile" class="form-label">Choose CSV File</label>
-            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
-          </div>
-          <div class="progress" style="height: 20px;">
-            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                 role="progressbar" style="width: 0%">0%</div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Upload</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -316,6 +295,10 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
 
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
+    <!-- Add daterangepicker -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
     
     <script>
         $(document).ready(function() {
@@ -362,7 +345,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#sales_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [

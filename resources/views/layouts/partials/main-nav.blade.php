@@ -213,6 +213,9 @@
                                         <a class="sub-nav-link" href="{{ route('resources.noJobIndex')}}">No Job Resources</a>
                                    </li>
                                    @endcanany
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('resources.notInterestedIndex')}}">Not Interested Resources</a>
+                                   </li>
                               </ul>
                          </div>
                     </li>
@@ -224,7 +227,7 @@
                     <li class="nav-item">
                          <a class="nav-link menu-arrow" href="#sidebarQuality" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarQuality">
                               <span class="nav-icon">
-                                   <i class="ri-file-list-3-line"></i>
+                                   <i class="ri-medal-line"></i>
                               </span>
                               <span class="nav-text"> Quality </span>
                          </a>
@@ -374,7 +377,7 @@
                          <li class="nav-item">
                               <a class="nav-link menu-arrow" href="#sidebarRoles" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarRoles">
                                    <span class="nav-icon">
-                                        <i class="ri-user-voice-line"></i>
+                                        <i class="ri-shield-user-line"></i>
                                    </span>
                                    <span class="nav-text"> Roles & Permissions </span>
                               </a>
@@ -429,7 +432,7 @@
                          <li class="nav-item">
                               <a class="nav-link" href="{{ route('job-titles.list')}}">
                                    <span class="nav-icon">
-                                        <i class="ri-briefcase-2-line"></i>
+                                        <i class="ri-id-card-line"></i>
                                    </span>
                                    <span class="nav-text">Job Titles</span>
                               </a>

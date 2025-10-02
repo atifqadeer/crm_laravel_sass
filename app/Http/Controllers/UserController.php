@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Horsefly\Audit;
 use Horsefly\User;
+use Horsefly\Role;
 use App\Http\Controllers\Controller;
 use Horsefly\LoginDetail;
 use Illuminate\Support\Facades\Storage;
@@ -31,7 +32,9 @@ class UserController extends Controller
      */
     public function index()
     {
-        return view('users.list');
+        $roles = Role::orderBy('name', 'asc')->get();
+
+        return view('users.list', compact('roles'));
     }
     public function create()
     {
@@ -193,7 +196,7 @@ class UserController extends Controller
                                         )">Mark as Active</a></li>';
                     }
                     $url = route('users.activity_log', ['id' => $user->id]);
-                    $html .= '<li><a class="dropdown-item" href="' . e($url) . '">Activity Log</a></li>';
+                    $html .= '<li><a target="_blank" class="dropdown-item" href="' . e($url) . '">Activity Log</a></li>';
                     '</ul>
                             </div>';
 
@@ -204,9 +207,10 @@ class UserController extends Controller
                 ->make(true);
         }
     }
-    public function activityLogIndex()
+    public function activityLogIndex($id)
     {
-        return view('users.activity-logs');
+        $user_id = $id;
+        return view('users.activity-logs', compact('user_id'));
     }
     public function getUserActivityLogs(Request $request)
     {
@@ -459,7 +463,7 @@ class UserController extends Controller
         $history = LoginDetail::where('user_id', $id)->get();
         return view('reports.login-history', compact('history'));
     }
-    public function unitDetails($id)
+    public function userDetails($id)
     {
         $user = User::findOrFail($id);
         return view('users.details', compact('user'));

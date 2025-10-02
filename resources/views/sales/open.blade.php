@@ -272,7 +272,7 @@
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
-    <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
+    <!-- Add daterangepicker -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
     
@@ -360,7 +360,7 @@
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#sales_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [

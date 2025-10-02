@@ -14,8 +14,10 @@ use Horsefly\CrmNote;
 use Horsefly\Applicant;
 use Horsefly\RevertStage;
 use Horsefly\SmsTemplate;
-use Horsefly\Message;
+use Horsefly\JobCategory;
+use Horsefly\JobTitle;
 use Horsefly\ModuleNote;
+use Horsefly\User;
 use App\Observers\ActionObserver;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
@@ -27,6 +29,7 @@ use App\Traits\SendSMS;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class QualityController extends Controller
 {
@@ -38,18 +41,25 @@ class QualityController extends Controller
     }
     public function resourceIndex()
     {
-        return view('quality.resources');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+
+        return view('quality.resources', compact('jobCategories', 'jobTitles'));
     }
     public function saleIndex()
     {
-        return view('quality.sales');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        $users = User::where('is_active', 1)->orderBy('name','asc')->get();
+
+        return view('quality.sales', compact('jobCategories', 'jobTitles', 'offices', 'users'));
     }
     public function getResourcesByTypeAjaxRequest(Request $request)
     {
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
-        $searchTerm = $request->input('search', ''); // This will get the search query
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
         $model = Applicant::query()
@@ -82,6 +92,7 @@ class QualityController extends Controller
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id');
 
+        
         // Filter by status if it's not empty
         switch ($statusFilter) {
             case 'requested cvs':
@@ -491,11 +502,11 @@ class QualityController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('applicants.updated_at', 'desc');
+                $model->orderBy('cv_notes.created_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('applicants.updated_at', 'desc');
+            $model->orderBy('cv_notes.created_at', 'desc');
         }
 
         if ($request->has('search.value')) {
@@ -540,12 +551,12 @@ class QualityController extends Controller
 
         // Filter by type if it's not empty
         if ($categoryFilter) {
-            $model->where('applicants.job_category_id', $categoryFilter);
+            $model->whereIn('applicants.job_category_id', $categoryFilter);
         }
 
         // Filter by type if it's not empty
         if ($titleFilter) {
-            $model->where('applicants.job_title_id', $titleFilter);
+            $model->whereIn('applicants.job_title_id', $titleFilter);
         }
 
         if ($request->ajax()) {
@@ -594,7 +605,7 @@ class QualityController extends Controller
                     }
 
                     if($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject'){
-                        $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" style="color:blue;" target="_blank">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $applicant->formatted_postcode;
@@ -673,28 +684,28 @@ class QualityController extends Controller
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'); // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
-                    if (!$applicant->is_blocked) {
-                        $applicant_cv = (file_exists('public/storage/uploads/resume/' . $applicant->applicant_cv) || $applicant->applicant_cv != null)
-                            ? '<a href="' . asset('storage/' . $applicant->applicant_cv) . '" title="Download CV" target="_blank">
-                            <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>'
-                            : '<iconify-icon icon="solar:download-square-bold" class="text-light-grey fs-28"></iconify-icon>';
-                    } else {
-                        $applicant_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    $filePath = $applicant->applicant_cv;
+                    $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+
+                    if (!$applicant->is_blocked && $fileExists) {
+                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                            '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
                     }
 
-                    return $applicant_cv;
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
-                    if (!$applicant->is_blocked) {
-                        $updated_cv = (file_exists('public/storage/uploads/resume/' . $applicant->updated_cv) || $applicant->updated_cv != null)
-                            ? '<a href="' . asset('storage/' . $applicant->updated_cv) . '" title="Download Updated CV" target="_blank">
-                            <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>'
-                            : '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
-                    } else {
-                        $updated_cv = '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>';
+                    $filePath = $applicant->updated_cv;
+                    $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+
+                    if (!$applicant->is_blocked && $fileExists) {
+                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                            '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
                     }
 
-                    return $updated_cv;
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
@@ -919,7 +930,7 @@ class QualityController extends Controller
        
         // Filter by category if it's not empty
         if ($officeFilter) {
-            $model->where('sales.office_id', $officeFilter);
+            $model->whereIn('sales.office_id', $officeFilter);
         }
         
         // Filter by category if it's not empty
@@ -951,12 +962,12 @@ class QualityController extends Controller
        
         // Filter by category if it's not empty
         if ($categoryFilter) {
-            $model->where('sales.job_category_id', $categoryFilter);
+            $model->whereIn('sales.job_category_id', $categoryFilter);
         }
        
         // Filter by category if it's not empty
         if ($titleFilter) {
-            $model->where('sales.job_title_id', $titleFilter);
+            $model->whereIn('sales.job_title_id', $titleFilter);
         }
 
         // Sorting logic
@@ -1101,6 +1112,60 @@ class QualityController extends Controller
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                })
+                ->addColumn('salary', function ($sale) {
+                    $fullHtml = $sale->salary; // HTML from Summernote
+                    $id = 'slry-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale`s Salary</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
@@ -1290,7 +1355,7 @@ class QualityController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'qualification', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'salary', 'qualification', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

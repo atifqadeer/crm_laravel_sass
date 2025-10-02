@@ -55,7 +55,20 @@
                                         </div>
                                     </div>
 
-                                    <!-- Title Filter Dropdown -->
+                                    <!-- Type Filter Dropdown -->
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
+                                            <a class="dropdown-item type-filter" href="#">All Types</a>
+                                            <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                            <a class="dropdown-item type-filter" href="#">Regular</a>
+                                        </div>
+                                    </div>
+
+                                     <!-- Title Filter Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -85,19 +98,6 @@
                                                     </div>
                                                 @endforeach
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Type Filter Dropdown -->
-                                    <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                        </button>
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                            <a class="dropdown-item type-filter" href="#">All Types</a>
-                                            <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                            <a class="dropdown-item type-filter" href="#">Regular</a>
                                         </div>
                                     </div>
 
@@ -909,7 +909,7 @@
                         $('#applicants_table').DataTable().ajax.reload();
                     },
                     error: function(xhr) {
-                        alert('An error occurred while saving notes.');
+                        toastr.error('An error occurred while saving notes.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);

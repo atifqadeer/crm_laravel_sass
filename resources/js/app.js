@@ -1,8 +1,3 @@
-/**
- * Theme: Lahomes - Real Estate Admin Dashboard Template
- * Author: Techzaa
- * Module/App: Main Js
- */
 
 
 import bootstrap from 'bootstrap/dist/js/bootstrap.min';

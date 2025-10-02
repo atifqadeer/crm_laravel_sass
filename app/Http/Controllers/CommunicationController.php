@@ -40,9 +40,13 @@ class CommunicationController extends Controller
     {
         return view('messages.index');
     }
+    public function sentEmailsIndex()
+    {
+        return view('emails.sent-emails');
+    }
     public function writeMessageindex()
     {
-        return view('messages.write');
+        return view('messages.write-message');
     }
     public function sendEmailsToApplicants(Request $request)
 	{
@@ -625,7 +629,6 @@ class CommunicationController extends Controller
 
     //     return response()->json($applicants);
     // }
-    
     // public function getUserChats()
     // {
     //     try {
@@ -710,7 +713,7 @@ class CommunicationController extends Controller
         ]);
     }
 
-   public function getUserChats(Request $request)
+    public function getUserChats(Request $request)
     {
         try {
             $currentUserId = Auth::id();

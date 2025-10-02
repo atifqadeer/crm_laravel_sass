@@ -28,3 +28,13 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('SendSms command failed.');
                 });
+    
+    Schedule::command('app:update-available-job-status')
+                ->dailyAt('22:00')
+                ->withoutOverlapping()
+                ->onSuccess(function () {
+                    Log::info('Update to the job availability command ran successfully.');
+                })
+                ->onFailure(function () {
+                    Log::error('Update to the job availability command failed.');
+                });

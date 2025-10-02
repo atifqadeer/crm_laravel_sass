@@ -8,145 +8,187 @@
         border-bottom: none !important;
     }
 </style>
-@php
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-@endphp
-
 @endsection
 @section('content')
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                             <!-- Date Range filter -->
-                            <div class="d-inline">
-                                <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
-                                <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
-                                    <i class="ri-close-line"></i>
-                                </button>
-                            </div>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <!-- Date Range filter -->
+                                <div class="d-inline">
+                                    <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
+                                    <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
+                                        <i class="ri-close-line"></i>
+                                    </button>
+                                </div>
+                                <!-- Category Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    </button>
 
-                            <!-- Category Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item category-filter" href="#">All Category</a>
-                                    @foreach($jobCategories as $category)
-                                        <a class="dropdown-item category-filter" href="#" data-category-id="{{ $category->id }}">{{ $category->name }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="categorySearchInput"
+                                            placeholder="Search category...">
 
-                            <!-- Title Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item title-filter" href="#">All Titles</a>
-                                    @foreach($jobTitles as $title)
-                                        <a class="dropdown-item title-filter" href="#" data-title-id="{{ $title->id }}">{{ $title->name }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
-                            
-                            <!-- Type Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                    <a class="dropdown-item type-filter" href="#">All Types</a>
-                                    <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Regular</a>
-                                </div>
-                            </div>
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="categoryList">
+                                            <div class="form-check">
+                                                <input class="form-check-input category-filter" type="checkbox" value=""
+                                                    id="all-categories" data-title-id="">
+                                                <label class="form-check-label" for="all-categories">All Category</label>
+                                            </div>
 
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
-                                    <a class="dropdown-item status-filter" href="#">All</a>
-                                    <a class="dropdown-item status-filter" href="#">Interested</a>
-                                    <a class="dropdown-item status-filter" href="#">Not Interested</a>
+                                            @foreach($jobCategories as $category)
+                                                <div class="form-check">
+                                                    <input class="form-check-input category-filter" type="checkbox"
+                                                        value="{{ $category->id }}" id="category_{{ $category->id }}"
+                                                        data-category-id="{{ $category->id }}">
+                                                    <label class="form-check-label"
+                                                        for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 </div>
+                                <!-- Type Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                        <a class="dropdown-item type-filter" href="#">All Types</a>
+                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                        <a class="dropdown-item type-filter" href="#">Regular</a>
+                                    </div>
+                                </div>
+                                <!-- Title Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+                                    </button>
+
+                                    <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
+                                        style="min-width: 250px;">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="titleSearchInput"
+                                            placeholder="Search titles...">
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="titleList">
+                                            <div class="form-check">
+                                                <input class="form-check-input title-filter" type="checkbox" value=""
+                                                    id="all-titles" data-title-id="">
+                                                <label class="form-check-label" for="all-titles">All Titles</label>
+                                            </div>
+                                            @foreach ($jobTitles as $title)
+                                                <div class="form-check">
+                                                    <input class="form-check-input title-filter" type="checkbox"
+                                                        value="{{ $title->id }}" id="title_{{ $title->id }}"
+                                                        data-title-id="{{ $title->id }}">
+                                                    <label class="form-check-label"
+                                                        for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                        <a class="dropdown-item status-filter" href="#">All</a>
+                                        <a class="dropdown-item status-filter" href="#">Interested</a>
+                                        <a class="dropdown-item status-filter" href="#">Not Interested</a>
+                                    </div>
+                                </div>
+                                <!-- Add Updated Sales Filter Button -->
+                                <button class="btn btn-success my-1" type="button" id="addUpdatedSalesFilter">
+                                    Add/Remove Updated Sales Filter
+                                </button>
                             </div>
-                            <!-- Add Updated Sales Filter Button -->
-                            <button class="btn btn-success my-1" type="button" id="addUpdatedSalesFilter">
-                                Add/Remove Updated Sales Filter
-                            </button>
-                        </div>
-                    </div><!-- end col-->
+                        </div><!-- end col-->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="applicants_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>PostCode</th>
-                                <th>Phone</th>
-                                <th>Landline</th>
-                                <th>Resume</th>
-                                <th>Experience</th>
-                                <th>Source</th>
-                                <th>Notes</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="applicants_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>PostCode</th>
+                                    <th>Phone</th>
+                                    <th>Landline</th>
+                                    <th>Resume</th>
+                                    <th>Experience</th>
+                                    <th>Source</th>
+                                    <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
                 </div>
-                <!-- end table-responsive -->
             </div>
         </div>
-    </div>
 
-</div>
+    </div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
     <!-- Toastify CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
     <!-- Toastr JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-   
-    <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
+    <!-- Add daterangepicker -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <script>
         let isButtonClicked = false;
@@ -206,20 +248,20 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             // Store the current filter in a variable
             var currentFilter = '';
             var currentTypeFilter = '';
-            var currentCategoryFilter = '';
-            var currentTitleFilter = '';
+            var currentCategoryFilters = [];
+            var currentTitleFilters = [];
 
-            // Create a loader row and append it to the table before initialization
-            const button = document.getElementById("addUpdatedSalesFilter");
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#applicants_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#applicants_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#applicants_table').DataTable({
@@ -232,25 +274,31 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                         // Add the current filter to the request parameters
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
                         d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
+                        d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
+                        d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
                         d.status_filter = currentFilter;
 
-                        // Conditionally append the parameter if the button was clicked
+                       var button = $('#addUpdatedSalesFilter');
+
                         if (isButtonClicked) {
-                            // Change the button color when clicked
-                            button.style.backgroundColor = '#358b57';  // You can customize this color
-                            d.updated_sales_filter = true;  // Add the parameter when the button is clicked
+                            button.css('background-color', '#358b57'); // jQuery way
+                            d.updated_sales_filter = true;
                         } else {
-                            // Reset the button color when unclicked
-                            button.style.backgroundColor = '';  // Reset to the original color
-                            delete d.updated_sales_filter;  // Remove the parameter when the button is unclicked
+                            button.css('background-color', ''); // reset
+                            delete d.updated_sales_filter;
                         }
 
                         // Clean up search parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
@@ -408,6 +456,27 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 table.ajax.reload();
             });
         });
+
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#categoryList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('titleSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');

@@ -10,9 +10,10 @@ use Horsefly\EmailTemplate;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\JobTitle;
-use Horsefly\SentEmail;
+use Horsefly\User;
 use Horsefly\SmsTemplate;
 use Horsefly\SmtpSetting;
+use Horsefly\Setting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Gate;
@@ -39,19 +40,27 @@ class SettingController extends Controller
     }
     public function emailTemplatesIndex()
     {
-        return view('settings.email-templates');
+        $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
+
+        return view('settings.email-templates', compact('users'));
     }
     public function smsTemplatesIndex()
     {
-        return view('settings.sms-templates');
+        $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
+        return view('settings.sms-templates', compact('users'));
     }
     public function jobCategoriesIndex()
     {
-        return view('job-categories.list');
+        $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
+
+        return view('job-categories.list', compact('users'));
     }
     public function jobTitlesIndex()
     {
-        return view('job-titles.list');
+        $categories = JobCategory::where('is_active', true)->orderBy('name', 'asc')->get();
+        $allTitles = JobTitle::orderBy('name', 'asc')->get();
+
+        return view('job-titles.list', compact('categories', 'allTitles'));
     }
     public function jobSourceIndex()
     {
@@ -1116,26 +1125,52 @@ class SettingController extends Controller
     }
     public function getSettings()
     {
-        return response()->json([
-            'general.site_name' => config('app.name'),
-            'profile.user_email' => Auth::user()->email ?? '',
-            'profile.user_name' => Auth::user()->name ?? '',
-            'sms.sms_provider' => config('sms.provider', ''),
-            'sms.sms_api_key' => config('sms.api_key', ''),
-            'smtp' => SmtpSetting::all()->map(function ($setting) {
-                return [
-                    'id' => $setting->id,
-                    'mailer' => $setting->mailer,
-                    'host' => $setting->host,
-                    'port' => $setting->port,
-                    'username' => $setting->username,
-                    'password' => $setting->password,
-                    'encryption' => $setting->encryption,
-                    'from_address' => $setting->from_address,
-                    'from_name' => $setting->from_name,
-                ];
-            })->toArray(),
-        ]);
+        $settings = Setting::all()->groupBy('group');
+
+        $response = [];
+
+        foreach ($settings as $group => $items) {
+            // For simple groups (general, sms, profile, google_maps, notifications...)
+            $response[$group] = $items->mapWithKeys(function ($item) {
+                // Cast based on type field
+                $value = $item->value;
+                switch ($item->type) {
+                    case 'boolean':
+                        $value = filter_var($item->value, FILTER_VALIDATE_BOOLEAN);
+                        break;
+                    case 'json':
+                        $value = json_decode($item->value, true);
+                        break;
+                    case 'integer':
+                        $value = (int) $item->value;
+                        break;
+                }
+                return [$item->key => $value];
+            })->toArray();
+        }
+
+        // Add SMTP separately (does not overwrite)
+        $response['smtp'] = SmtpSetting::all()->map(function ($setting) {
+            return [
+                'id'          => $setting->id,
+                'mailer'      => $setting->mailer,
+                'host'        => $setting->host,
+                'port'        => $setting->port,
+                'username'    => $setting->username,
+                'password'    => $setting->password,
+                'encryption'  => $setting->encryption,
+                'from_address'=> $setting->from_address,
+                'from_name'   => $setting->from_name,
+            ];
+        })->toArray();
+
+        $response['profile'] = [
+            'id'          => Auth::user()->id,
+            'user_name'      => Auth::user()->name,
+            'user_email'        => Auth::user()->email
+        ];
+
+        return response()->json($response);
     }
     public function saveSmtpSettings(Request $request)
     {
@@ -1154,8 +1189,9 @@ class SettingController extends Controller
 
             foreach ($request->smtp as $setting) {
                 SmtpSetting::updateOrCreate(
-                    ['host' => $setting['host']], // or use another unique identifier
+                    ['id' => $setting['id'] ?? null],
                     [
+                        'host' => $setting['host'],
                         'mailer' => $setting['mailer'],
                         'port' => $setting['port'],
                         'username' => $setting['username'],
@@ -1175,6 +1211,167 @@ class SettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error saving SMTP settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function saveGeneralSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'site_name' => 'required|string|max:50',
+            ]);
+
+            Setting::updateOrCreate(
+                ['key' => 'site_name'], // condition (find by key)
+                ['value' => $request->site_name] // update or insert value
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Site Name saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function saveGoogleSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'google_api_url' => 'required|string',
+                'google_api_key' => 'required|string',
+            ]);
+
+            // Save Google API URL
+            Setting::updateOrCreate(
+                ['key' => 'google_map_api_url'], // condition
+                ['value' => $request->google_api_url] // value
+            );
+
+            // Save Google API Key
+            Setting::updateOrCreate(
+                ['key' => 'google_map_api_key'],
+                ['value' => $request->google_api_key]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Google Map Configuration saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function saveNotificationSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'email_notifications' => 'required',
+                'sms_notifications' => 'required',
+            ]);
+
+            // Save Google API URL
+            Setting::updateOrCreate(
+                ['key' => 'email_notifications'], // condition
+                ['value' => $request->email_notifications] // value
+            );
+
+            // Save Google API Key
+            Setting::updateOrCreate(
+                ['key' => 'sms_notifications'],
+                ['value' => $request->sms_notifications]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifications saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function saveSmsSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'sms_api_url' => 'required',
+                'sms_port' => 'required',
+                'sms_username' => 'required',
+                'sms_password' => 'required',
+            ]);
+
+            // Save sms API URL
+            Setting::updateOrCreate(
+                ['key' => 'sms_api_url'], // condition
+                ['value' => $request->sms_api_url] // value
+            );
+
+            // Save sms API Key
+            Setting::updateOrCreate(
+                ['key' => 'sms_port'],
+                ['value' => $request->sms_port]
+            );
+
+            // Save sms API Key
+            Setting::updateOrCreate(
+                ['key' => 'sms_username'],
+                ['value' => $request->sms_username]
+            );
+
+            // Save sms API Key
+            Setting::updateOrCreate(
+                ['key' => 'sms_password'],
+                ['value' => $request->sms_password]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifications saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function saveProfileSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'user_name' => 'required|string',
+                'user_email' => 'required|email',
+            ]);
+
+            $user_id = Auth::user()->id;
+
+            User::where('id', $user_id)->update([
+                'name' => $request->user_name,
+                'email' => $request->user_email
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile saved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1205,6 +1402,5 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
 
 }

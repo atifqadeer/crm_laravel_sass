@@ -33,7 +33,9 @@ class RoleController extends Controller
     }
     public function permissionIndex()
     {
-        return view('permissions.list');
+        $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
+
+        return view('permissions.list', compact('users'));
     }
     public function create()
     {
@@ -117,6 +119,7 @@ class RoleController extends Controller
     }
     public function getPermissions(Request $request)
     {
+        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
         $query = \Spatie\Permission\Models\Permission::query();
 
         // Search filter
@@ -175,7 +178,7 @@ class RoleController extends Controller
     }
     public function getRoles(Request $request)
     {
-        $query = \Spatie\Permission\Models\Role::query();
+        $query = Role::query();
 
         // Search filter
         if ($request->has('search.value')) {
@@ -212,6 +215,9 @@ class RoleController extends Controller
                 ->addColumn('created_at', function ($role) {
                     return $role->created_at ? $role->created_at->format('d-m-Y, h:i A') : '-';
                 })
+                ->addColumn('updated_at', function ($role) {
+                    return $role->updated_at ? $role->updated_at->format('d-m-Y, h:i A') : '-';
+                })
                 ->addColumn('action', function ($role) {
                     return '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -219,17 +225,41 @@ class RoleController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="' . route('roles.edit', ['id' => $role->id]) . '">Edit</a></li>
-                                    <li><a class="dropdown-item" href="#">View</a></li>
+                                    <li><a class="dropdown-item" href="'. route('roles.view', ['id' => $role->id]) .'">View</a></li>
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action'])
+                ->rawColumns(['action','updated_at', 'created_at'])
                 ->make(true);
         }
     }
     public function edit($id)
     {
-        return view('roles.edit');
+        $role = DB::table('roles')->where('id', $id)->first();
+        $permissions = DB::table('permissions')->get();
+        $rolePermissions = DB::table('role_has_permissions')->where('role_id', $role->id)->pluck('permission_id')->toArray();
+        $rolePermissions = array_map('intval', $rolePermissions);
+
+        // Group permissions by first word before the hyphen
+        $groupedPermissions = collect($permissions)->groupBy(function ($permission) {
+            return explode('-', $permission->name)[0];
+        });
+        
+        return view('roles.edit', compact('role', 'permissions', 'rolePermissions', 'groupedPermissions'));
+    }
+    public function view($id)
+    {
+        $role = DB::table('roles')->where('id', $id)->first();
+        $permissions = DB::table('permissions')->get();
+        $rolePermissions = DB::table('role_has_permissions')->where('role_id', $role->id)->pluck('permission_id')->toArray();
+        $rolePermissions = array_map('intval', $rolePermissions);
+
+        // Group permissions by first word before the hyphen
+        $groupedPermissions = collect($permissions)->groupBy(function ($permission) {
+            return explode('-', $permission->name)[0];
+        });
+        
+        return view('roles.view', compact('role', 'permissions', 'rolePermissions', 'groupedPermissions'));
     }
     public function permissionUpdate(Request $request)
     {

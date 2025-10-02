@@ -191,7 +191,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                                 <th>Date</th>
                                 <th>Agent</th>
                                 <th id="schedule_date" style="display:none;">Schedule Date</th>
-                                <th>Name</th>
+                                <th>Applicant Name</th>
                                 <th>Email</th>
                                 <th>Title</th>
                                 <th>Category</th>
@@ -274,6 +274,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    
     <script>
         $(document).ready(function() {
             // Initialize Summernote and set content

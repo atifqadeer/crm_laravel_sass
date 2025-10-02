@@ -15,20 +15,24 @@ trait Geocode
             Log::warning($error);
             return ['error' => $error];
         }
-
+        $postcode = $address; // Ideally, extract actual postcode here
         $address = urlencode($address) . ',UK';
 
-        $setting = Setting::where('key', 'google_map_api')->first();
-        $apiKey = $setting ? $setting->value : '';
+        $settings = Setting::whereIn('key', ['google_map_api_key', 'google_map_api_url'])
+            ->pluck('value', 'key'); // key => value array
 
-        if (!$apiKey) {
-            $error = "Google Maps API key is missing in config.";
+        $apiUrl = $settings['google_map_api_url'] ?? '';
+        $apiKey = $settings['google_map_api_key'] ?? '';
+
+        if (empty($apiKey) || empty($apiUrl)) {
+            $error = "Google Maps API key or URL is missing in config.";
             Log::error($error);
             return ['error' => $error];
         }
 
-        $url = "https://maps.googleapis.com/maps/api/geocode/json?address={$address}&key={$apiKey}";
+        $url = $apiUrl . "?address={$address}&key={$apiKey}";
 
+        // $url = "https://maps.googleapis.com/maps/api/geocode/json?address={$address}&key={$apiKey}";
         try {
             $response = file_get_contents($url);
 
@@ -53,8 +57,6 @@ trait Geocode
 
                     if ($lat && $lng) {
                         // Assume $postcode is already extracted or clean
-                        $postcode = $address; // Ideally, extract actual postcode here
-
                         $postcodeModel = DB::table('postcodes')->where('postcode', $postcode)->first();
 
                         if (!$postcodeModel) {

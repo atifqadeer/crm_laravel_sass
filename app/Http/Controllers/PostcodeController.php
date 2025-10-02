@@ -22,7 +22,9 @@ class PostcodeController extends Controller
 
     public function index()
     {
-        return view('postcode-finder.list');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+
+        return view('postcode-finder.list', compact('jobCategories'));
     }
     public function getPostcodeResults(Request $request)
     {

@@ -54,20 +54,21 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/get-weekly-sales', [DashboardController::class, 'getWeeklySales']);
     Route::get('/get-sales-analytic', [DashboardController::class, 'getSalesAnalytic']);
     Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
+    Route::get('/dashboard/counts', [DashboardController::class, 'getCounts'])->name('dashboard.counts');
 
     Route::group(['prefix' => 'applicants'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');
         Route::get('create', [ApplicantController::class, 'create'])->name('applicants.create');
         Route::post('store', [ApplicantController::class, 'store'])->name('applicants.store');
         Route::get('{id}/edit', [ApplicantController::class, 'edit'])->name('applicants.edit');
+        Route::get('available-no-job/{id}/{radius?}', [ApplicantController::class, 'availableNoJobsIndex'])->name('applicants.available_no_job');
+        Route::get('available-jobs/{id}/{radius?}', [ApplicantController::class, 'availableJobsIndex'])->name('applicants.available_job');
         Route::post('update', [ApplicantController::class, 'update'])->name('applicants.update');
         Route::post('uploadCv', [ApplicantController::class, 'uploadCv'])->name('applicants.uploadCv');
         Route::post('crmuploadCv', [ApplicantController::class, 'crmuploadCv'])->name('applicants.crmuploadCv');
         Route::get('{id}/history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
     
-    Route::get('/applicants/available-no-jobs/{id}/{radius?}', [ApplicantController::class, 'availableNoJobsIndex'])->name('applicants.available_no_job');
-    Route::get('/applicants/available-jobs/{id}/{radius?}', [ApplicantController::class, 'availableJobsIndex'])->name('applicantsAvailableJobs');
     Route::get('getAvailableJobs', [ApplicantController::class, 'getAvailableJobs'])->name('getAvailableJobs');
     Route::get('getAvailableNoJobs', [ApplicantController::class, 'getAvailableNoJobs'])->name('getAvailableNoJobs');
     Route::get('applicantsExport', [ApplicantController::class, 'export'])->name('applicantsExport');
@@ -154,6 +155,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('blocked-applicants', [ResourceController::class, 'blockedApplicantsIndex'])->name('resources.blockedApplicantsIndex');
         Route::get('crm-paid-applicants', [ResourceController::class, 'crmPaidIndex'])->name('resources.crmPaidIndex');
         Route::get('no-job-applicants', [ResourceController::class, 'noJobIndex'])->name('resources.noJobIndex');
+        Route::get('not-interested-applicants', [ResourceController::class, 'notInterestedIndex'])->name('resources.notInterestedIndex');
         Route::get('category-wise-applicants', [ResourceController::class, 'categoryWiseApplicantIndex'])->name('resources.categoryWiseApplicantIndex');
         Route::post('revertBlockedApplicant', [ResourceController::class, 'revertBlockedApplicant'])->name('resources.revertBlockedApplicant');
         Route::post('revertNoJobApplicant', [ResourceController::class, 'revertNoJobApplicant'])->name('resources.revertNoJobApplicant');
@@ -167,6 +169,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getResourcesBlockedApplicants', [ResourceController::class, 'getResourcesBlockedApplicants'])->name('getResourcesBlockedApplicants');
     Route::get('getResourcesPaidApplicants', [ResourceController::class, 'getResourcesPaidApplicants'])->name('getResourcesPaidApplicants');
     Route::get('getResourcesNoJobApplicants', [ResourceController::class, 'getResourcesNoJobApplicants'])->name('getResourcesNoJobApplicants');
+    Route::get('getResourcesNotInterestedApplicants', [ResourceController::class, 'getResourcesNotInterestedApplicants'])->name('getResourcesNotInterestedApplicants');
     Route::get('getResourcesCategoryWised', [ResourceController::class, 'getResourcesCategoryWised'])->name('getResourcesCategoryWised');
     Route::post('markApplicantNotInterestedOnSale', [ResourceController::class, 'markApplicantNotInterestedOnSale'])->name('markApplicantNotInterestedOnSale');
     Route::post('markApplicantCallback', [ResourceController::class, 'markApplicantCallback'])->name('markApplicantCallback');
@@ -174,7 +177,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::group(['prefix' => 'emails'], function () {
         Route::get('compose-email', [CommunicationController::class, 'index'])->name('emails.inbox');
-        Route::get('sent-emails', [CommunicationController::class, 'sentEmails'])->name('emails.sent_emails');
+        Route::get('sent-emails', [CommunicationController::class, 'sentEmailsIndex'])->name('emails.sent_emails');
     });
     Route::get('send-email-to-applicant', [CommunicationController::class, 'sendEmailsToApplicants'])->name('emails.sendemailstoapplicants');
     Route::post('saveEmailsForApplicants', [CommunicationController::class, 'saveEmailsForApplicants'])->name('emails.saveEmailsForApplicants');
@@ -199,7 +202,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('update', [UserController::class, 'update'])->name('users.update');
         Route::get('{id}', [UserController::class, 'userDetails'])->name('users.details');
-        Route::get('activity-logs', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
+        Route::get('activity-logs/{id}', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
     });
     Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
     Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
@@ -243,7 +246,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [RoleController::class, 'index'])->name('roles.list');
         Route::get('create', [RoleController::class, 'create'])->name('roles.create');
         Route::post('store', [RoleController::class, 'store'])->name('roles.store');
-        Route::get('edit', [RoleController::class, 'edit'])->name('roles.edit');
+        Route::get('edit/{id}', [RoleController::class, 'edit'])->name('roles.edit');
+        Route::get('view/{id}', [RoleController::class, 'view'])->name('roles.view');
         Route::put('update', [RoleController::class, 'update'])->name('roles.update');
         Route::get('{id}', [RoleController::class, 'details'])->name('roles.details');
     });
@@ -414,6 +418,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getSettings', [SettingController::class, 'getSettings'])->name('settings.get');
     Route::get('save-settings', [SettingController::class, ''])->name('settings.save');
     
+    Route::post('save-general-settings', [SettingController::class, 'saveGeneralSettings'])->name('settings.general.save');
+    Route::post('save-profile-settings', [SettingController::class, 'saveProfileSettings'])->name('settings.profile.save');
+    Route::post('save-sms-settings', [SettingController::class, 'saveSmsSettings'])->name('settings.sms.save');
+    Route::post('save-google-settings', [SettingController::class, 'saveGoogleSettings'])->name('settings.google.save');
+    Route::post('save-notification-settings', [SettingController::class, 'saveNotificationSettings'])->name('settings.notification.save');
     Route::post('save-smtp-settings', [SettingController::class, 'saveSmtpSettings'])->name('settings.smtp.save');
     Route::post('delete-smtp-settings', [SettingController::class, 'deleteSmtp'])->name('settings.smtp.delete');
 

@@ -1389,7 +1389,6 @@
             $('#viewSaleDescriptionModal').modal('show');
         });
 
-        
         $('#viewDocuments').on('click', function () {
             // Make an AJAX call to retrieve notes history data
             var id = $('#sale_id').val();

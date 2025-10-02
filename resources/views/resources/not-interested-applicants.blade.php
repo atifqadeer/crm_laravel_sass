@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Rejected Resources List', 'subTitle' => 'Resources'])
+@extends('layouts.vertical', ['title' => 'Not Interested Resources List', 'subTitle' => 'Resources'])
 @section('style')
 <style>
     .dropdown-toggle::after {
@@ -17,18 +17,6 @@
                     <div class="row justify-content-between">
                         <div class="col-lg-12">
                             <div class="text-md-end mt-3">
-                                <!-- Date Range filter -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 3 Months</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
-                                        <a class="dropdown-item date-filter" href="#">Last 3 Months</a>
-                                        <a class="dropdown-item date-filter" href="#">Last 6 Months</a>
-                                        <a class="dropdown-item date-filter" href="#">Last 9 Months</a>
-                                        <a class="dropdown-item date-filter" href="#">Others</a>
-                                    </div>
-                                </div>
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
@@ -60,18 +48,21 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
                                     </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
                                         <a class="dropdown-item type-filter" href="#">All Types</a>
                                         <a class="dropdown-item type-filter" href="#">Specialist</a>
                                         <a class="dropdown-item type-filter" href="#">Regular</a>
                                     </div>
                                 </div>
-                                <!-- Title Filter Dropdown -->
+
+                                    <!-- Title Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -103,16 +94,20 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allRejected']) }}">Export All Data</a>
-                                        {{-- <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'emailsRejected']) }}">Export Emails</a> --}}
+                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allNo']) }}">Export All Data</a>
                                     </div>
                                 </div>
+                                <!-- Add Updated Sales Filter Button -->
+                                <button class="btn btn-primary my-1" type="button" id="submitSelectedButton">
+                                    <i class="ri-arrow-go-forward-line me-1"></i> Revert
+                                </button>
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -129,19 +124,19 @@
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
                                 <tr>
-                                    <th>#</th>
+                                    <th><input type="checkbox" id="master-checkbox"></th>
                                     <th>Date</th>
-                                    <th>Name</th>
+                                    <th>Agent</th>
+                                    <th>Applicant Name</th>
                                     <th>Email</th>
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th>Phone</th>
-                                    <th>Landline</th>
-                                    <th>Experience</th>
-                                    <th>Source</th>
-                                    <th>Notes</th>
-                                    <th>Rejection Type</th>
+                                    <th>Job</th>
+                                    <th>Head Office</th>
+                                    <th>Unit</th>
+                                    <th>PostCode</th>
+                                    <th width="20%">Notes</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -155,7 +150,7 @@
             </div>
         </div>
 
-    </div>  
+    </div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -195,9 +190,8 @@
             var currentTypeFilter = '';
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
-            var currentDateFilter = '';
 
-            // Create loader row
+             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -214,14 +208,13 @@
                 processing: false,  // Disable default processing state
                 serverSide: true,  // Enables server-side processing
                 ajax: {
-                    url: @json(route('getResourcesRejectedApplicants')),  // Fetch data from the backend
+                    url: @json(route('getResourcesNotInterestedApplicants')),  // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
                         d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
-                        d.date_filter = currentDateFilter;  // Send the current filter value as a parameter
 
                         // Clean up search parameter
                         if (d.search && d.search.value) {
@@ -237,38 +230,26 @@
                     }
                 },
                 columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'crm_notes_created', name: 'crm_notes.created_at' },
+                    { data: "checkbox", orderable:false, searchable:false},
+                    { data: 'pivot_created_at', name: 'applicants_pivot_sales.created_at' },
+                    { data: 'user_name', name: 'users.name' },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
-                    { data: 'applicant_experience', name: 'applicants.applicant_experience' },
-                    { data: 'job_source', name: 'job_sources.name' },
-                    { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
-                    { data: 'sub_stage', name: 'history.sub_stage' },
+                    { data: 'job_details', name: 'job_details' },
+                    { data: 'office_name', name: 'offices.office_name' },
+                    { data: 'unit_name', name: 'units.unit_name' },
+                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
+                    { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
                 columnDefs: [
                     {
-                        targets: 11,  // Column index for 'job_details'
+                        targets: [7, 8, 11, 13], // job_details, office_name, sale_postcode, notes_detail
                         createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 13,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                            $(td).css('text-align', 'center');
                         }
                     }
                 ],
@@ -352,6 +333,7 @@
                     pagination.html(paginationHtml);
                 },
             });
+
             // Type filter dropdown handler
             $('.type-filter').on('click', function () {
                 currentTypeFilter = $(this).text().toLowerCase();
@@ -365,6 +347,7 @@
                 $('#showFilterType').html(formattedText);
                 table.ajax.reload(); // Reload with updated type filter
             });
+            
             /*** Category filter handler ***/
             $('.category-filter').on('click', function() {
                 const id = $(this).data('category-id');
@@ -395,6 +378,7 @@
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** Title Filter Handler ***/
             $('.title-filter').on('change', function() {
                 const id = $(this).data('title-id');
@@ -426,24 +410,7 @@
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.date-filter').on('click', function () {
-                // Get the clicked text and convert to lowercase
-                currentDateFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
 
-                // Format text for display: capitalize each word (using the original string)
-                const formattedText = $(this).text()
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                // Update the dropdown display label
-                $('#showDateRange').html(formattedText);
-
-                // Reload table (assuming it uses currentDateRangeFilter somehow)
-                table.ajax.reload();
-            });
         });
 
         document.getElementById('categorySearchInput').addEventListener('keyup', function() {
@@ -495,76 +462,27 @@
         }
         
         // Function to show the notes modal
-        function showNotesModal(applicantId, notes, applicantName, applicantPostcode) {
-            const modalId = 'showNotesModal-' + applicantId;
+        function showNotesModal(applicantID, notes, applicantName, applicantPostcode) {
+            const modalId = `showNotesModal-${applicantID}`;
+            const labelId = `${modalId}Label`;
 
-            // Remove existing modal with same ID if exists
+            // Remove existing modal for same ID to avoid duplicates
             $('#' + modalId).remove();
 
-            // Modal HTML with spinner loader and unique ID
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-top modal-md">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Applicant Notes</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <div class="spinner-border text-primary mb-3" role="status" id="${modalId}-loader">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div id="${modalId}-content" class="note-content d-none text-start"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Append modal to body
-            $('body').append(modalHtml);
-
-            // Use Bootstrap's Modal API to show the modal
-            const modal = new bootstrap.Modal(document.getElementById(modalId));
-            modal.show();
-
-            // Simulate content loading after a delay
-            setTimeout(() => {
-                $(`#${modalId}-loader`).hide(); // Hide loader
-                $(`#${modalId}-content`).removeClass('d-none').html(`
-                    <p><strong>Applicant Name:</strong> ${applicantName}</p>
-                    <p><strong>Postcode:</strong> ${applicantPostcode}</p>
-                    <p><strong>Notes Detail:</strong><br>${notes.replace(/\n/g, '<br>')}</p>
-                `);
-            }, 300); // Adjust delay if needed
-        }
-
-        // Function to show the notes modal
-        function viewNotesHistory(applicantId) {
-            const modalId = `viewNotesHistoryModal-${applicantId}`;
-            const loaderId = `${modalId}-loader`;
-            const contentId = `${modalId}-content`;
-
-            // Remove existing modal with same ID if exists
-            $(`#${modalId}`).remove();
-
-            // Add the modal HTML to the page
+            // Append modal HTML with loader and placeholder
             $('body').append(`
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-top">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Applicant Notes History</h5>
+                                <h5 class="modal-title" id="${labelId}">Applicant Notes</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body text-center">
-                                <div class="spinner-border text-primary mb-3" role="status" id="${loaderId}">
+                                <div class="spinner-border text-primary my-3" role="status" id="${modalId}-loader">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                <div id="${contentId}" class="d-none text-start"></div>
+                                <div id="${modalId}-content" class="text-start d-none"></div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
@@ -578,67 +496,40 @@
             const modal = new bootstrap.Modal(document.getElementById(modalId));
             modal.show();
 
-            // AJAX call to retrieve notes
-            $.ajax({
-                url: '{{ route("getApplicantHistorybyStatus") }}',
-                type: 'GET',
-                data: {
-                    id: applicantId,
-                    status: 'rejected'
-                },
-                success: function (response) {
-                    let notesHtml = '';
-
-                    if (!response.data || response.data.length === 0) {
-                        notesHtml = '<p>No record found.</p>';
-                    } else {
-                        response.data.forEach(function (note) {
-                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
-                            const status = note.status;
-                            const badgeClass = status == 1 ? 'bg-success' : 'bg-dark';
-                            const statusText = status == 1 ? 'Active' : 'Inactive';
-
-                            notesHtml += `
-                                <div class="note-entry">
-                                    <p><strong>Dated:</strong> ${created}&nbsp;&nbsp;
-                                        <span class="badge ${badgeClass}">${statusText}</span>
-                                    </p>
-                                    <p><strong>Notes Detail:</strong><br>${note.details}</p>
-                                </div><hr>
-                            `;
-                        });
-                    }
-
-                    $(`#${loaderId}`).hide();
-                    $(`#${contentId}`).removeClass('d-none').html(notesHtml);
-                },
-                error: function () {
-                    $(`#${loaderId}`).hide();
-                    $(`#${contentId}`).removeClass('d-none').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                }
-            });
+            // Simulate loading delay
+            setTimeout(() => {
+                const contentHtml = `
+                    Applicant Name: <strong>${applicantName}</strong><br>
+                    Postcode: <strong>${applicantPostcode}</strong><br>
+                    Notes Detail: <p>${notes.replace(/\n/g, '<br>')}</p>
+                `;
+                $(`#${modalId}-loader`).hide();
+                $(`#${modalId}-content`).html(contentHtml).removeClass('d-none');
+            }, 300); // Adjust delay as needed
         }
 
-        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, createdAt,status) {
-            const modalId = 'showDetailsModal-' + applicantId;
+        // Function to show the notes modal
+        function viewNotesHistory(id) {
+            const modalId = `viewNotesHistoryModal-${id}`;
+            const labelId = `${modalId}Label`;
 
-            // Remove existing modal with same ID (if any)
+            // Remove existing modal for this ID if already exists
             $('#' + modalId).remove();
 
-            // Modal HTML with loader and placeholder body
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top">
+            // Append modal HTML with loader
+            $('body').append(`
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Applicant Details</h5>
+                                <h5 class="modal-title" id="${labelId}">Applicant Notes History</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body text-center">
                                 <div class="spinner-border text-primary my-3" role="status" id="${modalId}-loader">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                <div class="detail-content d-none text-start"></div>
+                                <div id="${modalId}-content" class="d-none text-start"></div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
@@ -646,40 +537,370 @@
                         </div>
                     </div>
                 </div>
-            `;
+            `);
 
-            // Append to body and show modal
-            $('body').append(modalHtml);
+            // Show modal
             const modal = new bootstrap.Modal(document.getElementById(modalId));
             modal.show();
 
-            // Simulate content load
-            setTimeout(() => {
-                $(`#${modalId}-loader`).hide();
-                $(`#${modalId} .detail-content`).removeClass('d-none').html(`
-                    <table class="table table-bordered mb-0">
-                        <tr><th>Applicant ID</th><td>${applicantId}</td></tr>
-                        <tr><th>Created At</th><td>${createdAt}</td></tr>
-                        <tr><th>Name</th><td>${name}</td></tr>
-                        <tr><th>Phone</th><td>${phone}</td></tr>
-                        <tr><th>Landline</th><td>${landline}</td></tr>
-                        <tr><th>Postcode</th><td>${postcode}</td></tr>
-                        <tr><th>Email (Primary)</th><td>${email}</td></tr>
-                        <tr><th>Email (Secondary)</th><td>${secondaryEmail}</td></tr>
-                        <tr><th>Job Category</th><td>${jobCategory}</td></tr>
-                        <tr><th>Job Title</th><td>${jobTitle}</td></tr>
-                        <tr><th>Job Source</th><td>${jobSource}</td></tr>
-                        <tr><th>Status</th><td>${status}</td></tr>
-                    </table>
-                `);
-            }, 300); // Adjust delay as needed
+            // Make AJAX call
+            $.ajax({
+                url: '{{ route("getModuleNotesHistory") }}',
+                type: 'GET',
+                data: {
+                    id: id,
+                    module: 'Horsefly\\Applicant'
+                },
+                success: function(response) {
+                    let notesHtml = '';
 
-            // Remove modal from DOM on close
-            $(`#${modalId}`).on('hidden.bs.modal', function () {
-                $(this).remove();
+                    if (response.data.length === 0) {
+                        notesHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(note) {
+                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                            const statusClass = note.status == 1 ? 'bg-success' : 'bg-dark';
+                            const statusText = note.status == 1 ? 'Active' : 'Inactive';
+
+                            notesHtml += `
+                                <div class="note-entry">
+                                    <p><strong>Dated:</strong> ${created}&nbsp;&nbsp;
+                                    <span class="badge ${statusClass}">${statusText}</span></p>
+                                    <p><strong>Notes Detail:</strong> <br>${note.details.replace(/\n/g, '<br>')}</p>
+                                </div><hr>
+                            `;
+                        });
+                    }
+
+                    $(`#${modalId}-loader`).hide();
+                    $(`#${modalId}-content`).html(notesHtml).removeClass('d-none');
+                },
+                error: function(xhr, status, error) {
+                    $(`#${modalId}-loader`).hide();
+                    $(`#${modalId}-content`).html('<p>There was an error retrieving the notes. Please try again later.</p>').removeClass('d-none');
+                }
             });
         }
 
+        // Function to show the notes modal
+        function addShortNotesModal(applicantID) {
+            const modalId = `shortNotesModal-${applicantID}`;
+
+            // Remove existing modal with same ID
+            $('#' + modalId).remove();
+
+            // Append modal HTML
+            $('body').append(`
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="shortNotesForm-${applicantID}">
+                                    <div class="mb-3">
+                                        <label for="detailsTextarea-${applicantID}" class="form-label">Details</label>
+                                        <textarea class="form-control" id="detailsTextarea-${applicantID}" rows="4" required></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-success" id="saveShortNotesButton-${applicantID}">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+
+            // Clear and reset input styling when shown
+            $(`#${modalId}`).on('shown.bs.modal', function () {
+                const $textarea = $(`#detailsTextarea-${applicantID}`);
+                $textarea.val('').removeClass('is-invalid is-valid');
+                $textarea.next('.invalid-feedback').remove();
+            });
+
+            // Save button click handler
+            $(`#saveShortNotesButton-${applicantID}`).off('click').on('click', function () {
+                const $textarea = $(`#detailsTextarea-${applicantID}`);
+                const notes = $textarea.val();
+
+                if (!notes.trim()) {
+                    $textarea.addClass('is-invalid');
+                    if ($textarea.next('.invalid-feedback').length === 0) {
+                        $textarea.after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+
+                    $textarea.on('input', function () {
+                        if ($(this).val().trim()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+
+                    return;
+                }
+
+                $textarea.removeClass('is-invalid').addClass('is-valid');
+                $textarea.next('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                $.ajax({
+                    url: '{{ route("storeShortNotes") }}',
+                    type: 'POST',
+                    data: {
+                        applicant_id: applicantID,
+                        details: notes,
+                        reason: 'casual',
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        toastr.success('Notes saved successfully!');
+                        modal.hide();
+                        $(`#shortNotesForm-${applicantID}`)[0].reset();
+
+                        // Reload the DataTable
+                        $('#applicants_table').DataTable().ajax.reload();
+                    },
+                    error: function () {
+                        alert('An error occurred while saving notes.');
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        function handleCheckboxClick(currentCheckboxId, otherCheckboxId) {
+            var currentCheckbox = document.getElementById(currentCheckboxId);
+            var otherCheckbox = document.getElementById(otherCheckboxId);
+
+            if (currentCheckbox.checked) {
+                // If current checkbox is checked, uncheck and disable the other checkbox
+                otherCheckbox.checked = false;
+                otherCheckbox.disabled = true;
+            } else {
+                // If current checkbox is unchecked, enable the other checkbox
+                otherCheckbox.disabled = false;
+            }
+        }
+
+        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, createdAt, status) {
+            const modalId = `showDetailsModal-${applicantId}`;
+            const labelId = `${modalId}Label`;
+
+            // Remove any existing modal with the same ID
+            $('#' + modalId).remove();
+
+            // Append modal HTML to body
+            $('body').append(`
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${labelId}">Applicant Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <tr><th>Applicant ID</th><td>${applicantId}</td></tr>
+                                    <tr><th>Created At</th><td>${createdAt}</td></tr>
+                                    <tr><th>Name</th><td>${name}</td></tr>
+                                    <tr><th>Phone</th><td>${phone}</td></tr>
+                                    <tr><th>Landline</th><td>${landline}</td></tr>
+                                    <tr><th>Postcode</th><td>${postcode}</td></tr>
+                                    <tr><th>Email (Primary)</th><td>${email}</td></tr>
+                                    <tr><th>Email (Secondary)</th><td>${secondaryEmail}</td></tr>
+                                    <tr><th>Job Category</th><td>${jobCategory}</td></tr>
+                                    <tr><th>Job Title</th><td>${jobTitle}</td></tr>
+                                    <tr><th>Job Source</th><td>${jobSource}</td></tr>
+                                    <tr><th>Status</th><td>${status}</td></tr>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+        }
+
+        /** Function to show the job details modal */
+        function showJobDetailsModal(saleId, sale_posted_date, officeName, name, postcode, 
+            jobCategory, jobTitle, status, timing, experience, salary, 
+            position, qualification, benefits) 
+        {
+            // Find the modal for this particular saleId
+            var modalId = 'jobDetailsModal_' + saleId;
+
+            // Populate the modal body dynamically with job details
+            $('#' + modalId + ' .modal-body').html(
+                '<table class="table table-bordered">' +
+                    '<tr>' +
+                        '<th>Sale ID</th>' +
+                        '<td>' + saleId + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Posted Date</th>' +
+                        '<td>' + sale_posted_date + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Head Office Name</th>' +
+                        '<td>' + officeName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Unit Name</th>' +
+                        '<td>' + name + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Postcode</th>' +
+                        '<td>' + postcode + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Job Category</th>' +
+                        '<td>' + jobCategory + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Job Title</th>' +
+                        '<td>' + jobTitle + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Status</th>' +
+                        '<td>' + status + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Timing</th>' +
+                        '<td>' + timing + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Qualification</th>' +
+                        '<td>' + qualification + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Salary</th>' +
+                        '<td>' + salary + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Position</th>' +
+                        '<td>' + position + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Experience</th>' +
+                        '<td>' + experience + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Benefits</th>' +
+                        '<td>' + benefits + '</td>' +
+                    '</tr>' +
+                '</table>'
+            );
+
+            // Show the modal
+            $('#' + modalId).modal('show');
+        }
+
+        // Disable the Unblock button by default
+        $('#submitSelectedButton').prop('disabled', true);
+
+        // Enable the Unblock button when any checkbox is checked, disable if none checked
+        $(document).on('change', '.applicant_checkbox, #master-checkbox', function() {
+            var anyChecked = $('.applicant_checkbox:checked').length > 0;
+            $('#submitSelectedButton').prop('disabled', !anyChecked);
+        });
+
+        $('#master-checkbox').on('change', function() {
+            var isChecked = $(this).prop('checked');
+            $('.applicant_checkbox').prop('checked', isChecked);
+
+            // Manually toggle the DataTables selected class
+            $('.applicant_checkbox').each(function() {
+                var $row = $(this).closest('tr');
+                if (isChecked) {
+                    $row.addClass('selected');
+                } else {
+                    $row.removeClass('selected');
+                }
+            });
+        });
+
+        // Add a listener to individual checkboxes to update the master checkbox state
+        $(document).on('change', '.applicant_checkbox', function() {
+            var allCheckboxesChecked = $('.applicant_checkbox:checked').length === $('.applicant_checkbox').length;
+            $('#master-checkbox').prop('checked', allCheckboxesChecked);
+
+            // Manually toggle the DataTables selected class
+            var $row = $(this).closest('tr');
+            if ($(this).prop('checked')) {
+                $row.addClass('selected');
+            } else {
+                $row.removeClass('selected');
+            }
+        });
+        
+        // Add a listener to the "Select All" button for additional actions
+        $('#submitSelectedButton').on('click', function() {
+
+            var selectedIds = [];
+
+            // Get selected IDs
+            $('.applicant_checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+             Swal.fire({
+                title: 'Are you sure?',
+                text: 'These applicants will be reverted from no job. Are you sure you want to continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                customClass: {
+                    confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                    cancelButton: 'btn btn-dark mt-2'
+                },
+                confirmButtonText: 'Yes, Continue!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'revertNoJobApplicant', // Update the URL to match your route
+                        type: 'post',
+                        data: { 
+                            ids: selectedIds,
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+
+                                // Display a success message
+                                toastr.success(response.message);
+
+                                // Reload the DataTable
+                                $('#applicants_table').DataTable().ajax.reload();
+                            } else {
+                                // Display an error message
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function(error) {
+                            // Handle other errors (e.g., network issues)
+                            toastr.error('Error: ' + error.statusText);
+                        }
+                    });
+                }
+            });
+        });
     </script>
     
 @endsection

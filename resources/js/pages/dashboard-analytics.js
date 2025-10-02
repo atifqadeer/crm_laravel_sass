@@ -12,10 +12,10 @@ import jsVectorMap from "jsvectormap";
 import "jsvectormap/dist/maps/world-merc.js";
 import "jsvectormap/dist/maps/world.js";
 
-// Your original chart options
+// Chart options
 var chartOptions = {
     chart: {
-        height: 300,
+        height: "100%",
         type: "area",
         dropShadow: {
             enabled: true,
@@ -26,7 +26,8 @@ var chartOptions = {
         },
         toolbar: { show: false },
     },
-    colors: ["#47ad94", "#604ae3", "#f0643b"],
+    colors: ["#47ad94", "#604ae3", "#f0643b", "#ffc107", "#dc3545"], 
+    // New, Reopened, Closed, Pending, Rejected (red)
     dataLabels: { enabled: false },
     stroke: {
         show: true,
@@ -35,17 +36,18 @@ var chartOptions = {
         lineCap: "square",
     },
     series: [
-        { name: "New", data: [1, 2, 1, 0, 2] },
-        { name: "Re-Opened", data: [0, 1, 0, 2, 1] },
-        { name: "Closed", data: [2, 0, 1, 1, 2] },
+        { name: "New Sales", data: [] },
+        { name: "Re-Opened Sales", data: [] },
+        { name: "Closed Sales", data: [] },
+        { name: "Pending Sales", data: [] },
+        { name: "Rejected Sales", data: [] },
     ],
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    labels: [],
     xaxis: {
         axisBorder: { show: false },
         axisTicks: { show: false },
         crosshairs: { show: true },
         labels: {
-            offsetX: 0,
             offsetY: 5,
             style: {
                 fontSize: "12px",
@@ -58,71 +60,62 @@ var chartOptions = {
         strokeDashArray: 5,
         xaxis: { lines: { show: true } },
         yaxis: { lines: { show: false } },
-        padding: { top: -50, right: 0, bottom: 0, left: 5 },
+        padding: { top: 0, right: 10, bottom: 0, left: 5 },
     },
-    legend: { show: true },
+    legend: { show: true, position: "top", horizontalAlign: "right" },
     fill: {
         type: "gradient",
         gradient: {
             type: "vertical",
             shadeIntensity: 1,
             inverseColors: false,
-            opacityFrom: 0.12,
-            opacityTo: 0.1,
-            stops: [100, 100],
+            opacityFrom: 0.25,
+            opacityTo: 0.05,
+            stops: [0, 100],
+        },
+    },
+    yaxis: {
+        min: 0,
+        forceNiceScale: true,
+        labels: {
+            offsetX: -10,
+            style: {
+                fontSize: "12px",
+                cssClass: "apexcharts-yaxis-title",
+            },
         },
     },
     responsive: [
         {
-            breakpoint: 575,
+            breakpoint: 768,
             options: {
-                legend: { offsetY: -50 },
+                chart: { height: 300 },
+                legend: { position: "bottom" },
             },
         },
     ],
 };
 
-// ✅ Dynamically calculate the max Y value from series
-const allValues = chartOptions.series.flatMap((s) => s.data);
-const maxValue = Math.max(...allValues);
-const yTicks = maxValue < 1 ? 1 : maxValue; // prevent tickAmount = 0
-
-// ✅ Update y-axis config dynamically
-chartOptions.yaxis = {
-    min: 0,
-    max: yTicks,
-    tickAmount: yTicks,
-    labels: {
-        formatter: (value) => value,
-        offsetX: -15,
-        style: {
-            fontSize: "12px",
-            cssClass: "apexcharts-yaxis-title",
-        },
-    },
-};
-
-// ✅ Initialize and render chart
-var chart = new ApexCharts(
-    document.querySelector("#sales_analytic"),
-    chartOptions
-);
+// Render chart
+var chart = new ApexCharts(document.querySelector("#sales_analytic"), chartOptions);
 chart.render();
 
+// Fetch and update chart data
 function fetchSalesAnalytic(range = "year") {
     fetch(`/get-sales-analytic?range=${range}`)
         .then((res) => res.json())
         .then((data) => {
-            // Update Apex chart
+            // Update chart with new data
             chart.updateOptions({
                 labels: data.labels,
+                series: [
+                    { name: "New Sales", data: data.new_added },
+                    { name: "Re-Opened Sales", data: data.reopened },
+                    { name: "Closed Sales", data: data.closed },
+                    { name: "Pending Sales", data: data.pending },
+                    { name: "Rejected Sales", data: data.rejected }, // 👈 added rejected
+                ]
             });
-
-            chart.updateSeries([
-                { name: "New", data: data.new_added },
-                { name: "Re-Opened", data: data.reopened },
-                { name: "Closed", data: data.closed },
-            ]);
 
             // Update active dropdown item
             document.querySelectorAll(".chart-filter").forEach((el) => {
@@ -132,7 +125,7 @@ function fetchSalesAnalytic(range = "year") {
                 }
             });
 
-            // Optionally update dropdown button text
+            // Update dropdown button text
             const btn = document.querySelector(".dropdown-toggle");
             if (btn) {
                 btn.textContent = range === "year" ? "This Year" : "This Month";
@@ -142,6 +135,20 @@ function fetchSalesAnalytic(range = "year") {
             console.error("Failed to fetch sales analytic data:", err);
         });
 }
+
+
+// Call it once on page load
+fetchSalesAnalytic("year");
+
+// Dropdown filter click handler
+document.querySelectorAll(".chart-filter").forEach((el) => {
+    el.addEventListener("click", function (e) {
+        e.preventDefault();
+        const range = this.getAttribute("data-range");
+        fetchSalesAnalytic(range);
+    });
+});
+
 
 // Event binding
 document.addEventListener("DOMContentLoaded", () => {
@@ -155,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// sales_funnel for weekly sales
 // Global variable to access later
 window.salesChart = null;
 

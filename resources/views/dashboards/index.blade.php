@@ -1,69 +1,31 @@
-@extends('layouts.vertical', ['title' => 'Dashboard','subTitle' => 'Dashboard'])
+@extends('layouts.vertical', ['title' => 'Dashboard', 'subTitle' => 'Dashboard'])
 
 @section('content')
-    @php
-        use \Carbon\Carbon;
-        use Horsefly\Applicant;
-        use Horsefly\User;
-        use Horsefly\Unit;
-        use Horsefly\Office;
-
-        // Basic Counts
-        $applicantsCount = Applicant::where('status', 1)->count();
-        $unitsCount = Unit::where('status', 1)->count();
-        $officesCount = Office::where('status', 1)->count();
-
-        $salesCount = Office::join('sales', 'offices.id', '=', 'sales.office_id')
-            ->where('sales.status', 1)
-            ->where('sales.is_on_hold', 0)
-            ->count();
-
-        // === Last 7 Days (up to today)
-        $last7DaysEnd = Carbon::now()->copy()->endOfDay();
-        $last7DaysStart = $last7DaysEnd->copy()->subDays(16)->startOfDay();
-
-        $last7DaysCount = Applicant::leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-            ->whereBetween('applicants.updated_at', [$last7DaysStart, $last7DaysEnd])
-            ->where('applicants.status', 1)
-            ->whereNull('applicants_pivot_sales.applicant_id')
-            ->count();
-
-        // === 21–16 Days Ago
-        $days21End = Carbon::now()->copy()->subDays(16)->endOfDay();
-        $days21Start = $days21End->copy()->subDays(21)->startOfDay();
-
-        $last21DaysCount = Applicant::leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-            ->whereBetween('applicants.updated_at', [$days21Start, $days21End])
-            ->where('applicants.status', 1)
-            ->whereNull('applicants_pivot_sales.applicant_id')
-            ->count();
-
-        // === Older Than 1 Month + 6 Days (30 + 6 = 36 days ago)
-        $cutoffDate = Carbon::now()->copy()->subDays(36)->endOfDay();
-
-        $last3MonthsCount = Applicant::leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-            ->where('applicants.updated_at', '<=', $cutoffDate)
-            ->where('applicants.status', 1)
-            ->whereNull('applicants_pivot_sales.applicant_id')
-            ->count();
-
-        $users = User::latest('created_at')->paginate(2);
-    @endphp
-
+    <!-- start page title -->
+    <style>
+        .card {
+            margin-bottom: 1.5625rem;
+            box-shadow: 0 0.5rem 3.25rem rgba(0, 0, 0, 0.05);
+        }
+        .collapse {
+    visibility: visible;
+}
+    </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
             <div class="col-md-6 col-xl-3">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium">Total Applicants</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $applicantsCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="applicantsCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-primary bg-opacity-10 rounded">
                                     <iconify-icon icon="solar:user-plus-broken" class="fs-32 text-primary avatar-title"></iconify-icon>
-                                    {{-- <iconify-icon icon="solar:calendar-date-broken" class="fs-32 text-primary avatar-title"></iconify-icon> --}}
                                 </div>
                             </div>
                         </div>
@@ -71,12 +33,14 @@
                 </div>
             </div>
             <div class="col-md-6 col-xl-3">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium">Total Head Offices</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $officesCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="officesCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-warning bg-opacity-10 rounded">
@@ -88,12 +52,14 @@
                 </div>
             </div>
             <div class="col-md-6 col-xl-3">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium d-flex align-items-center gap-2">Total Units</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $unitsCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="unitsCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-success bg-opacity-10 rounded">
@@ -105,12 +71,14 @@
                 </div>
             </div>
             <div class="col-md-6 col-xl-3">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium">Total Sales</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $salesCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="salesCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-info bg-opacity-10 rounded">
@@ -122,15 +90,17 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-md-6 col-xl-4">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium">Last 7 Days Applicants</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $last7DaysCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="last7DaysCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-info bg-opacity-10 rounded">
@@ -142,12 +112,14 @@
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium">Last 21 Days Applicants</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $last21DaysCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="last21DaysCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-primary bg-opacity-10 rounded">
@@ -159,12 +131,14 @@
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
-                <div class="card" style="background-color: #b0c4dea8;">
+                <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <p class="mb-2 fs-15 fw-medium d-flex align-items-center gap-2">Last 3 Months Applicants</p>
-                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ $last3MonthsCount }}</h3>
+                                <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="last3MonthsCount">
+                                    <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
+                                </h3>
                             </div>
                             <div>
                                 <div class="avatar-md bg-success bg-opacity-10 rounded">
@@ -180,11 +154,11 @@
     @canany(['dashboard-sales-analytics-chart','dashboard-sales-weekly-analytics'])
         <div class="row">
             @canany(['dashboard-sales-analytics-chart'])
-                <div class="col-xl-9  col-lg-9">
+                <div class="col-xl-9 col-lg-9">
                     <div class="card overflow-hidden">
                         <div class="card-header d-flex justify-content-between align-items-center pb-1">
                             <div>
-                                <h4 class="card-title">Sales Analytic</h4>
+                                <h4 class="card-title mb-0">Sales Analytic</h4>
                             </div>
                             <div class="dropdown">
                                 <a href="#" class="dropdown-toggle btn btn-sm btn-outline-light rounded"
@@ -197,8 +171,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-body" style="min-height: 418px; height: 418px;">
-                            <div class="apex-charts mt-2" id="sales_analytic"></div>
+                        <div class="card-body p-2" style="height: 420px;">
+                            <div id="sales_analytic" class="w-100 h-100"></div>
                         </div>
                     </div>
                 </div>
@@ -254,7 +228,7 @@
                 </div>
             @endcanany
         </div>
-   
+
         <!-- Modal -->
         <div class="modal fade" id="weeklySalesModal" tabindex="-1" aria-labelledby="weeklySalesModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -301,29 +275,33 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {{-- The data will be populated here by DataTables --}}
+                                    <tr>
+                                        <td colspan="100%" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <!-- end table-responsive -->
                     </div>
                 </div>
             </div>
-
         </div>
     @endcanany
 @endsection
 
 @section('script')
-    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+    <!-- jQuery CDN -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-    <!-- DataTables CSS (for styling the table) -->
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
-    <!-- DataTables JS (for the table functionality) -->
+    <!-- DataTables JS -->
     <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
-    
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
@@ -341,42 +319,61 @@
 
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
-   
-    <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
-    <link rel="stylesheet" href="css/daterangepicker.css" />
-    <script src="js/daterangepicker.min.js"></script>
+
+    <!-- Daterangepicker CSS/JS -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
+
+    <!-- Tailwind CSS CDN (for skeleton loader styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
-        $(document).ready(function() {
-            // Store the current filter in a variable
-            var currentFilter = '';
+        $(document).ready(function () {
+            // Deferred AJAX for counts
+            const fetchCounts = $.ajax({
+                url: "{{ route('dashboard.counts') }}",
+                method: "GET",
+                dataType: "json" // Explicitly expect JSON response
+            });
 
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td>`;
+            // Use $.when to handle deferred AJAX requests
+            $.when(fetchCounts).done(function(countsResponse) {
+                // Log the response for debugging
+                console.log('Counts Response:', countsResponse);
 
-            // Append the loader row to the table's tbody
-            $('#users_table tbody').append(loadingRow);
+                // Handle both array and object responses
+                const data = Array.isArray(countsResponse) && countsResponse.length > 0 ? countsResponse[0] : countsResponse;
 
+                // Check if the expected properties exist, default to 0 if undefined
+                $('#applicantsCount').html(data.applicantsCount !== undefined ? data.applicantsCount : 0);
+                $('#officesCount').html(data.officesCount !== undefined ? data.officesCount : 0);
+                $('#unitsCount').html(data.unitsCount !== undefined ? data.unitsCount : 0);
+                $('#salesCount').html(data.salesCount !== undefined ? data.salesCount : 0);
+                $('#last7DaysCount').html(data.last7DaysCount !== undefined ? data.last7DaysCount : 0);
+                $('#last21DaysCount').html(data.last21DaysCount !== undefined ? data.last21DaysCount : 0);
+                $('#last3MonthsCount').html(data.last3MonthsCount !== undefined ? data.last3MonthsCount : 0);
+            }).fail(function(xhr, status, error) {
+                console.error('Error fetching counts:', xhr.responseText, status, error);
+                $('#applicantsCount, #officesCount, #unitsCount, #salesCount, #last7DaysCount, #last21DaysCount, #last3MonthsCount')
+                    .html('<span class="text-danger">Error</span>');
+            });
+        });
+
+        $(document).ready(function () {
             // Initialize DataTable with server-side processing
-            var table = $('#users_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+            const table = $('#users_table').DataTable({
+                processing: false,
+                serverSide: true,
                 ajax: {
-                    url: @json(route('getUsersForDashboard')),  // Fetch data from the backend
+                    url: @json(route('getUsersForDashboard')),
                     type: 'GET',
                     data: function(d) {
-                        // Add the current filter to the request parameters
-                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                        d.status_filter = window.currentFilter || '';
                     }
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'name', name: 'users.name'  },
+                    { data: 'name', name: 'users.name' },
                     { data: 'email', name: 'users.email' },
                     { data: 'role_name', name: 'roles.name' },
                     { data: 'created_at', name: 'users.created_at' },
@@ -384,9 +381,9 @@
                     { data: 'action', name: 'action', orderable: false }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data.id;
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'flrtip',
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -397,7 +394,7 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#users_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -410,11 +407,9 @@
                                     </a>
                                 </li>`;
 
-                    // Generate page range
                     const visiblePages = 3;
                     const showDots = totalPages > visiblePages + 2;
 
-                    // Always show page 1
                     paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                         <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                     </li>`;
@@ -436,14 +431,12 @@
                         paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                     }
 
-                    // Always show last page if it's not already shown
                     if (totalPages > 1) {
                         paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                         </li>`;
                     }
 
-                    // Next button
                     paginationHtml += `
                         <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                             <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
@@ -454,33 +447,19 @@
                     </nav>`;
 
                     pagination.html(paginationHtml);
-                },
+                }
             });
 
-             // Handle the DataTable search
+            // Handle DataTable search
             $('#users_table_filter input').on('keyup', function() {
-                table.search(this.value).draw(); // Manually trigger search
+                table.search(this.value).draw();
             });
         });
-        function movePage(page) {
-            var table = $('#users_table').DataTable();
-            var currentPage = table.page.info().page + 1;
-            var totalPages = table.page.info().pages;
 
-            if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
-            } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
-            } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
-            }
-        }
-        
         function showDetailsModal(id, name, email, role, status) {
             const modalId = `showDetailsModal-${id}`;
             const modalSelector = `#${modalId}`;
 
-            // If modal not already added to DOM, add it
             if ($(modalSelector).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label">
@@ -506,10 +485,8 @@
                 `);
             }
 
-            // Show the modal
             $(modalSelector).modal('show');
 
-            // Simulate loading delay (optional: remove setTimeout in real use)
             setTimeout(() => {
                 $(modalSelector + ' .modal-body').html(`
                     <table class="table table-bordered mb-0">
@@ -520,19 +497,14 @@
                         <tr><th>Status</th><td>${status}</td></tr>
                     </table>
                 `);
-            }, 500); // optional loading delay
+            }, 500);
         }
 
         $(function () {
             const today = moment().format('YYYY-MM-DD');
-
-            // Set initial default value in input
             $('#dateRangePicker').val(today + ' to ' + today);
-
-            // Store it in global filter variable
             window.userStatisticsDateRange = today + '|' + today;
 
-            // Initialize the date range picker
             $('#dateRangePicker').daterangepicker({
                 startDate: moment(),
                 endDate: moment(),
@@ -543,10 +515,8 @@
                 }
             });
 
-            // Show initial date in the display span
             $('#showDateRange').html(today + ' to ' + today);
 
-            // When a date range is selected
             $('#dateRangePicker').on('apply.daterangepicker', function (ev, picker) {
                 const formatted = picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD');
                 $(this).val(formatted);
@@ -555,7 +525,6 @@
                 $('#sales_table').DataTable().ajax.reload();
             });
 
-            // When the date range is cleared
             $('#dateRangePicker').on('cancel.daterangepicker', function (ev, picker) {
                 $(this).val('');
                 window.userStatisticsDateRange = '';
@@ -563,7 +532,6 @@
                 $('#sales_table').DataTable().ajax.reload();
             });
 
-            // Clear button
             $('#clearDateRange').on('click', function () {
                 $('#dateRangePicker').val('');
                 window.userStatisticsDateRange = '';
@@ -574,9 +542,8 @@
 
         function showStatisticsModal(id) {
             const modalId = 'showStatisticsModal-' + id;
-            $('#' + modalId).remove(); // Remove existing modal
+            $('#' + modalId).remove();
 
-            // Modal HTML
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-xl">
@@ -600,23 +567,19 @@
             `;
 
             $('body').append(modalHtml);
-
             const modal = new bootstrap.Modal(document.getElementById(modalId));
             modal.show();
 
-            // ✅ AJAX
             $.ajax({
                 url: '{{ route("getUserStatistics") }}',
                 type: 'POST',
                 data: {
                     _token: "{{ csrf_token() }}",
                     user_key: id,
-                    date_range_filter: window.userStatisticsDateRange // Make sure this exists
+                    date_range_filter: window.userStatisticsDateRange
                 },
                 success: function (response) {
-                    let notesHtml = '';
-
-                 notesHtml += `
+                    let notesHtml = `
                         <div class="row bg-primary text-white rounded px-3 py-2 mb-3">
                             <div class="col-md-4">
                                 ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
@@ -630,8 +593,6 @@
                         </div>
                     `;
 
-
-                    // Icons for current stats
                     const currentIcons = {
                         cvs_sent: 'file-send-broken',
                         close_sales: 'bag-check-line-duotone',
@@ -662,13 +623,11 @@
                         CRM_paid: 'wallet-line-duotone'
                     };
 
-                    // Style block template
                     function renderQualityStatBlock(data, icons, badgeClass) {
                         let html = `<div class="row">`;
                         Object.entries(data).forEach(([key, value]) => {
                             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
-
                             html += `
                                 <div class="col-md-4 mb-3">
                                     <div class="d-flex align-items-center border rounded p-3 h-100">
@@ -689,7 +648,6 @@
                         Object.entries(data).forEach(([key, value]) => {
                             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
-
                             html += `
                                 <div class="col-md-3 mb-3">
                                     <div class="d-flex align-items-center border rounded p-3 h-100">
@@ -705,20 +663,16 @@
                         return html;
                     }
 
-
-                    // Quality stats
                     if (response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
                         notesHtml += renderQualityStatBlock(response.quality_stats, currentIcons, 'primary');
                     }
-                    
-                    // CRM stats
+
                     if (response.user_stats && Object.keys(response.user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">CRM Statistics</h6>';
                         notesHtml += renderStatBlock(response.user_stats, currentIcons, 'primary');
                     }
 
-                    // Previous stats
                     if (response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-4">Previous Month Stats</h6>';
                         notesHtml += renderQualityStatBlock(response.prev_user_stats, prevIcons, 'secondary');
@@ -736,43 +690,51 @@
         }
 
         function fetchWeeklySales() {
-            fetch('/get-weekly-sales')
-                .then(response => response.json())
-                .then(data => {
-                    // Update total count
-                    document.getElementById('weeklySalesCount').textContent = data.total;
-
-                    // Update ApexChart (defined globally)
-                    updateSalesChart(data.chartData);
-
-                    // Update modal content
-                    let html = `<table class="table table-bordered">
-                                    <thead>
-                                        <tr><th>ID</th><th>Office Name</th><th>Unit Name</th><th>PostCode</th><th>Date</th></tr>
-                                    </thead>
-                                    <tbody>`;
-                    data.details.forEach(sale => {
-                        html += `<tr>
-                            <td>${sale.id}</td>
-                            <td>${sale.office?.office_name ?? ''}</td>
-                            <td>${sale.unit?.unit_name ?? ''}</td>
-                            <td>${sale.sale_postcode ?? ''}</td>
-                            <td>${moment(sale.created_at).format('DD-MM-YYYY hh:mm A')}</td>
-                        </tr>`;
+            return new Promise((resolve, reject) => {
+                fetch('/get-weekly-sales')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('weeklySalesCount').textContent = data.total;
+                        updateSalesChart(data.chartData);
+                        let html = `<table class="table table-bordered">
+                                        <thead>
+                                            <tr><th>ID</th><th>Office Name</th><th>Unit Name</th><th>PostCode</th><th>Date</th></tr>
+                                        </thead>
+                                        <tbody>`;
+                        data.details.forEach(sale => {
+                            html += `<tr>
+                                <td>${sale.id}</td>
+                                <td>${sale.office?.office_name ?? ''}</td>
+                                <td>${sale.unit?.unit_name ?? ''}</td>
+                                <td>${sale.sale_postcode ?? ''}</td>
+                                <td>${moment(sale.created_at).format('DD-MM-YYYY hh:mm A')}</td>
+                            </tr>`;
+                        });
+                        html += '</tbody></table>';
+                        document.getElementById('weeklySalesDetails').innerHTML = html;
+                        resolve(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching weekly sales:', error);
+                        document.getElementById('weeklySalesDetails').innerHTML = '<p class="text-danger">Failed to load data.</p>';
+                        reject(error);
                     });
-                    html += '</tbody></table>';
-                    document.getElementById('weeklySalesDetails').innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error fetching weekly sales:', error);
-                    document.getElementById('weeklySalesDetails').innerHTML = '<p class="text-danger">Failed to load data.</p>';
-                });
+            });
         }
 
-        // Initial call
-        fetchWeeklySales();
-        setInterval(fetchWeeklySales, 60000);
+        // Initial call for weekly sales
+        $.when(fetchWeeklySales()).done(function() {
+            console.log('Weekly sales fetched successfully');
+        }).fail(function(error) {
+            console.error('Failed to fetch weekly sales:', error);
+        });
+
+        setInterval(function() {
+            $.when(fetchWeeklySales()).done(function() {
+                console.log('Weekly sales updated');
+            });
+        }, 60000);
     </script>
-   
+
     @vite(['resources/js/pages/dashboard-analytics.js'])
 @endsection

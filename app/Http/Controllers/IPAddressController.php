@@ -11,6 +11,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class IPAddressController extends Controller
 {
@@ -25,11 +27,9 @@ class IPAddressController extends Controller
      */
     public function index()
     {
-        return view('ip-address.list');
-    }
-    public function create()
-    {
-        return view('ip-address.create');
+        $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
+
+        return view('ip-address.list', compact('users'));
     }
     public function store(Request $request)
     {
@@ -164,17 +164,23 @@ class IPAddressController extends Controller
                 ->make(true);
         }
     }
-    public function edit($id)
-    {
-        return view('roles.edit');
-    }
     public function update(Request $request)
     {
         $id = $request->input('id');
+
         // Validation
         $validator = Validator::make($request->all(), [
-            'ip_address' => 'required|string|unique:ip_addresses,ip_address,' . $id,
-            'user_id' => 'required|unique:ip_addresses,user_id,' . $id,
+            'ip_address' => [
+                'required',
+                'string',
+                Rule::unique('ip_addresses', 'ip_address')->ignore($id, 'id'),
+            ],
+            'user_id' => [
+                'required',
+            ],
+            'status' => [
+                'nullable', // optional, make it 'required|in:0,1' if it's only 0/1
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -191,14 +197,14 @@ class IPAddressController extends Controller
 
             // Update fields
             $ip->ip_address = $request->input('ip_address');
-            $ip->user_id = $request->input('user_id');
-            $ip->status = $request->input('status');
+            $ip->user_id    = $request->input('user_id');
+            $ip->status     = $request->input('status');
             $ip->save();
 
             return response()->json([
-                'success' => true,
-                'message' => 'IP Address updated successfully',
-                'redirect' => route('ip-address.list')
+                'success'  => true,
+                'message'  => 'IP Address updated successfully',
+                'redirect' => route('ip-address.list'),
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating IP Address: ' . $e->getMessage());

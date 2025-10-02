@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Horsefly\User;
 use Horsefly\Sale;
+use Horsefly\Applicant;
+use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\Message;
 use Horsefly\Audit;
@@ -24,6 +26,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -32,7 +35,80 @@ class DashboardController extends Controller
     }
     public function index()
     {
-        return view('dashboards.index');
+        $user = Auth::user();       
+        $users = User::latest('created_at')->paginate(2);
+
+        if ($user->hasRole(['super_admin', 'admin'])) {
+            return view('dashboards.index');
+        } elseif ($user->hasRole(['sales', 'sale and crm', 'quality'])) {
+            return view('dashboards.sales');
+        } else {
+            return view('dashboards.agents'); // fallback
+        }
+    }
+    public function getCounts()
+    {
+        $now = Carbon::now();
+
+        // Simple counts
+        $applicantsCount = Applicant::where('status', 1)->count();
+        $officesCount    = Office::where('status', 1)->count();
+        $unitsCount      = Unit::where('status', 1)->count();
+
+        $salesCount = DB::table('sales')
+            ->where('sales.status', 1)
+            ->where('sales.is_on_hold', 0)
+            ->count();
+
+        // Dates
+        $last7DaysEnd   = $now->copy()->endOfDay();
+        $last7DaysStart = $last7DaysEnd->copy()->subDays(16)->startOfDay();
+
+        $days21End   = $now->copy()->subDays(16)->endOfDay();
+        $days21Start = $days21End->copy()->subDays(21)->startOfDay();
+
+        $cutoffDate = $now->copy()->subDays(36)->endOfDay();
+
+        // Use WHERE NOT EXISTS instead of LEFT JOIN + WHERE NULL
+        $last7DaysCount = DB::table('applicants')
+            ->whereBetween('updated_at', [$last7DaysStart, $last7DaysEnd])
+            ->where('status', 1)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('applicants_pivot_sales as aps')
+                    ->whereRaw('aps.applicant_id = applicants.id');
+            })
+            ->count();
+
+        $last21DaysCount = DB::table('applicants')
+            ->whereBetween('updated_at', [$days21Start, $days21End])
+            ->where('status', 1)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('applicants_pivot_sales as aps')
+                    ->whereRaw('aps.applicant_id = applicants.id');
+            })
+            ->count();
+
+        $last3MonthsCount = DB::table('applicants')
+            ->where('updated_at', '<=', $cutoffDate)
+            ->where('status', 1)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('applicants_pivot_sales as aps')
+                    ->whereRaw('aps.applicant_id = applicants.id');
+            })
+            ->count();
+
+        return response()->json([
+            'applicantsCount'  => $applicantsCount,
+            'officesCount'     => $officesCount,
+            'unitsCount'       => $unitsCount,
+            'salesCount'       => $salesCount,
+            'last7DaysCount'   => $last7DaysCount,
+            'last21DaysCount'  => $last21DaysCount,
+            'last3MonthsCount' => $last3MonthsCount,
+        ]);
     }
     public function getUsersForDashboard(Request $request)
     {
@@ -64,10 +140,17 @@ class DashboardController extends Controller
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
-                ->addColumn('name', function ($user) {
+               ->addColumn('name', function ($user) {
                     $path = asset('/images/users/user.png') ?? asset('/images/users/default.jpg');
-                    return '<img src="'. $path .'" class="avatar-sm rounded-circle me-2" alt="kbp">' . $user->formatted_name; // Using accessor
+
+                    return '
+                        <div class="d-flex align-items-center">
+                            <img src="' . $path . '" class="avatar-sm rounded-circle me-2" alt="user">
+                            <span>' . e($user->formatted_name) . '</span>
+                        </div>
+                    ';
                 })
+
                 ->addColumn('role_name', function ($user) {
                     $role = $user->role_name; // returns the first (or only) role name
                     return $role ? ucwords($role) : '-';
@@ -425,9 +508,11 @@ class DashboardController extends Controller
         }
 
         $rawData = Sale::selectRaw("$grouping as label")
-            ->selectRaw("SUM(CASE WHEN status = 1 AND created_at = updated_at THEN 1 ELSE 0 END) as new_added")
+            ->selectRaw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as new_added")
+            ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
             ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
             ->selectRaw("SUM(CASE WHEN status = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as closed")
+            ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
             ->whereBetween('created_at', [$from, $to])
             ->groupBy(DB::raw($grouping))
             ->orderBy(DB::raw($grouping))
@@ -445,12 +530,16 @@ class DashboardController extends Controller
         $new = [];
         $reopened = [];
         $closed = [];
+        $pending = [];
+        $rejected = [];
 
         foreach ($rangeLabels as $label) {
             $labels[] = $label;
             $new[] = isset($rawData[$label]) ? (int) $rawData[$label]->new_added : 0;
             $reopened[] = isset($rawData[$label]) ? (int) $rawData[$label]->reopened : 0;
             $closed[] = isset($rawData[$label]) ? (int) $rawData[$label]->closed : 0;
+            $pending[] = isset($rawData[$label]) ? (int) $rawData[$label]->pending : 0;
+            $rejected[] = isset($rawData[$label]) ? (int) $rawData[$label]->rejected : 0;
         }
 
         return response()->json([
@@ -458,6 +547,8 @@ class DashboardController extends Controller
             'new_added' => $new,
             'reopened' => $reopened,
             'closed' => $closed,
+            'pending' => $pending,
+            'rejected' => $rejected,
         ]);
     }
     public function getUnreadMessages()

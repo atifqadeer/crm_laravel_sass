@@ -43,7 +43,12 @@ class SaleController extends Controller
      */
     public function index()
     {
-        return view('sales.list');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        $users = User::where('is_active', 1)->orderBy('name','asc')->get();
+
+        return view('sales.list', compact('jobCategories', 'jobTitles', 'offices', 'users'));
     }
     public function directSaleIndex()
     {
@@ -112,7 +117,13 @@ class SaleController extends Controller
     }
     public function create()
     {
-        return view('sales.create');
+        $offices = Office::where('status', 1)->select('id','office_name')->orderBy('office_name', 'asc')->get();
+        $units = Unit::where('status', 1)->select('id','unit_name')->get();
+
+        $jobCategories = JobCategory::where('is_active', 1)->get();
+        $jobTitles = JobTitle::where('is_active', 1)->get();
+
+        return view('sales.create', compact('offices', 'units', 'jobCategories', 'jobTitles'));
     }
     public function store(Request $request)
     {
@@ -4586,7 +4597,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     if($applicant->lat != null && $applicant->lng != null){
-                        $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $applicant->formatted_postcode;

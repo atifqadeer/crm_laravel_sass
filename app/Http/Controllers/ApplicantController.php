@@ -11,7 +11,7 @@ use Horsefly\ApplicantNote;
 use Horsefly\ModuleNote;
 use Horsefly\EmailTemplate;
 use Horsefly\SmsTemplate;
-use Horsefly\SentEmail;
+use Horsefly\Setting;
 use Horsefly\JobTitle;
 use Horsefly\JobSource;
 use Horsefly\CVNote;
@@ -143,7 +143,6 @@ class ApplicantController extends Controller
             if (!$postcode_query) {
                 try {
                     $result = $this->geocode($postcode);
-
                     // If geocode fails, throw
                     if (!isset($result['lat']) || !isset($result['lng'])) {
                         throw new \Exception('Geolocation failed. Latitude and longitude not found.');
@@ -193,7 +192,15 @@ class ApplicantController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            if ($email_template && !empty($email_template->template)) {
+            $setting = Setting::where('key', 'email_notifications')->first();
+
+            if (
+                $email_template 
+                && $setting 
+                && $setting->value == '1'  
+                && !empty($email_template->template) 
+                && !empty($applicant->applicant_email)
+            ) {
                 $email_to = $applicant->applicant_email;
                 $email_from = $email_template->from_email;
                 $email_subject = $email_template->subject;
@@ -220,7 +227,15 @@ class ApplicantController extends Controller
                 ->where('status', 1)
                 ->first();
 
-            if ($sms_template && !empty($sms_template->template)) {
+            $setting = Setting::where('key', 'sms_notifications')->first();
+
+            if (
+                $sms_template 
+                && $setting 
+                && $setting->value == '1'  
+                && !empty($sms_template->template) 
+                && !empty($applicant->applicant_email)
+            ) {
                 $sms_to = $applicant->applicant_phone;
                 $sms_template = $sms_template->template;
 
@@ -292,11 +307,11 @@ class ApplicantController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('applicants.updated_at', 'desc');
+                $model->orderBy('applicants.created_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('applicants.updated_at', 'desc');
+            $model->orderBy('applicants.created_at', 'desc');
         }
 
         if ($request->has('search.value')) {
@@ -396,7 +411,7 @@ class ApplicantController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="#" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -433,7 +448,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     if($applicant->lat != null && $applicant->lng != null){
-                        $url = route('applicantsAvailableJobs', ['id' => $applicant->id, 'radius' => 15]);
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" target="_blank" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $applicant->formatted_postcode;
@@ -1936,7 +1951,7 @@ class ApplicantController extends Controller
                     $id = 'exp-' . $sale->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="#" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -1967,7 +1982,7 @@ class ApplicantController extends Controller
                     $id = 'qalf-' . $sale->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="#" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -1998,7 +2013,7 @@ class ApplicantController extends Controller
                     $id = 'slry-' . $sale->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="#" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2153,6 +2168,14 @@ class ApplicantController extends Controller
 
         $applicant = Applicant::with('cv_notes')->find($applicant_id);
 
+        if($applicant->lat == null || $applicant->lng == null){
+            return response()->json([
+                'data' => [],
+                'draw' => 0,
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+            ]);
+        }
         $lat = (float) $applicant->lat;
         $lon = (float) $applicant->lng;
 
@@ -2360,18 +2383,42 @@ class ApplicantController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('experience', function ($sale) {
-                    $short = Str::limit(strip_tags($sale->experience), 80);
-                    $full = e($sale->experience);
+                    $fullHtml = $sale->experience; // HTML from Summernote
                     $id = 'exp-' . $sale->id;
 
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
                     return '
-                        <a href="#" class="text-primary" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#' . $id . '">
-                            ' . $short . '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
                         </a>
 
-                        <!-- Modal -->
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -2380,25 +2427,136 @@ class ApplicantController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . nl2br($full) . '
+                                        ' . $fullHtml . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ';
+                        </div>';
+                })
+                ->addColumn('salary', function ($sale) {
+                    $fullHtml = $sale->salary; // HTML from Summernote
+                    $id = 'slry-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale`s Salary</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                })
+                ->addColumn('qualification', function ($sale) {
+                    $fullHtml = $sale->qualification; // HTML from Summernote
+                    $id = 'qua-' . $sale->id;
+
+                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+                    // 1. Convert block-level and <br> tags into \n
+                    $withBreaks = preg_replace(
+                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                        "\n",
+                        $cleanedHtml
+                    );
+
+                    // 2. Remove all other HTML tags except basic formatting tags
+                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+                    // 3. Decode HTML entities
+                    $decodedText = html_entity_decode($plainText);
+
+                    // 4. Normalize multiple newlines
+                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+                    // 5. Limit preview characters
+                    $preview = Str::limit(trim($normalizedText), 80);
+
+                    // 6. Convert newlines to <br>
+                    $shortText = nl2br($preview);
+
+                    return '
+                        <a href="#"
+                        data-bs-toggle="modal"
+                        data-bs-target="#' . $id . '">'
+                        . $shortText . '
+                        </a>
+
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . $fullHtml . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
                 })
                 ->addColumn('sale_notes', function ($sale) {
                     $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
+                    $shortNotes = Str::limit(trim($notes), 80);
                     $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
+                    $office = Office::find($sale->office_id);
+                    $office_name = $office ? ucwords($office->office_name) : '-';
                     $unit = Unit::find($sale->unit_id);
-                    $unit_name = $unit ? $unit->unit_name : '-';
+                    $unit_name = $unit ? ucwords($unit->unit_name) : '-';
+
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . $notes . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
+                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                               ' . $shortNotes . '
                             </a>';
                 })
                 ->addColumn('status', function ($sale) {
@@ -2491,7 +2649,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
