@@ -2,13 +2,13 @@
      <!-- Sidebar Logo -->
      <div class="logo-box">
           <a href="{{ route('dashboard.index')}}" class="logo-dark">
-               <img src="/images/logo-sm.png" class="logo-sm" alt="logo sm">
-               <img src="/images/logo-dark.png" class="logo-lg" alt="logo dark">
+               <img src="/images/logo-sm.png" class="logo-sm" alt="Kingsbury Personnel">
+               <img src="/images/logo-dark.png" class="logo-lg" alt="Kingsbury Personnel">
           </a>
 
           <a href="{{ route('dashboard.index')}}" class="logo-light">
-               <img src="/images/logo-sm.png" class="logo-sm" alt="logo sm">
-               <img src="/images/logo-light.png" class="logo-lg" alt="logo light" height="50" width="">
+               <img src="/images/logo-sm.png" class="logo-sm" alt="Kingsbury Personnel">
+               <img src="/images/logo-light.png" class="logo-lg" alt="Kingsbury Personnel" height="50" width="">
           </a>
      </div>
 
@@ -288,6 +288,20 @@
                     </li>
                @endcanany
 
+               @canany(['postcode-index'])
+                    <li class="menu-title">Finder</li>
+                    <!-- postcode finder Menu -->
+                    <li class="nav-item">
+                         <a class="nav-link" href="{{ route('postcode-finder.index')}}">
+                              <span class="nav-icon">
+                                   <i class="ri-search-line"></i>
+                              </span>
+                              <span class="nav-text">PostCode Finder</span>
+                         </a>
+                    </li>
+                    <!-- end postcode finder Menu -->
+               @endcanany
+
                @canany(['message-index', 'email-index', 'sent-email-index'])
                     <li class="menu-title">Communication</li>
                     @canany(['message-index'])
@@ -328,20 +342,6 @@
                               </a>
                          </li>
                     @endcanany
-               @endcanany
-               
-               @canany(['postcode-index'])
-                    <li class="menu-title">Finder</li>
-                    <!-- postcode finder Menu -->
-                    <li class="nav-item">
-                         <a class="nav-link" href="{{ route('postcode-finder.index')}}">
-                              <span class="nav-icon">
-                                   <i class="ri-search-line"></i>
-                              </span>
-                              <span class="nav-text">PostCode Finder</span>
-                         </a>
-                    </li>
-                    <!-- end postcode finder Menu -->
                @endcanany
 
                @canany(['report-user-login'])

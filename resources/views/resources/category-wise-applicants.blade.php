@@ -266,11 +266,6 @@
                         d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
                         d.date_range_filter = currentDateRangeFilter;  // Send the current filter value as a parameter
-
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
-                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -761,6 +756,12 @@
                 $('#detailsTextarea_' + applicantID).removeClass('is-invalid is-valid');
                 $('#reasonDropdown_' + applicantID).removeClass('is-invalid is-valid');
 
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
+
                 // Send via AJAX
                 $.ajax({
                     url: '{{ route("storeShortNotes") }}',
@@ -779,6 +780,9 @@
                     },
                     error: function () {
                         toastr.error('An error occurred while saving notes.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
                     }
                 });
             });

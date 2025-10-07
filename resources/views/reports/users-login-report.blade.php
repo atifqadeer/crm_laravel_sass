@@ -10,85 +10,100 @@
 </style>
 @endsection
 @section('content')
-@php
-    $roles = \Horsefly\Role::orderBy('name', 'asc')->get();
-@endphp
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                             <!-- Date Range Picker -->
-                            <div class="d-inline">
-                                <input type="text" id="singleDatePicker" class="form-control d-inline-block" style="width: 160px; display: inline-block;" placeholder="Select date" readonly />
-                                <button class="btn btn-outline-primary my-1" type="button" id="clearSingleDate" title="Clear Date">
-                                    <i class="ri-close-line"></i>
-                                </button>
-                            </div>
-                            <!-- user Filter Dropdown -->
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item" href="#">Export All Data</a>
-                                    <a class="dropdown-item" href="#">Export Emails</a>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <!-- Date Range Picker -->
+                                <div class="d-inline">
+                                    <input type="text" id="singleDatePicker" class="form-control d-inline-block" style="width: 160px; display: inline-block;" placeholder="Select date" readonly />
+                                    <button class="btn btn-outline-primary my-1" type="button" id="clearSingleDate" title="Clear Date">
+                                        <i class="ri-close-line"></i>
+                                    </button>
+                                </div>
+                                <!-- user Filter Dropdown -->
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> Export
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item" href="#">Export All Data</a>
+                                        <a class="dropdown-item" href="#">Export Emails</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <!-- end col-->
                     </div>
-                    <!-- end col-->
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="users_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Name</th>
-                                <th>Date</th>
-                                <th>Check In</th>
-                                <th>Check Out</th>
-                                <th>Credit Hours</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="users_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Date</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Credit Hours</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
                 </div>
-                <!-- end table-responsive -->
             </div>
         </div>
     </div>
-</div>
 
 @section('script')
-    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- jQuery CDN -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-    <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
-    <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-   
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-      <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
+    <!-- Daterangepicker CSS/JS -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
+
     <script>
         $(document).ready(function () {
             let selectedDate = ''; // Selected date to be sent in AJAX call

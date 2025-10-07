@@ -1276,6 +1276,7 @@
                 $row.removeClass('selected');
             }
         });
+
         // Handle the button click to send an AJAX request
 		$('#markNursingHomeBtn').on('click', function () {
 			// Get all the selected checkboxes
@@ -1283,6 +1284,12 @@
 			$('.applicant_checkbox:checked').each(function () {
 				selectedCheckboxes.push($(this).val()); // Push the value of the checked checkboxes to the array
 			});
+
+            const btn = $(this);
+            const originalText = btn.html();
+            btn.prop('disabled', true).html(
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
 			if (selectedCheckboxes.length > 0) {
 				// Send the selected values in an AJAX request
@@ -1303,13 +1310,20 @@
 						});
 
 						toastr.success('Marked nursing home experience successfully!');
+
+                        $('#applicants_table').DataTable().ajax.reload();
+
 						console.log(response); // You can log the server response for debugging
 					},
 					error: function (error) {
 						// Handle the error response here
 						toastr.error('Something went wrong. Please try again.');
 						console.error(error);
-					}
+					},
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                        $('#markNoNursingHomeBtn').prop('disabled', true);
+                    }
 				});
 			} else {
 				toastr.error('Please select at least one checkbox.');
@@ -1323,6 +1337,12 @@
 			$('.applicant_checkbox:checked').each(function () {
 				selectedCheckboxes.push($(this).val()); // Push the value of the checked checkboxes to the array
 			});
+
+            const btn = $(this);
+            const originalText = btn.html();
+            btn.prop('disabled', true).html(
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
 			if (selectedCheckboxes.length > 0) {
 				// Send the selected values in an AJAX request
@@ -1343,13 +1363,19 @@
 						});
 
 						toastr.success('Marked no nursing home experience successfully!');
+
+                        $('#applicants_table').DataTable().ajax.reload();
 						console.log(response); // You can log the server response for debugging
 					},
 					error: function (error) {
 						// Handle the error response here
 						toastr.error('Something went wrong. Please try again.');
 						console.error(error);
-					}
+					},
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                        $('#markNursingHomeBtn').prop('disabled', true);
+                    }
 				});
 			} else {
 				toastr.error('Please select at least one checkbox.');

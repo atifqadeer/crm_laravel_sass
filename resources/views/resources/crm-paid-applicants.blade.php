@@ -124,8 +124,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th>Phone</th>
-                                    <th>Landline</th>
+                                    <th width="15%">Phone</th>
                                     <th>Experience</th>
                                     <th>Source</th>
                                     <th>Notes</th>
@@ -174,7 +173,7 @@
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <!-- Add daterangepicker -->
-    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}">
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <script>
@@ -183,7 +182,6 @@
             var currentTypeFilter = '';
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
-
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -210,10 +208,6 @@
                         d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
 
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
-                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -232,7 +226,6 @@
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
                     { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
                     { data: 'job_source', name: 'job_sources.name' },
                     { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
@@ -248,12 +241,6 @@
                     },
                     {
                         targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 13,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }

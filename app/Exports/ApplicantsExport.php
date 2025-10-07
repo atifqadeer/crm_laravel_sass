@@ -51,14 +51,13 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
+                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
                             'applicant_email_secondary' => $item->applicant_email_secondary,
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
 
@@ -81,7 +80,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
+                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_postcode' => strtoupper($item->applicant_postcode),
                             'lat' => $item->lat,
@@ -89,7 +88,6 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
 
@@ -112,7 +110,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
+                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
                             'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -122,7 +120,6 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
 
@@ -157,7 +154,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
+                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
                             'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -166,8 +163,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'applicant_landline' => $item->applicant_landline,
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                            'job_title' => strtoupper($item->job_title)
                         ];
                     });
 
@@ -277,8 +273,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 }
                 $query->map(function ($item) {
                     return [
-                        'id' => $item->id,
-                        'created_at' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
+                        'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
                         'applicant_email' => $item->applicant_email,
                         'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -331,8 +326,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
-                            'created_at' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
+                            'date' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
                             'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -366,6 +360,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'job_titles.name as job_title',
                         'job_sources.name as job_source',
                         'crm_notes.moved_tab_to',
+                        'crm_notes.details',
                         'applicants.applicant_experience'
                     ])
                     ->where('applicants.is_no_job', false)
@@ -388,8 +383,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'id' => $item->id,
-                            'created_at' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
+                            'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
                             'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -401,7 +395,84 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_title' => strtoupper($item->job_title),
                             'job_source' => strtoupper($item->job_source),
                             'status' => strtoupper($item->moved_tab_to),
-                            'experience' => $item->applicant_experience
+                            'experience' => $item->applicant_experience,
+                            'notes' => $item->details
+                        ];
+                    });
+
+                return $query;
+
+            case 'allNoJob':
+                // Subquery for the latest module_notes per applicant
+                $latestNotesSub = DB::table('module_notes as mn')
+                    ->select([
+                        'mn.id',
+                        'mn.module_noteable_id',
+                        'mn.user_id',
+                        'mn.details',
+                        'mn.created_at', //Alias created_at
+                    ])
+                    ->join(
+                        DB::raw('(
+                            SELECT MAX(id) AS id
+                            FROM module_notes
+                            WHERE module_noteable_type = "Horsefly\\\\Applicant"
+                            GROUP BY module_noteable_id
+                        ) latest'),
+                        'latest.id',
+                        '=',
+                        'mn.id'
+                    )
+                    ->where('mn.module_noteable_type', 'Horsefly\\Applicant');
+
+                // Main query
+                $query = Applicant::query()
+                    ->select([
+                        'applicants.id',
+                        'applicants.applicant_name',
+                        'applicants.applicant_email',
+                        'applicants.applicant_email_secondary',
+                        'applicants.applicant_postcode',
+                        'applicants.applicant_phone',
+                        'applicants.applicant_landline',
+                        'applicants.job_type',
+                        'applicants.applicant_experience',
+                        'job_titles.name as job_title_name',
+                        'job_categories.name as job_category_name',
+                        'job_sources.name as job_source_name',
+                        'users.name as user_name',
+                        'module_notes.details as module_notes_details',
+                        'module_notes.created_at as note_created_at', // ✅ use the alias from subquery
+                    ])
+                    ->where('applicants.is_no_job', true)
+                    ->where('applicants.status', 1)
+                    ->joinSub($latestNotesSub, 'module_notes', function ($join) {
+                        $join->on('applicants.id', '=', 'module_notes.module_noteable_id');
+                    })
+                    ->leftJoin('users', 'module_notes.user_id', '=', 'users.id')
+                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                    ->distinct()
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'date' => $item->note_created_at
+                                ? Carbon::parse($item->note_created_at)->format('d M Y, h:i A')
+                                : 'N/A',
+                            'user' => $item->user_name ?? '-',
+                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                            'applicant_email' => $item->applicant_email ?: '-',
+                            'applicant_email_secondary' => $item->applicant_email_secondary ?: '-',
+                            'applicant_postcode' => strtoupper($item->applicant_postcode ?? '-'),
+                            'applicant_phone' => $item->applicant_phone ?: '-',
+                            'applicant_landline' => $item->applicant_landline ?: '-',
+                            'job_category' => strtoupper($item->job_category_name ?? '-'),
+                            'job_type' => strtoupper($item->job_type ?? '-'),
+                            'job_title' => strtoupper($item->job_title_name ?? '-'),
+                            'job_source' => strtoupper($item->job_source_name ?? '-'),
+                            'experience' => $item->applicant_experience ?: '-',
+                            'notes' => $item->module_notes_details ?: '-',
                         ];
                     });
 
@@ -416,19 +487,21 @@ class ApplicantsExport implements FromCollection, WithHeadings
     {
         switch ($this->type) {
             case 'emails':
-                return ['ID', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Category', 'Job Type', 'Job Title', 'Created At'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Category', 'Job Type', 'Job Title'];
             case 'noLatLong':
-                return ['ID', 'Applicant Name', 'Postcode', 'Latitude', 'Longitude', 'Job Category', 'Job Type', 'Job Title', 'Created At'];
+                return ['Created At', 'Applicant Name', 'Postcode', 'Latitude', 'Longitude', 'Job Category', 'Job Type', 'Job Title'];
             case 'all':
-                return ['ID', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Created At'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['ID', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Created At'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'allRejected':
-                return ['ID', 'Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
-                return ['ID', 'Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
             case 'allPaid':
-                return ['ID', 'Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience', 'Notes'];
+            case 'allNoJob':
+                return ['Date', 'Agent', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Experience', 'Notes'];
             default:
                 return [];
         }

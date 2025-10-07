@@ -138,7 +138,10 @@
                                     <th>PostCode</th>
                                     <th>Phone</th>
                                     <th>Landline</th>
-                                    <th>Resume</th>
+                                    @canany(['applicant-download-resume'])
+                                        <th>Applicant Resume</th>
+                                        <th>CRM Resume</th>
+                                    @endcanany
                                     <th>Experience</th>
                                     <th>Source</th>
                                     <th>Notes</th>
@@ -311,7 +314,8 @@
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
                     { data: 'applicant_phone', name: 'applicants.applicant_phone' },
                     { data: 'applicant_landline', name: 'applicants.applicant_landline' },
-                    { data: 'resume', name:'applicants.resume', orderable: false, searchable: false },
+                    { data: 'applicant_resume', name:'applicants.applicant_cv', orderable: false, searchable: false },
+                    { data: 'crm_resume', name:'applicants.updated_cv', orderable: false, searchable: false },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
                     { data: 'job_source', name: 'job_sources.name' },
                     { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },

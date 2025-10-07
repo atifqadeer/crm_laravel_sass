@@ -55,6 +55,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/get-sales-analytic', [DashboardController::class, 'getSalesAnalytic']);
     Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
     Route::get('/dashboard/counts', [DashboardController::class, 'getCounts'])->name('dashboard.counts');
+    Route::get('/dashboard/statistics-data', [DashboardController::class, 'getStats']);
+    Route::get('/dashboard/statistics-details', [DashboardController::class, 'getStatisticsDetails']);
+    Route::get('/statistics/chart-data', [DashboardController::class, 'getChartData']);
+
+
 
     Route::group(['prefix' => 'applicants'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');
@@ -159,6 +164,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('category-wise-applicants', [ResourceController::class, 'categoryWiseApplicantIndex'])->name('resources.categoryWiseApplicantIndex');
         Route::post('revertBlockedApplicant', [ResourceController::class, 'revertBlockedApplicant'])->name('resources.revertBlockedApplicant');
         Route::post('revertNoJobApplicant', [ResourceController::class, 'revertNoJobApplicant'])->name('resources.revertNoJobApplicant');
+        Route::post('revertNotInterestedApplicant', [ResourceController::class, 'revertNotInterestedApplicant'])->name('resources.revertNotInterestedApplicant');
     });
     Route::post('markAsNursingHomeExp', [ResourceController::class, 'markAsNursingHomeExp'])->name('markAsNursingHomeExp');
     Route::post('markAsNoNursingHomeExp', [ResourceController::class, 'markAsNoNursingHomeExp'])->name('markAsNoNursingHomeExp');
@@ -236,7 +242,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::group(['prefix' => 'reports'], function () {
         Route::get('users-login-report', [UserController::class, 'userLogin'])->name('reports.usersLoginReport');
-        Route::get('login-history', [UserController::class, 'userLoginHistoryIndex'])->name('reports.userLoginHistory');
+        Route::get('login-history/{id}', [UserController::class, 'userLoginHistoryIndex'])->name('reports.userLoginHistory');
     });
     Route::get('getUsersLoginReport', [UserController::class, 'getUsersLoginReport'])->name('getUsersLoginReport');
     Route::get('getUserLoginHistory', [UserController::class, 'getUserLoginHistory'])->name('getUserLoginHistory');

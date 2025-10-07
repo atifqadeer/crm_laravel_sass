@@ -57,7 +57,9 @@ class ApplicantController extends Controller
      */
     public function index()
     {
-        return view('applicants.list');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        return view('applicants.list', compact('jobCategories', 'jobTitles'));
     }
     public function create()
     {
@@ -192,12 +194,12 @@ class ApplicantController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            $setting = Setting::where('key', 'email_notifications')->first();
+            $emailNotification = Setting::where('key', 'email_notifications')->first();
 
             if (
                 $email_template 
-                && $setting 
-                && $setting->value == '1'  
+                && $emailNotification 
+                && $emailNotification->value == '1'  
                 && !empty($email_template->template) 
                 && !empty($applicant->applicant_email)
             ) {
@@ -227,12 +229,12 @@ class ApplicantController extends Controller
                 ->where('status', 1)
                 ->first();
 
-            $setting = Setting::where('key', 'sms_notifications')->first();
+            $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
             if (
                 $sms_template 
-                && $setting 
-                && $setting->value == '1'  
+                && $smsNotification 
+                && $smsNotification->value == '1'  
                 && !empty($sms_template->template) 
                 && !empty($applicant->applicant_email)
             ) {

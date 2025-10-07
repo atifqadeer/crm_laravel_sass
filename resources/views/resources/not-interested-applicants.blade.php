@@ -96,14 +96,14 @@
                                 </div>
 
                                 <!-- Button Dropdown -->
-                                <div class="dropdown d-inline">
+                                {{-- <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allNo']) }}">Export All Data</a>
+                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allNotInterested']) }}">Export All Data</a>
                                     </div>
-                                </div>
+                                </div> --}}
                                 <!-- Add Updated Sales Filter Button -->
                                 <button class="btn btn-primary my-1" type="button" id="submitSelectedButton">
                                     <i class="ri-arrow-go-forward-line me-1"></i> Revert
@@ -215,11 +215,6 @@
                         d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
                         d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
-
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
-                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -855,15 +850,16 @@
         // Add a listener to the "Select All" button for additional actions
         $('#submitSelectedButton').on('click', function() {
 
-            var selectedIds = [];
+            let applicantIds = [];
+            let saleIds = [];
 
-            // Get selected IDs
             $('.applicant_checkbox:checked').each(function() {
-                selectedIds.push($(this).val());
+                applicantIds.push($(this).val()); // applicant_id
+                saleIds.push($(this).data('sale-id')); // sale_id
             });
-             Swal.fire({
+            Swal.fire({
                 title: 'Are you sure?',
-                text: 'These applicants will be reverted from no job. Are you sure you want to continue?',
+                text: 'These applicants will be reverted from not interested. Are you sure you want to continue?',
                 icon: 'warning',
                 showCancelButton: true,
                 customClass: {
@@ -874,10 +870,11 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: 'revertNoJobApplicant', // Update the URL to match your route
+                        url: 'revertNotInterestedApplicant', // Update the URL to match your route
                         type: 'post',
                         data: { 
-                            ids: selectedIds,
+                            applicant_ids: applicantIds,
+                            sale_ids: saleIds,
                             _token: '{{ csrf_token() }}'
                         },
                         success: function(response) {

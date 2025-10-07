@@ -161,6 +161,7 @@ class ModuleNotesController extends Controller
                 'data' => $moduleNote,
                 'success' => true
             ]);
+
         } catch (\Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([

@@ -48,7 +48,9 @@ var chartOptions = {
         axisTicks: { show: false },
         crosshairs: { show: true },
         labels: {
-            offsetY: 5,
+            rotate: -50,        // rotate labels vertically
+            rotateAlways: true, // force rotation even if space is available
+            offsetY: 0,
             style: {
                 fontSize: "12px",
                 cssClass: "apexcharts-xaxis-title",
@@ -136,9 +138,8 @@ function fetchSalesAnalytic(range = "year") {
         });
 }
 
-
 // Call it once on page load
-fetchSalesAnalytic("year");
+// fetchSalesAnalytic("year");
 
 // Dropdown filter click handler
 document.querySelectorAll(".chart-filter").forEach((el) => {
@@ -148,7 +149,6 @@ document.querySelectorAll(".chart-filter").forEach((el) => {
         fetchSalesAnalytic(range);
     });
 });
-
 
 // Event binding
 document.addEventListener("DOMContentLoaded", () => {

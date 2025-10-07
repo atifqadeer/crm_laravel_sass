@@ -222,11 +222,6 @@
                         d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
                         d.date_filter = currentDateFilter;  // Send the current filter value as a parameter
-
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
-                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -253,12 +248,6 @@
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
                 columnDefs: [
-                    {
-                        targets: 11,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
                     {
                         targets: 12,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {

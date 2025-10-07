@@ -101,7 +101,7 @@
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allNotInterested']) }}">Export All Data</a>
+                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allNoJob']) }}">Export All Data</a>
                                     </div>
                                 </div>
                                 <!-- Add Updated Sales Filter Button -->
@@ -137,7 +137,7 @@
                                     <th>CRM Resume</th>
                                     <th>Experience</th>
                                     <th>Source</th>
-                                    <th>Notes</th>
+                                    <th width="15%">Notes</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -232,7 +232,7 @@
                 },
                 columns: [
                     { data: "checkbox", orderable:false, searchable:false},
-                    { data: 'updated_at', name: 'applicants.updated_at' },
+                    { data: 'created_at', name: 'applicants.created_at' },
                     { data: 'user_name', name: 'users.name' },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
@@ -256,12 +256,6 @@
                     },
                     {
                         targets: 10,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 13,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
@@ -603,103 +597,103 @@
         }
 
         // Function to show the notes modal
-        function addShortNotesModal(applicantID) {
-            const modalId = `shortNotesModal-${applicantID}`;
+        // function addShortNotesModal(applicantID) {
+        //     const modalId = `shortNotesModal-${applicantID}`;
 
-            // Remove existing modal with same ID
-            $('#' + modalId).remove();
+        //     // Remove existing modal with same ID
+        //     $('#' + modalId).remove();
 
-            // Append modal HTML
-            $('body').append(`
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="shortNotesForm-${applicantID}">
-                                    <div class="mb-3">
-                                        <label for="detailsTextarea-${applicantID}" class="form-label">Details</label>
-                                        <textarea class="form-control" id="detailsTextarea-${applicantID}" rows="4" required></textarea>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-success" id="saveShortNotesButton-${applicantID}">Save</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `);
+        //     // Append modal HTML
+        //     $('body').append(`
+        //         <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+        //             <div class="modal-dialog modal-lg modal-dialog-top">
+        //                 <div class="modal-content">
+        //                     <div class="modal-header">
+        //                         <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
+        //                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        //                     </div>
+        //                     <div class="modal-body">
+        //                         <form id="shortNotesForm-${applicantID}">
+        //                             <div class="mb-3">
+        //                                 <label for="detailsTextarea-${applicantID}" class="form-label">Details</label>
+        //                                 <textarea class="form-control" id="detailsTextarea-${applicantID}" rows="4" required></textarea>
+        //                             </div>
+        //                         </form>
+        //                     </div>
+        //                     <div class="modal-footer">
+        //                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+        //                         <button type="button" class="btn btn-success" id="saveShortNotesButton-${applicantID}">Save</button>
+        //                     </div>
+        //                 </div>
+        //             </div>
+        //         </div>
+        //     `);
 
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById(modalId));
-            modal.show();
+        //     // Show modal
+        //     const modal = new bootstrap.Modal(document.getElementById(modalId));
+        //     modal.show();
 
-            // Clear and reset input styling when shown
-            $(`#${modalId}`).on('shown.bs.modal', function () {
-                const $textarea = $(`#detailsTextarea-${applicantID}`);
-                $textarea.val('').removeClass('is-invalid is-valid');
-                $textarea.next('.invalid-feedback').remove();
-            });
+        //     // Clear and reset input styling when shown
+        //     $(`#${modalId}`).on('shown.bs.modal', function () {
+        //         const $textarea = $(`#detailsTextarea-${applicantID}`);
+        //         $textarea.val('').removeClass('is-invalid is-valid');
+        //         $textarea.next('.invalid-feedback').remove();
+        //     });
 
-            // Save button click handler
-            $(`#saveShortNotesButton-${applicantID}`).off('click').on('click', function () {
-                const $textarea = $(`#detailsTextarea-${applicantID}`);
-                const notes = $textarea.val();
+        //     // Save button click handler
+        //     $(`#saveShortNotesButton-${applicantID}`).off('click').on('click', function () {
+        //         const $textarea = $(`#detailsTextarea-${applicantID}`);
+        //         const notes = $textarea.val();
 
-                if (!notes.trim()) {
-                    $textarea.addClass('is-invalid');
-                    if ($textarea.next('.invalid-feedback').length === 0) {
-                        $textarea.after('<div class="invalid-feedback">Please provide details.</div>');
-                    }
+        //         if (!notes.trim()) {
+        //             $textarea.addClass('is-invalid');
+        //             if ($textarea.next('.invalid-feedback').length === 0) {
+        //                 $textarea.after('<div class="invalid-feedback">Please provide details.</div>');
+        //             }
 
-                    $textarea.on('input', function () {
-                        if ($(this).val().trim()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
+        //             $textarea.on('input', function () {
+        //                 if ($(this).val().trim()) {
+        //                     $(this).removeClass('is-invalid').addClass('is-valid');
+        //                     $(this).next('.invalid-feedback').remove();
+        //                 }
+        //             });
 
-                    return;
-                }
+        //             return;
+        //         }
 
-                $textarea.removeClass('is-invalid').addClass('is-valid');
-                $textarea.next('.invalid-feedback').remove();
+        //         $textarea.removeClass('is-invalid').addClass('is-valid');
+        //         $textarea.next('.invalid-feedback').remove();
 
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+        //         const btn = $(this);
+        //         const originalText = btn.html();
+        //         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
-                $.ajax({
-                    url: '{{ route("storeShortNotes") }}',
-                    type: 'POST',
-                    data: {
-                        applicant_id: applicantID,
-                        details: notes,
-                        reason: 'casual',
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function (response) {
-                        toastr.success('Notes saved successfully!');
-                        modal.hide();
-                        $(`#shortNotesForm-${applicantID}`)[0].reset();
+        //         $.ajax({
+        //             url: '{{ route("storeShortNotes") }}',
+        //             type: 'POST',
+        //             data: {
+        //                 applicant_id: applicantID,
+        //                 details: notes,
+        //                 reason: 'casual',
+        //                 _token: '{{ csrf_token() }}'
+        //             },
+        //             success: function (response) {
+        //                 toastr.success('Notes saved successfully!');
+        //                 modal.hide();
+        //                 $(`#shortNotesForm-${applicantID}`)[0].reset();
 
-                        // Reload the DataTable
-                        $('#applicants_table').DataTable().ajax.reload();
-                    },
-                    error: function () {
-                        alert('An error occurred while saving notes.');
-                    },
-                    complete: function () {
-                        btn.prop('disabled', false).html(originalText);
-                    }
-                });
-            });
-        }
+        //                 // Reload the DataTable
+        //                 $('#applicants_table').DataTable().ajax.reload();
+        //             },
+        //             error: function () {
+        //                 alert('An error occurred while saving notes.');
+        //             },
+        //             complete: function () {
+        //                 btn.prop('disabled', false).html(originalText);
+        //             }
+        //         });
+        //     });
+        // }
 
         function handleCheckboxClick(currentCheckboxId, otherCheckboxId) {
             var currentCheckbox = document.getElementById(currentCheckboxId);

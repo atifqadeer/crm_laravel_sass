@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'User Login History', 'subTitle' => 'Reports'])
+@extends('layouts.vertical', ['title' => ucwords($user->name).' Login History', 'subTitle' => 'Reports'])
 @section('style')
 <style>
     .dropdown-toggle::after {
@@ -10,7 +10,6 @@
 </style>
 @endsection
 @section('content')
-@php $user_id = request()->query('id'); @endphp
 <div class="row">
     <div class="col-lg-12">
         <div class="card">
@@ -52,30 +51,52 @@
 </div>
 
 @section('script')
-    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+ <!-- jQuery CDN -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-    <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
-    <!-- DataTables JS (for the table functionality) -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-   
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-      <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js')}}"></script>
+
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js')}}"></script>
+
+    <!-- Summernote CSS -->
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+
+    <!-- Summernote JS -->
+    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+
+    <!-- Daterangepicker CSS/JS -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
+
     <script>
         $(document).ready(function () {
-            var user_id = @json($user_id);
+            var user_id = @json($user->id);
 
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+             // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
-            $('#users_table tbody').append(loadingRow);
+            </td></tr>`;
+
+            // Function to show loader
+            function showLoader() {
+                $('#users_table tbody').empty().append(loadingRow);
+            }
 
             var table = $('#users_table').DataTable({
                 processing: false,
@@ -85,11 +106,18 @@
                     type: 'GET',
                     data: function (d) {
                         d.id = user_id; // ✅ Send selected date
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#users_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'user_name', name: 'users.name' },
+                    { data: 'user_name', name: 'users.name', orderable: false, searchable: false  },
                     { data: 'created_at', name: 'login_details.created_at' },
                     { data: 'login_at', name: 'login_details.login_at' },
                     { data: 'logout_at', name: 'login_details.logout_at' },
@@ -174,39 +202,6 @@
 
                     pagination.html(paginationHtml);
                 },
-            });
-
-            // Date picker
-            $('#singleDatePicker').daterangepicker({
-                singleDatePicker: true,
-                showDropdowns: true,
-                autoUpdateInput: false,
-                locale: {
-                    format: 'YYYY-MM-DD',
-                    cancelLabel: 'Clear'
-                }
-            });
-
-            $('#singleDatePicker').on('apply.daterangepicker', function (ev, picker) {
-                selectedDate = picker.startDate.format('YYYY-MM-DD');
-                $(this).val(selectedDate);
-                table.ajax.reload(); // Reload with new date
-            });
-
-            $('#singleDatePicker').on('cancel.daterangepicker', function (ev, picker) {
-                selectedDate = '';
-                $(this).val('');
-                table.ajax.reload();
-            });
-
-            $('#clearSingleDate').on('click', function () {
-                selectedDate = '';
-                $('#singleDatePicker').val('');
-                table.ajax.reload();
-            });
-
-            $('#users_table_filter input').on('keyup', function () {
-                table.search(this.value).draw();
             });
         });
 

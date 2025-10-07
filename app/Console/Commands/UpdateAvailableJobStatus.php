@@ -31,19 +31,21 @@ class UpdateAvailableJobStatus extends Command
      */
     public function handle()
     {
-        $result = Applicant::select(
-                'applicants.id',
-                'applicants.job_title_id',
-                'applicants.applicant_postcode',
-                'applicants.lat as app_latitude',
-                'applicants.lng as app_longitude',
-                'applicants.is_job_within_radius',
+        $applicants = Applicant::select(
+                'id',
+                'job_title_id',
+                'applicant_postcode',
+                'lat as app_latitude',
+                'lng as app_longitude',
+                'is_job_within_radius'
             )
-            ->where('applicants.status', 1)
-            ->where('applicants.is_blocked', false)
-            ->get()->take(50);
+            ->where('status', 1)
+            ->where('is_blocked', 0)
+            ->get();
 
-        foreach ($result as $applicant) {        
+        $radius = 24.14; // km = 15 miles
+
+        foreach ($applicants as $applicant) {
             $data = [
                 'job_title_id'        => $applicant->job_title_id,
                 'applicant_postcode'  => $applicant->applicant_postcode,
@@ -52,23 +54,19 @@ class UpdateAvailableJobStatus extends Command
                 'lng'                 => $applicant->app_longitude,
             ];
 
-            $radius = 15; // kilometers
-
             $isNearSales = $this->checkNearbySales($data, $radius);
+            Log::info('Applicant ID: ' . $applicant->id . ' - Is near sales: ' . ($isNearSales ? 'Yes' : 'No'));
+            DB::table('applicants')
+                ->where('id', $applicant->id)
+                ->update([
+                    'is_job_within_radius' => $isNearSales ? 1 : 0,
+                    'updated_at' => DB::raw('updated_at') // keep old timestamp
+                ]);
 
-            $applicant->is_job_within_radius = $isNearSales;
-
-            // Save without triggering audits and without updating timestamps
-            Event::withoutEvents(function () use ($applicant, $isNearSales) {
-                $applicant->timestamps = false;
-                $applicant->is_job_within_radius = $isNearSales;
-                $applicant->save();
-            });
         }
 
         $this->info('Applicant job statuses updated successfully.');
     }
-
     private function checkNearbySales(array $data, int $radius)
     {
         $lat = $data['lat'];

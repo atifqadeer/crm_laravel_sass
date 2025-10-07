@@ -9,10 +9,6 @@
             border-bottom: none !important;
         }
     </style>
-    @php
-        $jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
-        $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
-    @endphp
 @endsection
 @section('content')
     <div class="row">

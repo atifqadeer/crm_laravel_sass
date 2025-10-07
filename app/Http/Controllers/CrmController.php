@@ -12,6 +12,7 @@ use Horsefly\History;
 use Horsefly\QualityNotes;
 use Horsefly\Applicant;
 use Horsefly\EmailTemplate;
+use Horsefly\Setting;
 use Horsefly\Message;
 use Horsefly\User;
 use Horsefly\Interview;
@@ -1796,7 +1797,9 @@ class CrmController extends Controller
                         ->where('status', 1)
                         ->first();
 
-                    if ($sms_template && !empty($sms_template->template)) {
+                    $smsNotification = Setting::where('key', 'sms_notifications')->first();
+
+                    if ($smsNotification && $smsNotification->value == '1' && $sms_template && !empty($sms_template->template)) {
                         $sms_template = $sms_template->template;
 
                         $replace = [$applicant->applicant_name, $applicant->unit_name];
@@ -2663,7 +2666,9 @@ class CrmController extends Controller
                     $applicant_email = '';
                     $request_configuration_email = EmailTemplate::where('slug', 'request_configuration_email')->where('is_active', 1)->first();
 
-                    if ($request_configuration_email && !empty($request_configuration_email->template)) {
+                    $emailNotification = Setting::where('key', 'email_notifications')->first();
+
+                    if ($emailNotification && $emailNotification->value == '1' && $request_configuration_email && !empty($request_configuration_email->template)) {
                         // Loop through each attribute of the model
                         foreach ($request_configuration_email->getAttributes() as $key => $value) {
                             if (is_string($value)) {
@@ -2796,7 +2801,9 @@ class CrmController extends Controller
                     $request_reject_subject = '';
                     $request_reject_slug = '';
 
-                    if($request_reject_email_template && !empty($request_reject_email_template->template)){
+                    $emailNotification = Setting::where('key', 'email_notifications')->first();
+
+                    if($emailNotification && $emailNotification->value == '1' && $request_reject_email_template && !empty($request_reject_email_template->template)){
                         $request_reject_subject = $request_reject_email_template->subject;
                         $request_reject_slug = $request_reject_email_template->slug;
                         $data = $request_reject_email_template->template;
@@ -4127,19 +4134,28 @@ class CrmController extends Controller
                     $email_from = 'customerservice@kingsburypersonnel.com';
                     $email_title = $applicant_name . ' - Request Rejected';
                 }
+
+                $emailNotification = Setting::where('key', 'email_notifications')->first();
                 
                 // Attempt to save email in DB
-                try {
-                    $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
-                    if (!$is_save) {
-                        Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
-                        throw new \Exception('Email is not stored in DB');
+                if($emailNotification && $emailNotification->value == '1'){
+                    try {
+                        $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
+                        if (!$is_save) {
+                            Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
+                            throw new \Exception('Email is not stored in DB');
+                        }
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to save email: ' . $e->getMessage()
+                        ], 500);
                     }
-                } catch (\Exception $e) {
-                    DB::rollBack();
+                }else{
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to save email: ' . $e->getMessage()
+                        'message' => 'Failed to save email because email notifications are disabled.'
                     ], 500);
                 }
             }
