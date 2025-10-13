@@ -1678,7 +1678,7 @@ class ApplicantController extends Controller
                     ->orWhere('applicants.is_in_crm_start_date_hold', true)
                     ->orWhere('applicants.is_in_crm_dispute', true)
                     ->orWhere(function ($q) {
-                        $q->where('applicants.is_cv_reject', true)
+                        $q->where('applicants.is_cv_in_quality_reject', true)
                             ->where('quality_notes.moved_tab_to', 'rejected');
                     });
             })

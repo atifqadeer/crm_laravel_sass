@@ -124,7 +124,7 @@
                                     <th>Date</th>
                                     <th>Sent By</th>
                                     <th>Applicant Name</th>
-                                    <th>Email</th>
+                                    {{-- <th>Email</th> --}}
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
@@ -233,7 +233,7 @@
                     { data: 'notes_created_at', name: 'notes_created_at' },
                     { data: 'user_name', name: 'users.name'},
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
+                    // { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
@@ -248,19 +248,19 @@
                 ],
                 columnDefs: [
                     {
+                        targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
                         targets: 9,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
                     },
                     {
-                        targets: 10,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 15,  // Column index for 'job_details'
+                        targets: 14,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }

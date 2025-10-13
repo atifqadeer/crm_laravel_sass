@@ -1,252 +1,268 @@
 @extends('layouts.vertical', ['title' => 'CRM', 'subTitle' => 'Home'])
 
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-    
-</style>
-@php
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-@endphp
-
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+        
+    </style>
 @endsection
 @section('content')
-
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                            <button id="openToPaid" class="btn btn-success my-1" style="display: none;">
-                                Open To Applicants
-                            </button>
-                            <div class="dropdown d-inline d-none" id="declined_export_email">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <button id="openToPaid" class="btn btn-success my-1" style="display: none;">
+                                    Open To Applicants
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'declined']) }}">Export Emails</a>
+                                <!-- Rejected Cv -->
+                                {{-- <div class="dropdown d-inline d-none" id="rejected_cv_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="rejected_cv_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i>
+                                        <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="rejected_cv_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'rejected_cv']) }}">Export Emails</a>
+                                    </div>
+                                </div> --}}
+                                <!-- Declined -->
+                                <div class="dropdown d-inline d-none" id="declined_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="declined_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i>
+                                        <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="declined_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'declined']) }}">Export Emails</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="dropdown d-inline d-none" id="not_attended_export_email">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'not_attended']) }}">Export Emails</a>
+                                <!-- NOT ATTENDED -->
+                                <div class="dropdown d-inline d-none" id="not_attended_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="not_attended_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="not_attended_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'not_attended']) }}">Export Emails</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="dropdown d-inline d-none" id="start_date_hold_export_email">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'start_date_hold']) }}">Export Emails</a>
+
+                                <!-- START DATE HOLD -->
+                                <div class="dropdown d-inline d-none" id="start_date_hold_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="start_date_hold_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="start_date_hold_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'start_date_hold']) }}">Export Emails</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="dropdown d-inline d-none" id="dispute_export_email">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'dispute']) }}">Export Emails</a>
+
+                                <!-- DISPUTE -->
+                                <div class="dropdown d-inline d-none" id="dispute_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dispute_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dispute_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'dispute']) }}">Export Emails</a>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="dropdown d-inline d-none" id="paid_export_email">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'paid']) }}">Export Emails</a>
+
+                                <!-- PAID -->
+                                <div class="dropdown d-inline d-none" id="paid_export_email">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="paid_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="paid_btn">
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'paid']) }}">Export Emails</a>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <!-- Button Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterTab">Sent CVs</span>
-                                </button>
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton4">
-                                    <a class="dropdown-item tab-filter" href="#">Sent CVs</a>
-                                    <a class="dropdown-item tab-filter" href="#">Open CVs</a>
-                                    <a class="dropdown-item tab-filter" href="#">Sent CVs (No Job)</a>
-                                    <a class="dropdown-item tab-filter" href="#">Rejected CVs</a>
-                                    <a class="dropdown-item tab-filter" href="#">Request</a>
-                                    <a class="dropdown-item tab-filter" href="#">Request (No Job)</a>
-                                    <a class="dropdown-item tab-filter" href="#">Rejected By Request</a>
-                                    <a class="dropdown-item tab-filter" href="#">Confirmation</a>
-                                    <a class="dropdown-item tab-filter" href="#">Rebook</a>
-                                    <a class="dropdown-item tab-filter" href="#">Attended to Pre-Start Date</a>
-                                    <a class="dropdown-item tab-filter" href="#">Declined</a>
-                                    <a class="dropdown-item tab-filter" href="#">Not Attended</a>
-                                    <a class="dropdown-item tab-filter" href="#">Start Date</a>
-                                    <a class="dropdown-item tab-filter" href="#">Start Date Hold</a>
-                                    <a class="dropdown-item tab-filter" href="#">Invoice</a>
-                                    <a class="dropdown-item tab-filter" href="#">Invoice Sent</a>
-                                    <a class="dropdown-item tab-filter" href="#">Dispute</a>
-                                    <a class="dropdown-item tab-filter" href="#">Paid</a>
+                               
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTab">Sent CVs</span>
+                                    </button>
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton4">
+                                        <a class="dropdown-item tab-filter" href="#">Sent CVs</a>
+                                        <a class="dropdown-item tab-filter" href="#">Open CVs</a>
+                                        <a class="dropdown-item tab-filter" href="#">Sent CVs (No Job)</a>
+                                        <a class="dropdown-item tab-filter" href="#">Rejected CVs</a>
+                                        <a class="dropdown-item tab-filter" href="#">Request</a>
+                                        <a class="dropdown-item tab-filter" href="#">Request (No Job)</a>
+                                        <a class="dropdown-item tab-filter" href="#">Rejected By Request</a>
+                                        <a class="dropdown-item tab-filter" href="#">Confirmation</a>
+                                        <a class="dropdown-item tab-filter" href="#">Rebook</a>
+                                        <a class="dropdown-item tab-filter" href="#">Attended to Pre-Start Date</a>
+                                        <a class="dropdown-item tab-filter" href="#">Declined</a>
+                                        <a class="dropdown-item tab-filter" href="#">Not Attended</a>
+                                        <a class="dropdown-item tab-filter" href="#">Start Date</a>
+                                        <a class="dropdown-item tab-filter" href="#">Start Date Hold</a>
+                                        <a class="dropdown-item tab-filter" href="#">Invoice</a>
+                                        <a class="dropdown-item tab-filter" href="#">Invoice Sent</a>
+                                        <a class="dropdown-item tab-filter" href="#">Dispute</a>
+                                        <a class="dropdown-item tab-filter" href="#">Paid</a>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Category Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
-                                </button>
+                                <!-- Category Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    </button>
 
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
-                                     <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="categorySearchInput"
-                                        placeholder="Search category...">
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="categorySearchInput"
+                                            placeholder="Search category...">
 
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="categoryList">
-                                        <div class="form-check">
-                                            <input class="form-check-input category-filter" type="checkbox" value=""
-                                                id="all-categories" data-title-id="">
-                                            <label class="form-check-label" for="all-categories">All Category</label>
-                                        </div>
-
-                                        @foreach($jobCategories as $category)
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="categoryList">
                                             <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox"
-                                                    value="{{ $category->id }}" id="category_{{ $category->id }}"
-                                                    data-category-id="{{ $category->id }}">
-                                                <label class="form-check-label"
-                                                    for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                <input class="form-check-input category-filter" type="checkbox" value=""
+                                                    id="all-categories" data-title-id="">
+                                                <label class="form-check-label" for="all-categories">All Category</label>
                                             </div>
-                                        @endforeach
+
+                                            @foreach($jobCategories as $category)
+                                                <div class="form-check">
+                                                    <input class="form-check-input category-filter" type="checkbox"
+                                                        value="{{ $category->id }}" id="category_{{ $category->id }}"
+                                                        data-category-id="{{ $category->id }}">
+                                                    <label class="form-check-label"
+                                                        for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Title Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton2">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="titleSearchInput"
+                                            placeholder="Search titles...">
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="titleList">
+                                            <div class="form-check">
+                                                <input class="form-check-input title-filter" type="checkbox" value=""
+                                                    id="all-titles" data-title-id="">
+                                                <label class="form-check-label" for="all-titles">All Titles</label>
+                                            </div>
+                                            @foreach ($jobTitles as $title)
+                                                <div class="form-check">
+                                                    <input class="form-check-input title-filter" type="checkbox"
+                                                        value="{{ $title->id }}" id="title_{{ $title->id }}"
+                                                        data-title-id="{{ $title->id }}">
+                                                    <label class="form-check-label"
+                                                        for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Type Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
+                                        <a class="dropdown-item type-filter" href="#">All Types</a>
+                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                        <a class="dropdown-item type-filter" href="#">Regular</a>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Title Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                    id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                </button>
-
-                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton2">
-                                    <!-- Search input -->
-                                    <input type="text" class="form-control mb-2" id="titleSearchInput"
-                                        placeholder="Search titles...">
-
-                                    <!-- Scrollable checkbox list -->
-                                    <div id="titleList">
-                                        <div class="form-check">
-                                            <input class="form-check-input title-filter" type="checkbox" value=""
-                                                id="all-titles" data-title-id="">
-                                            <label class="form-check-label" for="all-titles">All Titles</label>
-                                        </div>
-                                        @foreach ($jobTitles as $title)
-                                            <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox"
-                                                    value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                    data-title-id="{{ $title->id }}">
-                                                <label class="form-check-label"
-                                                    for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Type Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                    <a class="dropdown-item type-filter" href="#">All Types</a>
-                                    <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Regular</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!-- end col-->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="applicants_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Agent</th>
-                                <th id="schedule_date" style="display:none;">Schedule Date</th>
-                                <th>Applicant Name</th>
-                                <th>Email</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>PostCode</th>
-                                <th>Job</th>
-                                <th>Head Office</th>
-                                <th>Unit</th>
-                                <th>PostCode</th>
-                                <th width="20%">Notes</th>
-                                <th id="paid_status" style="display:none;">Paid Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
-                </div>
-                <!-- end table-responsive -->
-            </div>
-        </div>
-    </div>
-
-</div>
-  
-<div id="send_sms_to_requested_applicant" class="modal fade send_sms_to_requested_applicant_Modal" tabindex="-1" aria-labelledby="send_sms_to_requested_applicant_ModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-top">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">Send Request SMS To <span id="smsName"></span></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form action="#" method="POST" id="send_non_nurse_sms" class="form-horizontal">
-            <div class="modal-body">
-                <div id="sent_cv_alert_non_nurse"></div>
-                <div class="form-group row">
-                    <label class="col-form-label col-sm-2">Message Text:</label>
-                    <div class="col-sm-10">
-                        <input type="hidden" name="applicant_id" id="applicant_id">
-                        <input type="hidden" name="applicant_phone_number" id="applicant_phone_number">
-                        <input type="hidden" name="non_nurse_modal_id" id="non_nurse_modal_id">
-                        <textarea name="details" id="smsBodyDetails" class="form-control" cols="40" rows="8" placeholder="TYPE HERE.." required></textarea>
+                        </div><!-- end col-->
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="sendSMSToRequestedApplicant" class="btn btn-primary">Send SMS</button>
-            </div>
-        </form>
         </div>
     </div>
-</div>
 
-
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="applicants_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Agent</th>
+                                    <th id="schedule_date" style="display:none;">Schedule Date</th>
+                                    <th>Applicant Name</th>
+                                    <th>Email</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>PostCode</th>
+                                    <th>Job</th>
+                                    <th>Head Office</th>
+                                    <th>Unit</th>
+                                    <th>PostCode</th>
+                                    <th width="20%">Notes</th>
+                                    <th id="paid_status" style="display:none;">Paid Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="send_sms_to_requested_applicant" class="modal fade send_sms_to_requested_applicant_Modal" tabindex="-1" aria-labelledby="send_sms_to_requested_applicant_ModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-top">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Request SMS To <span id="smsName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="#" method="POST" id="send_non_nurse_sms" class="form-horizontal">
+                <div class="modal-body">
+                    <div id="sent_cv_alert_non_nurse"></div>
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2">Message Text:</label>
+                        <div class="col-sm-10">
+                            <input type="hidden" name="applicant_id" id="applicant_id">
+                            <input type="hidden" name="applicant_phone_number" id="applicant_phone_number">
+                            <input type="hidden" name="non_nurse_modal_id" id="non_nurse_modal_id">
+                            <textarea name="details" id="smsBodyDetails" class="form-control" cols="40" rows="8" placeholder="TYPE HERE.." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="sendSMSToRequestedApplicant" class="btn btn-success">Send SMS</button>
+                </div>
+            </form>
+            </div>
+        </div>
+    </div>
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -270,10 +286,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
     <script src="{{ asset('js/moment.min.js')}}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
     
     <script>
         $(document).ready(function() {
@@ -496,6 +512,7 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 // Toggle UI elements
                 $('#openToPaid').toggle(formattedText === 'Paid');
                 $('#schedule_date').toggle(formattedText === 'Confirmation');
+                // $('#rejected_cv_export_email').toggleClass('d-none', formattedText !== 'Rejected Cvs');
                 $('#declined_export_email').toggleClass('d-none', formattedText !== 'Declined');
                 $('#not_attended_export_email').toggleClass('d-none', formattedText !== 'Not Attended');
                 $('#start_date_hold_export_email').toggleClass('d-none', formattedText !== 'Start Date Hold');
@@ -617,7 +634,10 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
                 table.page(page - 1).draw('page');  // Move to the selected page
             }
         }
+    </script>
 
+    <!--- other modal functions -->
+    <script>
         // Function to show the notes modal
         function updateCrmNotesModal(applicantID, saleID, tab) {
             const formId = `#updateCrmNotesForm${applicantID}-${saleID}`;
@@ -1760,11 +1780,343 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
 
         /** Revert Request Reject to Quality Modal */
         function crmRejectRequestRevertToQualityModal(applicantID, saleID) {
-            const formId = `#crmRevertToQualityForm${applicantID}-${saleID}`;
+            const formId = `#crmRevertRequestRejectedToQualityForm${applicantID}-${saleID}`;
             const modalId = `#crmRejectRequestRevertToQualityModal${applicantID}-${saleID}`;
-            const detailsId = `#crmRevertToQualityDetails${applicantID}-${saleID}`;
+            const detailsId = `#crmRevertRequestRejectedToQualityDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            const saveButton = $(`${formId} .saveCrmRevertToQualityButton`);
+            const saveButton = $(`${formId} .saveCrmRevertRequestRejectedToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Confirmation to Quality Modal */
+        function crmConfirmationRevertToQualityModal(applicantID, saleID) {
+            const formId = `#crmConfirmationRevertToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmConfirmationRevertToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmConfirmationRevertToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertConfirmationToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Confirmation to Quality Modal */
+        function crmRebookRevertToQualityModal(applicantID, saleID) {
+            const formId = `#crmRebookRevertToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmRebookRevertToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmRebookRevertToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertRebookToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Attended to Quality Modal */
+        function crmAttendedRevertToQualityModal(applicantID, saleID) {
+            const formId = `#crmAttendedRevertToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmAttendedRevertToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmAttendedRevertToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertAttendedToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Declined to Quality Modal */
+        function crmDeclinedRevertToQualityModal(applicantID, saleID) {
+            const formId = `#crmDeclinedRevertToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmDeclinedRevertToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmDeclinedRevertToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertDeclinedToQualityButton`);
 
             // Reset modal when it is about to be shown
             $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
@@ -3097,6 +3449,334 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
             });
         }
 
+        /** Revert Start Date to Quality */
+        function crmStartDateToQualityModal(applicantID, saleID) {
+            const formId = `#crmStartDateToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmStartDateToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmStartDateToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmStartDateToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        /** Revert Start Date to Quality */
+        function crmStartDateHoldToQualityModal(applicantID, saleID) {
+            const formId = `#crmStartDateHoldToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmStartDateHoldToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmStartDateHoldToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmStartDateHoldToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Invoice to Quality */
+        function crmInvoiceToQualityModal(applicantID, saleID) {
+            const formId = `#crmInvoiceToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmInvoiceToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmInvoiceToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmInvoiceToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        /** Revert Invoice Sent to Quality */
+        function crmInvoiceSentToQualityModal(applicantID, saleID) {
+            const formId = `#crmInvoiceSentToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmInvoiceSentToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmInvoiceSentToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmInvoiceSentToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
         /** Revert Not Attended to Attended */
         function crmRevertDeclinedToAttendedModal(applicantID, saleID) {
             const formId = `#crmRevertDeclinedToAttendedForm${applicantID}-${saleID}`;
@@ -3880,6 +4560,89 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         }
 
         /** Revert Dispute To Invoice */
+        function crmDisputeToQualityModal(applicantID, saleID) {
+            const formId = `#crmDisputeToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmDisputeToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#crmDisputeToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmDisputeToQualityButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                   
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+        
+        /** Revert Dispute To Invoice */
         function crmRevertDisputeToInvoiceModal(applicantID, saleID) {
             const formId = `#crmRevertDisputeToInvoiceForm${applicantID}-${saleID}`;
             const modalId = `#crmRevertDisputeToInvoiceModal${applicantID}-${saleID}`;
@@ -4277,6 +5040,49 @@ $jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->g
         });
 
     </script>
-    
+
+    <script>
+        $(document).on('click', '.export-btn', function (e) {
+            e.preventDefault();
+
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
+
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Downloading...');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: { responseType: 'blob' }, // for binary file
+                success: function (data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function () {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function () {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
+                }
+            });
+        });
+    </script>
 @endsection
 @endsection                  

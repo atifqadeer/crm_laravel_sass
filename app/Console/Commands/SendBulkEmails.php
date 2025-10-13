@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Horsefly\SentEmail;
 use Horsefly\SmtpSetting;
+use Horsefly\Setting;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -18,74 +19,99 @@ class SendBulkEmails extends Command
         Log::debug('SendBulkEmails command started.');
         $this->info('Starting email dispatch for unsent records...');
 
-        $emails = SentEmail::where('status', '0')->get();
-        if ($emails->isEmpty()) {
-            Log::info('No unsent emails found with status=0.');
-            $this->info('No unsent emails found.');
-            return;
-        }
+        $emailNotification = Setting::where('key', 'email_notifications')->first();
 
-        // Load logo as Base64
-        $imagePath = public_path('images/logo-light22.png');
-        $base64Image = file_exists($imagePath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($imagePath)) : '';
+        if ($emailNotification && $emailNotification->value == 1) {
+            // Get all unsent emails
+            $unsentEmails = SentEmail::where('status', '0')->get();
 
-        SentEmail::where('status', '0')
-            ->chunk(100, function ($emails) use ($base64Image) {
-                foreach ($emails as $email) {
-                    try {
-                        $smtp = SmtpSetting::where('from_address', $email->sent_from)->first();
+            if ($unsentEmails->isEmpty()) {
+                $this->info('No unsent emails found.');
+                Log::info('No unsent emails found with status=0.');
+                return;
+            }
 
-                        if (!$smtp) {
-                            Log::warning("SMTP setting not found for sent_from: {$email->sent_from}, email ID: {$email->id}");
-                            $this->warn("SMTP setting not found for email ID: {$email->id}");
-                            continue;
-                        }
+            // Load logo as Base64 (once)
+            $imagePath = public_path('images/logo-light22.png');
+            $base64Image = file_exists($imagePath)
+                ? 'data:image/png;base64,' . base64_encode(file_get_contents($imagePath))
+                : '';
 
-                        config([
-                            'mail.mailers.smtp.transport' => $smtp->mailer ?? 'smtp',
-                            'mail.mailers.smtp.host' => $smtp->host,
-                            'mail.mailers.smtp.port' => $smtp->port,
-                            'mail.mailers.smtp.username' => $smtp->username,
-                            'mail.mailers.smtp.password' => $smtp->password,
-                            'mail.mailers.smtp.encryption' => $smtp->encryption ?? 'tls',
-                            'mail.from.address' => $smtp->from_address,
-                            'mail.from.name' => $smtp->from_name,
-                        ]);
+            // Group emails by their sender (from address)
+            $groupedEmails = $unsentEmails->groupBy('sent_from');
 
-                        $ccEmails = !empty($email->cc_emails) ? array_filter(array_map('trim', explode(',', $email->cc_emails))) : [];
+            foreach ($groupedEmails as $fromAddress => $emails) {
+                $smtp = SmtpSetting::where('from_address', $fromAddress)->first();
 
-                        Mail::send('emails.bulk', [
-                            'subject' => $email->subject ?? 'Bulk Email',
-                            'template' => $email->template ?? 'This is a bulk email sent via cron job.',
-                            'from_address' => $smtp->from_address,
-                            'from_name' => $smtp->from_name,
-                            'base64Image' => $base64Image,
-                        ], function ($message) use ($email, $smtp, $ccEmails) {
-                            $message->to($email->sent_to)
-                                    ->subject($email->subject ?? 'Bulk Email')
-                                    ->from($smtp->from_address, $smtp->from_name);
-                            if (!empty($ccEmails)) {
-                                $message->cc($ccEmails);
-                            }
-                        });
-
-                        $email->update(['status' => '1']);
-
-                        $this->info("Email sent successfully to {$email->sent_to} using SMTP ID: {$smtp->id}");
-                        Log::info("Email sent to {$email->sent_to} using SMTP ID: {$smtp->id}, Email ID: {$email->id}");
-
-                    } catch (\Exception $e) {
-                        $this->error("Failed to send email ID: {$email->id}. Error: {$e->getMessage()}");
-                        Log::error("Failed to send email ID: {$email->id}. Error: {$e->getMessage()}");
-                    }
+                if (!$smtp) {
+                    Log::warning("SMTP not found for sender: {$fromAddress}");
+                    $this->warn("SMTP not found for sender: {$fromAddress}");
+                    continue;
                 }
 
-                $this->info('Waiting 30 seconds before processing next chunk...');
-                Log::debug('Waiting 30 seconds before processing next chunk.');
-                sleep(30);
-            });
+                // Dynamically configure mailer per SMTP
+                config([
+                    'mail.mailers.smtp.transport' => $smtp->mailer ?? 'smtp',
+                    'mail.mailers.smtp.host' => $smtp->host,
+                    'mail.mailers.smtp.port' => $smtp->port,
+                    'mail.mailers.smtp.username' => $smtp->username,
+                    'mail.mailers.smtp.password' => $smtp->password,
+                    'mail.mailers.smtp.encryption' => $smtp->encryption ?? 'tls',
+                    'mail.from.address' => $smtp->from_address,
+                    'mail.from.name' => $smtp->from_name,
+                ]);
 
-        $this->info('All emails processed.');
-        Log::debug('SendBulkEmails command completed.');
+                $this->info("Using SMTP: {$smtp->from_address} ({$smtp->host})");
+                Log::info("Processing batch for SMTP: {$smtp->from_address}");
+
+                // Send in chunks to control memory + delay between chunks
+                $emails->chunk(100)->each(function ($chunk) use ($smtp, $base64Image) {
+                    foreach ($chunk as $email) {
+                        try {
+                            $ccEmails = !empty($email->cc_emails)
+                                ? array_filter(array_map('trim', explode(',', $email->cc_emails)))
+                                : [];
+
+                            Mail::send('emails.bulk', [
+                                'subject' => $email->subject ?? 'Bulk Email',
+                                'template' => $email->template ?? 'This is a bulk email sent via cron job.',
+                                'from_address' => $smtp->from_address,
+                                'from_name' => $smtp->from_name,
+                                'base64Image' => $base64Image,
+                            ], function ($message) use ($email, $smtp, $ccEmails) {
+                                $message->to($email->sent_to)
+                                        ->subject($email->subject ?? 'Bulk Email')
+                                        ->from($smtp->from_address, $smtp->from_name);
+
+                                if (!empty($ccEmails)) {
+                                    $message->cc($ccEmails);
+                                }
+                            });
+
+                            $email->update(['status' => '1']);
+
+                            $this->info("Email sent to {$email->sent_to} (SMTP ID: {$smtp->id})");
+                            Log::info("Email sent to {$email->sent_to} via SMTP ID {$smtp->id}, Email ID {$email->id}");
+
+                        } catch (\Exception $e) {
+                            $this->error("Failed: {$email->sent_to} — {$e->getMessage()}");
+                            Log::error("Failed sending Email ID {$email->id}: {$e->getMessage()}");
+                        }
+                    }
+
+                    $this->info('Waiting 30 seconds before next chunk...');
+                    Log::debug('Waiting 30 seconds before next chunk...');
+                    sleep(30);
+                });
+            }
+
+            $this->info('All emails processed successfully.');
+            Log::debug('SendBulkEmails command completed.');
+        } else {
+            Log::info('SendBulkEmails command not completed, because Email Notifications are disabled.');
+            $this->warn('Email Notifications are disabled. Please contact your admin.');
+            return;
+        }
     }
+
 }

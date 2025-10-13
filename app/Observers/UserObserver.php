@@ -14,11 +14,11 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        // $user->audits()->create([
-        //     "user_id" => Auth::user()->id,
-        //     "data" => $user->toJson(),
-        //     "message" => "User '{$user->name}' has been created successfully at {$user->created_at}",
-        // ]);
+        $user->audits()->create([
+            "user_id" => Auth::user()->id,
+            "data" => $user->toJson(),
+            "message" => "User '{$user->name}' has been created successfully at {$user->created_at}",
+        ]);
     }
 
     /**

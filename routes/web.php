@@ -306,7 +306,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getCrmApplicantsAjaxRequest', [CrmController::class, 'getCrmApplicantsAjaxRequest'])->name('getCrmApplicantsAjaxRequest');
     Route::get('getApplicantCrmNotesHistoryAjaxRequest', [CrmController::class, 'getApplicantCrmNotesHistoryAjaxRequest'])->name('getApplicantCrmNotesHistoryAjaxRequest');
     Route::get('getApplicantCrmNotes', [CrmController::class, 'getApplicantCrmNotes'])->name('getApplicantCrmNotes');
-	Route::get('openToPaidApplicants', [CrmController::class, 'crmOpenToPaidApplicants'])->name('openToPaidApplicants');
 
     /** CRM Sent CV */
     Route::post('updateCrmNotes', [CrmController::class, 'updateCrmNotes'])->name('updateCrmNotes');
@@ -341,6 +340,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     /** CRM Confirmation */
     Route::post('crmRevertConfirmToRequest', [CrmController::class, 'crmRevertConfirmToRequest'])->name('crmRevertConfirmToRequest');
+    Route::post('crmRevertConfirmToQuality', [CrmController::class, 'crmRevertConfirmToQuality'])->name('crmRevertConfirmToQuality');
     Route::post('crmConfirmInterviewToNotAttend', [CrmController::class, 'crmConfirmInterviewToNotAttend'])->name('crmConfirmInterviewToNotAttend');
     Route::post('crmConfirmInterviewToAttend', [CrmController::class, 'crmConfirmInterviewToAttend'])->name('crmConfirmInterviewToAttend');
     Route::post('crmConfirmInterviewToRebook', [CrmController::class, 'crmConfirmInterviewToRebook'])->name('crmConfirmInterviewToRebook');
@@ -349,13 +349,15 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     /** CRM Rebook */
     Route::post('crmRevertRebookToConfirmation', [CrmController::class, 'crmRevertRebookToConfirmation'])->name('crmRevertRebookToConfirmation');
     Route::post('crmRebookToNotAttended', [CrmController::class, 'crmRebookToNotAttended'])->name('crmRebookToNotAttended');
+    Route::post('crmRevertRebookToQuality', [CrmController::class, 'crmRevertRebookToQuality'])->name('crmRevertRebookToQuality');
     Route::post('crmRebookToAttended', [CrmController::class, 'crmRebookToAttended'])->name('crmRebookToAttended');
     Route::post('crmRebookSave', [CrmController::class, 'crmRebookSave'])->name('crmRebookSave');
-
+    
     /** CRM Attended */
     Route::post('crmRevertAttendedToRebook', [CrmController::class, 'crmRevertAttendedToRebook'])->name('crmRevertAttendedToRebook');
     Route::post('crmAttendedToDecline', [CrmController::class, 'crmAttendedToDecline'])->name('crmAttendedToDecline');
     Route::post('crmAttendedToStartDate', [CrmController::class, 'crmAttendedToStartDate'])->name('crmAttendedToStartDate');
+    Route::post('crmRevertAttendedToQuality', [CrmController::class, 'crmRevertAttendedToQuality'])->name('crmRevertAttendedToQuality');
     Route::post('crmAttendedSave', [CrmController::class, 'crmAttendedSave'])->name('crmAttendedSave');
     
     /** CRM Not Attended */
@@ -364,32 +366,39 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     
     /** CRM Decline */
     Route::post('crmRevertDeclinedToAttended', [CrmController::class, 'crmRevertDeclinedToAttended'])->name('crmRevertDeclinedToAttended');
-
+    Route::post('crmRevertDeclinedToQuality', [CrmController::class, 'crmRevertDeclinedToQuality'])->name('crmRevertDeclinedToQuality');
+    
     /** CRM Start Date */
     Route::post('crmRevertStartDateToAttended', [CrmController::class, 'crmRevertStartDateToAttended'])->name('crmRevertStartDateToAttended');
     Route::post('crmStartDateToInvoice', [CrmController::class, 'crmStartDateToInvoice'])->name('crmStartDateToInvoice');
     Route::post('crmStartDateToHold', [CrmController::class, 'crmStartDateToHold'])->name('crmStartDateToHold');
     Route::post('crmStartDateSave', [CrmController::class, 'crmStartDateSave'])->name('crmStartDateSave');
+    Route::post('crmStartDateToQuality', [CrmController::class, 'crmStartDateToQuality'])->name('crmStartDateToQuality');
     
     /** CRM Start Date Hold*/
     Route::post('crmRevertStartDateHoldToStartDate', [CrmController::class, 'crmRevertStartDateHoldToStartDate'])->name('crmRevertStartDateHoldToStartDate');
     Route::post('crmStartDateHoldSave', [CrmController::class, 'crmStartDateHoldSave'])->name('crmStartDateHoldSave');
-   
+    Route::post('crmStartDateHoldToQuality', [CrmController::class, 'crmStartDateHoldToQuality'])->name('crmStartDateHoldToQuality');
+    
     /** CRM Invoice */
     Route::post('crmSendInvoiceToInvoiceSent', [CrmController::class, 'crmSendInvoiceToInvoiceSent'])->name('crmSendInvoiceToInvoiceSent');
     Route::post('crmRevertInvoiceToStartDate', [CrmController::class, 'crmRevertInvoiceToStartDate'])->name('crmRevertInvoiceToStartDate');
     Route::post('crmInvoiceToDispute', [CrmController::class, 'crmInvoiceToDispute'])->name('crmInvoiceToDispute');
     Route::post('crmInvoiceFinalSave', [CrmController::class, 'crmInvoiceFinalSave'])->name('crmInvoiceFinalSave');
+    Route::post('crmInvoiceToQuality', [CrmController::class, 'crmInvoiceToQuality'])->name('crmInvoiceToQuality');
     
     /** CRM Invoice Sent*/
     Route::post('crmInvoiceSentToPaid', [CrmController::class, 'crmInvoiceSentToPaid'])->name('crmInvoiceSentToPaid');
     Route::post('crmInvoiceSentToDispute', [CrmController::class, 'crmInvoiceSentToDispute'])->name('crmInvoiceSentToDispute');
+    Route::post('crmInvoiceSentToQuality', [CrmController::class, 'crmInvoiceSentToQuality'])->name('crmInvoiceSentToQuality');
     
     /** CRM Dispute */
     Route::post('crmRevertDisputeToInvoice', [CrmController::class, 'crmRevertDisputeToInvoice'])->name('crmRevertDisputeToInvoice');
+    Route::post('crmDisputeToQuality', [CrmController::class, 'crmDisputeToQuality'])->name('crmDisputeToQuality');
     
     /** CRM Paid */
     Route::post('crmChangePaidStatus', [CrmController::class, 'crmChangePaidStatus'])->name('crmChangePaidStatus');
+	Route::get('openToPaidApplicants', [CrmController::class, 'crmOpenToPaidApplicants'])->name('openToPaidApplicants');
 
     /** regions */ 
     Route::group(['prefix' => 'regions'], function () {

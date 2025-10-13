@@ -7,6 +7,15 @@
     table.dataTable.no-footer {
         border-bottom: none !important;
     }
+    #addUpdatedSalesFilter {
+        background-color: #6c757d; /* gray */
+        border-color: #6c757d; /* gray */
+        color: white;
+        border: none;
+        transition: background-color 0.3s ease;
+    }
+
+
 </style>
 @endsection
 @section('content')
@@ -17,6 +26,7 @@
                     <div class="row justify-content-between">
                         <div class="col-lg-12">
                             <div class="text-md-end mt-3">
+                                <strong>Sale Count: </strong> <span class="badge bg-primary p-2" id="saleCount">0</span>
                                 <!-- Date Range filter -->
                                 <div class="d-inline">
                                     <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
@@ -136,8 +146,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th>Phone</th>
-                                    <th>Landline</th>
+                                    <th width="15%">Phone</th>
                                     @canany(['applicant-download-resume'])
                                         <th>Applicant Resume</th>
                                         <th>CRM Resume</th>
@@ -281,20 +290,16 @@
                         d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
                         d.status_filter = currentFilter;
 
-                       var button = $('#addUpdatedSalesFilter');
+                        var button = $('#addUpdatedSalesFilter');
 
                         if (isButtonClicked) {
-                            button.css('background-color', '#358b57'); // jQuery way
+                            button.css('background-color', '#358b57');
                             d.updated_sales_filter = true;
                         } else {
-                            button.css('background-color', ''); // reset
+                            button.css('background-color', '#6c757d'); // explicitly set gray
                             delete d.updated_sales_filter;
                         }
 
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
-                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -313,7 +318,6 @@
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
                     { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
                     { data: 'applicant_resume', name:'applicants.applicant_cv', orderable: false, searchable: false },
                     { data: 'crm_resume', name:'applicants.updated_cv', orderable: false, searchable: false },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
@@ -322,15 +326,48 @@
                     { data: 'customStatus', name: 'customStatus', orderable: false, searchable: false },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
+                columnDefs: [
+                    {
+                        targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 9,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 13,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 14,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                ],
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
                 dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function (settings) {
                     const api = this.api();
+                    const json = api.ajax.json(); // ✅ Access full JSON response from server
+
+                    if (json && json.total_sale_count !== undefined) {
+                        $('#saleCount').text(json.total_sale_count);
+                    } else {
+                        $('#saleCount').text(0);
+                    }
+
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
-
                     const pageInfo = api.page.info();
                     const currentPage = pageInfo.page + 1;
                     const totalPages = pageInfo.pages;
@@ -481,7 +518,6 @@
             });
         });
 
-
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
             const errorMessage = document.getElementById('goToPageError');
@@ -512,120 +548,139 @@
 
         // Function to show the notes modal
         function addShortNotesModal(applicantID) {
-            // Add the modal HTML to the page (only once, if not already present)
-            if ($('#shortNotesModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="shortNotesModal" tabindex="-1" aria-labelledby="shortNotesModalLabel" aria-hidden="true">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="shortNotesModalLabel">Add Notes</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<form id="shortNotesForm">' +
-                                        '<div class="mb-3">' +
-                                            '<label for="detailsTextarea" class="form-label">Details</label>' +
-                                            '<textarea class="form-control" id="detailsTextarea" rows="4" required></textarea>' +
-                                        '</div>' +
-                                        '<div class="mb-3">' +
-                                            '<label for="reasonDropdown" class="form-label">Reason</label>' +
-                                            '<select class="form-select" id="reasonDropdown" required>' +
-                                                '<option value="" disabled selected>Select Reason</option>' +
-                                                '<option value="casual">Casual Notes</option>' +
-                                                '<option value="blocked">Blocked Notes</option>' +
-                                                '<option value="not_interested">Temp Not Interested Notes</option>' +
-                                            '</select>' +
-                                        '</div>' +
-                                    '</form>' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                                    '<button type="button" class="btn btn-primary" id="saveShortNotesButton">'+
-                                        'Save</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }
+            const modalId = 'shortNotesModal-' + applicantID;
 
-            // Show the modal
-            $('#shortNotesModal').modal('show');
+            // Remove any existing modal with the same ID
+            $('#' + modalId).remove();
 
-            // Handle the save button click
-            $('#saveShortNotesButton').off('click').on('click', function() {
-                const notes = $('#detailsTextarea').val();
-                const reason = $('#reasonDropdown').val();
+            // Modal HTML with unique ID
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="shortNotesForm-${applicantID}">
+                                    <div class="mb-3">
+                                        <label for="detailsTextarea-${applicantID}" class="form-label">Details</label>
+                                        <textarea class="form-control" id="detailsTextarea-${applicantID}" rows="4" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reasonDropdown-${applicantID}" class="form-label">Reason</label>
+                                        <select class="form-select" id="reasonDropdown-${applicantID}" required>
+                                            <option value="" disabled selected>Select Reason</option>
+                                            <option value="casual">Casual Notes</option>
+                                            <option value="blocked">Blocked Notes</option>
+                                            <option value="not_interested">Temp Not Interested Notes</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-success" id="saveShortNotesButton-${applicantID}">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-                if (!notes || !reason) {
-                    if (!notes) {
-                        $('#detailsTextarea').addClass('is-invalid');
-                        if ($('#detailsTextarea').next('.invalid-feedback').length === 0) {
-                            $('#detailsTextarea').after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
+            // Append the modal to body
+            $('body').append(modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+
+            // Reset the form fields each time it's opened
+            $(`#shortNotesForm-${applicantID}`)[0].reset();
+
+            // Remove validation classes and feedback
+            $(`#detailsTextarea-${applicantID}`).removeClass('is-valid is-invalid').next('.invalid-feedback').remove();
+            $(`#reasonDropdown-${applicantID}`).removeClass('is-valid is-invalid').next('.invalid-feedback').remove();
+
+            // Handle Save button
+            $(`#saveShortNotesButton-${applicantID}`).off('click').on('click', function() {
+                const notes = $(`#detailsTextarea-${applicantID}`).val().trim();
+                const reason = $(`#reasonDropdown-${applicantID}`).val();
+
+                let valid = true;
+
+                if (!notes) {
+                    $(`#detailsTextarea-${applicantID}`).addClass('is-invalid');
+                    if ($(`#detailsTextarea-${applicantID}`).next('.invalid-feedback').length === 0) {
+                        $(`#detailsTextarea-${applicantID}`).after(
+                            '<div class="invalid-feedback">Please provide details.</div>');
                     }
-                
-                    if (!reason) {
-                        $('#reasonDropdown').addClass('is-invalid');
-                        if ($('#reasonDropdown').next('.invalid-feedback').length === 0) {
-                            $('#reasonDropdown').after('<div class="invalid-feedback">Please select a reason.</div>');
-                        }
-                    }
-                
-                    // Add event listeners to remove validation errors dynamically
-                    $('#detailsTextarea').on('input', function() {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-                
-                    $('#reasonDropdown').on('change', function() {
-                        if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid');
-                            $(this).next('.invalid-feedback').remove();
-                        }
-                    });
-                
-                    return;
+                    valid = false;
                 }
 
-                // Remove validation errors if inputs are valid
-                $('#detailsTextarea').removeClass('is-invalid').addClass('is-valid');
-                $('#detailsTextarea').next('.invalid-feedback').remove();
-                $('#reasonDropdown').removeClass('is-invalid').addClass('is-valid');
-                $('#reasonDropdown').next('.invalid-feedback').remove();
+                if (!reason) {
+                    $(`#reasonDropdown-${applicantID}`).addClass('is-invalid');
+                    if ($(`#reasonDropdown-${applicantID}`).next('.invalid-feedback').length === 0) {
+                        $(`#reasonDropdown-${applicantID}`).after(
+                            '<div class="invalid-feedback">Please select a reason.</div>');
+                    }
+                    valid = false;
+                }
 
-                // Send the data via AJAX
+                // Remove validation on input/change
+                $(`#detailsTextarea-${applicantID}`).on('input', function() {
+                    if ($(this).val()) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                        $(this).next('.invalid-feedback').remove();
+                    }
+                });
+
+                $(`#reasonDropdown-${applicantID}`).on('change', function() {
+                    if ($(this).val()) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                        $(this).next('.invalid-feedback').remove();
+                    }
+                });
+
+                if (!valid) return;
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
+
+                // Send data via AJAX
                 $.ajax({
-                    url: '{{ route("storeShortNotes") }}', // Replace with your endpoint
+                    url: '{{ route('storeShortNotes') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
                         details: notes,
                         reason: reason,
-                        _token: '{{ csrf_token() }}' // Directly include token in data
+                        _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
                         toastr.success('Notes saved successfully!');
-
-                        $('#shortNotesModal').modal('hide'); // Close the modal
-                        $('#shortNotesForm')[0].reset(); // Clear the form
-                        $('#detailsTextarea').removeClass('is-valid'); // Remove valid class
-                        $('#reasonDropdown').removeClass('is-valid'); // Remove valid class
-                        $('#detailsTextarea').next('.invalid-feedback').remove(); // Remove error message
-                        $('#reasonDropdown').next('.invalid-feedback').remove(); // Remove error message
-                        
-                        $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
+                        modal.hide();
+                        $(`#shortNotesForm-${applicantID}`)[0].reset();
+                        $('#applicants_table').DataTable().ajax.reload();
                     },
                     error: function(xhr) {
-                        alert('An error occurred while saving notes.');
+                        toastr.error('An error occurred while saving notes.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
+
+            // Optional cleanup when modal is hidden
+            $(`#${modalId}`).on('hidden.bs.modal', function() {
+                $(this).remove(); // removes the modal from DOM
+            });
         }
-        
+
         // Function to show the notes modal
         function showNotesModal(notes, applicantName, applicantPostcode) {
             // Set the notes content in the modal with proper line breaks using HTML

@@ -82,7 +82,6 @@ class QualityController extends Controller
                 'applicants.job_category_id',
                 'applicants.job_title_id',
                 'applicants.job_type',
-
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
@@ -91,58 +90,9 @@ class QualityController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id');
-
         
         // Filter by status if it's not empty
-        switch ($statusFilter) {
-            case 'requested cvs':
-                $model->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->where("cv_notes.status", 1);
-                    })
-                    ->join('sales', function ($join) {
-                        $join->on('cv_notes.sale_id', '=', 'sales.id')
-                            ->whereColumn('cv_notes.sale_id', 'sales.id');
-                    })
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('cv_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('cv_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["quality_cvs"])
-                            ->where("history.status", 1);
-                    })
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
-                    ->addSelect([
-                        'cv_notes.details as notes_detail',
-                        'cv_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
-
-                        // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
-                        'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
-
-                        // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
-                        'units.unit_website',
-
-                        'users.name as user_name'
-                    ]);
-                break;
-                
+        switch ($statusFilter) {                
             case 'open cvs':
                 $model->join('cv_notes', function ($join) {
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id')
@@ -434,7 +384,8 @@ class QualityController extends Controller
                             'offices.office_name',
                         );
                 break;
-            default:
+            case 'requested cvs':
+                default:
                 $model->join('cv_notes', function ($join) {
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id')
                             ->where("cv_notes.status", 1);
@@ -482,31 +433,35 @@ class QualityController extends Controller
                     ]);
                 break;
         }
+
+        // Filter by type if it's not empty
+        if ($categoryFilter) {
+            $model->whereIn('applicants.job_category_id', $categoryFilter);
+        }
+
+        // Filter by type if it's not empty
+        if ($titleFilter) {
+            $model->whereIn('applicants.job_title_id', $titleFilter);
+        }
         
         // Sorting logic
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('applicants.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('applicants.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('applicants.job_title_id', $orderDirection);
-            }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
-                $model->orderBy('cv_notes.created_at', 'desc');
+            } else {
+                $model->orderBy('notes_created_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
-            $model->orderBy('cv_notes.created_at', 'desc');
+            $model->orderBy('notes_created_at', 'desc');
         }
 
         if ($request->has('search.value')) {
@@ -543,21 +498,16 @@ class QualityController extends Controller
         }
 
         // Filter by type if it's not empty
-        if ($typeFilter == 'specialist') {
-            $model->where('applicants.job_type', 'specialist');
-        } elseif ($typeFilter == 'regular') {
-            $model->where('applicants.job_type', 'regular');
+        switch($typeFilter){
+            case 'specialist':
+                $model->where('applicants.job_type', 'specialist');
+                break;
+            case 'regular':
+                $model->where('applicants.job_type', 'regular');
+                break;
         }
 
-        // Filter by type if it's not empty
-        if ($categoryFilter) {
-            $model->whereIn('applicants.job_category_id', $categoryFilter);
-        }
-
-        // Filter by type if it's not empty
-        if ($titleFilter) {
-            $model->whereIn('applicants.job_title_id', $titleFilter);
-        }
+        
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
@@ -637,7 +587,7 @@ class QualityController extends Controller
                     $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
 
                     // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 200);
+                    $preview = Str::limit(trim($normalizedText), 100);
 
                     // 6. Convert newlines to <br>
                     $shortText = nl2br($preview);
@@ -653,10 +603,10 @@ class QualityController extends Controller
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
+                                        <h5 class="modal-title"  style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body">
+                                    <div class="modal-body" style="color:#5d7186">
                                         ' . $fullHtml . '
                                     </div>
                                     <div class="modal-footer">
@@ -1457,7 +1407,7 @@ class QualityController extends Controller
             if($status == 'rejected'){
                 Applicant::where("id", $applicant_id)
                     ->update([
-                        'is_cv_reject' => true, 
+                        'is_cv_in_quality_reject' => true, 
                         'is_cv_in_quality' => false
                     ]);
 
@@ -1472,7 +1422,7 @@ class QualityController extends Controller
                         'is_interview_confirm' => true,
                         'is_cv_in_quality_clear' => true,
                         'is_cv_in_quality' => false,
-                        'is_cv_reject' => false, 
+                        'is_cv_in_quality_reject' => false, 
                     ]);
 
                 CrmNote::where([
@@ -1527,7 +1477,7 @@ class QualityController extends Controller
                         'is_interview_confirm' => true,
                         'is_cv_in_quality_clear' => true,
                         'is_cv_in_quality' => false,
-                        'is_cv_reject' => false, 
+                        'is_cv_in_quality_reject' => false, 
                     ]);
 
                 $crm_notes = new CrmNote();

@@ -263,7 +263,7 @@
 
     <!-- DataTables CSS (for styling the table) -->
     <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
-
+ 
     <!-- DataTables JS (for the table functionality) -->
     <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
 
@@ -819,7 +819,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" id="saveShortNotesButton-${applicantID}">Save</button>
+                                <button type="button" class="btn btn-success" id="saveShortNotesButton-${applicantID}">Save</button>
                             </div>
                         </div>
                     </div>
@@ -1072,7 +1072,7 @@
                     '</div>' +
                     '<div class="modal-footer">' +
                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
-                    '<button type="submit" data-note_key="214232" class="btn btn-primary" form="' + formId +
+                    '<button type="submit" data-note_key="214232" class="btn btn-success" form="' + formId +
                     '">Save</button>' +
                     '</div>' +
                     '</div>' +
@@ -1229,7 +1229,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" id="saveStatusButton-${applicantID}">Save</button>
+                                <button type="button" class="btn btn-success" id="saveStatusButton-${applicantID}">Save</button>
                             </div>
                         </div>
                     </div>

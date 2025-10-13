@@ -1189,7 +1189,7 @@ class SettingController extends Controller
 
             foreach ($request->smtp as $setting) {
                 SmtpSetting::updateOrCreate(
-                    ['id' => $setting['id'] ?? null],
+                    ['from_address' => $setting['from_address']], // check by from_address instead of id
                     [
                         'host' => $setting['host'],
                         'mailer' => $setting['mailer'],
@@ -1197,7 +1197,6 @@ class SettingController extends Controller
                         'username' => $setting['username'],
                         'password' => $setting['password'],
                         'from_name' => $setting['from_name'],
-                        'from_address' => $setting['from_address'],
                         'encryption' => $setting['encryption'] ?? null,
                     ]
                 );

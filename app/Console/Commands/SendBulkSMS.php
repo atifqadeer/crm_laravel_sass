@@ -15,32 +15,40 @@ class SendBulkSMS extends Command
 
     public function handle()
     {
-        // Fetch settings once
-        $settings = Setting::whereIn('key', ['sms_api_url', 'sms_port', 'sms_username', 'sms_password'])
-            ->pluck('value', 'key')
-            ->toArray();
+        $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
-        $apiUrl = $settings['sms_api_url'] ?? null;
-        $port = $settings['sms_port'] ?? null;
-        $username = $settings['sms_username'] ?? null;
-        $password = $settings['sms_password'] ?? null;
+        if($smsNotification){
+            // Fetch settings once
+            $settings = Setting::whereIn('key', ['sms_api_url', 'sms_port', 'sms_username', 'sms_password'])
+                ->pluck('value', 'key')
+                ->toArray();
 
-        // Validate settings
-        if (!$apiUrl || !$port || !$username || !$password) {
-            Log::error('Missing SMS API configuration settings.');
-            $this->error('SMS sending failed: Missing configuration settings.');
-            return 1;
+            $apiUrl = $settings['sms_api_url'] ?? null;
+            $port = $settings['sms_port'] ?? null;
+            $username = $settings['sms_username'] ?? null;
+            $password = $settings['sms_password'] ?? null;
+
+            // Validate settings
+            if (!$apiUrl || !$port || !$username || !$password) {
+                Log::error('Missing SMS API configuration settings.');
+                $this->error('SMS sending failed: Missing configuration settings.');
+                return 1;
+            }
+
+            // Process new and failed messages (is_sent = 0 or 2)
+            Message::where('status', 'outgoing')
+                ->whereIn('is_sent', [0, 2])
+                ->chunk(50, function ($messages) use ($apiUrl, $port, $username, $password) {
+                    $this->processMessages($messages, $apiUrl, $port, $username, $password);
+                });
+
+            $this->info('SMS sending process completed.');
+
+            return 0;
+        }else{
+            Log::debug('SMS sending command not completed, Because SMS Notifications are disabled. So, Please contact your admin.');
+            Log::info('SMS sending command not completed, Because SMS Notifications are disabled. So, Please contact your admin.');
         }
-
-        // Process new and failed messages (is_sent = 0 or 2)
-        Message::where('status', 'outgoing')
-            ->whereIn('is_sent', [0, 2])
-            ->chunk(50, function ($messages) use ($apiUrl, $port, $username, $password) {
-                $this->processMessages($messages, $apiUrl, $port, $username, $password);
-            });
-
-        $this->info('SMS sending process completed.');
-        return 0;
     }
 
     protected function processMessages($messages, $apiUrl, $port, $username, $password, $isRetry = false)

@@ -16,6 +16,8 @@ use Horsefly\Setting;
 use Horsefly\Message;
 use Horsefly\User;
 use Horsefly\Interview;
+use Horsefly\JobCategory;
+use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
 use Horsefly\ModuleNote;
@@ -44,16 +46,18 @@ class CrmController extends Controller
 
     public function index()
     {
-        return view('crm.list');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+
+        return view('crm.list', compact('jobCategories', 'jobTitles'));
     }
 
     public function getCrmApplicantsAjaxRequest(Request $request)
     {
-        $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
-        $searchTerm = $request->input('search', ''); // This will get the search query
-        $tabFilter = $request->input('tab_filter', ''); // Default is empty (no filter)
+        $typeFilter = $request->input('type_filter', '');
+        $categoryFilter = $request->input('category_filter', '');
+        $titleFilter = $request->input('title_filter', '');
+        $tabFilter = $request->input('tab_filter', '');
 
         // Base query with minimal selected columns and eager loading
         $model = Applicant::query()
@@ -75,12 +79,12 @@ class CrmController extends Controller
                 'job_sources.name as jobSource',
             ])
             ->where('applicants.status', 1)
-            ->whereNull('applicants.deleted_at') // Added for soft deletes
+            ->whereNull('applicants.deleted_at')
             ->leftJoin('job_titles', fn ($join) => $join->on('applicants.job_title_id', '=', 'job_titles.id'))
             ->leftJoin('job_categories', fn ($join) => $join->on('applicants.job_category_id', '=', 'job_categories.id'))
             ->leftJoin('job_sources', fn ($join) => $join->on('applicants.job_source_id', '=', 'job_sources.id'));
 
-        // Apply tab filter logic
+        // Apply tab filter logic (optimized with DB::raw)
         switch ($tabFilter) {
             case 'open cvs':
                 $model->joinSub(
@@ -96,24 +100,26 @@ class CrmController extends Controller
                     'revert_stages',
                     fn ($join) => $join->on('applicants.id', '=', 'revert_stages.applicant_id')
                 )
-                ->Join('sales', fn ($join) => 
+                ->join('sales', fn ($join) => 
                     $join->on('revert_stages.sale_id', '=', 'sales.id')
                         ->where('sales.status', 1)
                 )
-                ->Join('offices', fn ($join) => 
+                ->join('offices', fn ($join) => 
                     $join->on('sales.office_id', '=', 'offices.id')
                         ->where('offices.status', 1)
                 )
-                ->Join('units', fn ($join) => 
+                ->join('units', fn ($join) => 
                     $join->on('sales.unit_id', '=', 'units.id')
                         ->where('units.status', 1)
                 )
-                ->Join('history', fn ($join) => 
-                    $join->on('revert_stages.applicant_id', '=', 'history.applicant_id')
-                        ->on('revert_stages.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'revert_stages.applicant_id')
+                        ->whereColumn('history.sale_id', 'revert_stages.sale_id')
                         ->whereIn('history.sub_stage', ['quality_cvs_hold'])
-                        ->where('history.status', 1)
-                )
+                        ->where('history.status', 1);
+                })
                 ->leftJoin('interviews', function ($join) {
                     $join->on('revert_stages.applicant_id', '=', 'interviews.applicant_id');
                     $join->on('revert_stages.sale_id', '=', 'interviews.sale_id');
@@ -133,7 +139,7 @@ class CrmController extends Controller
                             ->on('revert_stages.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
-                ->leftJoin('users', 'users.id', '=', 'revert_stages.user_id')
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     'offices.office_name as office_name',
                     'sales.id as sale_id',
@@ -182,12 +188,23 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'quality_notes.applicant_id');
                     }
                 )
-                ->join('sales', 'quality_notes.sale_id', '=', 'sales.id')
-                ->join('offices', 'sales.office_id', '=', 'offices.id')
-                ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->join('history', function ($join) {
-                    $join->on('quality_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('quality_notes.sale_id', '=', 'history.sale_id')
+                ->join('sales', function ($join) {
+                    $join->on('quality_notes.sale_id', '=', 'sales.id')
+                        ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id')
+                        ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id')
+                        ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'quality_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'quality_notes.sale_id')
                         ->whereIn('history.sub_stage', ['quality_cleared_no_job'])
                         ->where('history.status', 1);
                 })
@@ -265,7 +282,7 @@ class CrmController extends Controller
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job']) // Apply filter early
+                            ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -284,19 +301,21 @@ class CrmController extends Controller
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1); // Added for consistency
+                        ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
                     $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1); // Added for consistency
+                        ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
                     $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1); // Added for consistency
+                        ->where('units.status', 1);
                 })
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_reject', 'crm_no_job_reject'])
                         ->where('history.status', 1);
                 })
@@ -309,9 +328,9 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id') // Changed to leftJoin for nullable user_id
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    'applicants.id as applicant_id', // Added for consistency
+                    'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -355,7 +374,7 @@ class CrmController extends Controller
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save']) // Apply filter early
+                            ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -374,19 +393,21 @@ class CrmController extends Controller
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1); // Added for consistency
+                        ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
                     $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1); // Added for consistency
+                        ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
                     $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1); // Added for consistency
+                        ->where('units.status', 1);
                 })
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_request', 'crm_request_save'])
                         ->where('history.status', 1);
                 })
@@ -399,9 +420,9 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id') // Changed to leftJoin for nullable user_id
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    'applicants.id as applicant_id', // Added for consistency
+                    'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -452,12 +473,23 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                     }
                 )
-                ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                ->join('offices', 'sales.office_id', '=', 'offices.id')
-                ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id')
+                        ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id')
+                        ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id')
+                        ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_no_job_request', 'crm_request_no_job_save'])
                         ->where('history.status', 1);
                 })
@@ -545,7 +577,7 @@ class CrmController extends Controller
                     $crmNotesSubQuery,
                     'latest_crm_notes',
                     function ($join) {
-                        $join->on('applicants.id', '=', 'latest_crm_notes.applicant_id'); // Removed sales.id condition
+                        $join->on('applicants.id', '=', 'latest_crm_notes.applicant_id');
                     }
                 )
                 ->join('sales', function ($join) {
@@ -560,9 +592,11 @@ class CrmController extends Controller
                     $join->on('sales.unit_id', '=', 'units.id')
                         ->where('units.status', 1);
                 })
-                ->join('history', function ($join) {
-                    $join->on('latest_crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('latest_crm_notes.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'latest_crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'latest_crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_request_reject', 'crm_request_no_job_reject'])
                         ->where('history.status', 1);
                 })
@@ -617,81 +651,98 @@ class CrmController extends Controller
 
                 break;
             case 'confirmation':
-                $model->joinSub(
-                    DB::table('crm_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ['request_confirm', 'interview_save', 'request_no_job_confirm'])
-                        ->whereIn('id', fn ($subQuery) =>
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('crm_notes')
-                                ->whereIn('moved_tab_to', ['request_confirm', 'interview_save', 'request_no_job_confirm'])
-                                ->groupBy('applicant_id', 'sale_id')
-                        ),
-                    'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                )
-                ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                ->join('offices', 'sales.office_id', '=', 'offices.id')
-                ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_request_confirm', 'crm_interview_save', 'crm_request_no_job_confirm'])
-                        ->where('history.status', 1);
-                })
-                ->join('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
+                // Define reusable subqueries with MAX(id) grouped — using joinSub with indexes
+                $latestCrmNotes = DB::table('crm_notes as cn1')
+                    ->select('cn1.id', 'cn1.applicant_id', 'cn1.sale_id', 'cn1.details', 'cn1.created_at')
+                    ->join(DB::raw('(SELECT MAX(id) as id 
+                                    FROM crm_notes 
+                                    WHERE moved_tab_to IN ("request_confirm", "interview_save", "request_no_job_confirm") 
+                                    GROUP BY applicant_id, sale_id) as latest_cn'),
+                        'cn1.id', '=', 'latest_cn.id'
+                    );
+
+                $latestCvNotes = DB::table('cv_notes as cv1')
+                    ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status')
+                    ->join(DB::raw('(SELECT MAX(id) as id FROM cv_notes GROUP BY applicant_id, sale_id) as latest_cv'),
+                        'cv1.id', '=', 'latest_cv.id'
+                    );
+
+                $model
+                    ->joinSub($latestCrmNotes, 'crm_notes', function ($join) {
+                        $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                    })
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', [
+                                'crm_request_confirm',
+                                'crm_interview_save',
+                                'crm_request_no_job_confirm'
+                            ])
+                            ->where('history.status', 1);
+                    })
+                    ->join('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub($latestCvNotes, 'cv_notes', function ($join) {
                         $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // users
-                    'users.name as user_name',
-                ]);
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
+                        'offices.office_name as office_name',
+
+                        // Sale details
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+
+                        // Unit details
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+
+                        // Interview details
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+
+                        // CV note user
+                        'users.name as user_name',
+                    ]);
 
                 break;
+
             case 'rebook':
                 $model->joinSub(
                         DB::table('crm_notes')
@@ -705,14 +756,25 @@ class CrmController extends Controller
                         'crm_notes',
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_rebook", "crm_rebook_save"])
-                            ->where("history.status", 1);
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_rebook', 'crm_rebook_save'])
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id');
@@ -733,7 +795,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -768,7 +830,7 @@ class CrmController extends Controller
                     ]);
 
                 break;
-           
+        
             case 'attended to pre-start date':
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
@@ -796,19 +858,21 @@ class CrmController extends Controller
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1); // Added for consistency
+                        ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
                     $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1); // Added for consistency
+                        ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
                     $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1); // Added for consistency
+                        ->where('units.status', 1);
                 })
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_interview_attended', 'crm_prestart_save'])
                         ->where('history.status', 1);
                 })
@@ -823,7 +887,7 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    'applicants.id as applicant_id', // Added for consistency
+                    'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -862,7 +926,7 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->where('moved_tab_to', 'declined') // Simplified from whereIn
+                        ->where('moved_tab_to', 'declined')
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
@@ -871,13 +935,24 @@ class CrmController extends Controller
                     'crm_notes',
                     fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                ->join('offices', 'sales.office_id', '=', 'offices.id')
-                ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
-                        ->where('history.sub_stage', 'crm_declined') // Simplified from whereIn
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id')
+                        ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id')
+                        ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id')
+                        ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->where('history.sub_stage', 'crm_declined')
                         ->where('history.status', 1);
                 })
                 ->leftJoin('interviews', function ($join) {
@@ -899,7 +974,7 @@ class CrmController extends Controller
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
-                ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -944,14 +1019,25 @@ class CrmController extends Controller
                         'crm_notes',
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_interview_not_attended"])
-                            ->where("history.status", 1);
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_interview_not_attended'])
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id');
@@ -972,7 +1058,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1034,19 +1120,21 @@ class CrmController extends Controller
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1); // Added to match 'rejected by request' case
+                        ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
                     $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1); // Added to match 'rejected by request' case
+                        ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
                     $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1); // Added to match 'rejected by request' case
+                        ->where('units.status', 1);
                 })
-                ->join('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_start_date', 'crm_start_date_save', 'crm_start_date_back'])
                         ->where('history.status', 1);
                 })
@@ -1061,7 +1149,7 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    'applicants.id as applicant_id', // Added to match 'rejected by request' case
+                    'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -1109,14 +1197,25 @@ class CrmController extends Controller
                         'crm_notes',
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_start_date_hold", "crm_start_date_hold_save"])
-                            ->where("history.status", 1);
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_start_date_hold', 'crm_start_date_hold_save'])
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id');
@@ -1137,7 +1236,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1185,14 +1284,25 @@ class CrmController extends Controller
                         'crm_notes',
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_invoice", "crm_final_save"])
-                            ->where("history.status", 1);
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_invoice', 'crm_final_save'])
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id');
@@ -1213,7 +1323,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1261,14 +1371,25 @@ class CrmController extends Controller
                         'crm_notes',
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_invoice_sent", "crm_final_save"])
-                            ->where("history.status", 1);
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_invoice_sent', 'crm_final_save'])
+                            ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id');
@@ -1289,7 +1410,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1337,12 +1458,23 @@ class CrmController extends Controller
                     'crm_notes',
                     fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                ->join('offices', 'sales.office_id', '=', 'offices.id')
-                ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->leftJoin('history', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id')
+                        ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id')
+                        ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id')
+                        ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
                         ->whereIn('history.sub_stage', ['crm_dispute'])
                         ->where('history.status', 1);
                 })
@@ -1398,7 +1530,7 @@ class CrmController extends Controller
                     $model->joinSub(
                         DB::table('crm_notes')
                             ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->where('moved_tab_to', 'paid') // Simplified single value check
+                            ->where('moved_tab_to', 'paid')
                             ->whereIn('id', function ($subQuery) {
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
@@ -1409,13 +1541,24 @@ class CrmController extends Controller
                             $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                         }
                     )
-                    ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->where('history.sub_stage', 'crm_paid') // Simplified whereIn to single value
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->where('history.sub_stage', 'crm_paid')
                             ->where('history.status', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
@@ -1437,7 +1580,7 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
-                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id') // Changed to leftJoin to handle NULL cv_notes
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1475,7 +1618,7 @@ class CrmController extends Controller
                 case 'sent cvs':
                     // Derived table for latest quality_notes (uncorrelated, runs once)
                     $latestQuality = DB::table('quality_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')  // Include id for join if needed
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
                         ->where('status', 1)
                         ->whereIn('moved_tab_to', ['cleared'])
                         ->whereIn('id', function ($sub) {
@@ -1515,15 +1658,15 @@ class CrmController extends Controller
                         $join->on('quality_notes.applicant_id', '=', 'crm_notes.applicant_id')
                             ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
                     })
-                    ->leftJoin('sales', function ($join) {
+                    ->join('sales', function ($join) {
                         $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);  // Early filter
+                            ->where('sales.status', 1);
                     })
-                    ->leftJoin('offices', function ($join) {
+                    ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id')
                             ->where('offices.status', 1);
                     })
-                    ->leftJoin('units', function ($join) {
+                    ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id')
                             ->where('units.status', 1);
                     })
@@ -1533,27 +1676,21 @@ class CrmController extends Controller
                     })
                     ->leftJoin('users', function ($join) {
                         $join->on('cv_notes.user_id', '=', 'users.id')
-                            ->where('users.is_active', 1);  // Assuming is_active filter from your code
+                            ->where('users.is_active', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id')
                             ->on('sales.id', '=', 'interviews.sale_id')
                             ->where('interviews.status', 1);
                     })
-                    ->join('history', function ($join) {
-                        $join->on('applicants.id', '=', 'history.applicant_id')
-                            ->on('sales.id', '=', 'history.sale_id')
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'applicants.id')
+                            ->whereColumn('history.sale_id', 'sales.id')
                             ->whereIn('history.sub_stage', ['quality_cleared', 'crm_save'])
-                            ->where('history.status', 1);  // Early filter
+                            ->where('history.status', 1);
                     })
-                    // Add selects as before (no addSelect needed if in base query)
-                    ->whereExists(function ($q) {  // Optional: Early existence check for sales/offices/units
-                        $q->select(DB::raw(1))
-                        ->from('sales')
-                        ->whereColumn('crm_notes.sale_id', 'sales.id')
-                        ->where('sales.status', 1);
-                    })
-
                     ->addSelect([
                         // CRM Notes
                         'crm_notes.details as notes_detail',
@@ -1587,91 +1724,59 @@ class CrmController extends Controller
                         // Users
                         'users.name as user_name',
                     ]);
-            break;
-        }
- 
-        // Filter by type if it's not empty
-        switch($typeFilter){
-            case 'specialist':
-                $model->where('applicants.job_type', 'specialist');
-                break;
-            case 'regular':
-                $model->where('applicants.job_type', 'regular');
-                break;
-            default:
-                // No filtering
                 break;
         }
 
-        // Filter by category if it's not empty
+        // Apply other filters (typeFilter, categoryFilter, titleFilter)
+        if ($typeFilter) {
+            $model->where('applicants.job_type', $typeFilter);
+        }
         if ($categoryFilter) {
             $model->where('applicants.job_category_id', $categoryFilter);
         }
-
-        // Filter by title if it's not empty
         if ($titleFilter) {
             $model->whereIn('applicants.job_title_id', $titleFilter);
         }
 
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
+        if ($request->has('search.value')) { 
+            $searchTerm = (string) $request->input('search.value'); 
+            if (!empty($searchTerm)) { 
+                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
+                $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
+                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
+                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
+            } 
+        } 
 
-            if (!empty($searchTerm)) {
-                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
-
-                $model->where(function ($query) use ($lowerSearchTerm) {
-                    // Direct column searches with LOWER
-                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]);
-
-                    // Relationship searches with explicit table names and LOWER
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                });
-            }
-        }
-        
-        // Sorting logic
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
-
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
+        // Sorting logic 
+        if ($request->has('order')) { 
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data'); 
+            $orderDirection = $request->input('order.0.dir', 'asc'); 
+            if ($orderColumn === 'job_source') { 
+                $model->orderBy('applicants.job_source_id', $orderDirection); 
+            } elseif ($orderColumn === 'job_category') { 
+                
                 $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            } else {
-                $model->orderBy('notes_created_at', 'desc');
-            }
-        } else {
-            $model->orderBy('notes_created_at', 'desc');
+            } elseif ($orderColumn === 'job_title') { 
+                $model->orderBy('applicants.job_title_id', $orderDirection); 
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
+                $model->orderBy($orderColumn, $orderDirection); 
+            } else { $model->orderBy('notes_created_at', 'desc'); 
+            } 
+        } else { 
+            $model->orderBy('notes_created_at', 'desc'); 
         }
 
-        // Ensure distinct results
-        $model->distinct('applicants.id', 'sales.id');
-
+        
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
@@ -1852,12 +1957,20 @@ class CrmController extends Controller
                                             onclick="crmRevertInQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'open_cv\')">
                                             Revert In Quality
                                         </a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                                 if (!empty($applicant_msgs)) {
                                     if ($applicant_msgs['is_read'] == 0) {
                                         $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                     }
                                 }
+                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                        data-email="' . $applicant->applicant_email . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                    ';
                             break;
 
                         case 'sent cvs (no job)':
@@ -1889,12 +2002,20 @@ class CrmController extends Controller
                                             onclick="crmSentCvNoJobRevertInQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Quality
                                         </a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                                 if (!empty($applicant_msgs)) {
                                     if ($applicant_msgs['is_read'] == 0) {
                                         $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                     }
                                 }
+                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
 
                         case 'rejected cvs':
@@ -1914,15 +2035,23 @@ class CrmController extends Controller
                                             data-bs-target="#crmRevertRejectedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmRevertRejectedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
+                                            onclick="crmRevertRejectedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Quality
                                         </a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                                 if (!empty($applicant_msgs)) {
                                     if ($applicant_msgs['is_read'] == 0) {
                                         $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                     }
                                 }
+                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
 
                         case 'request':
@@ -1976,7 +2105,16 @@ class CrmController extends Controller
                                     </li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item" 
+                            $actionButtons .= '
+                                        <li><a class="dropdown-item" href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmMoveToconfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Move to Confirmation
+                                        </a></li>
+                                        <li><a class="dropdown-item" 
                                             href="#" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -1991,25 +2129,24 @@ class CrmController extends Controller
                                             data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmRevertRequestedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
+                                            onclick="crmRevertRequestedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Quality
                                         </a></li>';
-                            $actionButtons .= '<li><a class="dropdown-item" href="#" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
-                                            data-applicant-id="' . (int)$applicant->id . '"
-                                            data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmMoveToconfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
-                                            Move to Confirmation
-                                        </a></li>
+                            $actionButtons .= '
                                         <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-phone="' . $applicant->applicant_phone . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>';
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
+                           
                             break;
 
                         case 'request (no job)':
@@ -2072,15 +2209,38 @@ class CrmController extends Controller
                                             onclick="crmMoveToconfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Move to Confirmation
                                         </a></li>
+                                        <li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmRevertRequestedCvToSentCvModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Sent CV
+                                        </a></li>';
+                            $actionButtons .= '<li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmRevertRequestedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Quality
+                                        </a></li>
                                         <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-phone="' . $applicant->applicant_phone . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>';
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'rejected by request':
                             $actionButtons = '
@@ -2111,6 +2271,10 @@ class CrmController extends Controller
                                         onclick="crmRejectRequestRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Quality
                                     </a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                        data-phone="' . $applicant->applicant_phone . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                    </li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -2118,6 +2282,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'confirmation':
                             $actionButtons .= '<li><a class="dropdown-item" href="#" 
@@ -2137,15 +2305,29 @@ class CrmController extends Controller
                                             onclick="crmRevertConfirmationToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Request
                                         </a></li>
+                                        <li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmConfirmationRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmConfirmationRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Quality
+                                        </a></li>
                                         <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-phone="' . $applicant->applicant_phone . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'rebook':
                             $actionButtons = '
@@ -2166,15 +2348,29 @@ class CrmController extends Controller
                                             onclick="crmRevertRebookToConfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Confirmation
                                         </a></li>
+                                        <li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmRebookRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmRebookRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Quality
+                                        </a></li>
                                         <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-phone="' . $applicant->applicant_phone . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'attended to pre-start date':
                             $actionButtons = '
@@ -2195,10 +2391,19 @@ class CrmController extends Controller
                                             onclick="crmRevertAttendToRebookModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Rebook
                                         </a></li>
+                                        <li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmAttendedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmAttendedRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Quality
+                                        </a></li>
                                         <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-phone="' . $applicant->applicant_phone . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
-                                        <li><a class="dropdown-item" href="#" >Send Email</a></li>
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
 
                             if (!empty($applicant_msgs)) {
@@ -2206,6 +2411,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'declined':
                             $actionButtons = '
@@ -2218,6 +2427,19 @@ class CrmController extends Controller
                                             onclick="crmRevertDeclinedToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Attended
                                         </a></li>
+                                        <li><a class="dropdown-item" 
+                                            href="#" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#crmDeclinedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                            data-applicant-id="' . (int)$applicant->id . '"
+                                            data-sale-id="' . (int)$applicant->sale_id . '"
+                                            onclick="crmDeclinedRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                            Revert In Quality
+                                        </a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
 
                             if (!empty($applicant_msgs)) {
@@ -2225,6 +2447,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'not attended':
                             $actionButtons = '
@@ -2246,6 +2472,10 @@ class CrmController extends Controller
                                             onclick="crmNotAttendedToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Quality
                                         </a></li>
+                                        <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
 
                             if (!empty($applicant_msgs)) {
@@ -2253,6 +2483,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'start date':
                             $actionButtons = '
@@ -2273,9 +2507,19 @@ class CrmController extends Controller
                                         onclick="crmRevertStartDateToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Attended
                                     </a></li>
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmStartDateToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmStartDateToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>
                                     <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
-                                    data-phone="' . $applicant->applicant_phone . '"
-                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
+                                        data-phone="' . $applicant->applicant_phone . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                    </li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -2283,6 +2527,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'start date hold':
                             $actionButtons = '
@@ -2303,6 +2551,19 @@ class CrmController extends Controller
                                         onclick="crmRevertStartDateHoldToStartDateModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Start Date
                                     </a></li>
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmStartDateHoldToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmStartDateHoldToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                        data-phone="' . $applicant->applicant_phone . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                    </li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -2310,6 +2571,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'invoice':
                             $actionButtons = '
@@ -2330,9 +2595,19 @@ class CrmController extends Controller
                                         onclick="crmRevertInvoiceToStartDateModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Start Date
                                     </a></li>
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmInvoiceToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmInvoiceToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>
                                     <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
-                                    data-phone="' . $applicant->applicant_phone . '"
-                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
+                                        data-phone="' . $applicant->applicant_phone . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                    </li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -2340,6 +2615,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'invoice sent':
                              $actionButtons = '
@@ -2351,9 +2630,19 @@ class CrmController extends Controller
                                         onclick="crmInvoiceSentAcceptCVModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Accept CV
                                     </a></li>
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmInvoiceSentToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmInvoiceSentToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>
                                     <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
-                                    data-phone="' . $applicant->applicant_phone . '"
-                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
+                                        data-phone="' . $applicant->applicant_phone . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                    </li>
                                 ';
 
                             if (!empty($applicant_msgs)) {
@@ -2361,6 +2650,10 @@ class CrmController extends Controller
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'dispute':
                             $actionButtons = '
@@ -2373,12 +2666,29 @@ class CrmController extends Controller
                                         onclick="crmRevertDisputeToInvoiceModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Invoice
                                     </a></li>
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmDisputeToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmDisputeToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>
+                                    <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-phone="' . $applicant->applicant_phone . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                        </li>
                                     ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         case 'paid':
                             $paid_status_button = ($applicant->paid_status == 'close') ? 'Open' : 'Close';
@@ -2391,13 +2701,22 @@ class CrmController extends Controller
                                     data-sale-id="' . (int)$applicant->sale_id . '"
                                     onclick="crmChangePaidStatusModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                    Mark As '. $paid_status_button . '
-                                </a></li>';
+                                </a></li>
+                                <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                    data-phone="' . $applicant->applicant_phone . '"
+                                    data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                                </li>
+                                ';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
                                     $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                 }
                             }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
                             break;
                         default:
                             case 'sent cv':
@@ -2444,6 +2763,10 @@ class CrmController extends Controller
                                         $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
                                     }
                                 }
+                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                        data-email="' . $applicant->applicant_email . '"
+                                        data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                    ';
                                 break;
                     }
 
@@ -2661,6 +2984,7 @@ class CrmController extends Controller
                                 </div>
                             </div>';
                     /*** Schedule Interview Modal */
+                    $from_email = '';
                     $newPhrase = '';
                     $newSubject = '';
                     $applicant_email = '';
@@ -3033,7 +3357,7 @@ class CrmController extends Controller
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="button" class="btn btn-primary saveCrmRevertToSentCVButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertToSentCVButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3077,17 +3401,17 @@ class CrmController extends Controller
                                         </div>
                                         <div class="modal-body modal-body-text-left">
                                             <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
-                                            <form action="' . route('crmRequestRejectToQuality') . '" method="POST" id="crmRevertToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                            <form action="' . route('crmRequestRejectToQuality') . '" method="POST" id="crmRevertRequestRejectedToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
                                                 <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
                                                 <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
                                                 <div class="mb-3">
                                                     <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
-                                                    <textarea class="form-control" name="details" id="crmRevertToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <textarea class="form-control" name="details" id="crmRevertRequestRejectedToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
                                                     <div class="invalid-feedback">Please provide details.</div>
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="button" class="btn btn-success saveCrmRevertToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertRequestRejectedToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3115,6 +3439,114 @@ class CrmController extends Controller
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
                                                     <button type="button" class="btn btn-success saveCrmRevertConfirmationToRequestButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Revert Confirmation to Quality Modal */
+                    $html .= '<div id="crmConfirmationRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmConfirmationRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmConfirmationRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertConfirmToQuality') . '" method="POST" id="crmConfirmationRevertToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmConfirmationRevertToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertConfirmationToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Revert Rebook to Quality Modal */
+                    $html .= '<div id="crmRebookRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmRebookRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmRebookRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertRebookToQuality') . '" method="POST" id="crmRebookRevertToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmRebookRevertToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertRebookToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Attended to Quality Modal */
+                    $html .= '<div id="crmAttendedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmAttendedRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmAttendedRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertAttendedToQuality') . '" method="POST" id="crmAttendedRevertToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmAttendedRevertToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertAttendedToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Declined to Quality Modal */
+                    $html .= '<div id="crmDeclinedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmDeclinedRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmDeclinedRevertToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmRevertDeclinedToQuality') . '" method="POST" id="crmDeclinedRevertToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmDeclinedRevertToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmRevertDeclinedToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3149,7 +3581,7 @@ class CrmController extends Controller
                                 </div>
                             </div>';
                     /** CRM Not Attended to Quality Modal */
-                    $html .= '<div id="crmNotAttendedToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmNotAttendedInQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                    $html .= '<div id="crmNotAttendedToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmNotAttendedToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                     <div class="modal-content">
                                         <div class="modal-header">
@@ -3169,6 +3601,141 @@ class CrmController extends Controller
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
                                                     <button type="button" class="btn btn-success saveCrmNotAttendedToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Start Date to Quality Modal */
+                    $html .= '<div id="crmStartDateToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmStartDateToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmStartDateToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmStartDateToQuality') . '" method="POST" id="crmStartDateToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmStartDateToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmStartDateToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Start Date Hold to Quality Modal */
+                    $html .= '<div id="crmStartDateHoldToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmStartDateHoldToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmStartDateHoldToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmStartDateHoldToQuality') . '" method="POST" id="crmStartDateHoldToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmStartDateHoldToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmStartDateHoldToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Invoice to Quality Modal */
+                    $html .= '<div id="crmInvoiceToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmInvoiceToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmInvoiceToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmInvoiceToQuality') . '" method="POST" id="crmInvoiceToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmInvoiceToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmInvoiceToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Invoice Sent to Quality Modal */
+                    $html .= '<div id="crmInvoiceSentToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmInvoiceSentToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmInvoiceSentToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmInvoiceSentToQuality') . '" method="POST" id="crmInvoiceSentToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmInvoiceSentToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmInvoiceSentToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Dispute to Quality Modal */
+                    $html .= '<div id="crmDisputeToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmDisputeToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmDisputeToQualityModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Revert In Quality</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="' . route('crmDisputeToQuality') . '" method="POST" id="crmDisputeToQualityForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmDisputeToQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success saveCrmDisputeToQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3740,6 +4307,150 @@ class CrmController extends Controller
         }
     }
 
+    /** CRM Sent No Job  */
+    public function updateCrmNoJobNotes(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+                'reason' => 'required'
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $this->crmSentCvNoJobSaveAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details,
+                $request->input('reason')
+            );
+
+            return response()->json(['success' => true, 'message' => 'CRM No Job Notes Upated Successfully!']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmSendNoJobRequest(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+                'reason' => 'required'
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Requested By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $this->crmNoJobSentRequestAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details,
+                $request->input('reason'),
+            );
+
+            return response()->json(['success' => true, 'message' => 'CRM No Job Request Sent Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmSendNoJobToRejectedCv(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+                'reason' => 'required'
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Rejected By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $this->crmNoJobSentRejectCvAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details,
+                $request->input('reason'),
+            );
+
+            return response()->json(['success' => true, 'message' => 'CRM No Job Rejected Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmSentCvNoJobRevertInQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+
+            // Private function might throw exceptions
+            $this->crmSentCvNoJobRevertCVInQualityAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            return response()->json(['success' => true, 'message' => 'CRM Reverted In Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /** CRM Rejected Cv */
     public function crmRevertRejectedCvToSentCv(Request $request)
     {
@@ -3936,150 +4647,6 @@ class CrmController extends Controller
             ], 500);
         }
     }
-
-    /** CRM Sent No Job  */
-    public function updateCrmNoJobNotes(Request $request)
-    {
-        try {
-            $request->validate([
-                'applicant_id' => 'required|integer',
-                'sale_id' => 'required|integer',
-                'details' => 'required',
-                'reason' => 'required'
-            ]);
-
-            $user = Auth::user();
-            $details = $request->input('details') . ' --- By: ' . $user->name;
-
-            // Private function might throw exceptions
-            $this->crmSentCvNoJobSaveAction(
-                $request->input('applicant_id'),
-                $user->id,
-                $request->input('sale_id'),
-                $details,
-                $request->input('reason')
-            );
-
-            return response()->json(['success' => true, 'message' => 'CRM No Job Notes Upated Successfully!']);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Operation failed: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-    public function crmSendNoJobRequest(Request $request)
-    {
-        try {
-            $request->validate([
-                'applicant_id' => 'required|integer',
-                'sale_id' => 'required|integer',
-                'details' => 'required',
-                'reason' => 'required'
-            ]);
-
-            $user = Auth::user();
-            $details = $request->input('details') . ' --- Requested By: ' . $user->name;
-
-            // Private function might throw exceptions
-            $this->crmNoJobSentRequestAction(
-                $request->input('applicant_id'),
-                $user->id,
-                $request->input('sale_id'),
-                $details,
-                $request->input('reason'),
-            );
-
-            return response()->json(['success' => true, 'message' => 'CRM No Job Request Sent Successfully']);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Operation failed: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-    public function crmSendNoJobToRejectedCv(Request $request)
-    {
-        try {
-            $request->validate([
-                'applicant_id' => 'required|integer',
-                'sale_id' => 'required|integer',
-                'details' => 'required',
-                'reason' => 'required'
-            ]);
-
-            $user = Auth::user();
-            $details = $request->input('details') . ' --- Rejected By: ' . $user->name;
-
-            // Private function might throw exceptions
-            $this->crmNoJobSentRejectCvAction(
-                $request->input('applicant_id'),
-                $user->id,
-                $request->input('sale_id'),
-                $details,
-                $request->input('reason'),
-            );
-
-            return response()->json(['success' => true, 'message' => 'CRM No Job Rejected Successfully']);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Operation failed: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-    public function crmSentCvNoJobRevertInQuality(Request $request)
-    {
-        try {
-            $request->validate([
-                'applicant_id' => 'required|integer',
-                'sale_id' => 'required|integer',
-                'details' => 'required',
-            ]);
-
-            $user = Auth::user();
-            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
-
-            // Private function might throw exceptions
-            $this->crmSentCvNoJobRevertCVInQualityAction(
-                $request->input('applicant_id'),
-                $user->id,
-                $request->input('sale_id'),
-                $details
-            );
-
-            return response()->json(['success' => true, 'message' => 'CRM Reverted In Quality Successfully']);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Operation failed: ' . $e->getMessage()
-            ], 500);
-        }
-    }
     
     /** CRM Request Reject */
     public function crmRequestReject(Request $request)
@@ -4155,7 +4722,7 @@ class CrmController extends Controller
                 }else{
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to save email because email notifications are disabled.'
+                        'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
                     ], 500);
                 }
             }
@@ -4488,30 +5055,39 @@ class CrmController extends Controller
             'sale_id' => 'required|integer',
         ]);
 
-        try {
+        $emailNotification = Setting::where('key', 'email_notifications')->first();
+                
+        // Attempt to save email in DB
+        if($emailNotification && $emailNotification->value == '1'){
+            try {
+                // Attempt to send email
+                $is_save = $this->saveEmailDB(
+                    $validatedData['email_to'], 
+                    $validatedData['email_from'], 
+                    $validatedData['email_subject'], 
+                    $validatedData['email_body'], 
+                    $validatedData['email_subject'], 
+                    $validatedData['applicant_id'], 
+                    $validatedData['sale_id']);
 
-            // Attempt to send email
-            $is_save = $this->saveEmailDB(
-                $validatedData['email_to'], 
-                $validatedData['email_from'], 
-                $validatedData['email_subject'], 
-                $validatedData['email_body'], 
-                $validatedData['email_subject'], 
-                $validatedData['applicant_id'], 
-                $validatedData['sale_id']);
+                if (!$is_save) {
+                    // Optional: throw or log
+                    Log::warning('Email saved to DB failed for applicant ID: ' . $validatedData['applicant_id']);
+                    throw new \Exception('Email is not stored in DB');
+                }
 
-            if (!$is_save) {
-                // Optional: throw or log
-                Log::warning('Email saved to DB failed for applicant ID: ' . $validatedData['applicant_id']);
-                throw new \Exception('Email is not stored in DB');
+                return response()->json(['success' => true, 'message' => 'Email sent successfully']);
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send email: ' . $e->getMessage()
+                ], 500);
             }
-
-            return response()->json(['success' => true, 'message' => 'Email sent successfully']);
-
-        } catch (\Exception $e) {
+        }else{
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
+                'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
             ], 500);
         }
     }
@@ -4536,6 +5112,74 @@ class CrmController extends Controller
             );
 
             return response()->json(['success' => true, 'message' => 'CRM Request Revert Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmRevertConfirmToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    // Private function might throw exceptions
+                    $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $request->input('sale_id'),
+                        $details
+                    );
+
+                    if($revertedInRequest){
+                        // Private function might throw exceptions
+                        $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($revertedInSentCv){
+                            // Private function might throw exceptions
+                            $this->crmRevertCVInQualityAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+                        }
+                    }
+
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -4789,6 +5433,84 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmRevertRebookToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    // Private function might throw exceptions
+                    $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $request->input('sale_id'),
+                        $details
+                    );
+
+                    if($revertRebookToConfirm){
+                        // Private function might throw exceptions
+                        $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($revertedInRequest){
+                            // Private function might throw exceptions
+                            $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($revertedInSentCv){
+                                // Private function might throw exceptions
+                                $this->crmRevertCVInQualityAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+                            }
+                        }
+                    }
+
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /** CRM Attended */
     public function crmRevertAttendedToRebook(Request $request)
@@ -4927,6 +5649,93 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmRevertAttendedToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                     // Private function might throw exceptions
+                    $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $request->input('sale_id'),
+                        $details
+                    );
+
+                    if($crmRevertinRebook){
+                        // Private function might throw exceptions
+                        $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($revertRebookToConfirm){
+                            // Private function might throw exceptions
+                            $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($revertedInRequest){
+                                // Private function might throw exceptions
+                                $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertedInSentCv){
+                                    // Private function might throw exceptions
+                                    $this->crmRevertCVInQualityAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /** CRM Not Attended */
     public function crmNotAttendedToAttended(Request $request)
@@ -4999,20 +5808,62 @@ class CrmController extends Controller
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
-                    $this->crmInterviewNotAttendedToAttendedAction(
+                    $crmNotAttendedToAttend = $this->crmInterviewNotAttendedToAttendedAction(
                         $request->input('applicant_id'),
                         $user->id,
                         $sale_id,
                         $details
                     );
-                    
-                    /** Second revert in Quality */
-                    // $this->crmRevertCVInQualityAction(
-                    //     $request->input('applicant_id'),
-                    //     $user->id,
-                    //     $request->input('sale_id'),
-                    //     $details
-                    // );
+
+                    if($crmNotAttendedToAttend){
+                        // Private function might throw exceptions
+                        $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($crmRevertinRebook){
+                            // Private function might throw exceptions
+                            $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($revertRebookToConfirm){
+                                // Private function might throw exceptions
+                                $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertedInRequest){
+                                    // Private function might throw exceptions
+                                    $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertedInSentCv){
+                                        // Private function might throw exceptions
+                                        $this->crmRevertCVInQualityAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                 }else{
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
@@ -5070,6 +5921,103 @@ class CrmController extends Controller
             }
 
             return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmRevertDeclinedToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $crmRevertToAttended = $this->crmRevertDeclineToAttendedAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($crmRevertToAttended){
+                        // Private function might throw exceptions
+                        $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($crmRevertinRebook){
+                            // Private function might throw exceptions
+                            $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($revertRebookToConfirm){
+                                // Private function might throw exceptions
+                                $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertedInRequest){
+                                    // Private function might throw exceptions
+                                    $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertedInSentCv){
+                                        // Private function might throw exceptions
+                                        $this->crmRevertCVInQualityAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5238,6 +6186,103 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmStartDateToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($crmRevertToAttended){
+                        // Private function might throw exceptions
+                        $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $request->input('sale_id'),
+                            $details
+                        );
+
+                        if($crmRevertinRebook){
+                            // Private function might throw exceptions
+                            $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($revertRebookToConfirm){
+                                // Private function might throw exceptions
+                                $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertedInRequest){
+                                    // Private function might throw exceptions
+                                    $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertedInSentCv){
+                                        // Private function might throw exceptions
+                                        $this->crmRevertCVInQualityAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /** CRM Start Date Hold*/
     public function crmRevertStartDateHoldToStartDate(Request $request)
@@ -5312,6 +6357,113 @@ class CrmController extends Controller
             );
 
             return response()->json(['success' => true, 'message' => 'CRM Start Date Hold Saved Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function crmStartDateHoldToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $revertToStartDate = $this->crmRevertStartDateHoldToStartDateAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($revertToStartDate){
+                        /** First revert in Sent CV */
+                        $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $sale_id,
+                            $details
+                        );
+
+                        if($crmRevertToAttended){
+                            // Private function might throw exceptions
+                            $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($crmRevertinRebook){
+                                // Private function might throw exceptions
+                                $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertRebookToConfirm){
+                                    // Private function might throw exceptions
+                                    $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertedInRequest){
+                                        // Private function might throw exceptions
+                                        $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+
+                                        if($revertedInSentCv){
+                                            // Private function might throw exceptions
+                                            $this->crmRevertCVInQualityAction(
+                                                $request->input('applicant_id'),
+                                                $user->id,
+                                                $request->input('sale_id'),
+                                                $details
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5482,6 +6634,113 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmInvoiceToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $revertToStartDate = $this->crmRevertInvoiceToStartDateAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($revertToStartDate){
+                        /** First revert in Sent CV */
+                        $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $sale_id,
+                            $details
+                        );
+
+                        if($crmRevertToAttended){
+                            // Private function might throw exceptions
+                            $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $request->input('sale_id'),
+                                $details
+                            );
+
+                            if($crmRevertinRebook){
+                                // Private function might throw exceptions
+                                $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($revertRebookToConfirm){
+                                    // Private function might throw exceptions
+                                    $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertedInRequest){
+                                        // Private function might throw exceptions
+                                        $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+
+                                        if($revertedInSentCv){
+                                            // Private function might throw exceptions
+                                            $this->crmRevertCVInQualityAction(
+                                                $request->input('applicant_id'),
+                                                $user->id,
+                                                $request->input('sale_id'),
+                                                $details
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     
     /** CRM Invoice Sent */
     public function crmInvoiceSentToPaid(Request $request)
@@ -5554,6 +6813,123 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmInvoiceSentToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $revertToInvoice = $this->crmInvoiceSentToInvoiceAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($revertToInvoice){
+                        /** First revert in Sent CV */
+                        $revertToStartDate = $this->crmRevertInvoiceToStartDateAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $sale_id,
+                            $details
+                        );
+
+                        if($revertToStartDate){
+                            /** First revert in Sent CV */
+                            $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $sale_id,
+                                $details
+                            );
+
+                            if($crmRevertToAttended){
+                                // Private function might throw exceptions
+                                $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($crmRevertinRebook){
+                                    // Private function might throw exceptions
+                                    $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertRebookToConfirm){
+                                        // Private function might throw exceptions
+                                        $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+
+                                        if($revertedInRequest){
+                                            // Private function might throw exceptions
+                                            $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                                $request->input('applicant_id'),
+                                                $user->id,
+                                                $request->input('sale_id'),
+                                                $details
+                                            );
+
+                                            if($revertedInSentCv){
+                                                // Private function might throw exceptions
+                                                $this->crmRevertCVInQualityAction(
+                                                    $request->input('applicant_id'),
+                                                    $user->id,
+                                                    $request->input('sale_id'),
+                                                    $details
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /** CRM Dispute */
     public function crmRevertDisputeToInvoice(Request $request)
@@ -5606,6 +6982,123 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    public function crmDisputeToQuality(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required',
+            ]);
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
+            $sale_id = $request->input('sale_id');
+
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CvNote::where([
+                    'sale_id' => $sale_id, 
+                    'status' => 1
+                    ])->count();
+
+                if ($sent_cv_count < $sale->cv_limit) {
+                    /** First revert in Sent CV */
+                    $revertToInvoice = $this->crmRevertDisputeToInvoiceAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
+
+                    if($revertToInvoice){
+                        /** First revert in Sent CV */
+                        $revertToStartDate = $this->crmRevertInvoiceToStartDateAction(
+                            $request->input('applicant_id'),
+                            $user->id,
+                            $sale_id,
+                            $details
+                        );
+
+                        if($revertToStartDate){
+                            /** First revert in Sent CV */
+                            $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
+                                $request->input('applicant_id'),
+                                $user->id,
+                                $sale_id,
+                                $details
+                            );
+
+                            if($crmRevertToAttended){
+                                // Private function might throw exceptions
+                                $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
+                                    $request->input('applicant_id'),
+                                    $user->id,
+                                    $request->input('sale_id'),
+                                    $details
+                                );
+
+                                if($crmRevertinRebook){
+                                    // Private function might throw exceptions
+                                    $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
+                                        $request->input('applicant_id'),
+                                        $user->id,
+                                        $request->input('sale_id'),
+                                        $details
+                                    );
+
+                                    if($revertRebookToConfirm){
+                                        // Private function might throw exceptions
+                                        $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
+                                            $request->input('applicant_id'),
+                                            $user->id,
+                                            $request->input('sale_id'),
+                                            $details
+                                        );
+
+                                        if($revertedInRequest){
+                                            // Private function might throw exceptions
+                                            $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
+                                                $request->input('applicant_id'),
+                                                $user->id,
+                                                $request->input('sale_id'),
+                                                $details
+                                            );
+
+                                            if($revertedInSentCv){
+                                                // Private function might throw exceptions
+                                                $this->crmRevertCVInQualityAction(
+                                                    $request->input('applicant_id'),
+                                                    $user->id,
+                                                    $request->input('sale_id'),
+                                                    $details
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'CV Reverted To Quality Successfully']);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /** CRM Paid */
     public function crmChangePaidStatus(Request $request)
@@ -5619,7 +7112,7 @@ class CrmController extends Controller
             ]);
 
             $user = Auth::user();
-            // $details = $request->input('details') . ' --- By: ' . $user->name;
+            $details = 'Change paid status as '. $request->input('paid_status') .' --- By: ' . $user->name;
             $applicant_id = $request->input('applicant_id');
             $sale_id = $request->input('sale_id');
 
@@ -5642,7 +7135,7 @@ class CrmController extends Controller
                 $applicant->update($update_columns);
 
                 $audit = new ActionObserver();
-                $audit->customApplicantAudit($applicant, ['paid_status']);
+                $audit->customApplicantAudit($applicant, 'paid_status');
 
                 return response()->json(['success' => true, 'message' => 'CRM Changed Paid Status '. $msg .' Successfully']);
 
@@ -5885,7 +7378,6 @@ class CrmController extends Controller
     }
 
     /** No Job CRM Actions */
-    
     private function crmNoJobRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
@@ -6186,9 +7678,15 @@ class CrmController extends Controller
             Applicant::where("id", $applicant_id)->update([
                 'is_interview_confirm' => false,
                 'is_cv_in_quality_clear' => false,
-                'is_cv_reject' => true,
+                'is_cv_in_quality_reject' => true,
                 'is_cv_in_quality' => false
             ]);
+
+            CrmNote::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1
+            ])->update(["status" => 0]);
 
             QualityNotes::where([
                 'applicant_id' => $applicant_id,
@@ -6446,7 +7944,7 @@ class CrmController extends Controller
             ->update([
                 'is_interview_confirm' => false,
                 'is_cv_in_quality_clear' => false,
-                'is_cv_reject' => true,
+                'is_cv_in_quality_reject' => true,
                 'is_cv_in_quality' => false
             ]);
 
@@ -8887,6 +10385,62 @@ class CrmController extends Controller
         } catch (\Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmDisputeAction: " . $e->getMessage());
+
+            // Re-throw the exception to be caught by the calling method
+            throw $e;
+        }  
+    }
+    private function crmInvoiceSentToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
+    {
+        try{
+            Applicant::where("id", $applicant_id)
+                ->update([
+                    'is_in_crm_dispute' => false,
+                    'is_in_crm_invoice' => true,
+                    'is_in_crm_invoice_sent' => false,
+                ]);
+
+            CrmNote::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1
+            ])->update(["status" => 0]);
+
+            $crm_notes = new CrmNote();
+            $crm_notes->applicant_id = $applicant_id;
+            $crm_notes->user_id = $user_id;
+            $crm_notes->sale_id = $sale_id;
+            $crm_notes->details = $details;
+            $crm_notes->moved_tab_to = "invoice";
+            $crm_notes->save();
+
+            //update uid
+            $crm_notes->crm_notes_uid = md5((string) $crm_notes->id);
+            $crm_notes->save();
+
+            History::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1
+            ])->update(["status" => 0]);
+
+            $history = new History();
+            $history->applicant_id = $applicant_id;
+            $history->user_id = $user_id;
+            $history->sale_id = $sale_id;
+            $history->stage = 'crm';
+            $history->sub_stage = 'crm_invoice';
+            $history->save();
+
+            //update uid
+            $history->history_uid = md5((string) $history->id);
+            $history->save();
+                                    
+           return true; // Indicate success
+
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error("Error in crmInvoiceSentAction: " . $e->getMessage());
 
             // Re-throw the exception to be caught by the calling method
             throw $e;

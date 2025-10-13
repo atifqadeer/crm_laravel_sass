@@ -464,160 +464,181 @@ class ResourceController extends Controller
     }
     public function getResourcesIndirectApplicants(Request $request)
     {
-        // Validate query parameters
-        $validated = $request->validate([
-            'updated_sales_filter' => 'boolean',
-            'category_filter' => 'nullable|array',
-            'category_filter.*' => 'exists:job_categories,id',
-            'status' => 'nullable|in:all,interested,not interested',
-            'date_range_filter' => 'nullable'
-        ]);
+        // --- Normalize boolean input ---
+    $request->merge([
+        'updated_sales_filter' => filter_var($request->updated_sales_filter, FILTER_VALIDATE_BOOLEAN),
+    ]);
 
-        $filterByUpdatedSale = $validated['updated_sales_filter'] ?? false;
-        $categoryFilter = $validated['category_filter'] ?? [];
-        $status = $validated['status'] ?? 'all';
-        $dateRange = $validated['date_range_filter'] ?? Carbon::today()->format('Y-m-d') . '|' . Carbon::today()->format('Y-m-d');
-        $radius = 15; // in kilometers
+    // --- Validation ---
+    $validated = $request->validate([
+        'updated_sales_filter' => 'boolean',
+        'category_filter' => 'nullable|array',
+        'category_filter.*' => 'exists:job_categories,id',
+        'status_filter' => 'nullable|in:all,interested,not interested',
+        'date_range_filter' => 'nullable|string',
+    ]);
 
-        // Map DataTables column index to database column
-        $sortableColumns = [
-            'applicant_name' => 'applicants.applicant_name',
-            'applicant_postcode' => 'applicants.applicant_postcode',
-            'applicant_job_title' => 'job_titles.name',
-            'updated_at' => 'applicants.updated_at',
-            'job_category' => 'job_categories.name',
-            'job_source' => 'job_sources.name',
-            'status' => 'applicants.paid_status',
-        ];
+    // --- Extract filters ---
+    $filterByUpdatedSale = $validated['updated_sales_filter'] ?? false;
+    $categoryFilter = $validated['category_filter'] ?? [];
+    $status = $validated['status_filter'] ?? 'all';
+    $dateRange = $validated['date_range_filter'] 
+        ?? Carbon::today()->format('Y-m-d') . '|' . Carbon::today()->format('Y-m-d');
 
-        $orderColumnIndex = $request->input('order.0.column', 0);
-        $orderColumn = array_keys($sortableColumns)[$orderColumnIndex] ?? 'applicant_name';
-        $orderDirection = in_array(strtolower($request->input('order.0.dir', 'desc')), ['asc', 'desc']) ? $request->input('order.0.dir') : 'desc';
+    $radius = 15; // kilometers
 
-        // Parse date range
-        try {
-            [$start_date, $end_date] = explode('|', $dateRange);
-            $start_date = Carbon::parse($start_date)->startOfDay();
-            $end_date = Carbon::parse($end_date)->endOfDay();
-        } catch (\Exception $e) {
-            Log::warning('Invalid date range filter: ' . $dateRange, ['error' => $e->getMessage()]);
-            $start_date = Carbon::today()->startOfDay();
-            $end_date = Carbon::today()->endOfDay();
-        }
+    // --- Handle date range safely ---
+    try {
+        [$start_date, $end_date] = explode('|', $dateRange);
+        $start_date = Carbon::parse($start_date)->startOfDay();
+        $end_date = Carbon::parse($end_date)->endOfDay();
+    } catch (\Exception $e) {
+        Log::warning('Invalid date range filter: ' . $dateRange, ['error' => $e->getMessage()]);
+        $start_date = Carbon::today()->startOfDay();
+        $end_date = Carbon::today()->endOfDay();
+    }
 
-        // Subquery for latest module_notes
-        $latestNotesSub = DB::table('module_notes as mn')
-            ->select('mn.id', 'mn.module_noteable_id', 'mn.user_id', 'mn.details', 'mn.created_at')
-            ->where('mn.module_noteable_type', Applicant::class)
-            ->whereIn('mn.id', function ($sub) {
-                $sub->select(DB::raw('MAX(id)'))
-                    ->from('module_notes')
-                    ->where('module_noteable_type', Applicant::class)
-                    ->groupBy('module_noteable_id');
-            });
+    // --- Sortable columns mapping ---
+    $sortableColumns = [
+        'applicant_name' => 'applicants.applicant_name',
+        'applicant_postcode' => 'applicants.applicant_postcode',
+        'applicant_job_title' => 'job_titles.name',
+        'updated_at' => 'applicants.updated_at',
+        'job_category' => 'job_categories.name',
+        'job_source' => 'job_sources.name',
+        'status' => 'applicants.paid_status',
+    ];
 
-        // Sales Query
-        $salesQuery = Sale::query()
-            ->select(['sales.id', 'sales.lat', 'sales.lng', 'sales.job_title_id'])
-            ->where('status', 1)
-            ->where('is_on_hold', 0)
-            ->where(function ($query) use ($filterByUpdatedSale, $start_date, $end_date) {
-                $query->whereExists(function ($q) use ($start_date, $end_date) {
-                    $q->from('audits')
-                        ->whereColumn('audits.auditable_id', 'sales.id')
-                        ->where('audits.auditable_type', Sale::class)
-                        ->where('audits.message', 'like', '%sale-opened%')
-                        ->whereBetween('audits.updated_at', [$start_date, $end_date]);
-                })
-                ->orWhere(function ($q) use ($filterByUpdatedSale, $start_date, $end_date) {
-                    $column = $filterByUpdatedSale ? 'sales.updated_at' : 'sales.created_at';
-                    $q->whereBetween($column, [$start_date, $end_date]);
-                });
-            })
-            ->distinct();
+    $orderColumnIndex = $request->input('order.0.column', 0);
+    $orderColumn = array_keys($sortableColumns)[$orderColumnIndex] ?? 'applicant_name';
+    $orderDirection = in_array(strtolower($request->input('order.0.dir', 'desc')), ['asc', 'desc'])
+        ? $request->input('order.0.dir')
+        : 'desc';
 
-        // Fetch sales data for job title filtering
-        $salesData = $salesQuery->get();
-        if ($salesData->isEmpty()) {
-            Log::info('No sales found for the given criteria', ['date_range' => $dateRange]);
-            return DataTables::of(collect())->make(true); // Return empty DataTables response
-        }
-
-        // Get job title IDs including related titles
-        $jobTitleIds = $salesData->pluck('job_title_id')->unique()->flatMap(function ($jobTitleId) {
-            $jobTitle = JobTitle::find($jobTitleId);
-            if (!$jobTitle) {
-                return [$jobTitleId];
-            }
-            $relatedTitles = is_array($jobTitle->related_titles)
-                ? $jobTitle->related_titles
-                : json_decode($jobTitle->related_titles ?? '[]', true);
-            $titles = collect($relatedTitles)
-                ->map(fn($item) => strtolower(trim($item)))
-                ->push(strtolower(trim($jobTitle->name)))
-                ->unique()
-                ->values()
-                ->toArray();
-            return JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
-        })->unique()->values()->toArray();
-
-        // Main Applicants Query
-        $query = Applicant::query()
-            ->select([
-                'applicants.*',
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-                'job_sources.name as job_source_name',
-                'users.name as user_name',
-                'module_notes.details as module_notes_details',
-                'module_notes.created_at as module_notes_created',
-            ])
-            ->where('applicants.status', 1)
-            ->where('applicants.is_no_job', true)
-            ->whereNotNull('applicants.lat')
-            ->whereNotNull('applicants.lng')
-            ->leftJoinSub($latestNotesSub, 'module_notes', fn($join) => $join->on('applicants.id', '=', 'module_notes.module_noteable_id'))
-            ->leftJoin('users', 'module_notes.user_id', '=', 'users.id')
-            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->whereIn('applicants.job_title_id', $jobTitleIds)
-            ->where(function ($q) use ($salesData, $radius) {
-                foreach ($salesData as $sale) {
-                    $q->orWhereRaw(
-                        '(6371 * acos(cos(radians(?)) * cos(radians(applicants.lat)) * cos(radians(applicants.lng) - radians(?)) + sin(radians(?)) * sin(radians(applicants.lat)))) <= ?',
-                        [$sale->lat, $sale->lng, $sale->lat, $radius]
-                    );
-                }
-            });
-
-        // Apply filters
-        $query->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
-              ->when($status !== 'all', fn($q) => $q->where('applicants.is_temp_not_interested', $status === 'interested' ? 0 : 1));
-
-        // Search logic
-        $query->when($request->input('search.value'), function ($q, $searchTerm) {
-            $term = '%' . addslashes(trim($searchTerm)) . '%';
-            $q->where(function ($sub) use ($term) {
-                $sub->where('applicants.applicant_name', 'LIKE', $term)
-                    ->orWhere('applicants.applicant_email', 'LIKE', $term)
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', $term)
-                    ->orWhere('applicants.applicant_phone', 'LIKE', $term)
-                    ->orWhere('applicants.applicant_landline', 'LIKE', $term)
-                    ->orWhere('applicants.applicant_experience', 'LIKE', $term)
-                    ->orWhere('job_titles.name', 'LIKE', $term)
-                    ->orWhere('job_categories.name', 'LIKE', $term)
-                    ->orWhere('job_sources.name', 'LIKE', $term)
-                    ->orWhere('module_notes.details', 'LIKE', $term)
-                    ->orWhere('users.name', 'LIKE', $term);
-            });
+    // --- Subquery for latest module_notes per applicant ---
+    $latestNotesSub = DB::table('module_notes as mn')
+        ->select('mn.id', 'mn.module_noteable_id', 'mn.user_id', 'mn.details', 'mn.created_at')
+        ->where('mn.module_noteable_type', Applicant::class)
+        ->whereIn('mn.id', function ($sub) {
+            $sub->select(DB::raw('MAX(id)'))
+                ->from('module_notes')
+                ->where('module_noteable_type', Applicant::class)
+                ->groupBy('module_noteable_id');
         });
 
-        // Sorting logic
-        $query->when(isset($sortableColumns[$orderColumn]), 
-            fn($q) => $q->orderBy($sortableColumns[$orderColumn], $orderDirection),
-            fn($q) => $q->orderBy('applicants.applicant_name', 'desc')
+    // --- Sales Query (filtered by audits + updated/created logic) ---
+    $salesQuery = Sale::query()
+        ->select(['sales.id', 'sales.lat', 'sales.lng', 'sales.job_title_id'])
+        ->where('sales.status', 1)
+        ->where('sales.is_on_hold', 0)
+        ->where(function ($query) use ($filterByUpdatedSale, $start_date, $end_date) {
+            $query->whereExists(function ($q) use ($start_date, $end_date) {
+                $q->from('audits')
+                    ->whereColumn('audits.auditable_id', 'sales.id')
+                    ->where('audits.auditable_type', Sale::class)
+                    ->where('audits.message', 'like', '%sale-opened%')
+                    ->whereBetween('audits.updated_at', [$start_date, $end_date]);
+            });
+
+            $query->orWhere(function ($subQuery) use ($filterByUpdatedSale, $start_date, $end_date) {
+                if ($filterByUpdatedSale) {
+                    // Checkbox checked → use updated_at OR created_at
+                    $subQuery->where(function ($q) use ($start_date, $end_date) {
+                        $q->whereBetween('sales.updated_at', [$start_date, $end_date])
+                          ->orWhereBetween('sales.created_at', [$start_date, $end_date]);
+                    });
+                } else {
+                    // Default → created_at only
+                    $subQuery->whereBetween('sales.created_at', [$start_date, $end_date]);
+                }
+            });
+        })
+        ->distinct();
+
+    $salesData = $salesQuery->get();
+
+    // --- Early return if no sales found ---
+    if ($salesData->isEmpty()) {
+        return DataTables::of(collect())->with('total_sale_count', 0)->make(true);
+    }
+
+    // --- Get related job title IDs ---
+    $jobTitleIds = $salesData->pluck('job_title_id')->unique()->flatMap(function ($jobTitleId) {
+        $jobTitle = JobTitle::find($jobTitleId);
+        if (!$jobTitle) return [$jobTitleId];
+
+        $relatedTitles = is_array($jobTitle->related_titles)
+            ? $jobTitle->related_titles
+            : json_decode($jobTitle->related_titles ?? '[]', true);
+
+        $titles = collect($relatedTitles)
+            ->map(fn($t) => strtolower(trim($t)))
+            ->push(strtolower(trim($jobTitle->name)))
+            ->unique();
+
+        return JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id');
+    })->unique()->values()->toArray();
+
+    // --- Main Applicants Query ---
+    $query = Applicant::query()
+        ->select([
+            'applicants.*',
+            'job_titles.name as job_title_name',
+            'job_categories.name as job_category_name',
+            'job_sources.name as job_source_name',
+            'users.name as user_name',
+            'module_notes.details as module_notes_details',
+            'module_notes.created_at as module_notes_created',
+        ])
+        ->leftJoinSub($latestNotesSub, 'module_notes', fn($join) => $join->on('applicants.id', '=', 'module_notes.module_noteable_id'))
+        ->leftJoin('users', 'module_notes.user_id', '=', 'users.id')
+        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+        ->where('applicants.status', 1)
+        ->where('applicants.is_no_job', true)
+        ->whereNotNull('applicants.lat')
+        ->whereNotNull('applicants.lng')
+        ->whereIn('applicants.job_title_id', $jobTitleIds)
+        ->where(function ($q) use ($salesData, $radius) {
+            foreach ($salesData as $sale) {
+                $q->orWhereRaw(
+                    '(6371 * acos(cos(radians(?)) * cos(radians(applicants.lat)) * cos(radians(applicants.lng) - radians(?)) + sin(radians(?)) * sin(radians(applicants.lat)))) <= ?',
+                    [$sale->lat, $sale->lng, $sale->lat, $radius]
+                );
+            }
+        });
+
+    // --- Filters ---
+    $query->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
+        ->when($status !== 'all', fn($q) => 
+            $q->where('applicants.is_temp_not_interested', $status === 'interested' ? 0 : 1)
         );
+
+    // --- Search ---
+    $query->when($request->input('search.value'), function ($q, $term) {
+        $term = '%' . addslashes(trim($term)) . '%';
+        $q->where(function ($sub) use ($term) {
+            $sub->where('applicants.applicant_name', 'LIKE', $term)
+                ->orWhere('applicants.applicant_email', 'LIKE', $term)
+                ->orWhere('applicants.applicant_postcode', 'LIKE', $term)
+                ->orWhere('applicants.applicant_phone', 'LIKE', $term)
+                ->orWhere('applicants.applicant_landline', 'LIKE', $term)
+                ->orWhere('applicants.applicant_experience', 'LIKE', $term)
+                ->orWhere('job_titles.name', 'LIKE', $term)
+                ->orWhere('job_categories.name', 'LIKE', $term)
+                ->orWhere('job_sources.name', 'LIKE', $term)
+                ->orWhere('module_notes.details', 'LIKE', $term)
+                ->orWhere('users.name', 'LIKE', $term);
+        });
+    });
+
+    // --- Sorting ---
+    $query->when(isset($sortableColumns[$orderColumn]),
+        fn($q) => $q->orderBy($sortableColumns[$orderColumn], $orderDirection),
+        fn($q) => $q->orderBy('applicants.applicant_name', 'desc')
+    );
+
 
         // Return DataTables response
         if ($request->ajax()) {
@@ -636,8 +657,20 @@ class ResourceController extends Controller
                 ->addColumn('job_title', fn($applicant) => e($applicant->job_title_name ?? '-'))
                 ->addColumn('job_category', fn($applicant) => $applicant->job_category_name ? strtoupper($applicant->job_category_name) . ($applicant->job_type === 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '') : '-')
                 ->addColumn('job_source', fn($applicant) => strtoupper($applicant->job_source_name ?? '-'))
-                ->addColumn('applicant_phone', fn($applicant) => $applicant->formatted_phone ?? '-')
-                ->addColumn('applicant_landline', fn($applicant) => $applicant->formatted_landline ?? '-')
+                ->addColumn('applicant_phone', function ($applicant) {
+                    $strng = '';
+                    if($applicant->applicant_landline){
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
+                    }else{
+                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
+                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    }
+
+                    return $strng;
+                })
                 ->addColumn('applicant_experience', function ($applicant) {
                     if (empty($applicant->applicant_experience) || $applicant->applicant_experience === 'NULL') {
                         return '-';
@@ -664,51 +697,13 @@ class ResourceController extends Controller
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
                     $statusValue = $this->getApplicantStatus($applicant);
-                    $notes = e(htmlspecialchars($applicant->module_notes_details ?? $applicant->applicant_notes ?? '-', ENT_QUOTES, 'UTF-8'));
+                    $notes = $applicant->module_notes_details ?? $applicant->applicant_notes ?? '-';
                     if ($applicant->is_blocked == 0 && in_array($statusValue, ['open', 'reject'])) {
-                        $content = '<a href="#" class="reject_history" data-applicant="' . $applicant->id . '"
-                                data-bs-toggle="modal" data-bs-target="#clear_cv' . $applicant->id . '">' . $notes . '</a>';
-                        $content .= '<div id="clear_cv' . $applicant->id . '" class="modal fade" tabindex="-1">';
-                        $content .= '<div class="modal-dialog modal-lg">';
-                        $content .= '<div class="modal-content">';
-                        $content .= '<div class="modal-header">';
-                        $content .= '<h5 class="modal-title">Notes</h5>';
-                        $content .= '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
-                        $content .= '</div>';
-                        $content .= '<form action="' . route('storeShortNotes') . '" method="POST" id="app_notes_form' . $applicant->id . '" class="form-horizontal">';
-                        $content .= csrf_field();
-                        $content .= '<div class="modal-body">';
-                        $content .= '<div id="app_notes_alert' . $applicant->id . '"></div>';
-                        $content .= '<div id="sent_cv_alert' . $applicant->id . '"></div>';
-                        $content .= '<div class="form-group row">';
-                        $content .= '<label class="col-form-label col-sm-3">Details</label>';
-                        $content .= '<div class="col-sm-9">';
-                        $content .= '<input type="hidden" name="applicant_hidden_id" value="' . $applicant->id . '">';
-                        $content .= '<input type="hidden" name="applicant_page' . $applicant->id . '" value="7_days_applicants">';
-                        $content .= '<textarea name="details" id="sent_cv_details' . $applicant->id . '" class="form-control" cols="30" rows="4" placeholder="TYPE HERE.." required></textarea>';
-                        $content .= '</div>';
-                        $content .= '</div>';
-                        $content .= '<div class="form-group row">';
-                        $content .= '<label class="col-form-label col-sm-3">Choose type:</label>';
-                        $content .= '<div class="col-sm-9">';
-                        $content .= '<select name="reject_reason" class="form-control crm_select_reason" id="reason' . $applicant->id . '">';
-                        $content .= '<option value="0">Select Reason</option>';
-                        $content .= '<option value="1">Casual Notes</option>';
-                        $content .= '<option value="2">Block Applicant Notes</option>';
-                        $content .= '<option value="3">Temporary Not Interested Applicants Notes</option>';
-                        $content .= '</select>';
-                        $content .= '</div>';
-                        $content .= '</div>';
-                        $content .= '</div>';
-                        $content .= '<div class="modal-footer">';
-                        $content .= '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>';
-                        $content .= '<button type="submit" data-note_key="' . $applicant->id . '" value="cv_sent_save" class="btn btn-teal app_notes_form_submit">Save</button>';
-                        $content .= '</div>';
-                        $content .= '</form>';
-                        $content .= '</div>';
-                        $content .= '</div>';
-                        $content .= '</div>';
-                        return $content;
+                        return '
+                            <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                                ' . $notes . '
+                            </a>
+                        ';
                     }
                     return $notes;
                 })
@@ -735,6 +730,16 @@ class ResourceController extends Controller
 
                     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
                         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                })
+                ->addColumn('applicant_email', function ($applicant) {
+                    $email = '';
+                    if($applicant->applicant_email_secondary){
+                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                    }else{
+                        $email = $applicant->applicant_email;
+                    }
+
+                    return $email; // Using accessor
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $statusValue = $this->getApplicantStatus($applicant);
@@ -776,7 +781,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_postcode', 'applicant_resume', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
+                ->rawColumns(['applicant_postcode', 'applicant_resume', 'applicant_email', 'applicant_phone', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
                 ->make(true);
         }
 

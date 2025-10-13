@@ -45,7 +45,7 @@ class CreateApplicantsTable extends Migration
             $table->boolean('is_cv_in_quality')->default(false);
             $table->boolean('is_cv_in_quality_clear')->default(false);
             $table->boolean('is_cv_sent')->default(false);
-            $table->boolean('is_cv_reject')->default(false);
+            $table->boolean('is_cv_in_quality_reject')->default(false);
             $table->boolean('is_interview_confirm')->default(false);
             $table->boolean('is_interview_attend')->default(false);
             $table->boolean('is_in_crm_request')->default(false);
@@ -99,7 +99,7 @@ class CreateApplicantsTable extends Migration
             $table->index('is_cv_in_quality');
             $table->index('is_cv_in_quality_clear');
             $table->index('is_cv_sent');
-            $table->index('is_cv_reject');
+            $table->index('is_cv_in_quality_reject');
             $table->index('is_interview_confirm');
             $table->index('is_interview_attend');
             $table->index('is_in_crm_request');

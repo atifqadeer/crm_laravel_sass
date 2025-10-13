@@ -183,7 +183,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Created Date</th>
-                                    <th>Updated Date</th>
+                                    <th>Hold Date</th>
                                     <th>Agent</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>

@@ -184,7 +184,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Date</th>
-                                    <th>Open Date</th>
+                                    <th>Hold Date</th>
                                     <th>Agent Name</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>

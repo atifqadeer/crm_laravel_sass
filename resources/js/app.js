@@ -777,6 +777,7 @@ function fetchNotifications() {
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize offcanvas
     const chatOffcanvas = new bootstrap.Offcanvas(document.getElementById('chatOffcanvas'));
+    const emailOffcanvas = new bootstrap.Offcanvas(document.getElementById('emailOffcanvas'));
 
     // Handle chat button clicks
     $(document).on('click', '.chat-btn', function() {
@@ -802,15 +803,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const name = $(this).data('name');
 
         // Set chat header info
-        $('#chatUserName').text(name);
-        $('#chatUserEmail').text(email);
-        $('#applicantId').val(applicantId);
-
-        // Load messages
-        loadMessages(applicantId, phone);
+        $('#emailUserName').text(name);
+        $('#emailUserEmail').text(email);
+        $('#emailTo').val(email);
+        $('#emailapplicantId').val(applicantId);
 
         // Show offcanvas
-        chatOffcanvas.show();
+        emailOffcanvas.show();
     });
 
     // Function to load messages
@@ -894,6 +893,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 $('#messagesContainer').html(messagesHtml);
+
+                // ✅ Scroll to bottom after messages render
+                setTimeout(scrollToBottom, 100);
             },
             error: function(xhr) {
                 console.error('Error loading messages:', xhr);
@@ -927,13 +929,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     $('#messageInput').val('');
                     // Add the sent message to the chat
                     const newMessageHtml = `
-        <div class="d-flex justify-content-end mb-3">
-            <div class="bg-primary text-white p-3 rounded-3" style="max-width: 75%">
-            <p class="mb-1">${message}</p>
-            <small class="d-block text-end text-white-50">Just now</small>
-            </div>
-        </div>
-        `;
+                        <div class="d-flex justify-content-end mb-3">
+                            <div class="bg-primary text-white p-3 rounded-3" style="max-width: 75%">
+                            <p class="mb-1">${message}</p>
+                            <small class="d-block text-end text-white-50">Just now</small>
+                            </div>
+                        </div>
+                        `;
                     $('#messagesContainer').append(newMessageHtml);
                     $('#messagesContainer').scrollTop($('#messagesContainer')[0]
                         .scrollHeight);
@@ -942,4 +944,71 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
+
+    $('#emailForm').submit(function(e) {
+        e.preventDefault();
+
+        const applicantId = $('#emailapplicantId').val();
+        const toEmail = $('#emailTo').val().trim();
+        const subject = $('#emailSubject').val().trim();
+        const message = $('#emailBody').summernote('code').trim(); // get HTML content from Summernote
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+        if (toEmail && subject && message && message !== '<p><br></p>') {
+            $.ajax({
+                url: "/saveComposedEmail",
+                method: "POST",
+                data: {
+                    applicant_id: applicantId,
+                    app_email: toEmail,
+                    email_subject: subject,
+                    email_body: message,
+                    _token: csrfToken
+                },
+                beforeSend: function() {
+                    $('#emailStatus').html('<span class="text-primary"><i class="ri-loader-4-line spin me-1"></i> Sending...</span>');
+                    $('#sendEmailBtn').prop('disabled', true);
+                },
+                success: function(response) {
+                    $('#sendEmailBtn').prop('disabled', false);
+                    if (response.success) {
+                        $('#emailStatus').html('<span class="text-success">✅ Email sent successfully.</span>');
+                        $('#emailSubject').val('');
+                        $('#emailBody').summernote('reset'); // clear Summernote editor
+                        setTimeout(() => {
+                            $('#emailStatus').text('');
+
+                            // Close the offcanvas
+                            const offcanvasEl = document.getElementById('emailOffcanvas'); // <-- your offcanvas ID
+                            const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                            if (offcanvas) {
+                                offcanvas.hide();
+                            }
+                        }, 1500);
+                    } else {
+                        $('#emailStatus').html('<span class="text-danger">❌ Failed to send email.</span>');
+                    }
+                },
+                error: function(xhr) {
+                    $('#sendEmailBtn').prop('disabled', false);
+                    const errorMsg = xhr.responseJSON?.message || 'Something went wrong.';
+                    $('#emailStatus').html(`<span class="text-danger">⚠️ Error: ${errorMsg}</span>`);
+                }
+            });
+        } else {
+            $('#emailStatus').html('<span class="text-warning">⚠️ Please fill in all fields before sending.</span>');
+        }
+    });
+
+    function scrollToBottom() {
+        const container = $('#messagesContainer');
+        container.scrollTop(container[0].scrollHeight);
+    }
+
+    $('#emailOffcanvas').on('shown.bs.offcanvas', function () {
+    $('.summernote').summernote({
+        height: 250
+    });
+});
+
 });

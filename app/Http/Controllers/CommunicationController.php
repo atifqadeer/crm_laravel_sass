@@ -712,7 +712,6 @@ class CommunicationController extends Controller
             'next_page' => $applicants->currentPage() + 1,
         ]);
     }
-
     public function getUserChats(Request $request)
     {
         try {

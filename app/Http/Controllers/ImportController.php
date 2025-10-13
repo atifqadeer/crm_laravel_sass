@@ -64,14 +64,18 @@ class ImportController extends Controller
     }
     public function applicantsImport(Request $request)
     {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv', // Restrict to CSV
-        ]);
-
-        ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '5G');
+            // 🔧 Increase PHP resource limits for large files
+        ini_set('upload_max_filesize', '5G');
+        ini_set('post_max_size', '5G');
+        ini_set('memory_limit', '6G');
+        ini_set('max_execution_time', 0);
+        ini_set('max_input_time', 0);
 
         try {
+            // 🧾 Validate uploaded file (allow up to 5GB, CSV or TXT only)
+            $request->validate([
+                'csv_file' => 'required|file|mimes:csv,txt|max:5242880', // 5GB = 5 * 1024 * 1024 KB
+            ]);
             Log::channel('daily')->info('Starting CSV import process.');
 
             $file = $request->file('csv_file');
@@ -1631,7 +1635,7 @@ class ImportController extends Controller
                     'is_cv_in_quality' => ($row['is_cv_in_quality'] ?? '') == 'yes' ? 1 : 0,
                     'is_cv_in_quality_clear' => ($row['is_cv_in_quality_clear'] ?? '') == 'yes' ? 1 : 0,
                     'is_cv_sent' => ($row['is_CV_sent'] ?? '') == 'yes' ? 1 : 0,
-                    'is_cv_reject' => ($row['is_CV_reject'] ?? '') == 'yes' ? 1 : 0,
+                    'is_cv_in_quality_reject' => ($row['is_CV_reject'] ?? '') == 'yes' ? 1 : 0,
                     'is_interview_confirm' => ($row['is_interview_confirm'] ?? '') == 'yes' ? 1 : 0,
                     'is_interview_attend' => ($row['is_interview_attend'] ?? '') == 'yes' ? 1 : 0,
                     'is_in_crm_request' => ($row['is_in_crm_request'] ?? '') == 'yes' ? 1 : 0,
@@ -1656,29 +1660,50 @@ class ImportController extends Controller
                 $processedData[] = $processedRow;
             }
 
-            // Batch insert/update
             $successfulRows = 0;
-            foreach (array_chunk($processedData, 100) as $chunk) {
+            $failedRows = [];
+
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
-                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
-                            $rowIndex = $index + 2; // Adjust for header and 1-based indexing
+                            $rowIndex = ($chunkIndex * 100) + $index + 2; // Adjust for header & 1-based indexing
+
                             try {
-                                $applicant = Applicant::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    array_filter($row, fn($value) => !is_null($value))
+                                // Separate ID for matching
+                                $id = $row['id'] ?? null;
+                                unset($row['id']);
+
+                                if ($id === null) {
+                                    throw new \Exception('Missing ID field.');
+                                }
+
+                                // Filter null values
+                                $filtered = array_filter($row, fn($value) => !is_null($value));
+
+                                // Update or insert
+                                DB::table('applicants')->updateOrInsert(
+                                    ['id' => $id],
+                                    $filtered
                                 );
-                                Log::channel('daily')->info("Row {$rowIndex}: Applicant created/updated: ID={$applicant->id}");
+
+                                Log::channel('daily')->info("Row {$rowIndex}: Applicant inserted/updated successfully (ID={$id})");
                                 $successfulRows++;
                             } catch (\Exception $e) {
-                                Log::channel('daily')->error("Row {$rowIndex}: Failed to save applicant - {$e->getMessage()}");
-                                $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                                Log::channel('daily')->error("Row {$rowIndex}: Failed to save applicant — {$e->getMessage()}");
+                                $failedRows[] = [
+                                    'row'   => $rowIndex,
+                                    'error' => $e->getMessage()
+                                ];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::channel('daily')->error("Failed to process chunk: {$e->getMessage()}");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => "Chunk failed: {$e->getMessage()}"];
+                    Log::channel('daily')->error("Failed to process chunk {$chunkIndex}: {$e->getMessage()}");
+                    $failedRows[] = [
+                        'row'   => "Chunk {$chunkIndex}",
+                        'error' => "Transaction failed: {$e->getMessage()}"
+                    ];
                 }
             }
 
@@ -1907,24 +1932,50 @@ class ImportController extends Controller
 
             // Save data to database
             $successfulRows = 0;
+            $failedRows = [];
+
             foreach ($processedData as $index => $row) {
                 try {
-                    $office = Office::updateOrCreate(
-                        ['id' => $row['id']],
-                        array_diff_key($row, ['contact' => ''])
-                    );
-                    Log::info("Office created/updated for row " . ($index + 1) . ": ID={$office->id}");
+                    $contacts = $row['contacts'] ?? [];
+                    unset($row['contacts']); // remove contacts before inserting to offices table
 
-                    foreach ($row['contacts'] as $contactData) {
-                        $office->contact()->create($contactData);
+                    // Upsert into `offices` table
+                    DB::table('offices')->updateOrInsert(
+                        ['id' => $row['id']], // match by ID
+                        $row // update/insert data
+                    );
+
+                    Log::info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
+
+                    // Optional: remove old contacts for this office to avoid duplicates
+                    DB::table('contacts')->where('office_id', $row['id'])->delete();
+
+                    // Insert contacts if available
+                    if (!empty($contacts)) {
+                        $contactRows = [];
+                        foreach ($contacts as $contactData) {
+                            $contactData['office_id'] = $row['id'];
+                            $contactData['created_at'] = $contactData['created_at'] ?? now();
+                            $contactData['updated_at'] = $contactData['updated_at'] ?? now();
+                            $contactRows[] = $contactData;
+                        }
+
+                        if (!empty($contactRows)) {
+                            DB::table('contacts')->insert($contactRows);
+                            Log::info("Contacts inserted for office ID {$row['id']}");
+                        }
                     }
-                    Log::info("Contact created for office ID {$office->id}");
+
                     $successfulRows++;
                 } catch (\Exception $e) {
                     Log::error("Failed to save row " . ($index + 1) . ": " . $e->getMessage() . ', Data: ' . json_encode($row));
-                    $failedRows[] = ['row' => $index + 1, 'error' => $e->getMessage()];
+                    $failedRows[] = [
+                        'row' => $index + 1,
+                        'error' => $e->getMessage()
+                    ];
                 }
             }
+
 
             // Prepare response with summary
             $response = [
@@ -2440,7 +2491,7 @@ class ImportController extends Controller
 
             Log::info('Processed data count: ' . count($processedData));
 
-            // Save data to database
+             // Save data to database
             $successfulRows = 0;
             foreach ($processedData as $index => $row) {
                 try {
@@ -2520,20 +2571,21 @@ class ImportController extends Controller
                 }
 
                 try {
-                    User::updateOrInsert(
+                    DB::table('users')->updateOrInsert(
                         ['id' => $row['id']], // Match by ID
                         [
-                            'name' => $row['name'],
-                            'email' => $row['email'],
-                            'password' => $row['password'],
+                            'name' => $row['name'] ?? null,
+                            'email' => $row['email'] ?? null,
+                            'password' => $row['password'] ?? null,
                             'created_at' => $createdAt,
                             'updated_at' => $updatedAt,
                         ]
                     );
                 } catch (\Exception $e) {
-                    Log::error("Failed to import user: " . json_encode($row) . ' — ' . $e->getMessage());
+                    Log::error("Failed to import user (DB::table): " . json_encode($row) . ' — ' . $e->getMessage());
                     continue; // Skip row on DB error
                 }
+
             }
 
             return response()->json(['message' => 'CSV imported and users saved successfully.']);
@@ -4525,186 +4577,187 @@ class ImportController extends Controller
             return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
         }
     }
-    public function moduleNotesImport(Request $request)
-    {
-        try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
+public function moduleNotesImport(Request $request)
+{
+    // 🔧 Increase PHP resource limits for large files
+    ini_set('upload_max_filesize', '5G');
+    ini_set('post_max_size', '5G');
+    ini_set('memory_limit', '6G');
+    ini_set('max_execution_time', 0);
+    ini_set('max_input_time', 0);
 
-            // Set PHP limits
-            ini_set('max_execution_time', 10000);
-            ini_set('memory_limit', '1G');
+    try {
+        // 🧾 Validate uploaded file (allow up to 5GB, CSV or TXT only)
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5242880', // 5GB = 5 * 1024 * 1024 KB
+        ]);
 
-            // Check log directory writability
-            $logFile = storage_path('logs/laravel.log');
-            if (!is_writable(dirname($logFile))) {
-                return response()->json(['error' => 'Log directory is not writable.'], 500);
-            }
-
-            Log::info('Starting Module Notes CSV import');
-
-            // Store file with unique timestamped name
-            $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('uploads/import_files', $filename);
-            $filePath = storage_path("app/{$path}");
-
-            if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
-                return response()->json(['error' => 'Failed to store uploaded file.'], 500);
-            }
-            Log::info('File stored at: ' . $filePath);
-
-            // Stream encoding conversion
-            $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
-                $tempFile = $filePath . '.utf8';
-                $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
-                    return response()->json(['error' => 'Failed to read uploaded file.'], 500);
-                }
-                $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
-                    fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
-                    return response()->json(['error' => 'Failed to create temporary file.'], 500);
-                }
-                while (!feof($handleIn)) {
-                    $chunk = fread($handleIn, 8192);
-                    fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
-                }
-                fclose($handleIn);
-                fclose($handleOut);
-                unlink($filePath);
-                rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
-            }
-
-            // Parse CSV with league/csv
-            $csv = Reader::createFromPath($filePath, 'r');
-            $csv->setHeaderOffset(0);
-            $csv->setDelimiter(',');
-            $csv->setEnclosure('"');
-            $csv->setEscape('\\');
-
-            $headers = $csv->getHeader();
-            $records = $csv->getRecords();
-            $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
-
-            $processedData = [];
-            $failedRows = [];
-            $successfulRows = 0;
-            $rowIndex = 1;
-
-            // Process CSV rows
-            foreach ($records as $row) {
-                $rowIndex++;
-                if ($rowIndex % 1000 === 0) {
-                    Log::info("Processing row {$rowIndex}");
-                }
-
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['module_noteable_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
-                    continue;
-                }
-
-                // Clean string values
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                    }
-                    return $value;
-                }, $row);
-
-                // Handle date and time formats
-                try {
-                    $createdAt = !empty($row['created_at'])
-                        ? Carbon::parse($row['created_at'])->format('Y-m-d H:i:s')
-                        : now()->format('Y-m-d H:i:s');
-                    $updatedAt = !empty($row['updated_at'])
-                        ? Carbon::parse($row['updated_at'])->format('Y-m-d H:i:s')
-                        : now()->format('Y-m-d H:i:s');
-                } catch (\Exception $e) {
-                    Log::warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
-                    $createdAt = now()->format('Y-m-d H:i:s');
-                    $updatedAt = now()->format('Y-m-d H:i:s');
-                }
-
-                // Prepare row for insertion
-                $processedRow = [
-                    'id' => $row['id'] ?? null,
-                    'module_note_uid' => md5($row['id']),
-                    'user_id' => $row['user_id'] ?? null,
-                    'module_noteable_id' => $row['module_noteable_id'],
-                    'module_noteable_type' => $row['module_noteable_type'],
-                    'details' => $row['details'] ?? '',
-                    'status' => $row['status'] == 'active' ? 1 : 0,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-                $processedData[] = $processedRow;
-            }
-
-            // Insert rows in batches
-            foreach (array_chunk($processedData, 1000) as $chunk) {
-                try {
-                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
-                        foreach ($chunk as $index => $row) {
-                            try {
-                                ModuleNote::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
-                                $successfulRows++;
-                                if (($index + 1) % 1000 === 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
-                                }
-                            } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
-                                $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
-                            }
-                        }
-                    });
-                } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
-                }
-            }
-
-            // Clean up temporary file
-            if (file_exists($filePath)) {
-                unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
-            }
-
-            Log::info("Module Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
-
-            return response()->json([
-                'message' => 'Module Notes CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
-            ], 200);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
-            return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
-        } catch (\Exception $e) {
-            Log::error('Module Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
-            if (isset($filePath) && file_exists($filePath)) {
-                unlink($filePath);
-            }
-            return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
+        // 🪵 Ensure log directory writable
+        $logFile = storage_path('logs/laravel.log');
+        if (!is_writable(dirname($logFile))) {
+            return response()->json(['error' => 'Log directory is not writable.'], 500);
         }
+
+        Log::info('📥 Starting Module Notes CSV import');
+
+        // 🗂️ Store uploaded file
+        $file = $request->file('csv_file');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('uploads/import_files', $filename);
+        $filePath = storage_path("app/{$path}");
+
+        if (!file_exists($filePath)) {
+            Log::error("❌ Failed to store file at: {$filePath}");
+            return response()->json(['error' => 'Failed to store uploaded file.'], 500);
+        }
+        Log::info('✅ File stored at: ' . $filePath);
+
+        // 🔄 Detect and convert encoding if needed
+        $encoding = $this->detectEncodingd($filePath);
+        if ($encoding !== 'UTF-8') {
+            $tempFile = $filePath . '.utf8';
+            $handleIn = fopen($filePath, 'r');
+            $handleOut = fopen($tempFile, 'w');
+
+            while (!feof($handleIn)) {
+                $chunk = fread($handleIn, 8192);
+                fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
+            }
+
+            fclose($handleIn);
+            fclose($handleOut);
+            unlink($filePath);
+            rename($tempFile, $filePath);
+            Log::info("Converted CSV from {$encoding} to UTF-8");
+        }
+
+        // 🧩 Parse CSV in streaming mode
+        $csv = Reader::createFromPath($filePath, 'r');
+        $csv->setHeaderOffset(0);
+        $csv->setDelimiter(',');
+        $csv->setEnclosure('"');
+        $csv->setEscape('\\');
+
+        $headers = $csv->getHeader();
+        $records = $csv->getRecords();
+        $expectedColumnCount = count($headers);
+
+        Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+        $batchSize = 1000;
+        $batch = [];
+        $successfulRows = 0;
+        $failedRows = [];
+
+        $rowIndex = 1;
+        foreach ($records as $row) {
+            $rowIndex++;
+
+            // Normalize row columns
+            $row = array_pad($row, $expectedColumnCount, null);
+            $row = array_slice($row, 0, $expectedColumnCount);
+            $row = array_combine($headers, $row);
+
+            if (!$row || !isset($row['user_id'], $row['module_noteable_id'])) {
+                $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing required columns'];
+                continue;
+            }
+
+            // Clean up strings
+            $row = array_map(function ($val) {
+                if (is_string($val)) {
+                    $val = preg_replace('/\s+/', ' ', trim($val));
+                    $val = preg_replace('/[^\x20-\x7E]/', '', $val);
+                }
+                return $val;
+            }, $row);
+
+            // Handle date formats
+            try {
+                $createdAt = !empty($row['created_at']) ? Carbon::parse($row['created_at'])->format('Y-m-d H:i:s') : now();
+                $updatedAt = !empty($row['updated_at']) ? Carbon::parse($row['updated_at'])->format('Y-m-d H:i:s') : now();
+            } catch (\Exception $e) {
+                Log::warning("Row {$rowIndex}: Invalid date format");
+                $createdAt = now();
+                $updatedAt = now();
+            }
+
+            $batch[] = [
+                'id' => $row['id'] ?? null,
+                'module_note_uid' => md5($row['id'] ?? uniqid()),
+                'user_id' => $row['user_id'],
+                'module_noteable_id' => $row['module_noteable_id'],
+                'module_noteable_type' => $row['module_noteable_type'] ?? '',
+                'details' => $row['details'] ?? '',
+                'status' => ($row['status'] ?? '') === 'active' ? 1 : 0,
+                'created_at' => $createdAt,
+                'updated_at' => $updatedAt,
+            ];
+
+            // 🧱 Insert batch every 1000 rows
+            if (count($batch) >= $batchSize) {
+                $this->insertBatch($batch, $successfulRows, $failedRows);
+                $batch = [];
+            }
+        }
+
+        // Insert remaining rows
+        if (!empty($batch)) {
+            $this->insertBatch($batch, $successfulRows, $failedRows);
+        }
+
+        // 🧹 Clean up file
+        if (file_exists($filePath)) {
+            unlink($filePath);
+            Log::info("🧽 Deleted temp file: {$filePath}");
+        }
+
+        Log::info("✅ Module Notes import complete: {$successfulRows} success, " . count($failedRows) . " failed.");
+
+        return response()->json([
+            'message' => 'Module Notes import completed.',
+            'successful_rows' => $successfulRows,
+            'failed_rows' => count($failedRows),
+            'failed_details' => $failedRows,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Validation failed: ' . json_encode($e->errors()));
+        return response()->json(['error' => $e->errors()['csv_file'][0] ?? 'Invalid file'], 422);
+    } catch (\Exception $e) {
+        Log::error('❌ Import failed: ' . $e->getMessage());
+        return response()->json(['error' => 'Error: ' . $e->getMessage()], 500);
     }
+}
+
+private function insertBatch(array $batch, &$successfulRows, array &$failedRows)
+{
+    try {
+        DB::transaction(function () use ($batch, &$successfulRows, &$failedRows) {
+            foreach ($batch as $row) {
+                try {
+                    ModuleNote::updateOrCreate(
+                        ['id' => $row['id']],
+                        $row
+                    );
+                    $successfulRows++;
+                } catch (\Exception $e) {
+                    $failedRows[] = ['id' => $row['id'], 'error' => $e->getMessage()];
+                }
+            }
+        });
+    } catch (\Exception $e) {
+        Log::error("Transaction failed: " . $e->getMessage());
+    }
+}
+
+private function detectEncodingd($filePath)
+{
+    $sample = file_get_contents($filePath, false, null, 0, 1000);
+    $encoding = mb_detect_encoding($sample, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+    return $encoding ?: 'UTF-8';
+}
+
     public function qualityNotesImport(Request $request)
     {
         try {
@@ -5808,6 +5861,7 @@ class ImportController extends Controller
         return back()->with('success', 'File processed successfully. Found keywords: ' . implode(', ', $foundKeywords));
     }
 
+    /** PRIVATE FUNCTIONS */
     private function extractText($file)
     {
         $extension = $file->getClientOriginalExtension();
@@ -5867,7 +5921,6 @@ class ImportController extends Controller
 
         return null;
     }
-
     private function searchKeywords($text, $keywords)
     {
         $keywords = ['skills','qualification','education','name','contact','phone','experience','postcode'];
@@ -5879,7 +5932,6 @@ class ImportController extends Controller
         }
         return $found;
     }
-
     private function saveToDatabase($file, $foundKeywords)
     {
         return Applicant::create([

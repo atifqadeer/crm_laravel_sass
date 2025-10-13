@@ -26,7 +26,7 @@
             ['number' => 16, 'type' => 'IP-Address', 'label' => 'IP Address'],
             ['number' => 17, 'type' => 'Module-Notes', 'label' => 'Module Notes'],
             ['number' => 18, 'type' => 'Quality-Notes', 'label' => 'Quality Notes'],
-            ['number' => 19, 'type' => 'Regions-Notes', 'label' => 'Regions Notes'],
+            ['number' => 19, 'type' => 'Regions', 'label' => 'Regions'],
             ['number' => 20, 'type' => 'Revert-Stages', 'label' => 'Revert Stages'],
             ['number' => 21, 'type' => 'Sale-Documents', 'label' => 'Sale Documents'],
             ['number' => 22, 'type' => 'Sale-Notes', 'label' => 'Sale Notes'],
@@ -50,7 +50,7 @@
 </div>
 
 @foreach ([
-        'Users', 'Offices', 'Units', 'CRM-Rejected-Cv', 'IP-Address', 'Regions-Notes',
+        'Users', 'Offices', 'Units', 'CRM-Rejected-Cv', 'IP-Address', 'Regions',
         'Applicants', 'Sales', 'Messages', 'Cv-Notes', 'Interview', 'Module-Notes', 'Sent-Emails',
         'Applicant-Notes', 'Applicant-Pivot-Sales', 'History', 'Quality-Notes', 'Sale-Notes',
         'Note-Range-Pivot-Sales', 'Audits', 'CRM-Notes', 'Revert-Stages', 'Sale-Documents',
@@ -86,7 +86,6 @@
 @section('script')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-@vite(['resources/js/pages/settings.js'])
 <script>
     $(document).ready(function () {
         @foreach ([
@@ -108,7 +107,7 @@
             'IP-Address' => 'ipAddress',
             'Module-Notes' => 'moduleNotes',
             'Quality-Notes' => 'qualityNotes',
-            'Regions-Notes' => 'regions',
+            'Regions' => 'regions',
             'Revert-Stages' => 'revertStage',
             'Sale-Documents' => 'saleDocuments',
             'Sale-Notes' => 'saleNotes',
