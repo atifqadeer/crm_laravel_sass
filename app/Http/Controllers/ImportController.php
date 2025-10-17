@@ -77,6 +77,7 @@ class ImportController extends Controller
                 'csv_file' => 'required|file|mimes:csv,txt|max:5242880', // 5GB = 5 * 1024 * 1024 KB
             ]);
             Log::channel('daily')->info('Starting CSV import process.');
+            $startTime = microtime(true);
 
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
@@ -112,10 +113,19 @@ class ImportController extends Controller
             $processedData = [];
             $failedRows = [];
             $rowIndex = 1;
+            $totalRows = 0;
 
             foreach ($records as $row) {
                 $rowIndex++;
-                
+
+                // Skip completely empty rows
+                if (empty(array_filter((array) $row))) {
+                    Log::channel('daily')->debug("Row {$rowIndex} is empty. Skipping.");
+                    continue;
+                }
+
+                $totalRows++;
+
                 Log::channel('daily')->debug("Processing row {$rowIndex}: " . json_encode($row));
 
                 // Fields like job_category/applicant_job_title may be missing in legacy exports; continue and resolve later
@@ -1656,36 +1666,42 @@ class ImportController extends Controller
             $successfulRows = 0;
             $failedRows = [];
 
-            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
+            foreach (array_chunk($processedData, 1000) as $chunkIndex => $chunk) {
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
-                            $rowIndex = ($chunkIndex * 100) + $index + 2; // Adjust for header & 1-based indexing
+                            $rowNumber = ($chunkIndex * 1000) + $index + 2; // Adjust for header & 1-based indexing
 
                             try {
-                                // Separate ID for matching
                                 $id = $row['id'] ?? null;
-                                unset($row['id']);
+                                $email = trim((string)($row['applicant_email'] ?? ''));
+                                $hasValidEmail = ($email !== '' && $email !== '-' && filter_var($email, FILTER_VALIDATE_EMAIL));
 
-                                if ($id === null) {
-                                    throw new \Exception('Missing ID field.');
+                                // Filter out null values from payload
+                                $attributes = array_filter($row, fn($value) => !is_null($value));
+
+                                if ($hasValidEmail) {
+                                    // Avoid forcing ID when matching by email
+                                    unset($attributes['id']);
+                                    Applicant::updateOrCreate(
+                                        ['applicant_email' => $email],
+                                        $attributes
+                                    );
+                                } elseif ($id !== null) {
+                                    Applicant::updateOrCreate(
+                                        ['id' => $id],
+                                        $attributes
+                                    );
+                                } else {
+                                    throw new \Exception('Missing identifier: applicant_email or id');
                                 }
 
-                                // Filter null values
-                                $filtered = array_filter($row, fn($value) => !is_null($value));
-
-                                // Update or insert
-                                DB::table('applicants')->updateOrInsert(
-                                    ['id' => $id],
-                                    $filtered
-                                );
-
-                                Log::channel('daily')->info("Row {$rowIndex}: Applicant inserted/updated successfully (ID={$id})");
+                                Log::channel('daily')->info("Row {$rowNumber}: Applicant upserted successfully (identifier=" . ($hasValidEmail ? $email : $id) . ")");
                                 $successfulRows++;
                             } catch (\Exception $e) {
-                                Log::channel('daily')->error("Row {$rowIndex}: Failed to save applicant — {$e->getMessage()}");
+                                Log::channel('daily')->error("Row {$rowNumber}: Failed to upsert applicant — {$e->getMessage()}");
                                 $failedRows[] = [
-                                    'row'   => $rowIndex,
+                                    'row'   => $rowNumber,
                                     'error' => $e->getMessage()
                                 ];
                             }
@@ -1706,12 +1722,17 @@ class ImportController extends Controller
                 Log::channel('daily')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::channel('daily')->info("CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            $endTime = microtime(true);
+            $duration = round(($endTime - $startTime), 2);
+
+            Log::channel('daily')->info("CSV import completed. Total: {$totalRows}, Successful: {$successfulRows}, Failed: " . count($failedRows) . ", Time: {$duration} seconds");
             return response()->json([
                 'message' => 'CSV import completed.',
+                'total_rows' => $totalRows,
                 'successful_rows' => $successfulRows,
                 'failed_rows' => count($failedRows),
                 'failed_details' => $failedRows,
+                'duration_seconds' => $duration,
             ], 200);
 
         } catch (\Exception $e) {
