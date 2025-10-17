@@ -118,22 +118,10 @@ class ImportController extends Controller
                 
                 Log::channel('daily')->debug("Processing row {$rowIndex}: " . json_encode($row));
 
-                // Validate required fields
-                if (empty($row['job_category']) || empty($row['applicant_job_title'])) {
-                    Log::channel('daily')->warning("Skipped row {$rowIndex}: Missing job_category or applicant_job_title");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing job_category or applicant_job_title'];
-                    continue;
-                }
+                // Fields like job_category/applicant_job_title may be missing in legacy exports; continue and resolve later
 
-                // Ensure row matches header count
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-                if ($row === false) {
-                    Log::channel('daily')->warning("Skipped row {$rowIndex} due to header mismatch");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
-                    continue;
-                }
+                // Ensure associative keys are limited to headers; ignore extras
+                $row = array_intersect_key($row, array_flip($headers));
 
                 // Clean and normalize data
                 $row = array_map(function ($value) {
@@ -166,33 +154,42 @@ class ImportController extends Controller
 
                 // Parse dates with multiple formats
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
+                    $formats = ['Y-m-d H:i:s', 'Y-m-d', 'd/m/Y H:i', 'd/m/Y', 'm/d/Y H:i', 'm/d/Y'];
 
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
-                        }
+                        } catch (\Exception $e) {}
                     }
 
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
 
-                $fixedCreatedAt = $preprocessDate($row['created_at'], 'created_at', $rowIndex);
-                $fixedUpdatedAt = $preprocessDate($row['updated_at'], 'updated_at', $rowIndex);
-                $createdAt = $parseDate($fixedCreatedAt, 'created_at', $rowIndex) ?? now()->format('Y-m-d H:i:s');
-                $updatedAt = $parseDate($fixedUpdatedAt, 'updated_at', $rowIndex) ?? now()->format('Y-m-d H:i:s');
-                
+                $normalizeDate = function ($value, $field) use ($preprocessDate, $parseDate, $rowIndex) {
+                    $v = trim((string)($value ?? ''));
+                    if ($v === '' || in_array(strtolower($v), ['null', 'pending', 'active', 'n/a', 'na', 'no', '-'])) {
+                        return now()->format('Y-m-d H:i:s');
+                    }
+                    $v = $preprocessDate($v, $field, $rowIndex);
+                    $parsed = $parseDate($v, $rowIndex, $field);
+                    return $parsed ?: now()->format('Y-m-d H:i:s');
+                };
+
+                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at');
+                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at');
+
                 $paid_timestamp = null;
-                if (!empty($row['paid_timestamp']) && $row['paid_timestamp'] !== 'NULL') {
-                    $fixedPaidTimestamp = $preprocessDate($row['paid_timestamp'], 'paid_timestamp', $rowIndex);
-                    $paid_timestamp = $parseDate($fixedPaidTimestamp, 'paid_timestamp', $rowIndex);
+                $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
+                if (!preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
+                    $ts = strtotime($rawPaid);
+                    if ($ts) {
+                        $paid_timestamp = date('Y-m-d H:i:s', $ts);
+                    }
                 }
 
                 // Handle postcode and geolocation
@@ -201,44 +198,18 @@ class ImportController extends Controller
                     preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
                     $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
                 }
-                $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
-                $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
+                $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0);
+                $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0);
 
-                if ($lat === null && $lng === null || $lat === 'null' && $lng === 'null') {
+                if ((float)$lat === 0.0 && (float)$lng === 0.0) {
                     $postcode_query = strlen($cleanPostcode) < 6
                         ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                         : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
 
-                    // if (!$postcode_query) {
-                    //     try {
-                    //         $result = $this->geocode($cleanPostcode);
-
-                    //         // If geocode fails, throw
-                    //         if (!isset($result['lat']) || !isset($result['lng'])) {
-                    //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                    //         }
-
-                    //         $applicantData['lat'] = $result['lat'];
-                    //         $applicantData['lng'] = $result['lng'];
-                    //     } catch (\Exception $e) {
-                    //         return response()->json([
-                    //             'success' => false,
-                    //             'message' => 'Unable to locate address: ' . $e->getMessage()
-                    //         ], 400);
-                    //     }
-                    // } else {
-                        $lat = $postcode_query->lat;
-                        $lng = $postcode_query->lng;
-                    // }
-
-                    /** ✅ Validate lat/lng presence before inserting */
-                    // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
-                    //     return response()->json([
-                    //         'success' => false,
-                    //         'message' => 'Postcode location is required. Please provide a valid postcode.'
-                    //     ], 400);
-                    // }
-
+                    if ($postcode_query) {
+                        $lat = (float)($postcode_query->lat ?? 0.0);
+                        $lng = (float)($postcode_query->lng ?? 0.0);
+                    }
                 }
 
                 // Keep whitespace intact
@@ -1512,33 +1483,52 @@ class ImportController extends Controller
                     ]
                 ];
                 
-                $requested_job_title = strtolower($row['applicant_job_title']);
-                if($requested_job_title != 'nonnurse specialist' || $requested_job_title != 'nurse specialist' || $requested_job_title != 'non-nurse specialist'){
+                $requested_job_title = strtolower(trim($row['applicant_job_title'] ?? ''));
+                $requested_job_category = strtolower(trim($row['job_category'] ?? ''));
+                $specialTitles = ['nonnurse specialist', 'nurse specialist', 'non-nurse specialist', 'select job title'];
+                if (!in_array($requested_job_title, $specialTitles, true)) {
+                    $normalizedTitle = preg_replace('/[^a-z0-9]/', '', $requested_job_title);
                     $job_title = JobTitle::whereRaw(
                         "LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?",
-                        [preg_replace('/[^a-z0-9]/', '', strtolower($requested_job_title))]
-                        )->first();
-                        
+                        [$normalizedTitle]
+                    )->first();
+
                     if ($job_title) {
                         $job_category_id = $job_title->job_category_id;
                         $job_title_id = $job_title->id;
                         $job_type = $job_title->type;
                     } else {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
+                        // Fallback to category matching if provided
+                        if ($requested_job_category !== '') {
+                            $normalizedCategory = preg_replace('/[^a-z0-9]/', '', $requested_job_category);
+                            $job_category = JobCategory::whereRaw(
+                                "LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?",
+                                [$normalizedCategory]
+                            )->first();
+                            if ($job_category) {
+                                $job_category_id = $job_category->id;
+                            } else {
+                                Log::channel('daily')->warning("Row {$rowIndex}: Job title and category not found: {$requested_job_title} / {$requested_job_category}");
+                            }
+                        } else {
+                            Log::channel('daily')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
+                        }
                     }
-                }else{
+                } else {
                     foreach ($specialists as $specialist) {
-                        if ($specialist['id'] == $row['job_title_prof']) {
+                        if ((string)$specialist['id'] === (string)($row['job_title_prof'] ?? '')) {
                             $job_title = JobTitle::whereRaw('LOWER(name) = ?', [strtolower($specialist['specialist_prof'])])->first();
                             if ($job_title) {
+                                $job_category_id = $job_title->job_category_id;
                                 $job_title_id = $job_title->id;
                                 $job_type = $job_title->type;
                             } else {
-                                Log::channel('daily')->warning("Row {$rowIndex}: Job title not found against specialist id: {$requested_job_title}");
+                                Log::channel('daily')->warning("Row {$rowIndex}: Job title not found for specialist id: " . ($row['job_title_prof'] ?? ''));
                             }
+                            break;
                         }
                     }
-                }               
+                }
 
                 // Handle job source
                 $sourceRaw = $row['applicant_source'] ?? '';
@@ -1553,57 +1543,60 @@ class ImportController extends Controller
                 preg_match('/\d{10,}/', $cleanedName, $matches);
                 $extractedNumber = $matches[0] ?? null;
                 $cleanedNumber = $extractedNumber ? preg_replace('/\D/', '', $extractedNumber) : null;
-                $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName)) ?: null;
+                $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName));
+                if ($finalName === '' || $finalName === null) {
+                    $finalName = 'Unknown';
+                }
 
-                // Handle phone numbers
-                $normalizePhone = function ($input) use ($rowIndex) {
-                    if (!is_string($input) || empty($input)) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Empty or invalid phone input");
-                        return null;
-                    }
+                // Phone normalization
+                $normalizePhone = function ($input, $rowIndex, $field = 'phone') {
+                    $input = trim((string)($input ?? ''));
+                    if ($input === '' || in_array(strtolower($input), ['null', 'n/a'])) return '0';
                     $digits = preg_replace('/\D/', '', $input);
-                    if (strlen($digits) === 11) {
-                        return $digits;
-                    } elseif (strlen($digits) === 10 && ($digits[0] === '7')) {
-                        return '0' . $digits;
-                    }
-                    Log::channel('daily')->debug("Row {$rowIndex}: Invalid phone format: {$input}");
-                    return null;
+                    if (preg_match('/^(44)(\d{9,10})$/', $digits, $m)) $digits = '0' . $m[2];
+                    if (!str_starts_with($digits, '0')) $digits = '0' . $digits;
+                    return strlen($digits) < 10 ? '0' : substr($digits, 0, 12);
                 };
 
+                $phone = null;
+                $landlinePhone = null;
                 $rawPhone = $row['applicant_phone'] ?? '';
-                $parts = is_string($rawPhone) ? array_map('trim', explode('/', $rawPhone)) : [];
-                $firstRaw = $parts[0] ?? '0';
-                $secondRaw = $parts[1] ?? '';
-                $input = $normalizePhone($firstRaw);
-                if (preg_match('/\b\d{11}\b/', $input, $matches)) {
-                    $phone = $matches[0]; 
+                if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
+                    $parts = array_map('trim', explode('/', $rawPhone));
+                    $firstRaw = $parts[0] ?? '';
+                    $secondRaw = $parts[1] ?? '';
+                    $phone = $normalizePhone($firstRaw, $rowIndex, 'applicant_phone');
+                    $landlinePhone = $normalizePhone($secondRaw, $rowIndex, 'applicant_landline');
                 } else {
-                    $phone = 0;            // If no valid 11-digit number found
-                }
-                $landlinePhoneInput = $normalizePhone($secondRaw);
-                $homePhone = $normalizePhone($landlinePhoneInput);
-                if (preg_match('/\b\d{11}\b/', $homePhone, $matches)) {
-                    $landlinePhone = $matches[0]; 
-                } else {
-                    $landlinePhone = null;            // If no valid 11-digit number found
+                    $phone = $normalizePhone($rawPhone, $rowIndex, 'applicant_phone');
                 }
 
-                $rawHomePhoneInput = $row['applicant_homePhone'] ?? '';
-                $homePhone = $normalizePhone($rawHomePhoneInput);
-                if (preg_match('/\b\d{11}\b/', $homePhone, $matches)) {
-                    $rawHomePhone = $matches[0]; 
-                } else {
-                    $rawHomePhone = null;            // If no valid 11-digit number found
-                }
-                $applicantLandline = ($rawHomePhone ?? $landlinePhone) ?? $cleanedNumber ?? 0;
+                $rawHomePhone = $row['applicant_homePhone'] ?? '';
+                $homePhone = $normalizePhone($rawHomePhone, $rowIndex, 'applicant_homePhone');
+                $applicantLandline = $homePhone !== '0' ? $homePhone : ($landlinePhone !== '0' ? $landlinePhone : ($cleanedNumber ?? '0'));
 
                 // Handle is_crm_interview_attended
                 $is_crm_interview_attended = match (strtolower($row['is_crm_interview_attended'] ?? '')) {
                     'yes' => 1,
                     'pending' => 2,
-                    'no' => 0
+                    'no' => 0,
+                    default => null,
                 };
+
+                $parseBool = function ($val) {
+                    $v = strtolower(trim((string)($val ?? '')));
+                    return in_array($v, ['yes', '1', 'true'], true) ? 1 : 0;
+                };
+
+                $have_nursing_home_experience = null;
+                $nhexpInput = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
+                if ($nhexpInput === '') {
+                    $have_nursing_home_experience = null;
+                } elseif (in_array($nhexpInput, ['0', 'inactive'], true)) {
+                    $have_nursing_home_experience = 0;
+                } else {
+                    $have_nursing_home_experience = 1;
+                }
 
                 $processedRow = [
                     'id' => $row['id'] ?? null,
@@ -1625,32 +1618,32 @@ class ImportController extends Controller
                     'job_type' => $job_type,
                     'applicant_phone' => $phone,
                     'applicant_landline' => $applicantLandline,
-                    'is_blocked' => $row['is_blocked'] ?? 0,
-                    'is_no_job' => ($row['is_no_job'] ?? 0) == '1' ? 1 : 0,
-                    'is_temp_not_interested' => $row['temp_not_interested'] ?? 0,
-                    'is_no_response' => $row['no_response'] ?? 0,
-                    'is_circuit_busy' => $row['is_circuit_busy'] ?? 0,
-                    'is_callback_enable' => ($row['is_callback_enable'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_nurse_home' => ($row['is_in_nurse_home'] ?? '') == 'yes' ? 1 : 0,
-                    'is_cv_in_quality' => ($row['is_cv_in_quality'] ?? '') == 'yes' ? 1 : 0,
-                    'is_cv_in_quality_clear' => ($row['is_cv_in_quality_clear'] ?? '') == 'yes' ? 1 : 0,
-                    'is_cv_sent' => ($row['is_CV_sent'] ?? '') == 'yes' ? 1 : 0,
-                    'is_cv_in_quality_reject' => ($row['is_CV_reject'] ?? '') == 'yes' ? 1 : 0,
-                    'is_interview_confirm' => ($row['is_interview_confirm'] ?? '') == 'yes' ? 1 : 0,
-                    'is_interview_attend' => ($row['is_interview_attend'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_request' => ($row['is_in_crm_request'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_reject' => ($row['is_in_crm_reject'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_request_reject' => ($row['is_in_crm_request_reject'] ?? '') == 'yes' ? 1 : 0,
-                    'is_crm_request_confirm' => ($row['is_crm_request_confirm'] ?? '') == 'yes' ? 1 : 0,
+                    'is_blocked' => $parseBool($row['is_blocked'] ?? null),
+                    'is_no_job' => $parseBool($row['is_no_job'] ?? null),
+                    'is_temp_not_interested' => $parseBool($row['temp_not_interested'] ?? null),
+                    'is_no_response' => $parseBool($row['no_response'] ?? null),
+                    'is_circuit_busy' => $parseBool($row['is_circuit_busy'] ?? null),
+                    'is_callback_enable' => $parseBool($row['is_callback_enable'] ?? null),
+                    'is_in_nurse_home' => $parseBool($row['is_in_nurse_home'] ?? null),
+                    'is_cv_in_quality' => $parseBool($row['is_cv_in_quality'] ?? null),
+                    'is_cv_in_quality_clear' => $parseBool($row['is_cv_in_quality_clear'] ?? null),
+                    'is_cv_sent' => $parseBool($row['is_CV_sent'] ?? ($row['is_cv_sent'] ?? null)),
+                    'is_cv_in_quality_reject' => $parseBool($row['is_CV_reject'] ?? ($row['is_cv_reject'] ?? null)),
+                    'is_interview_confirm' => $parseBool($row['is_interview_confirm'] ?? null),
+                    'is_interview_attend' => $parseBool($row['is_interview_attend'] ?? null),
+                    'is_in_crm_request' => $parseBool($row['is_in_crm_request'] ?? null),
+                    'is_in_crm_reject' => $parseBool($row['is_in_crm_reject'] ?? null),
+                    'is_in_crm_request_reject' => $parseBool($row['is_in_crm_request_reject'] ?? null),
+                    'is_crm_request_confirm' => $parseBool($row['is_crm_request_confirm'] ?? null),
                     'is_crm_interview_attended' => $is_crm_interview_attended,
-                    'is_in_crm_start_date' => ($row['is_in_crm_start_date'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_invoice' => ($row['is_in_crm_invoice'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_invoice_sent' => ($row['is_in_crm_invoice_sent'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_start_date_hold' => ($row['is_in_crm_start_date_hold'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_paid' => ($row['is_in_crm_paid'] ?? '') == 'yes' ? 1 : 0,
-                    'is_in_crm_dispute' => ($row['is_in_crm_dispute'] ?? '') == 'yes' ? 1 : 0,
-                    'is_job_within_radius' => $row['is_job_within_radius'] ?? 0,
-                    'have_nursing_home_experience' => $row['have_nursing_home_experience'] != 'NULL' ? $row['have_nursing_home_experience'] : null,
+                    'is_in_crm_start_date' => $parseBool($row['is_in_crm_start_date'] ?? null),
+                    'is_in_crm_invoice' => $parseBool($row['is_in_crm_invoice'] ?? null),
+                    'is_in_crm_invoice_sent' => $parseBool($row['is_in_crm_invoice_sent'] ?? null),
+                    'is_in_crm_start_date_hold' => $parseBool($row['is_in_crm_start_date_hold'] ?? null),
+                    'is_in_crm_paid' => $parseBool($row['is_in_crm_paid'] ?? null),
+                    'is_in_crm_dispute' => $parseBool($row['is_in_crm_dispute'] ?? null),
+                    'is_job_within_radius' => $parseBool($row['is_job_within_radius'] ?? null),
+                    'have_nursing_home_experience' => $have_nursing_home_experience,
                     'paid_status' => $row['paid_status'] ?? null,
                     'paid_timestamp' => $paid_timestamp,
                     'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
