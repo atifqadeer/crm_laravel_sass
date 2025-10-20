@@ -10,7 +10,7 @@ class AddGenderAndDobToApplicantsTable extends Migration
     {
         Schema::table('applicants', function (Blueprint $table) {
             $table->string('applicant_email_secondary')->nullable()->after('applicant_email');
-            $table->enum('gender', ['m', 'f', 'other'])->nullable()->after('applicant_email_secondary');
+            $table->enum('gender', ['m', 'f', 'u'])->nullable()->default('u')->after('applicant_email_secondary');
             $table->date('dob')->nullable()->after('gender');
         });
     }

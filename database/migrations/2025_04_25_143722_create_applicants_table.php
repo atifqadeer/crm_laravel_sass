@@ -27,10 +27,10 @@ class CreateApplicantsTable extends Migration
             $table->string('applicant_postcode', 50)->nullable();
             $table->string('applicant_phone', 50);
             $table->string('applicant_landline', 50)->nullable();
-            $table->string('applicant_cv', 255)->nullable();
-            $table->string('updated_cv', 255)->nullable();
-            $table->string('applicant_notes', 255)->nullable();
-            $table->string('applicant_experience', 255)->nullable();
+            $table->longText('applicant_cv')->nullable();
+            $table->longText('updated_cv')->nullable();
+            $table->longText('applicant_notes')->nullable();
+            $table->longText('applicant_experience')->nullable();
             $table->float('lat', 15, 6)->nullable();
             $table->float('lng', 15, 6)->nullable();
 

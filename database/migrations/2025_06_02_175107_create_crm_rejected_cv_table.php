@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('crm_note_id')->constrained('crm_notes');
             $table->foreignId('sale_id')->constrained('sales');
-            $table->string('reason');
+            $table->longText('reason');
             $table->string('crm_rejected_cv_note');
             $table->boolean('status')->default(true);
             

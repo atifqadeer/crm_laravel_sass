@@ -271,6 +271,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     
     // job titles
     Route::get('getJobTitles', [SettingController::class, 'getJobTitles'])->name('getJobTitles');
+    Route::get('getJobTitlesList', [SettingController::class, 'getJobTitlesList'])->name('getJobTitlesList');
     Route::get('job-titles/list', [SettingController::class, 'jobTitlesIndex'])->name('job-titles.list');
     Route::post('job-titles/store', [SettingController::class, 'jobTitlesStore'])->name('job-titles.store');
     Route::put('job-titles/update', [SettingController::class, 'jobTitlesUpdate'])->name('job-titles.update');

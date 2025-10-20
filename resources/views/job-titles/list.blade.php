@@ -1,16 +1,17 @@
 @extends('layouts.vertical', ['title' => 'Job Titles List', 'subTitle' => 'Home'])
 @section('css')
-@vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+    @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
 @endsection
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
     <div class="row">
@@ -22,7 +23,8 @@
                             <div class="text-md-end mt-3">
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
@@ -33,8 +35,9 @@
                                 </div>
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i>  <span id="showFilterStatus">All</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                                         <a class="dropdown-item" href="#">All</a>
@@ -84,7 +87,7 @@
         </div>
     </div>
 
-    <!-- Create ip address Modal -->
+    <!-- Create Modal -->
     <div class="modal fade" id="createTitleModal" tabindex="-1" aria-labelledby="createTitleModal" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
@@ -97,13 +100,14 @@
                         @csrf
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Title Name" required>
+                            <input type="text" class="form-control" id="name" name="name"
+                                placeholder="Enter Title Name" required>
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
                             <select class="form-select" id="category" name="job_category_id" required>
                                 <option value="">Select Category</option>
-                                @foreach($categories as $category)
+                                @foreach ($categories as $category)
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </select>
@@ -118,10 +122,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="choices-multiple-groups" class="form-label text-muted">Related Titles</label>
-                            <select class="form-control" id="choices-multiple-groups" name="related_titles[]" data-choices data-choices-multiple-groups="true" multiple>
-                                @foreach($allTitles as $title)
-                                    <option value="{{ $title->name }}">{{ ucwords($title->name) }}</option>
-                                @endforeach
+                            <select class="form-control" id="choices-multiple-groups" name="related_titles[]"  multiple>
                             </select>
                         </div>
                     </form>
@@ -134,7 +135,7 @@
         </div>
     </div>
 
-    <!-- edit ip address Modal -->
+    <!-- edit Modal -->
     <div class="modal fade" id="editTitleModal" tabindex="-1" aria-labelledby="editTitleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
@@ -146,19 +147,22 @@
                     <form id="editTitleForm">
                         @csrf
                         <input type="hidden" id="title_id" name="id">
+
                         <div class="mb-3">
                             <label for="edit_name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="edit_name" name="name" placeholder="Enter Category Name" required>
+                            <input type="text" class="form-control" id="edit_name" name="name" placeholder="Enter Title Name" required>
                         </div>
+
                         <div class="mb-3">
                             <label for="editCategory" class="form-label">Category</label>
                             <select class="form-select" id="editCategory" name="job_category_id" required>
                                 <option value="">Select Category</option>
-                                @foreach($categories as $category)
+                                @foreach ($categories as $category)
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label for="editType" class="form-label">Type</label>
                             <select class="form-select" id="editType" name="type" required>
@@ -167,15 +171,12 @@
                                 <option value="regular">Regular</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="edit-choices-multiple-groups" class="form-label text-muted">Related Titles</label>
-                            <select class="form-control" id="edit-choices-multiple-groups" name="related_titles[]" data-choices data-choices-multiple-groups="true" multiple>
-                                @foreach($allTitles as $title)
-                                    <option value="{{ $title->name }}">{{ ucwords($title->name) }}</option>
-                                @endforeach
-                            </select>
 
+                        <div class="mb-3">
+                            <label for="edit-choices-multiple-groups" class="form-label">Related Titles</label>
+                            <select class="form-control" id="edit-choices-multiple-groups" name="related_titles[]" multiple></select>
                         </div>
+
                         <div class="mb-3">
                             <label for="editTitleStatus" class="form-label">Status</label>
                             <select class="form-select" id="editTitleStatus" name="status" required>
@@ -194,33 +195,35 @@
         </div>
     </div>
 
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -242,39 +245,70 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#title_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getJobTitles')),  // Fetch data from the backend
+                    url: @json(route('getJobTitles')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parametersrelated_titles
-                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
+                        d.status_filter = currentFilter; // Send the current filter value as a parameter
+                        d.type_filter =
+                        currentTypeFilter; // Send the current filter value as a parameter
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#title_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#title_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'job_titles.created_at' },
-                    { data: 'name', name: 'job_titles.name'  },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'type', name: 'job_titles.type'},
-                    { data: 'related_titles', name: 'job_titles.related_titles'},
-                    { data: 'is_active', name: 'job_titles.is_active', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'job_titles.created_at'
+                    },
+                    {
+                        data: 'name',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'type',
+                        name: 'job_titles.type'
+                    },
+                    {
+                        data: 'related_titles',
+                        name: 'job_titles.related_titles'
+                    },
+                    {
+                        data: 'is_active',
+                        name: 'job_titles.is_active',
+                        orderable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -284,7 +318,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#title_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#title_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -310,7 +345,8 @@
                     let end = Math.min(totalPages - 1, currentPage + 1);
 
                     if (start > 2) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                     }
 
                     for (let i = start; i <= end; i++) {
@@ -320,7 +356,8 @@
                     }
 
                     if (end < totalPages - 1) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                     }
 
                     // Always show last page if it's not already shown
@@ -345,7 +382,7 @@
             });
 
             // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
+            $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -361,7 +398,7 @@
 
             // Handle filter button clicks and send filter parameters to the DataTable
             $('.dropdown-item').on('click', function() {
-                  currentFilter = $(this).text().toLowerCase();
+                currentFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
                 const formattedText = currentFilter
@@ -381,61 +418,23 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const editModal = $('#editTitleModal');
-            const editForm = $('#editTitleForm');
-            const saveEditBtn = $('#saveEditTitleButton');
+        function createTitle() {
+            // Properly reset the form before showing the modal
+            $('#createTitleForm')[0].reset();
+            $('#createTitleModal').find('.invalid-feedback').remove();
+            $('#createTitleModal').modal('show');
 
-            // Show modal and populate fields
-            window.showEditModal = function (id, name, category_id, type, related_titles, status) {
-                $('#title_id').val(id);
-                $('#edit_name').val(name);
-
-                if (typeof category_id !== 'undefined') {
-                    $('#editCategory').val(category_id);
-                }
-
-                if (typeof type !== 'undefined') {
-                    $('#editType').val(type);
-                }
-
-                if (typeof status !== 'undefined') {
-                    $('#editTitleStatus').val(status);
-                }
-
-                if (typeof related_titles !== 'undefined') {
-                    const select = document.getElementById('edit-choices-multiple-groups');
-                    const instance = select?.choicesInstance;
-
-                    if (instance) {
-                        instance.removeActiveItems(); // clear old
-                        related_titles.forEach(function (title) {
-                            instance.setChoiceByValue(title); // ✅ correct method to select existing <option>
-                        });
-                    } else {
-                        // fallback for non-Choices usage
-                        $('#edit-choices-multiple-groups').val(related_titles).trigger('change');
-                    }
-                }
-
-                editModal.modal('show');
-            };
-
-            // Save user changes
-            saveEditBtn.on('click', function () {
-                const userId = $('#title_id').val();
-                const url = '{{ route("job-titles.update") }}';
-                const method = 'PUT';
-                const form = $('#editTitleForm');
-                const formData = form.serialize();
+            $('#savecreateTitleButton').off('click').on('click', function() {
+                let form = $('#createTitleForm');
+                let formData = form.serialize();
 
                 // Clear previous errors
                 form.find('.is-invalid').removeClass('is-invalid');
@@ -448,30 +447,27 @@
                     );
 
                 $.ajax({
-                    url: url,
-                    type: method,
+                    url: '{{ route('job-titles.store') }}',
+                    type: 'POST',
                     data: formData,
-                    success: function (response) {
-                        toastr.success(response.message);
-                        editModal.modal('hide');
-                        editForm[0].reset();
+                    success: function(response) {
+                        toastr.success('Title created successfully!');
+                        $('#createTitleModal').modal('hide');
+                        form[0].reset();
 
-                        $('#title_table').DataTable().ajax.reload();
+                        $('#title_table').DataTable().ajax.reload(); // Reload the DataTable
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
-                            const errors = xhr.responseJSON.errors;
-
-                            for (let field in errors) {
-                                let input = form.find(`[name="${field}"]`);
+                            let errors = xhr.responseJSON.errors;
+                            for (let key in errors) {
+                                let input = form.find('[name="' + key + '"]');
                                 input.addClass('is-invalid');
-
-                                if (input.next('.invalid-feedback').length === 0) {
-                                    input.after(`<div class="invalid-feedback">${errors[field][0]}</div>`);
-                                }
+                                input.after('<div class="invalid-feedback">' + errors[key][0] +
+                                    '</div>');
                             }
                         } else {
-                            toastr.error('An error occurred while updating the ip.');
+                            alert('An error occurred.');
                         }
                     },
                     complete: function() {
@@ -479,55 +475,198 @@
                     }
                 });
             });
-        });
-
-        function createTitle() {
-            // Properly reset the form before showing the modal
-            $('#createTitleForm')[0].reset();
-            $('#createTitleModal').find('.invalid-feedback').remove();
-            $('#createTitleModal').modal('show');
-
-            $('#savecreateTitleButton').off('click').on('click', function () {
-                let form = $('#createTitleForm');
-                let formData = form.serialize();
-
-                // Clear previous errors
-                form.find('.is-invalid').removeClass('is-invalid');
-                form.find('.invalid-feedback').remove();
-
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-                $.ajax({
-                    url: '{{ route("job-titles.store") }}',
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        toastr.success('Title created successfully!');
-                        $('#createTitleModal').modal('hide');
-                        form[0].reset();
-
-                        $('#title_table').DataTable().ajax.reload(); // Reload the DataTable
-                    },
-                    error: function (xhr) {
-                        if (xhr.status === 422) {
-                            let errors = xhr.responseJSON.errors;
-                            for (let key in errors) {
-                                let input = form.find('[name="' + key + '"]');
-                                input.addClass('is-invalid');
-                                input.after('<div class="invalid-feedback">' + errors[key][0] + '</div>');
-                            }
-                        } else {
-                            alert('An error occurred.');
-                        }
-                    },
-                    complete: function () {
-                        btn.prop('disabled', false).html(originalText);
-                    }
-                });
-            });
         }
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // -------- Elements -------- //
+    // Create
+    const createModal = $('#createTitleModal');
+    const createForm = $('#createTitleForm');
+    const saveCreateBtn = $('#savecreateTitleButton');
+    const createCategorySelect = document.getElementById('category');
+    const createTypeSelect = document.getElementById('type');
+    const createRelatedSelect = document.getElementById('choices-multiple-groups');
+
+    // Edit
+    const editModal = $('#editTitleModal');
+    const editForm = $('#editTitleForm');
+    const saveEditBtn = $('#saveEditTitleButton');
+    const editCategorySelect = document.getElementById('editCategory');
+    const editTypeSelect = document.getElementById('editType');
+    const editRelatedSelect = document.getElementById('edit-choices-multiple-groups');
+
+    // Choices instances
+    let createChoicesInstance = null;
+    let editChoicesInstance = null;
+
+    // -------- Helper: Initialize Choices -------- //
+    function initChoices(selectEl, existingInstance) {
+        if (!selectEl) return null;
+        if (existingInstance) existingInstance.destroy();
+        return new Choices(selectEl, {
+            removeItemButton: true,
+            shouldSort: false
+        });
+    }
+
+    // -------- Helper: Fetch & Populate Titles -------- //
+    function fetchTitles({ categoryId, type, targetSelect, instanceRef, selectedTitles = [] }) {
+        if (!categoryId || !type) {
+            if (instanceRef) instanceRef.clearChoices();
+            else targetSelect.innerHTML = '';
+            return;
+        }
+
+        fetch(`{{ route('getJobTitlesList') }}?category_id=${categoryId}&type=${type}`)
+            .then(response => response.json())
+            .then(data => {
+                const titles = data.titles || [];
+
+                if (instanceRef) {
+                    instanceRef.clearChoices();
+                    instanceRef.setChoices(
+                        titles.map(t => ({
+                            value: t.name,
+                            label: t.name,
+                            selected: selectedTitles.includes(t.name)
+                        })),
+                        'value',
+                        'label',
+                        true
+                    );
+                } else {
+                    targetSelect.innerHTML = '';
+                    titles.forEach(t => {
+                        const option = document.createElement('option');
+                        option.value = t.name;
+                        option.textContent = t.name;
+                        if (selectedTitles.includes(t.name)) option.selected = true;
+                        targetSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(err => console.error('Error fetching titles:', err));
+    }
+
+    // -------- CREATE MODAL -------- //
+    if (createCategorySelect && createTypeSelect && createRelatedSelect) {
+        createChoicesInstance = initChoices(createRelatedSelect, createChoicesInstance);
+
+        function handleCreateChange() {
+            fetchTitles({
+                categoryId: createCategorySelect.value,
+                type: createTypeSelect.value,
+                targetSelect: createRelatedSelect,
+                instanceRef: createChoicesInstance
+            });
+        }
+
+        createCategorySelect.addEventListener('change', handleCreateChange);
+        createTypeSelect.addEventListener('change', handleCreateChange);
+    }
+
+    // -------- EDIT MODAL (OPEN HANDLER) -------- //
+    window.showEditModal = function (id, name, category_id, type, related_titles, status) {
+        $('#title_id').val(id);
+        $('#edit_name').val(name);
+        $('#editCategory').val(category_id || '');
+        $('#editType').val(type || '');
+        $('#editTitleStatus').val(status || '');
+
+        // Init or re-init Choices
+        editChoicesInstance = initChoices(editRelatedSelect, editChoicesInstance);
+
+        // Fetch titles for initial load
+        fetchTitles({
+            categoryId: category_id,
+            type: type,
+            targetSelect: editRelatedSelect,
+            instanceRef: editChoicesInstance,
+            selectedTitles: related_titles || []
+        });
+
+        editModal.modal('show');
+    };
+
+    // -------- EDIT MODAL (Dynamic Re-fetch) -------- //
+    $(document).on('change', '#editCategory, #editType', function () {
+        const categoryId = $('#editCategory').val();
+        const type = $('#editType').val();
+
+        fetchTitles({
+            categoryId: categoryId,
+            type: type,
+            targetSelect: editRelatedSelect,
+            instanceRef: editChoicesInstance
+        });
+    });
+
+    // -------- Unified Save Function -------- //
+    function handleSave(form, btn, url, method, modal) {
+        const formData = form.serialize();
+        const originalText = btn.html();
+
+        form.find('.is-invalid').removeClass('is-invalid');
+        form.find('.invalid-feedback').remove();
+
+        btn.prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+        );
+
+        $.ajax({
+            url: url,
+            type: method,
+            data: formData,
+            success: function (response) {
+                toastr.success(response.message);
+                modal.modal('hide');
+                form[0].reset();
+                $('#title_table').DataTable().ajax.reload();
+            },
+            error: function (xhr) {
+                if (xhr.status === 422) {
+                    const errors = xhr.responseJSON.errors;
+                    for (let field in errors) {
+                        const input = form.find(`[name="${field}"]`);
+                        input.addClass('is-invalid');
+                        if (input.next('.invalid-feedback').length === 0) {
+                            input.after(`<div class="invalid-feedback">${errors[field][0]}</div>`);
+                        }
+                    }
+                } else {
+                    toastr.error('An error occurred while saving.');
+                }
+            },
+            complete: function () {
+                btn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    // -------- Create Save -------- //
+    saveCreateBtn.on('click', function () {
+        handleSave(
+            createForm,
+            $(this),
+            '{{ route('job-titles.store') }}',
+            'POST',
+            createModal
+        );
+    });
+
+    // -------- Edit Save -------- //
+    saveEditBtn.on('click', function () {
+        handleSave(
+            editForm,
+            $(this),
+            '{{ route('job-titles.update') }}',
+            'PUT',
+            editModal
+        );
+    });
+});
+</script>
+
 @endsection
-@endsection                        
+@endsection

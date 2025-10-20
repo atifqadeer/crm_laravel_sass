@@ -381,14 +381,9 @@ class SettingController extends Controller
                     return $title->type ? ucwords(str_replace('-', ' ', $title->type)) : '-';
                 })
                 ->addColumn('action', function ($title) {
-                    $name = ucwords($title->name);
-
-                    // ✅ Fix: Don't decode if it's already an array
                     $relatedTitles = is_array($title->related_titles)
                         ? $title->related_titles
                         : json_decode($title->related_titles ?: '[]');
-
-                    $relatedTitlesJson = json_encode($relatedTitles);
 
                     return '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -397,21 +392,32 @@ class SettingController extends Controller
                                 <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item" href="#" onclick=\'showEditModal(
-                                            "' . e($title->id) . '",
-                                            "' . e($name) . '",
-                                            "' . e($title->job_category_id) . '",
-                                            "' . e($title->type) . '",
-                                            ' . $relatedTitlesJson . ',
-                                            "' . e($title->is_active) . '"
+                                            ' . json_encode($title->id) . ',
+                                            ' . json_encode(ucwords($title->name)) . ',
+                                            ' . json_encode($title->job_category_id) . ',
+                                            ' . json_encode($title->type) . ',
+                                            ' . json_encode($relatedTitles) . ',
+                                            ' . $title->is_active . '
                                         )\'>Edit</a>
                                     </li>
                                 </ul>
                             </div>';
                 })
-
                 ->rawColumns(['action', 'created_at', 'is_active', 'job_category'])
                 ->make(true);
         }
+    }
+    public function getJobTitlesList(Request $request)
+    {
+        $titles = JobTitle::where('job_category_id', $request->category_id)
+            ->where('type', $request->type)
+            ->select('id', 'name')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json([
+            'titles' => $titles
+        ]);
     }
     public function getJobSources(Request $request)
     {
