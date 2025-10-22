@@ -3880,83 +3880,30 @@ class ImportController extends Controller
                     return $value;
                 }, $row);
 
-                // Date preprocessing
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
-                        return null;
-                    }
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    }
-                    return $dateString;
-                };
-
-                // Parse dates
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
-                    foreach ($formats as $format) {
+                $normalizeDate = function ($value, $field, $rowIndex) {
+                        $value = trim((string)($value ?? ''));
+                        if ($value === '' || in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])) {
+                            return now()->format('Y-m-d H:i:s');
+                        }
+                        $formats = ['Y-m-d H:i:s', 'Y-m-d', 'd/m/Y H:i', 'd/m/Y', 'm/d/Y H:i', 'm/d/Y'];
+                        foreach ($formats as $format) {
+                            try {
+                                return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // Continue to next format
+                            }
+                        }
                         try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                            return Carbon::parse($value)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field}: {$e->getMessage()}, defaulting to now");
+                            return now()->format('Y-m-d H:i:s');
                         }
-                    }
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
+                    };
 
-                // Define a reusable helper closure (you can move it outside loop)
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
-
-                    // Skip invalid placeholders
-                    if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
-                    ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
-                        return null;
-                    }
-
-                    try {
-                        // Preprocess if defined
-                        if (isset($preprocessDate)) {
-                            $value = $preprocessDate($value, $field, $rowIndex);
-                        }
-
-                        // Parse with your custom logic, fallback to strtotime
-                        $parsed = isset($parseDate)
-                            ? $parseDate($value, $rowIndex, $field)
-                            : date('Y-m-d H:i:s', strtotime($value));
-
-                        if (!$parsed || strtotime($parsed) === false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
-                        }
-
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+                    // Normalize dates
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
                 // Prepare row for insertion
                 $processedRow = [

@@ -290,7 +290,33 @@
 
     <!-- Summernote JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
-    
+    <script>
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('copy-btn')) {
+                const targetSelector = e.target.getAttribute('data-copy-target');
+                const targetEl = document.querySelector(targetSelector);
+                if (!targetEl) return;
+
+                const temp = document.createElement('textarea');
+                temp.value = targetEl.innerText;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+
+                e.target.innerText = 'Copied!';
+                e.target.classList.remove('btn-outline-secondary');
+                e.target.classList.add('btn-success');
+
+                setTimeout(() => {
+                    e.target.innerText = 'Copy Notes';
+                    e.target.classList.remove('btn-success');
+                    e.target.classList.add('btn-outline-secondary');
+                }, 1500);
+            }
+        });
+    </script>
+
     <script>
         $(document).ready(function() {
             // Initialize Summernote and set content

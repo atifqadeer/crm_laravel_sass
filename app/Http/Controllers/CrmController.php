@@ -1808,7 +1808,7 @@ class CrmController extends Controller
                     return $button;
                 })
                 ->addColumn('notes_detail', function ($applicant) {
-                    $notes_detail = strip_tags($applicant->notes_detail); // avoid double escaping
+                    $notes_detail = strip_tags($applicant->notes_detail);
                     $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
                     $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
@@ -1818,13 +1818,24 @@ class CrmController extends Controller
                     $name = e($applicant->applicant_name);
                     $postcode = e($applicant->applicant_postcode);
                     $notesEscaped = nl2br(e($notes_detail));
+                    $copyId = "copy-notes-" . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#' . $modalId . '">
-                            ' . $short . '
-                        </a>
+                        <div>
+                            <a href="#" class="text-primary" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#' . $modalId . '">
+                                ' . $short . '
+                            </a>
+
+                            <!-- Hidden full notes for copy -->
+                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div>
+
+                            <!-- Copy button under short note -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-btn" data-copy-target="#' . $copyId . '">
+                                Copy Notes
+                            </button>
+                        </div>
 
                         <!-- Modal -->
                         <div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . '-label" aria-hidden="true">
@@ -1838,9 +1849,11 @@ class CrmController extends Controller
                                         <p><strong>Name:</strong> ' . $name . '</p>
                                         <p><strong>Postcode:</strong> ' . $postcode . '</p>
                                         <p><strong>Date:</strong> ' . $notes_created_at . '</p>
-                                        <p class="notes-content"><strong>Notes Detail:</strong><br>' . $notesEscaped . '</p>
+                                        <p class="notes-content">
+                                            <strong>Notes Detail:</strong><br>' . $notesEscaped . '
+                                        </p>
                                     </div>
-                                     <div class="modal-footer">
+                                    <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
@@ -1848,6 +1861,7 @@ class CrmController extends Controller
                         </div>
                     ';
                 })
+
                 ->addColumn('updated_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A'); // Using accessor
                 })

@@ -71,6 +71,10 @@ class Sale extends Model
     {
         return $this->hasMany(SaleDocument::class);
     }
+    public function saleNotes()
+    {
+        return $this->hasMany(SaleNote::class, 'sale_id', 'id');
+    }
     public function audits()
     {
         return $this->morphMany(Audit::class, 'auditable');
