@@ -72,16 +72,19 @@ class ImportController extends Controller
         ini_set('memory_limit', '-1');
 
         try {
+            $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [Offices Import] Starting CSV import process...');
+
             $file = $request->file('csv_file');
             $filename = $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('daily')->info('File stored at: ' . $filePath);
 
             // Convert file to UTF-8 if needed
             $content = file_get_contents($filePath);
             $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
             }
@@ -96,333 +99,27 @@ class ImportController extends Controller
             $records = $csv->getRecords();
             $headers = $csv->getHeader();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            // Count total rows
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total offices records in CSV: {$totalRows}");
 
             $processedData = [];
+            $successfulRows = 0;
             $failedRows = [];
             $rowIndex = 1; // Start from 1 to skip header
+
+            Log::channel('daily')->info('🚀 Starting offices row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
-                Log::info("Processing row {$rowIndex}: " . json_encode($row));
-
-                // Pad or truncate row to match header count
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-
-                // Combine headers with row data
-                $row = array_combine($headers, $row);
-                if ($row === false) {
-                    Log::warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
-                    continue;
-                }
-
-                // Clean and normalize data
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        // Remove extra whitespace and line breaks
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        // Remove non-ASCII characters
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                    }
-                    return $value;
-                }, $row);
-
-                // Date preprocessing
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
-                        return null;
-                    }
-
-                    // Fix malformed numeric formats (e.g., 1122024 1230)
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    }
-
-                    return $dateString;
-                };
-
-                // Parse dates (corrected format order)
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
-                        'Y-m-d',
-                        'd/m/Y H:i',
-                        'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
-                    ];
-
-                    foreach ($formats as $format) {
-                        try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            // Skip silently for cleaner logs
-                        }
-                    }
-
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                // Normalizer (unchanged except keeping created_at & updated_at intact)
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
-
-                    // Skip invalid placeholders
-                    if (
-                        $value === '' ||
-                        in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
-                    ) {
-                        return null;
-                    }
-
-                    try {
-                        $value = $preprocessDate($value, $field, $rowIndex);
-                        $parsed = $parseDate($value, $rowIndex, $field);
-
-                        if (!$parsed || strtotime($parsed) === false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
-                        }
-
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-
-                // Clean postcode (extract valid postcode, e.g., DN16 2AB)
-                $cleanPostcode = '0';
-                if (!empty($row['office_postcode'])) {
-                    preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['office_postcode'], $matches);
-                    $cleanPostcode = $matches[0] ?? substr(trim($row['office_postcode']), 0, 8);
-                }
-
-                $names = array_map('trim', explode(',', $row['office_contact_name'] ?? ''));
-                $emails = array_map('trim', explode(',', $row['office_email'] ?? ''));
-                $phones = array_map('trim', explode(',', $row['office_contact_phone'] ?? ''));
-                $landlines = array_map('trim', explode(',', $row['office_contact_landline'] ?? ''));
-
-                $contacts = [];
-                $maxContacts = max(count($names), count($emails), count($phones), count($landlines));
-
-                for ($i = 0; $i < $maxContacts; $i++) {
-                    $contacts[] = [
-                        'contact_name'     => $names[$i] ?? 'N/A',
-                        'contact_email'    => $emails[$i] ?? 'N/A',
-                        'contact_phone'    => isset($phones[$i]) ? preg_replace('/[^0-9]/', '', $phones[$i]) : '0',
-                        'contact_landline' => isset($landlines[$i]) ? preg_replace('/[^0-9]/', '', $landlines[$i]) : '0',
-                        'contact_note'     => null,
-                    ];
-                }
-
-                $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
-                $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
-
-                if ($lat === null && $lng === null || $lat === 'null' && $lng === 'null') {
-                    $postcode_query = strlen($cleanPostcode) < 6
-                        ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
-                        : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
-
-                    // if (!$postcode_query) {
-                    //     try {
-                    //         $result = $this->geocode($cleanPostcode);
-
-                    //         // If geocode fails, throw
-                    //         if (!isset($result['lat']) || !isset($result['lng'])) {
-                    //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                    //         }
-
-                    //         $applicantData['lat'] = $result['lat'];
-                    //         $applicantData['lng'] = $result['lng'];
-                    //     } catch (\Exception $e) {
-                    //         return response()->json([
-                    //             'success' => false,
-                    //             'message' => 'Unable to locate address: ' . $e->getMessage()
-                    //         ], 400);
-                    //     }
-                    // } else {
-                    $lat = $postcode_query->lat;
-                    $lng = $postcode_query->lng;
-                    // }
-
-                    /** ✅ Validate lat/lng presence before inserting */
-                    // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
-                    //     return response()->json([
-                    //         'success' => false,
-                    //         'message' => 'Postcode location is required. Please provide a valid postcode.'
-                    //     ], 400);
-                    // }
-
-                }
-
-                // Keep whitespace intact
-                if (strlen($cleanPostcode) === 8) {
-                    $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
-
-                    if (!$exists) {
-                        DB::table('postcodes')->insert([
-                            'postcode'   => $cleanPostcode,
-                            'lat'        => $lat,
-                            'lng'        => $lng,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
-                } elseif (strlen($cleanPostcode) < 6) {
-                    $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
-
-                    if (!$exists) {
-                        DB::table('outcodepostcodes')->insert([
-                            'outcode'    => $cleanPostcode,
-                            'lat'        => $lat,
-                            'lng'        => $lng,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
-                }
-
-                $processedRow = [
-                    'id' => $row['id'] ?? null,
-                    'office_uid' => md5($row['id']),
-                    'user_id' => $row['user_id'] ?? null,
-                    'office_name' => preg_replace('/\s+/', ' ', trim($row['office_name'] ?? '')),
-                    'office_type' => 'head_office',
-                    'office_website' => $row['office_website'] ?? null,
-                    'office_notes' => $row['office_notes'] ?? null,
-                    'office_lat' => $lat,
-                    'office_lng' => $lng,
-                    'office_postcode' => $cleanPostcode,
-                    'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                    'contacts' => $contacts
-                ];
-
-                $processedData[] = $processedRow;
-            }
-
-            Log::info('Processed data count: ' . count($processedData));
-
-            // Save data to database
-            $successfulRows = 0;
-            $failedRows = [];
-
-            foreach ($processedData as $index => $row) {
                 try {
-                    $contacts = $row['contacts'] ?? [];
-                    unset($row['contacts']); // remove contacts before inserting to offices table
-
-                    // Upsert into `offices` table
-                    DB::table('offices')->updateOrInsert(
-                        ['id' => $row['id']], // match by ID
-                        $row // update/insert data
-                    );
-
-                    Log::info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
-
-                    // Optional: remove old contacts for this office to avoid duplicates
-                    DB::table('contacts')->where('contactable_id', $row['id'])->delete();
-
-                    // Insert contacts if available
-                    if (!empty($contacts)) {
-                        $contactRows = [];
-                        foreach ($contacts as $contactData) {
-                            $contactData['contactable_id'] = $row['id'];
-                            $contactData['contactable_type'] = 'Horsefly\Office';
-                            $contactData['created_at'] = $contactData['created_at'] ?? now();
-                            $contactData['updated_at'] = $contactData['updated_at'] ?? now();
-                            $contactRows[] = $contactData;
-                        }
-
-                        if (!empty($contactRows)) {
-                            DB::table('contacts')->insert($contactRows);
-                            Log::info("Contacts inserted for office ID {$row['id']}");
-                        }
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
                     }
-
-                    $successfulRows++;
-                } catch (\Exception $e) {
-                    Log::error("Failed to save row " . ($index + 1) . ": " . $e->getMessage() . ', Data: ' . json_encode($row));
-                    $failedRows[] = [
-                        'row' => $index + 1,
-                        'error' => $e->getMessage()
-                    ];
-                }
-            }
-
-
-            // Prepare response with summary
-            $response = [
-                'message' => 'CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
-            ];
-
-            return response()->json($response);
-        } catch (\Exception $e) {
-            Log::error('CSV import failed: ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
-        }
-    }
-    public function unitsImport(Request $request)
-    {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv',
-        ]);
-
-        ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
-
-        try {
-            $file = $request->file('csv_file');
-            $filename = $file->getClientOriginalName();
-            $path = $file->storeAs('uploads/import_files', $filename);
-            $filePath = storage_path("app/{$path}");
-            Log::info('File stored at: ' . $filePath);
-
-            // Convert file to UTF-8 if needed
-            $content = file_get_contents($filePath);
-            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding !== 'UTF-8') {
-                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-                file_put_contents($filePath, $content);
-            }
-
-            // Load CSV with League\CSV
-            $csv = Reader::createFromPath($filePath, 'r');
-            $csv->setHeaderOffset(0); // First row is header
-            $csv->setDelimiter(','); // Ensure correct delimiter
-            $csv->setEnclosure('"');
-            $csv->setEscape('\\');
-
-            $records = $csv->getRecords();
-            $headers = $csv->getHeader();
-            $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
-
-            $processedData = [];
-            $failedRows = [];
-            $rowIndex = 1; // Start from 1 to skip header
-
-            foreach ($records as $row) {
-                if ($row['head_office'] != 'Select Office') {
-                    $rowIndex++;
-                    Log::info("Processing row {$rowIndex}: " . json_encode($row));
 
                     // Pad or truncate row to match header count
                     $row = array_pad($row, $expectedColumnCount, null);
@@ -430,8 +127,8 @@ class ImportController extends Controller
 
                     // Combine headers with row data
                     $row = array_combine($headers, $row);
-                    if ($row === false) {
-                        Log::warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
+                    if ($row == false) {
+                        Log::channel('daily')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
                         $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
                         continue;
                     }
@@ -456,7 +153,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -465,38 +162,41 @@ class ImportController extends Controller
 
                     // Parse dates (corrected format order)
                     $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
                         $formats = [
-                            'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                            'Y-m-d H:i:s',
                             'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
                             'd/m/Y H:i',
                             'd/m/Y',
-                            'm/d/Y H:i',
-                            'm/d/Y'
                         ];
 
                         foreach ($formats as $format) {
                             try {
-                                return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
-                                // Skip silently for cleaner logs
+                                // continue
                             }
                         }
 
-                        try {
-                            return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                            return null;
-                        }
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        return null;
                     };
 
-                    // Normalizer (unchanged except keeping created_at & updated_at intact)
+                    // Normalizer (keeps created_at & updated_at null if invalid)
                     $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
                         $value = trim((string)($value ?? ''));
 
                         // Skip invalid placeholders
                         if (
-                            $value === '' ||
+                            $value == '' ||
                             in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                         ) {
                             return null;
@@ -506,13 +206,13 @@ class ImportController extends Controller
                             $value = $preprocessDate($value, $field, $rowIndex);
                             $parsed = $parseDate($value, $rowIndex, $field);
 
-                            if (!$parsed || strtotime($parsed) === false) {
+                            if (!$parsed || strtotime($parsed) == false) {
                                 throw new \Exception("Invalid date format: '{$value}'");
                             }
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -523,21 +223,15 @@ class ImportController extends Controller
 
                     // Clean postcode (extract valid postcode, e.g., DN16 2AB)
                     $cleanPostcode = '0';
-                    if (!empty($row['unit_postcode'])) {
-                        preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['unit_postcode'], $matches);
-                        $cleanPostcode = $matches[0] ?? substr(trim($row['unit_postcode']), 0, 8);
+                    if (!empty($row['office_postcode'])) {
+                        preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['office_postcode'], $matches);
+                        $cleanPostcode = $matches[0] ?? substr(trim($row['office_postcode']), 0, 8);
                     }
 
-                    $office_id = $row['head_office'];
-
-                    if ($office_id == 'Select Office') {
-                        $office_id = 0;
-                    }
-
-                    $names = array_map('trim', explode(',', $row['contact_name'] ?? ''));
-                    $emails = array_map('trim', explode(',', $row['contact_email'] ?? ''));
-                    $phones = array_map('trim', explode(',', $row['contact_phone_number'] ?? ''));
-                    $landlines = array_map('trim', explode(',', $row['contact_landline'] ?? ''));
+                    $names = array_map('trim', explode(',', $row['office_contact_name'] ?? ''));
+                    $emails = array_map('trim', explode(',', $row['office_email'] ?? ''));
+                    $phones = array_map('trim', explode(',', $row['office_contact_phone'] ?? ''));
+                    $landlines = array_map('trim', explode(',', $row['office_contact_landline'] ?? ''));
 
                     $contacts = [];
                     $maxContacts = max(count($names), count($emails), count($phones), count($landlines));
@@ -549,13 +243,15 @@ class ImportController extends Controller
                             'contact_phone'    => isset($phones[$i]) ? preg_replace('/[^0-9]/', '', $phones[$i]) : '0',
                             'contact_landline' => isset($landlines[$i]) ? preg_replace('/[^0-9]/', '', $landlines[$i]) : '0',
                             'contact_note'     => null,
+                            'created_at' => $createdAt,
+                            'updated_at' => $updatedAt,
                         ];
                     }
 
                     $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
                     $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
 
-                    if ($lat === null && $lng === null || $lat === 'null' && $lng === 'null') {
+                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
@@ -593,7 +289,7 @@ class ImportController extends Controller
                     }
 
                     // Keep whitespace intact
-                    if (strlen($cleanPostcode) === 8) {
+                    if (strlen($cleanPostcode) == 8) {
                         $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
 
                         if (!$exists) {
@@ -621,6 +317,380 @@ class ImportController extends Controller
 
                     $processedRow = [
                         'id' => $row['id'] ?? null,
+                        'office_uid' => md5($row['id']),
+                        'user_id' => $row['user_id'] ?? null,
+                        'office_name' => preg_replace('/\s+/', ' ', trim($row['office_name'] ?? '')),
+                        'office_type' => 'head_office',
+                        'office_website' => $row['office_website'] ?? null,
+                        'office_notes' => $row['office_notes'] ?? null,
+                        'office_lat' => $lat,
+                        'office_lng' => $lng,
+                        'office_postcode' => $cleanPostcode,
+                        'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                        'contacts' => $contacts
+                    ];
+
+                    $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
+            }
+
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
+                try {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
+                        foreach ($chunk as $index => $row) {
+                            $rowIndex = ($chunkIndex * 100) + $index + 2;
+                            try {
+                                $contacts = $row['contacts'] ?? [];
+                                unset($row['contacts']); // remove contacts before inserting to offices table
+
+                                // Upsert into `offices` table
+                                DB::table('offices')->updateOrInsert(
+                                    ['id' => $row['id']], // match by ID
+                                    $row // update/insert data
+                                );
+
+                                Log::channel('daily')->info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
+
+                                // Optional: remove old contacts for this office to avoid duplicates
+                                DB::table('contacts')->where('contactable_id', $row['id'])->delete();
+
+                                // Insert contacts if available
+                                if (!empty($contacts)) {
+                                    $contactRows = [];
+                                    foreach ($contacts as $contactData) {
+                                        $contactData['contactable_id'] = $row['id'];
+                                        $contactData['contactable_type'] = 'Horsefly\Office';
+                                        $contactData['created_at'] = $contactData['created_at'] ?? now();
+                                        $contactData['updated_at'] = $contactData['updated_at'] ?? now();
+                                        $contactRows[] = $contactData;
+                                    }
+
+                                    if (!empty($contactRows)) {
+                                        DB::table('contacts')->insert($contactRows);
+                                        Log::channel('daily')->info("Contacts inserted for office ID {$row['id']}");
+                                    }
+                                }
+
+                                $successfulRows++;
+                            } catch (\Throwable $e) {
+                                $failedRows[] = [
+                                    'row' => $rowIndex,
+                                    'error' => $e->getMessage(),
+                                ];
+                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                            }
+                        }
+                    });
+                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                }
+            }
+
+            // Cleanup
+            if (file_exists($filePath)) {
+                unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+            }
+
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+
+            Log::channel('daily')->info("🏁 [Offices Import Summary]");
+            Log::channel('daily')->info("• Total rows read: {$totalRows}");
+            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
+            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+
+
+            return response()->json([
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            if (file_exists($filePath ?? '')) {
+                unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+            }
+            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
+        }
+    }
+    public function unitsImport(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv',
+        ]);
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
+
+        try {
+            $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [Units Import] Starting CSV import process...');
+
+            $file = $request->file('csv_file');
+            $filename = $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename);
+            $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->info('File stored at: ' . $filePath);
+
+            // Convert file to UTF-8 if needed
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding != 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+            }
+
+            // Load CSV with League\CSV
+            $csv = Reader::createFromPath($filePath, 'r');
+            $csv->setHeaderOffset(0); // First row is header
+            $csv->setDelimiter(','); // Ensure correct delimiter
+            $csv->setEnclosure('"');
+            $csv->setEscape('\\');
+
+            $records = $csv->getRecords();
+            $headers = $csv->getHeader();
+            $expectedColumnCount = count($headers);
+            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            // Count total rows
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total units records in CSV: {$totalRows}");
+
+            $processedData = [];
+            $failedRows = [];
+            $successfulRows = 0;
+            $rowIndex = 1; // Start from 1 to skip header
+
+            Log::channel('daily')->info('🚀 Starting units row-by-row processing...');
+
+            foreach ($records as $row) {
+                $rowIndex++;
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
+                    }
+
+                    // Pad or truncate row to match header count
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+
+                    // Combine headers with row data
+                    $row = array_combine($headers, $row);
+                    if ($row == false) {
+                        Log::channel('daily')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
+                        continue;
+                    }
+
+                    // Clean and normalize data
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            // Remove extra whitespace and line breaks
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            // Remove non-ASCII characters
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                        }
+                        return $value;
+                    }, $row);
+
+                    // Date preprocessing
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
+                        }
+
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        return null;
+                    };
+
+                    // Normalizer (keeps created_at & updated_at null if invalid)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
+
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
+                        }
+
+                        try {
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
+
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
+
+                            return $parsed;
+                        } catch (\Exception $e) {
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
+                        }
+                    };
+
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+
+                    // Clean postcode (extract valid postcode, e.g., DN16 2AB)
+                    $cleanPostcode = '0';
+                    if (!empty($row['unit_postcode'])) {
+                        preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['unit_postcode'], $matches);
+                        $cleanPostcode = $matches[0] ?? substr(trim($row['unit_postcode']), 0, 8);
+                    }
+
+                    $office_id = $row['head_office'];
+
+                    if ($office_id == 'Select Office') {
+                        $office_id = 0;
+                    }
+
+                    $names = array_map('trim', explode(',', $row['contact_name'] ?? ''));
+                    $emails = array_map('trim', explode(',', $row['contact_email'] ?? ''));
+                    $phones = array_map('trim', explode(',', $row['contact_phone_number'] ?? ''));
+                    $landlines = array_map('trim', explode(',', $row['contact_landline'] ?? ''));
+
+                    $contacts = [];
+                    $maxContacts = max(count($names), count($emails), count($phones), count($landlines));
+
+                    for ($i = 0; $i < $maxContacts; $i++) {
+                        $contacts[] = [
+                            'contact_name'     => $names[$i] ?? 'N/A',
+                            'contact_email'    => $emails[$i] ?? 'N/A',
+                            'contact_phone'    => isset($phones[$i]) ? preg_replace('/[^0-9]/', '', $phones[$i]) : '0',
+                            'contact_landline' => isset($landlines[$i]) ? preg_replace('/[^0-9]/', '', $landlines[$i]) : '0',
+                            'contact_note'     => null,
+                        ];
+                    }
+
+                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
+                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
+
+                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') {
+                        $postcode_query = strlen($cleanPostcode) < 6
+                            ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
+                            : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
+
+                        // if (!$postcode_query) {
+                        //     try {
+                        //         $result = $this->geocode($cleanPostcode);
+
+                        //         // If geocode fails, throw
+                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
+                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        //         }
+
+                        //         $applicantData['lat'] = $result['lat'];
+                        //         $applicantData['lng'] = $result['lng'];
+                        //     } catch (\Exception $e) {
+                        //         return response()->json([
+                        //             'success' => false,
+                        //             'message' => 'Unable to locate address: ' . $e->getMessage()
+                        //         ], 400);
+                        //     }
+                        // } else {
+                        $lat = $postcode_query->lat;
+                        $lng = $postcode_query->lng;
+                        // }
+
+                        /** ✅ Validate lat/lng presence before inserting */
+                        // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
+                        //     return response()->json([
+                        //         'success' => false,
+                        //         'message' => 'Postcode location is required. Please provide a valid postcode.'
+                        //     ], 400);
+                        // }
+
+                    }
+
+                    // Keep whitespace intact
+                    if (strlen($cleanPostcode) == 8) {
+                        $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
+
+                        if (!$exists) {
+                            DB::table('postcodes')->insert([
+                                'postcode'   => $cleanPostcode,
+                                'lat'        => $lat,
+                                'lng'        => $lng,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    } elseif (strlen($cleanPostcode) < 6) {
+                        $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
+
+                        if (!$exists) {
+                            DB::table('outcodepostcodes')->insert([
+                                'outcode'    => $cleanPostcode,
+                                'lat'        => $lat,
+                                'lng'        => $lng,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    $processedRow = [
+                        'id' => $row['id'],
                         'unit_uid' => md5($row['id']),
                         'office_id' => $office_id,
                         'user_id' => $row['user_id'] ?? null,
@@ -637,44 +707,83 @@ class ImportController extends Controller
                     ];
 
                     $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::info('Processed data count: ' . count($processedData));
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Save data to database
-            $successfulRows = 0;
-            foreach ($processedData as $index => $row) {
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
-                    $unit = Unit::updateOrCreate(
-                        ['id' => $row['id']],
-                        array_diff_key($row, ['contact' => ''])
-                    );
-                    Log::info("Unit created/updated for row " . ($index + 1) . ": ID={$unit->id}");
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
+                        foreach ($chunk as $index => $row) {
+                            $rowIndex = ($chunkIndex * 100) + $index + 2;
+                            try {
+                                $unit = Unit::updateOrCreate(
+                                    ['id' => $row['id']],
+                                    array_diff_key($row, ['contact' => ''])
+                                );
+                                Log::channel('daily')->info("Unit created/updated for row " . ($index + 1) . ": ID={$unit->id}");
 
-                    foreach ($row['contacts'] as $contactData) {
-                        $unit->contact()->create($contactData);
-                    }
-                    Log::info("Contact created for unit ID {$unit->id}");
-                    $successfulRows++;
-                } catch (\Exception $e) {
-                    Log::error("Failed to save row " . ($index + 1) . ": " . $e->getMessage() . ', Data: ' . json_encode($row));
-                    $failedRows[] = ['row' => $index + 1, 'error' => $e->getMessage()];
+                                foreach ($row['contacts'] as $contactData) {
+                                    $unit->contact()->create($contactData);
+                                }
+                                Log::channel('daily')->info("Contact created for unit ID {$unit->id}");
+                                $successfulRows++;
+                            } catch (\Throwable $e) {
+                                $failedRows[] = [
+                                    'row' => $rowIndex,
+                                    'error' => $e->getMessage(),
+                                ];
+                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                            }
+                        }
+                    });
+                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
-            // Prepare response with summary
-            $response = [
-                'message' => 'CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
-            ];
+            // Cleanup
+            if (file_exists($filePath)) {
+                unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+            }
 
-            return response()->json($response);
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+
+            Log::channel('daily')->info("🏁 [Units Import Summary]");
+            Log::channel('daily')->info("• Total rows read: {$totalRows}");
+            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
+            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+
+             return response()->json([
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
+            ], 200);
         } catch (\Exception $e) {
-            Log::error('CSV import failed: ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
+            if (file_exists($filePath ?? '')) {
+                unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+            }
+            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
     }
     public function applicantsImport(Request $request)
@@ -702,7 +811,7 @@ class ImportController extends Controller
             // Ensure UTF-8 encoding
             $content = file_get_contents($filePath);
             $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
                 Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
@@ -754,7 +863,7 @@ class ImportController extends Controller
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row, skipping");
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -768,13 +877,13 @@ class ImportController extends Controller
 
                     // Helper functions
                     $normalizeId = function ($input, $rowIndex) {
-                        if (empty($input) && $input !== '0' && $input !== 0) {
+                        if (empty($input) && $input != '0' && $input != 0) {
                             Log::channel('daily')->debug("Row {$rowIndex}: Empty id input, will generate new ID");
                             return null;
                         }
                         if (is_numeric($input)) {
                             $id = sprintf('%.0f', (float)$input);
-                            if ($id === '0') {
+                            if ($id == '0') {
                                 Log::channel('daily')->debug("Row {$rowIndex}: Invalid id (0), will generate new ID");
                                 return null;
                             }
@@ -787,89 +896,101 @@ class ImportController extends Controller
                     // Normalize ID
                     $id = $normalizeId($row['id'] ?? null, $rowIndex);
 
-                    // Phone number normalization
-                    $normalizePhone = function ($input, $rowIndex, $field = 'phone') {
-                        if (empty($input) && $input !== '0' && $input !== 0) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Empty {$field} input, returning '0'");
-                            return '0';
-                        }
-
-                        // Handle numeric input (including scientific notation)
-                        if (is_numeric($input) && !is_string($input)) {
-                            $input = sprintf('%.0f', $input); // Convert 1.70E+19 to full number string
-                            $digits = preg_replace('/\D/', '', $input); // Ensure only digits remain
-                            // Log::channel('daily')->debug("Row {$rowIndex}: Numeric {$field} input (possibly scientific notation) converted to: {$digits}");
-                        } elseif (is_string($input)) {
-                            if (is_numeric($input) || preg_match('/^[0-9]*\.?[0-9]+[eE][+-]?[0-9]+$/', $input)) {
-                                $digits = sprintf('%.0f', (float)$input); // Convert scientific notation or numeric string
-                                // Log::channel('daily')->debug("Row {$rowIndex}: String {$field} input (numeric or scientific): {$input}, converted to: {$digits}");
-                            } else {
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Non-numeric string {$field} input: {$input}, returning '0'");
-                                return '0';
-                            }
-                        } else {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Invalid {$field} input type: " . gettype($input) . ", returning '0'");
-                            return '0';
-                        }
-
-                        // Handle UK phone number lengths
-                        if (strlen($digits) === 11 && preg_match('/^0[0-9]{10}$/', $digits)) {
-                            // Log::channel('daily')->debug("Row {$rowIndex}: Valid {$field} (11 digits): {$digits}");
-                            return $digits;
-                        } elseif (strlen($digits) === 10 && preg_match('/^[1-9][0-9]{9}$/', $digits)) {
-                            $normalized = '0' . $digits;
-                            // Log::channel('daily')->debug("Row {$rowIndex}: Valid {$field} (10 digits, added leading 0): {$normalized}");
-                            return $normalized;
-                        } elseif (strlen($digits) >= 10 && strlen($digits) <= 12) {
-                            preg_match('/0[0-9]{10}/', $digits, $matches);
-                            if (!empty($matches)) {
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Extracted valid {$field} from longer string: {$matches[0]}");
-                                return $matches[0];
-                            }
-                        }
-
-                        // Log::channel('daily')->debug("Row {$rowIndex}: Invalid {$field} format after processing: {$digits}, returning '0'");
-                        return '0';
-                    };
-
-                    $normalizeDate = function ($value, $field, $rowIndex) {
-                        $value = trim((string)($value ?? ''));
-                        if ($value === '' || in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])) {
-                            return now()->format('Y-m-d H:i:s');
-                        }
-                        $formats = ['Y-m-d H:i:s', 'Y-m-d', 'd/m/Y H:i', 'd/m/Y', 'm/d/Y H:i', 'm/d/Y'];
-                        foreach ($formats as $format) {
-                            try {
-                                return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
-                            } catch (\Exception $e) {
-                                // Continue to next format
-                            }
-                        }
-                        try {
-                            return Carbon::parse($value)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field}: {$e->getMessage()}, defaulting to now");
-                            return now()->format('Y-m-d H:i:s');
-                        }
-                    };
-
-                    // Normalize dates
-                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
                     $paid_timestamp = null;
                     $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
+
+                    // Skip invalid or placeholder values
                     if (!preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
                         try {
+                            // Try to parse into a timestamp
                             $ts = strtotime($rawPaid);
-                            if ($ts !== false && $ts > 0) {
+
+                            if ($ts != false && $ts > 0) {
+                                // Convert to standard MySQL datetime
                                 $paid_timestamp = date('Y-m-d H:i:s', $ts);
                             } else {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Invalid paid_timestamp format: {$rawPaid}");
+                                Log::channel('daily')->debug("Row {$rowIndex}: Invalid paid_timestamp format: '{$rawPaid}'");
                             }
                         } catch (\Throwable $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse paid_timestamp: {$rawPaid}, error: {$e->getMessage()}");
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
                     }
+
+                    // Date preprocessing
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
+                        }
+
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        return null;
+                    };
+
+                    // Normalizer (keeps created_at & updated_at null if invalid)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
+
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
+                        }
+
+                        try {
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
+
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
+
+                            return $parsed;
+                        } catch (\Exception $e) {
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
+                        }
+                    };
+
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
                     // Handle postcode and geolocation
                     $cleanPostcode = '0';
@@ -880,7 +1001,7 @@ class ImportController extends Controller
                     $lat = is_numeric($row['lat'] ?? null) ? (float)$row['lat'] : 0.0;
                     $lng = is_numeric($row['lng'] ?? null) ? (float)$row['lng'] : 0.0;
 
-                    if ($lat == 0.0 && $lng == 0.0 && $cleanPostcode !== '0') {
+                    if ($lat == 0.0 && $lng == 0.0 && $cleanPostcode != '0') {
                         $query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
@@ -888,7 +1009,7 @@ class ImportController extends Controller
                         $lng = $query->lng ?? 0.0;
                     }
 
-                    if (strlen($cleanPostcode) === 8) {
+                    if (strlen($cleanPostcode) == 8) {
                         $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
                         if (!$exists) {
                             DB::table('postcodes')->insert([
@@ -899,7 +1020,7 @@ class ImportController extends Controller
                                 'updated_at' => now(),
                             ]);
                         }
-                    } elseif (strlen($cleanPostcode) < 6 && $cleanPostcode !== '0') {
+                    } elseif (strlen($cleanPostcode) < 6 && $cleanPostcode != '0') {
                         $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
                         if (!$exists) {
                             DB::table('outcodepostcodes')->insert([
@@ -2203,7 +2324,7 @@ class ImportController extends Controller
                         ],
                     ];
 
-                    if (empty($job_title_prof) || $job_title_prof === 'null') {
+                    if (empty($job_title_prof) || $job_title_prof == 'null') {
                         if (!in_array($requested_job_title, ['nonnurse specialist', 'nurse specialist', 'non-nurse specialist'])) {
                             $normalizedTitle = preg_replace('/[^a-z0-9]/', '', $requested_job_title);
                             $job_title = JobTitle::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [$normalizedTitle])->first();
@@ -2237,13 +2358,6 @@ class ImportController extends Controller
                         }
                     }
 
-                    // Handle job source
-                    $sourceRaw = $row['applicant_source'] ?? '';
-                    $cleanedSource = is_string($sourceRaw) ? strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))) : '';
-                    $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
-                    $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
-                    $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
-
                     // Handle applicant name
                     $rawName = $row['applicant_name'] ?? '';
                     $cleanedName = is_string($rawName) ? preg_replace('/\s+/', ' ', trim($rawName)) : '';
@@ -2251,21 +2365,70 @@ class ImportController extends Controller
                     $extractedNumber = $matches[0] ?? null;
                     $cleanedNumber = $extractedNumber ? preg_replace('/\D/', '', $extractedNumber) : null;
                     $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName));
-                    $finalName = ($finalName === '' || $finalName === null) ? 'Unknown' : $finalName;
+                    $finalName = ($finalName == '' || $finalName == null) ? 'Unknown' : $finalName;
+
+                    // Phone number normalization (UK standard)
+                    $normalizePhone = function($number) {
+                        $number = trim((string)$number);
+
+                        // Handle +44 prefix (UK country code)
+                        if (str_starts_with($number, '+44')) {
+                            $number = '0' . substr($number, 3); // remove +44, add 0
+                        }
+
+                        // Remove all non-digit characters
+                        $digits = preg_replace('/\D+/', '', $number);
+
+                        // Ensure starts with 0
+                        if ($digits != '' && $digits[0] != '0') {
+                            $digits = '0' . $digits;
+                        }
+
+                        // Keep only the last 11 digits if longer
+                        if (strlen($digits) > 11) {
+                            $digits = substr($digits, -11);
+                        }
+                        // Pad with zeros if shorter
+                        elseif (strlen($digits) < 11) {
+                            $digits = str_pad($digits, 11, '0', STR_PAD_LEFT);
+                        }
+
+                        return $digits;
+                    };
 
                     // Process phone numbers
                     $rawPhone = $row['applicant_phone'] ?? '';
+                    $rawHomePhone = $row['applicant_homephone'] ?? '';
+
                     $phone = null;
                     $landlinePhone = null;
+
+                    // Normalize primary phone
                     if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
                         $parts = array_map('trim', explode('/', $rawPhone));
-                        $phone = $normalizePhone($parts[0] ?? '', $rowIndex, 'applicant_phone');
-                        $landlinePhone = $normalizePhone($parts[1] ?? '', $rowIndex, 'applicant_landline');
+                        $phone = $normalizePhone($parts[0] ?? '');
+                        $landlinePhone = $normalizePhone($parts[1] ?? '');
                     } else {
-                        $phone = $normalizePhone($rawPhone, $rowIndex, 'applicant_phone');
+                        $phone = $normalizePhone($rawPhone);
                     }
-                    $homePhone = $normalizePhone($row['applicant_homephone'] ?? '', $rowIndex, 'applicant_homePhone');
-                    $applicantLandline = $homePhone !== '0' ? $homePhone : ($landlinePhone !== '0' ? $landlinePhone : ($cleanedNumber ?? '0'));
+
+                    // Ensure applicant_phone is never empty or null
+                    if (empty($phone)) {
+                        $phone = '0'; // or '00000000000' if you prefer full padding
+                    }
+
+                    $homePhone = $normalizePhone($rawHomePhone);
+                    $normalizedCleanedNumber = $cleanedNumber ? $normalizePhone($cleanedNumber) : str_repeat('0', 11);
+
+                    // Pick which to use for applicant_landline
+                    $applicantLandline =
+                        ($homePhone != str_repeat('0', 11))
+                            ? $homePhone
+                            : (($landlinePhone != str_repeat('0', 11))
+                                ? $landlinePhone
+                                : (($normalizedCleanedNumber != str_repeat('0', 11))
+                                    ? $normalizedCleanedNumber
+                                    : str_repeat('0', 11)));
 
                     // Normalize boolean/enum fields
                     $normalizeBoolean = function ($value) {
@@ -2285,7 +2448,7 @@ class ImportController extends Controller
                     };
 
                     // Log only unexpected inputs
-                    if ($crmInterviewInput !== '' && !in_array($crmInterviewInput, ['yes', 'no', '0', 'pending'])) {
+                    if ($crmInterviewInput != '' && !in_array($crmInterviewInput, ['yes', 'no', '0', 'pending', 'false'])) {
                         Log::channel('daily')->warning(
                             "Row {$rowIndex}: Unexpected is_crm_interview_attended value: '{$crmInterviewInput}', defaulting to null"
                         );
@@ -2293,9 +2456,22 @@ class ImportController extends Controller
 
                     $have_nursing_home_experience = null;
                     $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
-                    if ($input !== '') {
-                        $have_nursing_home_experience = in_array($input, ['0', 'inactive']) ? 0 : 1;
+
+                    if ($input != '' && $input != 'null' && $input != null) {
+                        $have_nursing_home_experience = in_array($input, ['0', 'inactive', 'disabled', 'no', 'false'], true) ? 0 : 1;
                     }
+
+                    // Handle job source
+                    $sourceRaw = $row['applicant_source'] ?? '';
+                    $cleanedSource = is_string($sourceRaw) ? strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))) : '';
+                    $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
+                    if($firstTwoWordsSource == 'total jobs'){
+                        $firstTwoWordsSource = 'total job';
+                    }elseif($firstTwoWordsSource == 'c.v library'){
+                        $firstTwoWordsSource = 'cv library';
+                    }
+                    $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
+                    $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
 
                     // Build processed row
                     $processedRow = [
@@ -2344,9 +2520,9 @@ class ImportController extends Controller
                         'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? ''),
                         'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? ''),
                         'have_nursing_home_experience' => $have_nursing_home_experience,
-                        'paid_status' => $row['paid_status'] ?? null,
+                        'paid_status' => trim($row['paid_status']) ?? 'pending',
                         'paid_timestamp' => $paid_timestamp,
-                        'status' => strtolower($row['status'] ?? '') === 'active' ? 1 : 0,
+                        'status' => strtolower($row['status'] ?? '') == 'active' ? 1 : 0,
                         'created_at' => $createdAt,
                         'updated_at' => $updatedAt,
                     ];
@@ -2365,7 +2541,7 @@ class ImportController extends Controller
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
-                            $rowIndex = ($chunkIndex * 500) + $index + 2;
+                            $rowIndex = ($chunkIndex * 100) + $index + 2;
                             try {
                                 $id = $row['id'];
                                 unset($row['id']);
@@ -2459,7 +2635,7 @@ class ImportController extends Controller
             // Step 2: Ensure UTF-8
             $content = file_get_contents($filePath);
             $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
                 Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
@@ -2473,7 +2649,7 @@ class ImportController extends Controller
             $csv->setEscape('\\');
 
             $headers = array_map('trim', $csv->getHeader());
-            $headers = array_filter($headers, fn($h) => $h !== '');
+            $headers = array_filter($headers, fn($h) => $h != '');
 
             if (empty($headers)) {
                 Log::channel('daily')->error('❌ No valid headers found in CSV.');
@@ -2512,66 +2688,64 @@ class ImportController extends Controller
                         if (empty($dateString) || !is_string($dateString)) {
                             return null;
                         }
-                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                            return $fixedDate;
-                        } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
+
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
                             Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
+
                         return $dateString;
                     };
 
-                    // Parse dates
+                    // Parse dates (corrected format order)
                     $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                        $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
-                        foreach ($formats as $format) {
-                            try {
-                                return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-                            } catch (\Exception $e) {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
-                            }
-                        }
-                        try {
-                            return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        if (empty($dateString)) {
                             return null;
                         }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        return null;
                     };
 
-                    // Define a reusable helper closure (you can move it outside loop)
+                    // Normalizer (keeps created_at & updated_at null if invalid)
                     $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
                         $value = trim((string)($value ?? ''));
 
                         // Skip invalid placeholders
                         if (
-                            $value === '' ||
-                            strcasecmp($value, 'null') === 0 ||
-                            strcasecmp($value, 'pending') === 0 ||
-                            strcasecmp($value, 'active') === 0 ||
-                            strcasecmp($value, 'n/a') === 0 ||
-                            strcasecmp($value, 'na') === 0 ||
-                            strcasecmp($value, '-') === 0
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                         ) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                             return null;
                         }
 
                         try {
-                            // Preprocess if defined
-                            if (isset($preprocessDate)) {
-                                $value = $preprocessDate($value, $field, $rowIndex);
-                            }
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
 
-                            // Parse with your custom logic, fallback to strtotime
-                            $parsed = isset($parseDate)
-                                ? $parseDate($value, $rowIndex, $field)
-                                : date('Y-m-d H:i:s', strtotime($value));
-
-                            if (!$parsed || strtotime($parsed) === false) {
+                            if (!$parsed || strtotime($parsed) == false) {
                                 throw new \Exception("Invalid date format: '{$value}'");
                             }
 
@@ -2606,7 +2780,7 @@ class ImportController extends Controller
                     }
 
                     // ✅ Insert postcode if missing
-                    if (strlen($cleanPostcode) === 8 && !DB::table('postcodes')->where('postcode', $cleanPostcode)->exists()) {
+                    if (strlen($cleanPostcode) == 8 && !DB::table('postcodes')->where('postcode', $cleanPostcode)->exists()) {
                         $postcodesToInsert[] = [
                             'postcode' => $cleanPostcode,
                             'lat' => $lat,
@@ -2822,56 +2996,31 @@ class ImportController extends Controller
     }
     public function messagesImport(Request $request)
     {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv'
+        ]);
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
+
         try {
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
+            $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [Applicant Import] Starting CSV import process...');
 
-            ini_set('max_execution_time', 10000);
-            ini_set('memory_limit', '-1');
-
-            $logFile = storage_path('logs/laravel.log');
-            if (!is_writable(dirname($logFile))) {
-                return response()->json(['error' => 'Log directory is not writable.'], 500);
-            }
-
-            Log::info('Starting Messages CSV import');
-
+            // Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
 
-            if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
-                return response()->json(['error' => 'Failed to store uploaded file.'], 500);
-            }
-            Log::info('File stored at: ' . $filePath);
-
-            // Stream encoding conversion
-            $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
-                $tempFile = $filePath . '.utf8';
-                $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
-                    return response()->json(['error' => 'Failed to read uploaded file.'], 500);
-                }
-                $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
-                    fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
-                    return response()->json(['error' => 'Failed to create temporary file.'], 500);
-                }
-                while (!feof($handleIn)) {
-                    $chunk = fread($handleIn, 8192);
-                    fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
-                }
-                fclose($handleIn);
-                fclose($handleOut);
-                unlink($filePath);
-                rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+            // Ensure UTF-8 encoding
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding != 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             $csv = Reader::createFromPath($filePath, 'r');
@@ -2883,175 +3032,220 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            // Count total rows
+            $records = $csv->getRecords();
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total messages records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
+            Log::channel('daily')->info('🚀 Starting messages row-by-row processing...');
+
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
-                    Log::info("Processing row {$rowIndex}");
-                }
-
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                    }
-                    return $value;
-                }, $row);
-
                 try {
-                    $date = !empty($row['date'])
-                        ? Carbon::parse($row['date'])->format('Y-m-d')
-                        : now()->format('Y-m-d');
-                    $time = !empty($row['time']) ? Carbon::createFromFormat('H:i:s', $row['time'])->format('H:i:s') : now()->format('H:i:s');
-                } catch (\Exception $e) {
-                    Log::warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
-                }
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
+                    }
 
-                // Date preprocessing
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+                    $row = array_combine($headers, $row);
+
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                        }
+                        return $value;
+                    }, $row);
+
+                    try {
+                        $date = !empty($row['date'])
+                            ? Carbon::parse($row['date'])->format('Y-m-d')
+                            : now()->format('Y-m-d');
+                        $time = !empty($row['time']) ? Carbon::createFromFormat('H:i:s', $row['time'])->format('H:i:s') : now()->format('H:i:s');
+                    } catch (\Exception $e) {
+                        Log::warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
+                    }
+
+                    // Date preprocessing
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
+                        }
+
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
-                    }
+                    };
 
-                    // Fix malformed numeric formats (e.g., 1122024 1230)
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    }
+                    // Normalizer (keeps created_at & updated_at null if invalid)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
 
-                    return $dateString;
-                };
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
+                        }
 
-                // Parse dates (corrected format order)
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
-                        'Y-m-d',
-                        'd/m/Y H:i',
-                        'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
-                    ];
-
-                    foreach ($formats as $format) {
                         try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
+
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
+
+                            return $parsed;
                         } catch (\Exception $e) {
-                            // Skip silently for cleaner logs
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
                         }
-                    }
+                    };
 
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
-                // Normalizer (unchanged except keeping created_at & updated_at intact)
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
+                    $processedRow = [
+                        'id' => $row['id'],
+                        'msg_id' => $row['msg_id'] ?? null,
+                        'module_id' => $row['applicant_id'] ?? null,
+                        'module_type' => 'Horsefly\Applicant',
+                        'user_id' => $row['user_id'] ?? null,
+                        'message' => $row['message'] ?? '',
+                        'phone_number' => $row['phone_number'] ?? null,
+                        'status' => $row['status'],
+                        'is_read' => $row['is_read'],
+                        'is_sent' => 1,
+                        'date' => $date,
+                        'time' => $time,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ];
+                    $processedData[] = $processedRow;
 
-                    // Skip invalid placeholders
-                    if (
-                        $value === '' ||
-                        in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
-                    ) {
-                        return null;
-                    }
-
-                    try {
-                        $value = $preprocessDate($value, $field, $rowIndex);
-                        $parsed = $parseDate($value, $rowIndex, $field);
-
-                        if (!$parsed || strtotime($parsed) === false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
-                        }
-
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-                $processedRow = [
-                    'id' => $row['id'] ?? null,
-                    'msg_id' => $row['msg_id'] ?? null,
-                    'module_id' => $row['applicant_id'] ?? null,
-                    'module_type' => 'Horsefly\Applicant',
-                    'user_id' => $row['user_id'] ?? null,
-                    'message' => $row['message'] ?? '',
-                    'phone_number' => $row['phone_number'] ?? null,
-                    'status' => $row['status'] ?? 0,
-                    'is_read' => $row['is_read'] ?? 0,
-                    'is_sent' => 1,
-                    'date' => $date,
-                    'time' => $time,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-                $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
             }
 
-            foreach (array_chunk($processedData, 100) as $chunk) {
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
-                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
+                            $rowIndex = ($chunkIndex * 100) + $index + 2;
                             try {
                                 Message::updateOrCreate(
                                     ['id' => $row['id']],
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
-                            } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
-                                $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
+
+                                $successfulRows++;
+                            } catch (\Throwable $e) {
+                                $failedRows[] = [
+                                    'row' => $rowIndex,
+                                    'error' => $e->getMessage(),
+                                ];
+
+                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                             }
                         }
                     });
-                } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+
+                  Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
+             // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Messages CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+
+            Log::channel('daily')->info("🏁 [Messages Import Summary]");
+            Log::channel('daily')->info("• Total rows read: {$totalRows}");
+            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
+            Log::channel('daily')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
-                'message' => 'Messages CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Messages CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
-            if (isset($filePath) && file_exists($filePath)) {
+            if (file_exists($filePath ?? '')) {
                 unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
+            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
     }
     public function applicantNotesImport(Request $request)
@@ -3089,15 +3283,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -3133,14 +3327,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['details'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['details'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -3196,13 +3390,13 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
+                        $value == '' ||
+                        strcasecmp($value, 'null') == 0 ||
+                        strcasecmp($value, 'pending') == 0 ||
+                        strcasecmp($value, 'active') == 0 ||
+                        strcasecmp($value, 'n/a') == 0 ||
+                        strcasecmp($value, 'na') == 0 ||
+                        strcasecmp($value, '-') == 0
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
@@ -3219,7 +3413,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -3241,7 +3435,7 @@ class ImportController extends Controller
                     'applicant_id' => $row['applicant_id'] ?? null,
                     'details' => $row['details'] ?? '',
                     'moved_tab_to' => $row['moved_tab_to'] ?? null,
-                    'status' => isset($row['status']) && strtolower($row['status']) === 'active' ? 1 : 0,
+                    'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
                 ];
@@ -3259,7 +3453,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -3332,15 +3526,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -3376,14 +3570,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['applicant_id'], $row['applicant_id'])) {
+                if ($row == false || !isset($row['applicant_id'], $row['applicant_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -3439,13 +3633,13 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
+                        $value == '' ||
+                        strcasecmp($value, 'null') == 0 ||
+                        strcasecmp($value, 'pending') == 0 ||
+                        strcasecmp($value, 'active') == 0 ||
+                        strcasecmp($value, 'n/a') == 0 ||
+                        strcasecmp($value, 'na') == 0 ||
+                        strcasecmp($value, '-') == 0
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
@@ -3462,7 +3656,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -3500,7 +3694,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -3573,15 +3767,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -3617,14 +3811,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['applicants_pivot_sales_id'], $row['applicants_pivot_sales_id'])) {
+                if ($row == false || !isset($row['applicants_pivot_sales_id'], $row['applicants_pivot_sales_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -3680,13 +3874,13 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
+                        $value == '' ||
+                        strcasecmp($value, 'null') == 0 ||
+                        strcasecmp($value, 'pending') == 0 ||
+                        strcasecmp($value, 'active') == 0 ||
+                        strcasecmp($value, 'n/a') == 0 ||
+                        strcasecmp($value, 'na') == 0 ||
+                        strcasecmp($value, '-') == 0
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
@@ -3703,7 +3897,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -3741,7 +3935,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -3786,56 +3980,29 @@ class ImportController extends Controller
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
+        // Validate file (115 MB limit, CSV only)
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv',
+        ]);
+        
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv',
-            ]);
+            $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [Audits Import] Starting CSV import process...');
 
-            // Check log directory writability
-            $logFile = storage_path('logs/laravel.log');
-            if (!is_writable(dirname($logFile))) {
-                return response()->json(['error' => 'Log directory is not writable.'], 500);
-            }
-
-            Log::info('Starting Audits CSV import');
-
-            // Store file with unique timestamped name
+            // Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
 
-            if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
-                return response()->json(['error' => 'Failed to store uploaded file.'], 500);
-            }
-            Log::info('File stored at: ' . $filePath);
-
-            // Stream encoding conversion
-            $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
-                $tempFile = $filePath . '.utf8';
-                $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
-                    return response()->json(['error' => 'Failed to read uploaded file.'], 500);
-                }
-                $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
-                    fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
-                    return response()->json(['error' => 'Failed to create temporary file.'], 500);
-                }
-                while (!feof($handleIn)) {
-                    $chunk = fread($handleIn, 8192);
-                    fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
-                }
-                fclose($handleIn);
-                fclose($handleOut);
-                unlink($filePath);
-                rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+            // Ensure UTF-8 encoding
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding != 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -3848,129 +4015,141 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total audits records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
+            Log::channel('daily')->info('🚀 Starting audits row-by-row processing...');
+
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
-                    Log::info("Processing row {$rowIndex}");
-                }
-
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['auditable_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
-                    continue;
-                }
-
-                // Clean string values
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
                     }
-                    return $value;
-                }, $row);
 
-                // Date preprocessing
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+                    $row = array_combine($headers, $row);
+                    if ($row == false || !isset($row['user_id'], $row['auditable_id'])) {
+                        Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
+                        continue;
+                    }
+
+                    // Clean string values
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                        }
+                        return $value;
+                    }, $row);
+
+                    // Date preprocessing
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
+                        }
+
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
-                    }
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    }
-                    return $dateString;
-                };
+                    };
 
-                // Parse dates
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
-                    foreach ($formats as $format) {
+                    // Normalizer (keeps created_at & updated_at null if invalid)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
+
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
+                        }
+
                         try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
-                        }
-                    }
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                // Define a reusable helper closure (you can move it outside loop)
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
-
-                    // Skip invalid placeholders
-                    if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
-                    ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
-                        return null;
-                    }
-
-                    try {
-                        // Preprocess if defined
-                        if (isset($preprocessDate)) {
                             $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
+
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
+
+                            return $parsed;
+                        } catch (\Exception $e) {
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
                         }
+                    };
 
-                        // Parse with your custom logic, fallback to strtotime
-                        $parsed = isset($parseDate)
-                            ? $parseDate($value, $rowIndex, $field)
-                            : date('Y-m-d H:i:s', strtotime($value));
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
-                        if (!$parsed || strtotime($parsed) === false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
-                        }
+                    // Prepare row for insertion
+                    $processedRow = [
+                        'id' => $row['id'] ?? null,
+                        'user_id' => $row['user_id'] ?? null,
+                        'auditable_id' => $row['auditable_id'] ?? null,
+                        'auditable_type' => $row['auditable_type'] ?? null,
+                        'data' => $row['data'] ?? '',
+                        'message' => $row['message'] ?? '',
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ];
+                    $processedData[] = $processedRow;
 
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-                // Prepare row for insertion
-                $processedRow = [
-                    'id' => $row['id'] ?? null,
-                    'user_id' => $row['user_id'] ?? null,
-                    'auditable_id' => $row['auditable_id'] ?? null,
-                    'auditable_type' => $row['auditable_type'] ?? null,
-                    'data' => $row['data'] ?? '',
-                    'message' => $row['message'] ?? '',
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-                $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
             }
+
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert rows in batches
             foreach (array_chunk($processedData, 100) as $chunk) {
@@ -3983,7 +4162,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -4040,7 +4219,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Audits CSV import');
+            Log::info('Starting CRM Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -4056,15 +4235,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -4100,14 +4279,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sales_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sales_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -4171,7 +4350,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -4181,7 +4360,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -4222,7 +4401,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -4295,15 +4474,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -4339,14 +4518,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -4410,7 +4589,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -4420,7 +4599,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -4462,7 +4641,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -4535,15 +4714,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -4579,14 +4758,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -4650,7 +4829,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -4660,7 +4839,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -4700,7 +4879,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -4773,15 +4952,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -4817,14 +4996,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -4888,7 +5067,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -4898,7 +5077,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -4939,7 +5118,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -4983,57 +5162,30 @@ class ImportController extends Controller
         // Set PHP limits
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
+        
+        // Validate file (115 MB limit, CSV only)
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv'
+        ]);
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
+            $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [Interview Import] Starting CSV import process...');
 
-            // Check log directory writability
-            $logFile = storage_path('logs/laravel.log');
-            if (!is_writable(dirname($logFile))) {
-                return response()->json(['error' => 'Log directory is not writable.'], 500);
-            }
-
-            Log::info('Starting Inteview CSV import');
-
-            // Store file with unique timestamped name
+            // Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
 
-            if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
-                return response()->json(['error' => 'Failed to store uploaded file.'], 500);
-            }
-            Log::info('File stored at: ' . $filePath);
-
-            // Stream encoding conversion
-            $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
-                $tempFile = $filePath . '.utf8';
-                $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
-                    return response()->json(['error' => 'Failed to read uploaded file.'], 500);
-                }
-                $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
-                    fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
-                    return response()->json(['error' => 'Failed to create temporary file.'], 500);
-                }
-                while (!feof($handleIn)) {
-                    $chunk = fread($handleIn, 8192);
-                    fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
-                }
-                fclose($handleIn);
-                fclose($handleOut);
-                unlink($filePath);
-                rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+            // Ensure UTF-8 encoding
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding != 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -5046,230 +5198,402 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            
+            // Count total rows
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total interview records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
+            Log::channel('daily')->info('🚀 Starting interview row-by-row processing...');
+
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
-                    Log::info("Processing row {$rowIndex}");
-                }
-
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
-                    continue;
-                }
-
-                // Clean string values
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
                     }
-                    return $value;
-                }, $row);
 
-                /** ------------------------------
-                 *  SCHEDULE DATE NORMALIZATION
-                 * ------------------------------ */
-                $schedule_date = null;
-                if (!empty($row['schedule_date'])) {
-                    $rawDate = trim($row['schedule_date']);
-                    $formats = [
-                        'j F, Y', 'd F, Y', 'j M, Y', 'd M, Y', 'm/d/Y', 'Y-m-d'
-                    ];
-                    foreach ($formats as $fmt) {
-                        try {
-                            $schedule_date = Carbon::createFromFormat($fmt, $rawDate)->format('Y-m-d');
-                            break;
-                        } catch (\Exception $e) {
-                            continue;
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+                    $row = array_combine($headers, $row);
+                    if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                        Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
+                        continue;
+                    }
+
+                    // Clean string values
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
                         }
-                    }
-                    if (!$schedule_date) {
-                        try {
-                            $schedule_date = Carbon::parse($rawDate)->format('Y-m-d');
-                        } catch (\Exception $e) {
-                            Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_date '{$row['schedule_date']}'");
-                        }
-                    }
-                }
+                        return $value;
+                    }, $row);
 
-                /** ------------------------------
-                 *  SCHEDULE TIME NORMALIZATION (fixed)
-                 * ------------------------------ */
-                $schedule_time = null;
-                if (!empty($row['schedule_time'])) {
-                    $rawTime = trim((string)$row['schedule_time']);
-                    $formats = [
-                        'H:i:s',   // 14:30:00
-                        'H:i',     // 14:30
-                        'g:i A',   // 3:30 PM
-                        'g:i a',   // 3:30 pm
-                    ];
-
-                    foreach ($formats as $fmt) {
-                        try {
-                            $parsed = Carbon::createFromFormat($fmt, $rawTime);
-                            if ($parsed && $parsed->format('H:i:s') !== false) {
-                                $schedule_time = $parsed->format('H:i:s');
+                    /** ------------------------------
+                     *  SCHEDULE DATE NORMALIZATION
+                     * ------------------------------ */
+                    $schedule_date = null;
+                    if (!empty($row['schedule_date'])) {
+                        $rawDate = trim($row['schedule_date']);
+                        $formats = [
+                            'j F, Y', 'd F, Y', 'j M, Y', 'd M, Y', 'm/d/Y', 'Y-m-d'
+                        ];
+                        foreach ($formats as $fmt) {
+                            try {
+                                $schedule_date = Carbon::createFromFormat($fmt, $rawDate)->format('Y-m-d');
                                 break;
+                            } catch (\Exception $e) {
+                                continue;
                             }
-                        } catch (\Exception $e) {
-                            continue;
+                        }
+                        if (!$schedule_date) {
+                            try {
+                                $schedule_date = Carbon::parse($rawDate)->format('Y-m-d');
+                            } catch (\Exception $e) {
+                                Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_date '{$row['schedule_date']}'");
+                            }
                         }
                     }
 
-                    // Fallback: handle times like "2:00" (no AM/PM)
-                    if (!$schedule_time && preg_match('/^\d{1,2}:\d{2}$/', $rawTime)) {
+                    /** ------------------------------
+                     *  SCHEDULE TIME NORMALIZATION (robust 24-hour format)
+                     * ------------------------------ */
+                    // $schedule_time = '00:00'; // Default fallback
+
+                    // if (!empty($row['schedule_time'])) {
+                    //     $rawTime = trim(preg_replace('/[[:^print:]]/', '', (string)$row['schedule_time']));
+                    //     $originalRaw = $rawTime; // for logging
+
+                    //     // Normalize: lowercase, trim spaces
+                    //     $rawTime = strtolower($rawTime);
+                    //     $rawTime = preg_replace('/\s+/', ' ', $rawTime);
+
+                    //     // Replace weird symbols with colon
+                    //     $rawTime = str_replace([';', ',', '.', '–', '—'], ':', $rawTime);
+                    //     $rawTime = preg_replace('/::+/', ':', $rawTime);
+                    //     $rawTime = preg_replace('/:+$/', '', $rawTime);
+                    //     $rawTime = trim($rawTime);
+
+                    //     // Keep only first part if a range like "11 - 3 pm"
+                    //     if (preg_match('/^([^-\(]+)/', $rawTime, $m)) {
+                    //         $rawTime = trim($m[1]);
+                    //     }
+
+                    //     // Remove parentheses and extra text
+                    //     $rawTime = preg_replace('/\(.*?\)/', '', $rawTime);
+                    //     $rawTime = trim($rawTime);
+
+                    //     // Handle "12 m" → "12:00"
+                    //     if (preg_match('/^12\s*m$/', $rawTime)) {
+                    //         $rawTime = '12:00';
+                    //     }
+
+                    //     // Fix "1::30" → "1:30"
+                    //     $rawTime = str_replace('::', ':', $rawTime);
+
+                    //     // If ends with ":", assume ":00"
+                    //     if (preg_match('/^\d{1,2}:$/', $rawTime)) {
+                    //         $rawTime .= '00';
+                    //     }
+
+                    //     // Handle "11" or "2" → assume hour only
+                    //     if (preg_match('/^\d{1,2}$/', $rawTime)) {
+                    //         $rawTime .= ':00';
+                    //     }
+
+                    //     // Identify AM/PM manually
+                    //     $isPM = stripos($originalRaw, 'pm') != false;
+                    //     $isAM = stripos($originalRaw, 'am') != false;
+
+                    //     // Remove am/pm markers
+                    //     $rawTime = str_ireplace(['am', 'pm', 'a.m', 'p.m', 'a.m.', 'p.m.'], '', $rawTime);
+                    //     $rawTime = trim($rawTime);
+
+                    //     try {
+                    //         // Try to parse with Carbon
+                    //         $parsed = \Carbon\Carbon::createFromFormat('H:i', $rawTime);
+                    //     } catch (\Exception $e) {
+                    //         try {
+                    //             $parsed = \Carbon\Carbon::parse($rawTime);
+                    //         } catch (\Exception $e) {
+                    //             $parsed = null;
+                    //         }
+                    //     }
+
+                    //     if ($parsed) {
+                    //         // Adjust AM/PM
+                    //         $hour = (int) $parsed->format('H');
+                    //         if ($isPM && $hour < 12) {
+                    //             $parsed->addHours(12);
+                    //         } elseif ($isAM && $hour == 12) {
+                    //             $parsed->subHours(12);
+                    //         }
+
+                    //         // ✅ Store only hour:minute
+                    //         $schedule_time = $parsed->format('H:i');
+                    //     } else {
+                    //         \Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
+                    //         $schedule_time = '00:00';
+                    //     }
+                    // }
+
+                    $rawTime = trim($row['schedule_time'] ?? '');
+                    $schedule_time = '00:00'; // default
+
+                    if ($rawTime != '') {
+
+                        $originalRaw = $rawTime;
+
+                        // Remove non-printable chars
+                        $rawTime = preg_replace('/[[:^print:]]/', '', $rawTime);
+                        $rawTime = strtolower($rawTime);
+                        $rawTime = preg_replace('/\s+/', ' ', $rawTime);
+
+                        // Replace weird separators with colon
+                        $rawTime = str_replace([';', ',', '.', '–', '—'], ':', $rawTime);
+                        $rawTime = preg_replace('/::+/', ':', $rawTime);
+                        $rawTime = preg_replace('/:+$/', '', $rawTime);
+                        $rawTime = trim($rawTime);
+
+                        // Keep first part if it's a range like "11 - 3 pm"
+                        if (preg_match('/^([^-\(]+)/', $rawTime, $m)) {
+                            $rawTime = trim($m[1]);
+                        }
+
+                        // Remove parentheses
+                        $rawTime = preg_replace('/\(.*?\)/', '', $rawTime);
+                        $rawTime = trim($rawTime);
+
+                        // Handle hour-only inputs like "3" -> "3:00"
+                        if (preg_match('/^\d{1,2}$/', $rawTime)) {
+                            $rawTime .= ':00';
+                        }
+
+                        // Detect AM/PM
+                        $originalLower = strtolower($originalRaw);
+                        $isPM = strpos($originalLower, 'pm') != false;
+                        $isAM = strpos($originalLower, 'am') != false;
+
+                        // Remove AM/PM from string
+                        $rawTime = preg_replace('/\s*(a\.?m\.?|p\.?m\.?)/i', '', $rawTime);
+
                         try {
-                            $parsed = Carbon::createFromFormat('H:i', $rawTime);
-                            $schedule_time = $parsed->format('H:i:s');
+                            $parsed = \Carbon\Carbon::createFromFormat('H:i', $rawTime);
                         } catch (\Exception $e) {
-                            Log::channel('daily')->warning("Row {$rowIndex}: Unrecognized schedule_time '{$rawTime}'");
+                            try {
+                                $parsed = \Carbon\Carbon::parse($rawTime);
+                            } catch (\Exception $e) {
+                                $parsed = null;
+                            }
+                        }
+
+                        if ($parsed) {
+                            $hour = (int) $parsed->format('H');
+
+                            // If input had AM/PM, convert to 24-hour
+                            if ($isPM && $hour < 12) {
+                                $parsed->addHours(12);
+                            } elseif ($isAM && $hour == 12) {
+                                $parsed->subHours(12);
+                            }
+
+                            // If no AM/PM and time is between 12:01 and 7:00, interpret as early morning
+                            if (!$isAM && !$isPM) {
+                                if ($hour == 12 || $hour <= 7) {
+                                    // keep as is in 24-hour
+                                    // 12 stays 12, 1-7 stays 01-07
+                                } elseif ($hour > 7 && $hour < 12) {
+                                    // optional: depends on business logic, maybe consider as morning hours
+                                }
+                            }
+
+                            // Save HH:MM format
+                            $schedule_time = $parsed->format('H:i');
+                        } else {
+                            Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
+                            $schedule_time = '00:00';
                         }
                     }
 
-                    // Final fallback (only if nothing matched)
-                    if (!$schedule_time) {
-                        try {
-                            $schedule_time = Carbon::parse($rawTime)->format('H:i:s');
-                        } catch (\Exception $e) {
-                            Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_time '{$row['schedule_time']}'");
+                    /** ------------------------------
+                     *  DATE FIELDS NORMALIZATION
+                     * ------------------------------ */
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
                         }
-                    }
-                }
 
-                /** ------------------------------
-                 *  DATE FIELDS NORMALIZATION
-                 * ------------------------------ */
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                return $dt->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+
+
+                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
-                    }
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
-                    }
-                    return $dateString;
-                };
+                    };
 
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = [
-                        'Y-m-d H:i:s', 'Y-m-d', 'd/m/Y H:i', 'd/m/Y', 'm/d/Y H:i', 'm/d/Y'
+                    // Normalizer (keeps created_at & updated_at null if invalid)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
+
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
+                        }
+
+                        try {
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
+
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
+
+                            return $parsed;
+                        } catch (\Exception $e) {
+                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
+                        }
+                    };
+
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+
+                    /** ------------------------------
+                     *  FINAL RECORD
+                     * ------------------------------ */
+                    $processedRow = [
+                        'id' => $row['id'] ?? null,
+                        'interview_uid' => md5($row['id']),
+                        'user_id' => $row['user_id'] ?? null,
+                        'applicant_id' => $row['applicant_id'],
+                        'sale_id' => $row['sale_id'],
+                        'details' => $row['details'] ?? '',
+                        'status' => strtolower($row['status']) == 'active' ? 1 : 0,
+                        'schedule_date' => $schedule_date,
+                        'schedule_time' => $schedule_time,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
                     ];
-                    foreach ($formats as $format) {
-                        try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-                        } catch (\Exception $e) {}
-                    }
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
 
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
-                    if ($value === '' || in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])) {
-                        return null;
-                    }
-                    try {
-                        $value = $preprocessDate($value, $field, $rowIndex);
-                        $parsed = $parseDate($value, $rowIndex, $field);
-                        if (!$parsed || strtotime($parsed) === false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
-                        }
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
-
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-                /** ------------------------------
-                 *  FINAL RECORD
-                 * ------------------------------ */
-                $processedRow = [
-                    'id' => $row['id'] ?? null,
-                    'interview_uid' => md5($row['id']),
-                    'user_id' => $row['user_id'] ?? null,
-                    'applicant_id' => $row['applicant_id'],
-                    'sale_id' => $row['sale_id'],
-                    'details' => $row['details'] ?? '',
-                    'status' => strtolower($row['status']) === 'active' ? 1 : 0,
-                    'schedule_date' => $schedule_date,
-                    'schedule_time' => $schedule_time,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-
-                $processedData[] = $processedRow;
+                    $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
             }
 
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+
             // Insert rows in batches
-            foreach (array_chunk($processedData, 100) as $chunk) {
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
-                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
+                            $rowIndex = ($chunkIndex * 100) + $index + 2;
                             try {
                                 Interview::updateOrCreate(
                                     ['id' => $row['id']],
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
-                            } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
-                                $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
+                            } catch (\Throwable $e) {
+                                $failedRows[] = [
+                                    'row' => $rowIndex,
+                                    'error' => $e->getMessage(),
+                                ];
+                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                             }
                         }
                     });
-                } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
-            // Clean up temporary file
+            // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Interview CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+
+            Log::channel('daily')->info("🏁 [Interview Import Summary]");
+            Log::channel('daily')->info("• Total rows read: {$totalRows}");
+            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
+            Log::channel('daily')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
-                'message' => 'Interview CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
-            return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Interview CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
-            if (isset($filePath) && file_exists($filePath)) {
+            if (file_exists($filePath ?? '')) {
                 unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
+            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
     }
     public function ipAddressImport(Request $request)
@@ -5306,15 +5630,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -5350,14 +5674,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['ip_address'])) {
+                if ($row == false || !isset($row['user_id'], $row['ip_address'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -5413,13 +5737,13 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
-                        strcasecmp($value, 'null') === 0 ||
-                        strcasecmp($value, 'pending') === 0 ||
-                        strcasecmp($value, 'active') === 0 ||
-                        strcasecmp($value, 'n/a') === 0 ||
-                        strcasecmp($value, 'na') === 0 ||
-                        strcasecmp($value, '-') === 0
+                        $value == '' ||
+                        strcasecmp($value, 'null') == 0 ||
+                        strcasecmp($value, 'pending') == 0 ||
+                        strcasecmp($value, 'active') == 0 ||
+                        strcasecmp($value, 'n/a') == 0 ||
+                        strcasecmp($value, 'na') == 0 ||
+                        strcasecmp($value, '-') == 0
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
@@ -5436,7 +5760,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -5475,7 +5799,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -5551,7 +5875,7 @@ class ImportController extends Controller
 
             // 🔄 Detect and convert encoding if needed
             $encoding = $this->detectEncodingd($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 $handleOut = fopen($tempFile, 'w');
@@ -5658,7 +5982,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -5668,7 +5992,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -5689,7 +6013,7 @@ class ImportController extends Controller
                     'module_noteable_id' => $row['module_noteable_id'],
                     'module_noteable_type' => $row['module_noteable_type'] ?? '',
                     'details' => $row['details'] ?? '',
-                    'status' => ($row['status'] ?? '') === 'active' ? 1 : 0,
+                    'status' => ($row['status'] ?? '') == 'active' ? 1 : 0,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
                 ];
@@ -5788,15 +6112,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -5832,14 +6156,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -5903,7 +6227,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -5913,7 +6237,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -5954,7 +6278,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -6027,15 +6351,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -6071,14 +6395,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['districts_code'], $row['districts_code'])) {
+                if ($row == false || !isset($row['districts_code'], $row['districts_code'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -6113,7 +6437,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -6186,15 +6510,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -6230,14 +6554,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -6301,7 +6625,7 @@ class ImportController extends Controller
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -6311,7 +6635,7 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -6350,7 +6674,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -6423,15 +6747,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -6467,14 +6791,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['sale_id'], $row['document_path'])) {
+                if ($row == false || !isset($row['sale_id'], $row['document_path'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -6534,7 +6858,7 @@ class ImportController extends Controller
                     $value = trim((string)($value ?? ''));
 
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
@@ -6550,7 +6874,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -6590,7 +6914,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -6663,15 +6987,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -6707,14 +7031,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['user_id'], $row['sale_id'])) {
+                if ($row == false || !isset($row['user_id'], $row['sale_id'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -6774,7 +7098,7 @@ class ImportController extends Controller
                     $value = trim((string)($value ?? ''));
 
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
@@ -6790,7 +7114,7 @@ class ImportController extends Controller
                             ? $parseDate($value, $rowIndex, $field)
                             : date('Y-m-d H:i:s', strtotime($value));
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
@@ -6830,7 +7154,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -6903,15 +7227,15 @@ class ImportController extends Controller
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
-            if ($encoding !== 'UTF-8') {
+            if ($encoding != 'UTF-8') {
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
-                if ($handleIn === false) {
+                if ($handleIn == false) {
                     Log::error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
-                if ($handleOut === false) {
+                if ($handleOut == false) {
                     fclose($handleIn);
                     Log::error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
@@ -6947,14 +7271,14 @@ class ImportController extends Controller
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 === 0) {
+                if ($rowIndex % 100 == 0) {
                     Log::info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
-                if ($row === false || !isset($row['sent_from'], $row['sent_to'])) {
+                if ($row == false || !isset($row['sent_from'], $row['sent_to'])) {
                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
@@ -6969,7 +7293,7 @@ class ImportController extends Controller
                     return $value;
                 }, $row);
 
-                 // Date preprocessing
+                // Date preprocessing
                 $preprocessDate = function ($dateString, $field, $rowIndex) {
                     if (empty($dateString) || !is_string($dateString)) {
                         return null;
@@ -6978,7 +7302,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -6987,38 +7311,41 @@ class ImportController extends Controller
 
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                    if (empty($dateString)) {
+                        return null;
+                    }
+
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y',
                         'd/m/Y H:i',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
                     ];
 
                     foreach ($formats as $format) {
                         try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                            $dt = Carbon::createFromFormat($format, $dateString);
+                            // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                            return $dt->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            // Skip silently for cleaner logs
+                            // continue
                         }
                     }
 
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
+
+                    Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                    return null;
                 };
 
-                // Normalizer (unchanged except keeping created_at & updated_at intact)
+                // Normalizer (keeps created_at & updated_at null if invalid)
                 $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
                     $value = trim((string)($value ?? ''));
 
                     // Skip invalid placeholders
                     if (
-                        $value === '' ||
+                        $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
                         return null;
@@ -7028,13 +7355,13 @@ class ImportController extends Controller
                         $value = $preprocessDate($value, $field, $rowIndex);
                         $parsed = $parseDate($value, $rowIndex, $field);
 
-                        if (!$parsed || strtotime($parsed) === false) {
+                        if (!$parsed || strtotime($parsed) == false) {
                             throw new \Exception("Invalid date format: '{$value}'");
                         }
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7044,7 +7371,7 @@ class ImportController extends Controller
 
                 // Prepare row for insertion
                 $processedRow = [
-                    'id' => $row['id'] ?? null,
+                    'id' => $row['id'],
                     'user_id' => $row['user_id'] ?? null,
                     'applicant_id' => $row['applicant_id'] != 'NULL' ? $row['applicant_id'] : null,
                     'sale_id' => $row['sale_id'] != 'NULL' ? $row['sale_id'] : null,
@@ -7055,7 +7382,7 @@ class ImportController extends Controller
                     'subject' => $row['subject'] ?? '',
                     'title' => $row['title'] ?? '',
                     'template' => $row['template'] ?? '',
-                    'status' => $row['status'] == 1 ? 1 : 0,
+                    'status' => $row['status'] == '1' ? '1' : '0',
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
                 ];
@@ -7073,7 +7400,7 @@ class ImportController extends Controller
                                     $row
                                 );
                                 $successfulRows++;
-                                if (($index + 1) % 100 === 0) {
+                                if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
@@ -7115,7 +7442,7 @@ class ImportController extends Controller
     protected function detectEncoding($filePath)
     {
         $handle = fopen($filePath, 'r');
-        if ($handle === false) {
+        if ($handle == false) {
             Log::error("Failed to open file for encoding detection: {$filePath}");
             throw new \Exception('Unable to open file for encoding detection.');
         }
@@ -7157,7 +7484,7 @@ class ImportController extends Controller
         $extension = $file->getClientOriginalExtension();
         $path = $file->store('documents');
 
-        if ($extension === 'pdf') {
+        if ($extension == 'pdf') {
             // try {
             return Pdf::getText(Storage::path($path), 'C:\poppler\bin\pdftotext.exe'); // Adjust path if needed
             // } catch (\Exception $e) {
@@ -7180,7 +7507,7 @@ class ImportController extends Controller
                 Log::error('DOC text extraction failed: ' . $e->getMessage());
                 return null;
             }
-        } elseif ($extension === 'csv') {
+        } elseif ($extension == 'csv') {
             try {
                 $csv = Reader::createFromPath(Storage::path($path), 'r');
                 $csv->setHeaderOffset(0); // Assumes first row is header, adjust if needed
@@ -7216,7 +7543,7 @@ class ImportController extends Controller
         $keywords = ['skills', 'qualification', 'education', 'name', 'contact', 'phone', 'experience', 'postcode'];
         $found = [];
         foreach ($keywords as $keyword) {
-            if (stripos($text, $keyword) !== false) {
+            if (stripos($text, $keyword) != false) {
                 $found[] = $keyword;
             }
         }

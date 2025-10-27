@@ -886,6 +886,12 @@ class ApplicantController extends Controller
             // Handle file upload if a CV is provided
             $path = null;
             if ($request->hasFile('applicant_cv')) {
+
+                // Delete the old file if it exists
+                if (!empty($applicantData['applicant_cv']) && Storage::disk('public')->exists($applicantData['applicant_cv'])) {
+                    Storage::disk('public')->delete($applicantData['applicant_cv']);
+                }
+
                 // Get the original file name
                 $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
                 // Get the filename without extension
@@ -897,9 +903,10 @@ class ApplicantController extends Controller
                 // Store the file in the public/uploads/resume/ directory
                 $path = $request->file('applicant_cv')->storeAs('uploads/resume', $fileNameToStore, 'public');
 
-                // If a CV was uploaded, assign the path to the data
+                // Assign the new file path to the data array
                 $applicantData['applicant_cv'] = $path;
             }
+
 
             // Get the applicant ID from the request
             $id = $request->input('applicant_id');
@@ -1358,107 +1365,147 @@ class ApplicantController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'applicant_id' => "required|integer|exists:applicants,id",
-                'sale_id' => "required|integer|exists:sales,id",
-                'details' => "required|string",
+                'sale_id'      => "required|integer|exists:sales,id",
+                'details'      => "required",
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'errors' => $validator->errors(),
-                    'message' => 'Please fix the errors in the form'
+                    'errors'  => $validator->errors(),
+                    'message' => 'Please fix the errors in the form.'
                 ], 422);
             }
 
+            // 🔹 Begin database transaction
             DB::beginTransaction();
 
-            $details = $request->input('details');
+            try {
+                $details = $request->input('details');
 
-            $applicant = Applicant::findOrFail($request->input('applicant_id'));
-            $sale = Sale::findOrFail($request->input('sale_id'));
+                $applicant = Applicant::findOrFail($request->input('applicant_id'));
+                $sale = Sale::findOrFail($request->input('sale_id'));
 
-            // Check if job titles match
-            if ($applicant->job_title_id != $sale->job_title_id) {
-                throw new Exception("CV can't be sent - job titles don't match");
+                // ✅ Check if job titles match
+                if ($applicant->job_title_id != $sale->job_title_id) {
+                    throw new Exception("CV can't be sent - job titles don't match.");
+                }
+
+                // 🔹 Handle special conditions
+                $noteDetail = '';
+                if ($request->boolean('hangup_call')) {
+                    $noteDetail .= $this->handleHangupCall($request, $user, $applicant, $sale, $details);
+                } elseif ($request->boolean('no_job')) {
+                    $noteDetail .= $this->handleNoJob($request, $user, $applicant);
+                } else {
+                    $noteDetail .= $this->handleRegularSubmission($request, $user);
+                }
+
+                $noteDetail .= $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+                // ✅ Check CV limits
+                $sent_cv_count = CVNote::where([
+                    'sale_id' => $sale->id,
+                    'status'  => 1
+                ])->count();
+
+                $open_cv_count = History::where([
+                    'sale_id'   => $sale->id,
+                    'status'    => 1,
+                    'sub_stage' => 'quality_cvs_hold'
+                ])->count();
+
+                $net_sent_cv_count = $sent_cv_count - $open_cv_count;
+
+                if ($net_sent_cv_count >= $sale->cv_limit) {
+                    throw new Exception("Sorry, you can't send more CVs for this job. The maximum CV limit has been reached.");
+                }
+
+                // ✅ Check if applicant is rejected
+                if ($this->checkIfApplicantRejected($applicant, $sale->id)) {
+                    throw new Exception("This applicant's CV can't be sent.");
+                }
+
+                // 🔹 Update applicant and create related records
+                $applicant->update(['is_cv_in_quality' => true]);
+
+                $cv_note = CVNote::create([
+                    'sale_id'      => $sale->id,
+                    'user_id'      => $user->id,
+                    'applicant_id' => $applicant->id,
+                    'details'      => $noteDetail,
+                ]);
+
+                $cv_note->update(['cv_uid' => md5($cv_note->id)]);
+
+                History::where('applicant_id', $applicant->id)->update(['status' => 0]);
+
+                $history = History::create([
+                    'sale_id'      => $sale->id,
+                    'applicant_id' => $applicant->id,
+                    'user_id'      => $user->id,
+                    'stage'        => 'quality',
+                    'sub_stage'    => 'quality_cvs',
+                ]);
+
+                $history->update(['history_uid' => md5($history->id)]);
+
+                // 🔹 Commit transaction if all went fine
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'CV successfully sent to quality.'
+                ]);
+            } catch (Exception $e) {
+                // ❌ Rollback the transaction if something fails inside
+                DB::rollBack();
+
+                Log::error('Transaction failed in sendCVtoQuality', [
+                    'error' => $e->getMessage(),
+                    'file'  => $e->getFile(),
+                    'line'  => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'input' => $request->all(),
+                ]);
+
+                // Return actual error in debug mode
+                $debug = config('app.debug');
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $debug ? $e->getMessage() : 'An error occurred while sending CV to quality.',
+                    'file'    => $debug ? $e->getFile() : null,
+                    'line'    => $debug ? $e->getLine() : null,
+                ], 500);
             }
-
-            $noteDetail = '';
-            if ($request->has('hangup_call') && $request->input('hangup_call') == 'on') {
-                $noteDetail .= $this->handleHangupCall($request, $user, $applicant, $sale, $details);
-            } elseif ($request->has('no_job') && $request->input('no_job') == 'on') {
-                $noteDetail .= $this->handleNoJob($request, $user, $applicant);
-            } else {
-                $noteDetail .= $this->handleRegularSubmission($request, $user);
-            }
-
-            $noteDetail .= $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
-
-            // Check CV limits
-            $sent_cv_count = CVNote::where([
-                'sale_id' => $sale->id,
-                'status' => 1
-            ])->count();
-
-            $open_cv_count = History::where([
-                'sale_id' => $sale->id,
-                'status' => 1,
-                'sub_stage' => 'quality_cvs_hold'
-            ])->count();
-
-            $net_sent_cv_count = $sent_cv_count - $open_cv_count;
-
-            if ($net_sent_cv_count >= $sale->cv_limit) {
-                throw new Exception("Sorry, you can't send more CVs for this job. The maximum CV limit has been reached.");
-            }
-
-            // Check if applicant is rejected
-            $isRejected = $this->checkIfApplicantRejected($applicant);
-            if ($isRejected) {
-                throw new Exception("This applicant CV can't be sent.");
-            }
-
-            // Update applicant and create records
-            $applicant->update(['is_cv_in_quality' => true]);
-
-            $cv_note = CVNote::create([
-                'sale_id' => $sale->id,
-                'user_id' => $user->id,
-                'applicant_id' => $applicant->id,
-                'details' => $noteDetail,
-            ]);
-            $cv_note->update(['cv_uid' => md5($cv_note->id)]);
-
-            History::where('applicant_id', $applicant->id)->update(['status' => 0]);
-
-            $history = History::create([
-                'sale_id' => $sale->id,
-                'applicant_id' => $applicant->id,
-                'user_id' => $user->id,
-                'stage' => 'quality',
-                'sub_stage' => 'quality_cvs',
-            ]);
-            $history->update(['history_uid' => md5($history->id)]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'CV successfully sent to quality'
-            ]);
         } catch (ModelNotFoundException $e) {
-            DB::rollBack();
+            // Handles missing applicant or sale
             return response()->json([
                 'success' => false,
                 'message' => 'Record not found: ' . $e->getMessage()
             ], 404);
+
         } catch (Exception $e) {
-            DB::rollBack();
+            // Handles any other outer exception
+            Log::error('Outer error in sendCVtoQuality', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $debug = config('app.debug');
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $debug ? $e->getMessage() : 'Unexpected error occurred.',
+                'file'    => $debug ? $e->getFile() : null,
+                'line'    => $debug ? $e->getLine() : null,
             ], 500);
         }
     }
+
     // public function importApplicantsFromCSV(Request $request)
     // {
     //     $request->validate([
@@ -1668,24 +1715,33 @@ class ApplicantController extends Controller
 
         return $noteDetail;
     }
-    private function checkIfApplicantRejected($applicant)
+    // private function checkIfApplicantRejected($applicant)
+    // {
+    //     return Applicant::join('quality_notes', 'applicants.id', '=', 'quality_notes.applicant_id')
+    //         ->where(function ($query) {
+    //             $query->where('applicants.is_in_crm_reject', true)
+    //                 ->orWhere('applicants.is_in_crm_request_reject', true)
+    //                 ->orWhere('applicants.is_crm_interview_attended', false)
+    //                 ->orWhere('applicants.is_in_crm_start_date_hold', true)
+    //                 ->orWhere('applicants.is_in_crm_dispute', true)
+    //                 ->orWhere(function ($q) {
+    //                     $q->where('applicants.is_cv_in_quality_reject', true)
+    //                         ->where('quality_notes.moved_tab_to', 'rejected');
+    //                 });
+    //         })
+    //         ->where('applicants.status', 1)
+    //         ->where('applicants.id', $applicant->id)
+    //         ->exists();
+    // }
+    private function checkIfApplicantRejected($applicant, $sale_id)
     {
-        return Applicant::join('quality_notes', 'applicants.id', '=', 'quality_notes.applicant_id')
-            ->where(function ($query) {
-                $query->where('applicants.is_in_crm_reject', true)
-                    ->orWhere('applicants.is_in_crm_request_reject', true)
-                    ->orWhere('applicants.is_crm_interview_attended', false)
-                    ->orWhere('applicants.is_in_crm_start_date_hold', true)
-                    ->orWhere('applicants.is_in_crm_dispute', true)
-                    ->orWhere(function ($q) {
-                        $q->where('applicants.is_cv_in_quality_reject', true)
-                            ->where('quality_notes.moved_tab_to', 'rejected');
-                    });
-            })
-            ->where('applicants.status', 1)
-            ->where('applicants.id', $applicant->id)
+        return DB::table('quality_notes')
+            ->where('applicant_id', $applicant->id)
+            ->where('sale_id', $sale_id)
+            ->where('moved_tab_to', 'rejected')
             ->exists();
     }
+
     public function markApplicantNoNursingHome(Request $request)
     {
         $user = Auth::user();

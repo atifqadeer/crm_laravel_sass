@@ -702,12 +702,14 @@
                     type: 'POST',
                     data: formData,
                     success: function (response) {
-                        toastr.success('CV Sent successfully!');
+                        console.log(response);
+                        toastr.success(response.message);
+
                         $(`#${modalId}`).modal('hide');
                         $('#sales_table').DataTable().ajax.reload();
                     },
                     error: function () {
-                        toastr.error('An error occurred while sending CV.');
+                        toastr.error(response.message);
                     },
                     complete: function () {
                         btn.prop('disabled', false).html(originalText);

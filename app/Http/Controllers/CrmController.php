@@ -1756,7 +1756,7 @@ class CrmController extends Controller
                     $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                     $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
             } 
-        } 
+        }
 
         // Sorting logic 
         if ($request->has('order')) { 
@@ -1777,7 +1777,6 @@ class CrmController extends Controller
             $model->orderBy('notes_created_at', 'desc'); 
         }
 
-        
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
