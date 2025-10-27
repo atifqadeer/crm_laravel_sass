@@ -511,7 +511,6 @@ class SaleController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
 
-
         // Subquery to get the latest audit (open_date) for each sale
         $latestAuditSub = DB::table('audits')
             ->select(DB::raw('MAX(id) as id'))
@@ -541,7 +540,7 @@ class SaleController extends Controller
                 ->where('audits.message', 'like', '%sale-opened%')
                 ->whereIn('audits.id', $latestAuditSub);
             })
-            ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
+            ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user', 'saleNotes'])
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
 
         if ($request->has('search.value')) {
@@ -4756,6 +4755,14 @@ class SaleController extends Controller
         $updateData = ['sale_notes' => $sale_notes];
 
         Sale::where('id', $sale_id)->update($updateData);
+
+        $sale_note = SaleNote::create([
+            'sale_id' => $sale_id,
+            'sale_note' => $sale_notes,
+            'user_id' => $user->id,
+        ]);
+
+        $sale_note->update(['sales_notes_uid' => md5($sale_note->id)]);
 
         $sale = Sale::findOrFail($sale_id);
         $audit = new ActionObserver();

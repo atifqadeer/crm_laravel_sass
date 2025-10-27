@@ -2,6 +2,11 @@ import {defineConfig} from 'vite';
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
+    server: {
+        host: '192.168.110.80', // ✅ Allows access from LAN
+        port: 5173,      // ✅ Set desired Vite port
+        strictPort: true,
+    },
     plugins: [
         laravel({
             input: [
