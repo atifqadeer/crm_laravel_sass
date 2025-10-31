@@ -413,9 +413,10 @@
                 processing: false,
                 serverSide: true,
                 ajax: {
-                    url: @json(route('getApplicantsAjaxRequest')),
-                    type: 'GET',
-                    data: function(d) {
+                    url: '{{ route("getApplicantsAjaxRequest") }}',
+                    type: 'POST', // <-- change GET → POST
+                    data: function (d) {
+                        d._token = '{{ csrf_token() }}';
                         d.status_filter = currentFilter;
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilters;
@@ -428,8 +429,8 @@
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
-                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseText);
+                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: columns,

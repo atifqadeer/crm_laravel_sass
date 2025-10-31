@@ -78,7 +78,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getAvailableNoJobs', [ApplicantController::class, 'getAvailableNoJobs'])->name('getAvailableNoJobs');
     Route::get('applicantsExport', [ApplicantController::class, 'export'])->name('applicantsExport');
     Route::post('changeStatus', [ApplicantController::class, 'changeStatus'])->name('changeStatus');
-    Route::get('getApplicantsAjaxRequest', [ApplicantController::class, 'getApplicantsAjaxRequest'])->name('getApplicantsAjaxRequest');
+    Route::post('getApplicantsAjaxRequest', [ApplicantController::class, 'getApplicantsAjaxRequest'])->name('getApplicantsAjaxRequest');
     Route::get('getJobTitlesByCategory', [ApplicantController::class, 'getJobTitlesByCategory'])->name('getJobTitlesByCategory');
     Route::post('storeShortNotes', [ApplicantController::class, 'storeShortNotes'])->name('storeShortNotes');
     Route::post('markApplicantNoNursingHome', [ApplicantController::class, 'markApplicantNoNursingHome'])->name('markApplicantNoNursingHome');

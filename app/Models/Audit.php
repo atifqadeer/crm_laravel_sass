@@ -8,14 +8,14 @@ class Audit extends Model
 {
     protected $table = 'audits';
     protected $fillable = [
-        'id',
+        // 'id',
         'user_id',
         'data',
         'message',
         'auditable_id',
         'auditable_type',
-        'created_at',
-        'updated_at'
+        // 'created_at',
+        // 'updated_at'
     ];
     protected $casts = [
         'data' => 'array',

@@ -86,30 +86,43 @@ class ActionObserver
         $audit->auditable_type = \Horsefly\Applicant::class;
         $audit->save();
     }
-    public function customApplicantAudit($applicant, $column)
+    public function customApplicantAudit(Applicant $applicant, string $column)
     {
-        $auth_user = Auth::user();
+        $authUser = Auth::user();
+        if (! $authUser) {
+            // No logged‑in user, skip or handle accordingly
+            return;
+        }
 
-        $data['action_performed_by'] = $auth_user->name;
-        $data['changes_made'] = $column;
+        $applicantName = $applicant->applicant_name;
         $d_message = '';
         $message = '';
 
-        if($column == 'applicant_notes'){
+        if ($column === 'applicant_notes') {
             $d_message = 'notes has been updated';
-            $message = "Applicant '".ucwords($applicant->applicant_name)."' notes has been updated";
-        }elseif($column == 'paid_status'){
+            $message   = "Applicant '".ucwords($applicantName)."' notes has been updated";
+        } elseif ($column === 'paid_status') {
             $d_message = 'paid status has been updated';
-            $message = "Applicant '".ucwords($applicant->applicant_name)."' paid status has been updated";
+            $message   = "Applicant '".ucwords($applicantName)."' paid status has been updated";
+        } else {
+            $d_message = "{$column} has been updated";
+            $message   = "Applicant '".ucwords($applicantName)."' {$d_message}";
         }
 
-        $data['message'] = "Applicant '".ucwords($applicant->applicant_name)."' ".$d_message;
+        $data = [
+            'action_performed_by' => $authUser->name,
+            'changes_made'        => $d_message,
+            'message'             => $message,
+        ];
 
-        // Create the audit log entry
+        $payload = array_merge($applicant->toArray(), $data);
+
         $applicant->audits()->create([
-            "user_id" => Auth::id(),
-            "data" => json_encode(array_merge(json_decode($applicant->toJson(), true), $data)),
-            "message" => $message,
+            'user_id'        => $authUser->id,
+            'data'           => json_encode($payload),
+            'message'        => $message,
+            'auditable_id'   => $applicant->id,
+            'auditable_type' => get_class($applicant),
         ]);
     }
     public function customOfficeAudit($office, $column)

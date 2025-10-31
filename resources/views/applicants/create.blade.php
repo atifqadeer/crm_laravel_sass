@@ -142,36 +142,36 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                 <label class="form-label">Have Nursing Home Experience?</label>
                                 <p class="text-muted">Please indicate if the applicant has prior experience working in a nursing home.</p>
                                 <small class="text-info">This information helps us better understand the applicant's background.</small>
+
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="have_nursing_home_experience" id="nurse_option_yes" value="1" required
-                                    {{ old('have_nursing_home_experience' == '1' ? 'checked':'') }}>
-                                    
+                                    <input 
+                                        class="form-check-input" 
+                                        type="radio" 
+                                        name="have_nursing_home_experience" 
+                                        id="nurse_option_yes" 
+                                        value="1" 
+                                        {{ old('have_nursing_home_experience') == '1' ? 'checked' : '' }}
+                                        required
+                                    >
                                     <label class="form-check-label" for="nurse_option_yes">Yes</label>
                                 </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="have_nursing_home_experience" id="nurse_option_no" value="0" required>
-                                    <label class="form-check-label" for="nurse_option_no" {{ old('have_nursing_home_experience' == '0' ? 'checked':'') }}>No</label>
-                                </div>
-                                <div class="invalid-feedback">Please provide a nursing option</div>
 
+                                <div class="form-check form-check-inline">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="radio" 
+                                        name="have_nursing_home_experience" 
+                                        id="nurse_option_no" 
+                                        value="0" 
+                                        {{ old('have_nursing_home_experience', '0') == '0' ? 'checked' : '' }}
+                                        required
+                                    >
+                                    <label class="form-check-label" for="nurse_option_no">No</label>
+                                </div>
+
+                                <div class="invalid-feedback">Please provide a nursing option</div>
                             </div>
                         </div>
-
-                        <script>
-                            document.addEventListener('DOMContentLoaded', function () {
-                                const jobCategorySelect = document.getElementById('job_category');
-                                const nurseToggleContainer = document.getElementById('nurseToggleContainer');
-
-                                jobCategorySelect.addEventListener('change', function () {
-                                    const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
-                                    if (selectedOption && selectedOption.text.toLowerCase() === 'nurse') {
-                                        nurseToggleContainer.style.display = 'block';
-                                    } else {
-                                        nurseToggleContainer.style.display = 'none';
-                                    }
-                                });
-                            });
-                        </script>
                     </div>
                 </div>
             </div>
@@ -230,8 +230,8 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             </div> -->
             <div class="form-group">
                 <label for="applicant_cv">Upload CV</label>
-                <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx">
-                <small class="text-muted">Allowed file types: docx, doc, pdf (Max 5MB)</small>
+                <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
+                <small class="text-muted">Allowed file types: docx, doc, pdf, txt (Max 5MB)</small>
             </div>
             
             <div class="mb-3 rounded">
@@ -412,7 +412,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             
             let formattedValue = rawValue.length > 8 
                 ? rawValue.substring(0, 8) 
-                : rawValue;
+                : rawValue; 
             
             this.value = formattedValue.toUpperCase();
             
@@ -422,14 +422,37 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
 
         // Phone number formatting
         ['applicant_phone', 'applicant_landline'].forEach(id => {
-            document.getElementById(id)?.addEventListener('input', function(e) {
-                this.value = this.value.replace(/[^0-9+]/g, '');
-                if (this.value.startsWith('+')) return;
-                if (this.value.length > 5) {
-                    this.value = this.value.replace(/(\d{5})(\d+)/, '$1 $2');
+            const input = document.getElementById(id);
+            if (!input) return;
+
+            input.addEventListener('input', function () {
+                let value = this.value;
+
+                // 1️⃣ Remove all characters except digits and '+'
+                value = value.replace(/[^0-9+]/g, '');
+
+                // 2️⃣ If number starts with +44, replace it with 0
+                if (value.startsWith('+44')) {
+                    value = '0' + value.slice(3); // remove +44 and add leading 0
                 }
+
+                // 3️⃣ If number doesn’t start with 0, add 0 at the beginning
+                if (!value.startsWith('0')) {
+                    value = '0' + value;
+                }
+
+                // 4️⃣ Keep only digits (no + allowed now)
+                value = value.replace(/[^0-9]/g, '');
+
+                // 5️⃣ Limit to 11 digits max
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+
+                this.value = value;
             });
         });
+
         
     });
 
@@ -461,6 +484,20 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             console.error('Error fetching data:', error);
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const jobCategorySelect = document.getElementById('job_category');
+        const nurseToggleContainer = document.getElementById('nurseToggleContainer');
+
+        jobCategorySelect.addEventListener('change', function () {
+            const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+            if (selectedOption && selectedOption.text.toLowerCase() === 'nurse') {
+                nurseToggleContainer.style.display = 'block';
+            } else {
+                nurseToggleContainer.style.display = 'none';
+            }
+        });
+    });
 </script>
 @endsection
 @section('script-bottom')

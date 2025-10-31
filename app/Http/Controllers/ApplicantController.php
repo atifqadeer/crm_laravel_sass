@@ -79,12 +79,12 @@ class ApplicantController extends Controller
             'gender' => 'required',
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
             'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary',
-            'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:20|unique:applicants,applicant_phone',
-            'applicant_landline' => 'nullable|string|max:20|unique:applicants,applicant_landline',
+            'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
+            'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone',
+            'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline',
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
+            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // max 5mb
         ]);
 
         $validator->sometimes('have_nursing_home_experience', 'required|boolean', function ($input) {
@@ -124,16 +124,43 @@ class ApplicantController extends Controller
             $applicantData['applicant_landline'] = $applicantData['applicant_landline']
                 ? preg_replace('/[^0-9]/', '', $applicantData['applicant_landline'])
                 : null;
+
+            // Sanitize emails (trim spaces and lowercase)
+            $applicantData['applicant_email'] = isset($applicantData['applicant_email'])
+                ? strtolower(trim($applicantData['applicant_email']))
+                : null;
+
+            $applicantData['applicant_email_secondary'] = isset($applicantData['applicant_email_secondary'])
+                ? strtolower(trim($applicantData['applicant_email_secondary']))
+                : null;
+            
             $applicantData['user_id'] = Auth::id();
 
             $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
 
             if ($request->hasFile('applicant_cv')) {
+
+                // Get original filename and extension
                 $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
                 $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
                 $extension = $request->file('applicant_cv')->getClientOriginalExtension();
+
+                // 🧹 Replace all spaces (and multiple spaces) with a single underscore
+                $filename = preg_replace('/\s+/', '_', trim($filename));
+
+                // Generate unique filename
                 $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-                $path = $request->file('applicant_cv')->storeAs('uploads/resume/', $fileNameToStore, 'public');
+
+                // Build dynamic directory path: uploads/resume/YYYY/MM/DD
+                $year = now()->year;
+                $month = now()->format('m');
+                $day = now()->format('d');
+                $directory = "uploads/resume/{$year}/{$month}/{$day}";
+
+                // Store the file in the "public" disk under that directory
+                $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
+
+                // Save file path in DB
                 $applicantData['applicant_cv'] = $path;
             }
 
@@ -441,15 +468,15 @@ class ApplicantController extends Controller
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';
                     if($applicant->applicant_email_secondary){
-                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
+                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
                     }else{
-                        $email = $applicant->applicant_email;
+                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email;
                     }
 
                     return $email; // Using accessor
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
-                    if($applicant->lat != null && $applicant->lng != null){
+                    if($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked){
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" target="_blank" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
@@ -486,24 +513,34 @@ class ApplicantController extends Controller
                     return $applicant->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
-                    $filePath = $applicant->applicant_cv;
-                    $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+                    $path = $applicant->applicant_cv;
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                    // ✅ Only proceed if path begins with "uploads/"
+                    if ($path && str_starts_with($path, 'uploads/')) {
+                        // ✅ Check if file exists on public disk
+                        if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
+                            // ✅ Correct URL (storage symlink points to storage/app/public)
+                            $url = asset('storage/' . $path);
+
+                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                                '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                        }
                     }
 
                     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
                         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
-                    $filePath = $applicant->updated_cv;
-                    $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+                    $path = $applicant->updated_cv;
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                    if ($path && str_starts_with($path, 'uploads/')) {
+                        if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
+
+                            $url = asset('storage/' . $path);
+
+                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                                '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                        }
                     }
 
                     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
@@ -544,12 +581,14 @@ class ApplicantController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($applicant) {
-                    $landline = $applicant->formatted_landline;
-                    $phone = $applicant->formatted_phone;
+                    $landline = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->formatted_landline;
+                    $phone = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->formatted_phone;
                     $postcode = $applicant->formatted_postcode;
                     $job_title = $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                     $job_category = $applicant->jobCategory ? ucwords($applicant->jobCategory->name) : '-';
                     $job_source = $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                    $emailstatus = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->applicant_email;
+                    $secondaryemailstatus = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->applicant_email_secondary;
                     $status = '';
 
                     if ($applicant->is_blocked) {
@@ -578,8 +617,8 @@ class ApplicantController extends Controller
                                 $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
                                         ' . (int)$applicant->id . ',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
-                                        \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
-                                        \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary)) . '\',
+                                        \'' . addslashes(htmlspecialchars($emailstatus)) . '\',
+                                        \'' . addslashes(htmlspecialchars($secondaryemailstatus)) . '\',
                                         \'' . addslashes(htmlspecialchars($postcode)) . '\',
                                         \'' . addslashes(htmlspecialchars($landline)) . '\',
                                         \'' . addslashes(htmlspecialchars($phone)) . '\',
@@ -767,7 +806,7 @@ class ApplicantController extends Controller
             ]);
 
             // Log audit
-            $applicant = Applicant::find($applicant_id)->select('applicant_name', 'id')->first();
+            $applicant = Applicant::find($applicant_id)->select('applicant_name', 'applicant_notes', 'id')->first();
             $observer = new ActionObserver();
             $observer->customApplicantAudit($applicant, 'applicant_notes');
 
@@ -840,12 +879,12 @@ class ApplicantController extends Controller
             'gender' => 'required',
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email,' . $request->input('applicant_id'), // Exclude current applicant's email
             'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary,' . $request->input('applicant_id'),
-            'applicant_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:20|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
-            'applicant_landline' => 'nullable|string|max:20|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
+            'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
+            'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
+            'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf|max:5000',
+            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // 5mb
         ]);
 
         // Add conditionally required validation
@@ -886,27 +925,44 @@ class ApplicantController extends Controller
             // Handle file upload if a CV is provided
             $path = null;
             if ($request->hasFile('applicant_cv')) {
-
-                // Delete the old file if it exists
+                // 🧹 Delete the old CV file if it exists
                 if (!empty($applicantData['applicant_cv']) && Storage::disk('public')->exists($applicantData['applicant_cv'])) {
                     Storage::disk('public')->delete($applicantData['applicant_cv']);
                 }
 
-                // Get the original file name
-                $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
-                // Get the filename without extension
-                $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-                // Get file extension
-                $extension = $request->file('applicant_cv')->getClientOriginalExtension();
-                // Create a new filename with a timestamp
-                $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-                // Store the file in the public/uploads/resume/ directory
-                $path = $request->file('applicant_cv')->storeAs('uploads/resume', $fileNameToStore, 'public');
+                // 📅 Build dynamic directory path based on current date
+                $year = now()->year;
+                $month = now()->format('m');
+                $day = now()->format('d');
 
-                // Assign the new file path to the data array
+                $directory = "uploads/resume/{$year}/{$month}/{$day}";
+
+                // 🧾 Get original filename and extension
+                $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
+                $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+                $extension = $request->file('applicant_cv')->getClientOriginalExtension();
+
+                // 🔤 Replace all whitespaces (including multiple) with underscores
+                $filename = preg_replace('/\s+/', '_', trim($filename));
+
+                // 🕒 Generate unique filename
+                $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+
+                // 💾 Store the file in the "public" disk under the dynamic path
+                $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
+
+                // ✅ Save the new file path in the data array
                 $applicantData['applicant_cv'] = $path;
             }
 
+            // Sanitize emails (trim spaces and lowercase)
+            $applicantData['applicant_email'] = isset($applicantData['applicant_email'])
+                ? strtolower(trim($applicantData['applicant_email']))
+                : null;
+
+            $applicantData['applicant_email_secondary'] = isset($applicantData['applicant_email_secondary'])
+                ? strtolower(trim($applicantData['applicant_email_secondary']))
+                : null;
 
             // Get the applicant ID from the request
             $id = $request->input('applicant_id');
@@ -1003,7 +1059,7 @@ class ApplicantController extends Controller
     {
         // Validate the request
         $request->validate([
-            'resume' => 'required|file|mimes:pdf,doc,docx|max:10240',
+            'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
             'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
@@ -1054,7 +1110,7 @@ class ApplicantController extends Controller
     {
         // Validate the request
         $request->validate([
-            'resume' => 'required|file|mimes:pdf,doc,docx|max:10240',
+            'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
             'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
