@@ -10006,7 +10006,6 @@ class CrmController extends Controller
             throw $e;
         }   
     }
-
     /** CRM Start Date Hold */
     private function crmRevertStartDateHoldToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
@@ -10117,7 +10116,7 @@ class CrmController extends Controller
             throw $e;
         }  
     }
-
+    
     /** CRM Invoice */
     private function crmRevertInvoiceToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
