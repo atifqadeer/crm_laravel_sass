@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\SaleNote;
 use Horsefly\CrmRejectedCv;
-use Horsefly\CvNote;
+use Horsefly\CVNote;
 use Horsefly\CrmNote;
 use Horsefly\History;
 use Horsefly\QualityNotes;
