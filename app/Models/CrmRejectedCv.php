@@ -8,7 +8,7 @@ class CrmRejectedCv extends Model
 {
     protected $table = 'crm_rejected_cv';
     protected $fillable = [
-        'id',
+        // 'id',
         'crm_rejected_cv_uid',
         'applicant_id',
         'user_id',
@@ -17,7 +17,7 @@ class CrmRejectedCv extends Model
         'reason',
         'crm_rejected_cv_note',
         'status',
-        'created_at',
-        'updated_at'
+        // 'created_at',
+        // 'updated_at'
     ];
 }

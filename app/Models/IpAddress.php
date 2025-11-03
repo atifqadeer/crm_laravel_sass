@@ -12,14 +12,14 @@ class IpAddress extends Model
     
     protected $table = 'ip_addresses';
     protected $fillable = [
-        'id',
+        // 'id',
         'user_id', 
         'ip_address', 
         'mac_address', 
         'device_type',
         'status',
-        'created_at',
-        'updated_at'
+        // 'created_at',
+        // 'updated_at'
     ];
 
     public function user()
