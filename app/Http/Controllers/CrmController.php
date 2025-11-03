@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\SaleNote;
@@ -29,10 +30,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
-use Exception;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Cache;
 use Yajra\DataTables\Facades\DataTables;
+use Exception;
 use Carbon\Carbon;
 use Horsefly\SmsTemplate;
 use Illuminate\Support\Str;
@@ -10116,7 +10117,7 @@ class CrmController extends Controller
             throw $e;
         }  
     }
-    
+
     /** CRM Invoice */
     private function crmRevertInvoiceToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
