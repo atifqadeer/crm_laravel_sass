@@ -204,8 +204,8 @@ class QualityController extends Controller
             case 'rejected cvs':
                 $model->join('quality_notes', function ($join) {
                         $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                            ->where("quality_notes.moved_tab_to", "rejected")
-                            ->where("quality_notes.status", 1);
+                            ->where("quality_notes.moved_tab_to", "rejected");
+                            // ->where("quality_notes.status", 1);
                     })
                     ->join('sales', function ($join) {
                         $join->on('quality_notes.sale_id', '=', 'sales.id')
@@ -296,8 +296,8 @@ class QualityController extends Controller
             case 'cleared cvs':
                 $model->join('quality_notes', function ($join) {
                         $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                            ->whereIn("quality_notes.moved_tab_to" , ["cleared", "cleared_no_job"])
-                            ->where("quality_notes.status", 1);
+                            ->whereIn("quality_notes.moved_tab_to" , ["cleared", "cleared_no_job"]);
+                            // ->where("quality_notes.status", 1);
                     })
                     ->join('sales', function ($join) {
                         $join->on('quality_notes.sale_id', '=', 'sales.id')
