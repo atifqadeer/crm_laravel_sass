@@ -4853,7 +4853,7 @@ class CrmController extends Controller
             
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -4915,7 +4915,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -4978,7 +4978,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5230,7 +5230,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5538,7 +5538,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5754,7 +5754,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5843,7 +5843,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5891,7 +5891,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -5991,7 +5991,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6039,7 +6039,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6173,7 +6173,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6291,7 +6291,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6390,7 +6390,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6475,7 +6475,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6654,7 +6654,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6739,7 +6739,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -6918,7 +6918,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -7037,7 +7037,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -7087,7 +7087,7 @@ class CrmController extends Controller
 
             $sale = Sale::find($sale_id);
             if ($sale) {
-                $sent_cv_count = CvNote::where([
+                $sent_cv_count = CVNote::where([
                     'sale_id' => $sale_id, 
                     'status' => 1
                     ])->count();
@@ -7471,7 +7471,7 @@ class CrmController extends Controller
     private function crmNoJobRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            // CvNote::where([
+            // CVNote::where([
             //     'applicant_id' => $applicant_id,
             //     'sale_id' => $sale_id,
             //     'status' => 0
@@ -7540,7 +7540,7 @@ class CrmController extends Controller
     private function crmNoJobRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            // CvNote::where([
+            // CVNote::where([
             //     "applicant_id" => $applicant_id,
             //     "sale_id" => $sale_id,
             //     "status" => 0
@@ -7797,7 +7797,7 @@ class CrmController extends Controller
             $quality_notes->quality_notes_uid = md5((string) $quality_notes->id);
             $quality_notes->save();
 
-            CvNote::where([
+            CVNote::where([
                 'sale_id' => $sale_id,
                 'applicant_id' => $applicant_id,
                 'status' => 1
@@ -7878,7 +7878,7 @@ class CrmController extends Controller
             $crm_rejected_cv->crm_rejected_cv_uid = md5((string) $crm_rejected_cv->id);
             $crm_rejected_cv->save();
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -7961,7 +7961,7 @@ class CrmController extends Controller
                 "status" => 1
             ])->update(["status" => 0]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id, 
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -8057,7 +8057,7 @@ class CrmController extends Controller
             $quality_notes->quality_notes_uid = md5((string) $quality_notes->id);
             $quality_notes->save();
 
-            CvNote::where([
+            CVNote::where([
                 'sale_id' => $sale_id,
                 'applicant_id' => $applicant_id,
                 'status' => 1
@@ -8212,7 +8212,7 @@ class CrmController extends Controller
             $crm_rejected_cv->crm_rejected_cv_uid = md5((string) $crm_rejected_cv->id);
             $crm_rejected_cv->save();
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -8365,7 +8365,7 @@ class CrmController extends Controller
     private function crmOpenCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->update(["status" => 0]);
@@ -8461,7 +8461,7 @@ class CrmController extends Controller
                 "sale_id" => $sale_id
             ])->update(['status' => 0]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->update(["status" => 0]);
@@ -8683,7 +8683,7 @@ class CrmController extends Controller
     private function crmRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            CvNote::where([
+            CVNote::where([
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id,
                 'status' => 0
@@ -8755,7 +8755,7 @@ class CrmController extends Controller
     private function crmRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -9225,7 +9225,7 @@ class CrmController extends Controller
                     'is_crm_request_confirm' => false
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id, 
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -9385,7 +9385,7 @@ class CrmController extends Controller
                 'is_crm_interview_attended' => 0 //not attended
             ]);
 
-        CvNote::where([
+        CVNote::where([
             "applicant_id" => $applicant_id, 
             "sale_id" => $sale_id,
             "status" => 1
@@ -9491,7 +9491,7 @@ class CrmController extends Controller
                     'is_crm_request_confirm' => false
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -9557,7 +9557,7 @@ class CrmController extends Controller
                     'is_crm_interview_attended' => true
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -9620,7 +9620,7 @@ class CrmController extends Controller
                     'is_crm_interview_attended' => true
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -9827,7 +9827,7 @@ class CrmController extends Controller
                     'is_in_crm_start_date' => false
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->update(["status" => 0]);
@@ -10017,7 +10017,7 @@ class CrmController extends Controller
                     'is_in_crm_start_date' => true
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -10185,7 +10185,7 @@ class CrmController extends Controller
                     'is_in_crm_invoice_sent' => false,
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -10379,7 +10379,7 @@ class CrmController extends Controller
             $crm_notes->crm_notes_uid = md5((string) $crm_notes->id);
             $crm_notes->save();
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
             ])->update(["status" => 2]); //2 is paid
@@ -10422,7 +10422,7 @@ class CrmController extends Controller
                     'is_in_crm_invoice_sent' => false,
                 ]);
 
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
@@ -10541,7 +10541,7 @@ class CrmController extends Controller
     private function crmRevertDisputeToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id, 
                 "sale_id" => $sale_id,
                 "status" => 0
@@ -10606,7 +10606,7 @@ class CrmController extends Controller
     private function crmRevertDisputeTosInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         try{
-            CvNote::where([
+            CVNote::where([
                 "applicant_id" => $applicant_id, 
                 "sale_id" => $sale_id,
                 "status" => 0
