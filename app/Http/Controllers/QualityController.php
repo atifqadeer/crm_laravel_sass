@@ -507,8 +507,6 @@ class QualityController extends Controller
                 break;
         }
 
-        
-
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
