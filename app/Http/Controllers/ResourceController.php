@@ -2578,6 +2578,8 @@ class ResourceController extends Controller
                 'applicants.applicant_postcode',
                 'applicants.applicant_email',
                 'applicants.applicant_phone',
+                'applicants.applicant_cv',
+                'applicants.updated_cv',
                 'applicants.status',
                 'applicants.created_at',
                 'applicants.updated_at',
