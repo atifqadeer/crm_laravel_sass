@@ -264,48 +264,28 @@ class ImportController extends Controller
                         ];
                     }
 
-                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
-                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
+                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
+                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
-                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') { 
+                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
 
-                        // if (!$postcode_query) {
-                        //     try {
-                        //         $result = $this->geocode($cleanPostcode);
-
-                        //         // If geocode fails, throw
-                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
-                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                        //         }
-
-                        //         $applicantData['lat'] = $result['lat'];
-                        //         $applicantData['lng'] = $result['lng'];
-                        //     } catch (\Exception $e) {
-                        //         return response()->json([
-                        //             'success' => false,
-                        //             'message' => 'Unable to locate address: ' . $e->getMessage()
-                        //         ], 400);
-                        //     }
-                        // } else {
-                        $lat = $postcode_query->lat;
-                        $lng = $postcode_query->lng;
-                        // }
-
-                        /** ✅ Validate lat/lng presence before inserting */
-                        // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
-                        //     return response()->json([
-                        //         'success' => false,
-                        //         'message' => 'Postcode location is required. Please provide a valid postcode.'
-                        //     ], 400);
-                        // }
-
-                    }else{
-                        $lat = 0.0000;
-                        $lng = 0.0000;
+                        if ($postcode_query) {
+                            $lat = $postcode_query->lat ?? 0.0000;
+                            $lng = $postcode_query->lng ?? 0.0000;
+                        } else {
+                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
+                            $lat = 0.0000;
+                            $lng = 0.0000;
+                        }
                     }
+
+                    // Final safety net — always ensure numeric values
+                    $lat = (float)($lat ?? 0.0000);
+                    $lng = (float)($lng ?? 0.0000);
+
 
                     // Keep whitespace intact
                     if (strlen($cleanPostcode) == 8) {
@@ -657,48 +637,29 @@ class ImportController extends Controller
                         ];
                     }
 
-                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
-                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
+                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
+                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
-                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') {
+                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
 
-                        // if (!$postcode_query) {
-                        //     try {
-                        //         $result = $this->geocode($cleanPostcode);
-
-                        //         // If geocode fails, throw
-                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
-                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                        //         }
-
-                        //         $applicantData['lat'] = $result['lat'];
-                        //         $applicantData['lng'] = $result['lng'];
-                        //     } catch (\Exception $e) {
-                        //         return response()->json([
-                        //             'success' => false,
-                        //             'message' => 'Unable to locate address: ' . $e->getMessage()
-                        //         ], 400);
-                        //     }
-                        // } else {
-                        $lat = $postcode_query->lat;
-                        $lng = $postcode_query->lng;
-                        // }
-
-                        /** ✅ Validate lat/lng presence before inserting */
-                        // if (empty($applicantData['lat']) || empty($applicantData['lng'])) {
-                        //     return response()->json([
-                        //         'success' => false,
-                        //         'message' => 'Postcode location is required. Please provide a valid postcode.'
-                        //     ], 400);
-                        // }
-
-                    }else{
-                        $lat = 0.0000;
-                        $lng = 0.0000;
+                        if ($postcode_query) {
+                            $lat = $postcode_query->lat ?? 0.0000;
+                            $lng = $postcode_query->lng ?? 0.0000;
+                        } else {
+                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
+                            $lat = 0.0000;
+                            $lng = 0.0000;
+                        }
                     }
+
+                    // Final safety net — always ensure numeric values
+                    $lat = (float)($lat ?? 0.0000);
+                    $lng = (float)($lng ?? 0.0000);
+
+
 
                     // Keep whitespace intact
                     if (strlen($cleanPostcode) == 8) {
