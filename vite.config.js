@@ -3,7 +3,7 @@ import laravel from "laravel-vite-plugin";
 
 export default defineConfig({
     server: {
-        host: "127.0.0.1", // ✅ Allows access from LAN
+        host: "192.168.110.33", // ✅ Allows access from LAN
         port: 5173, // ✅ Set desired Vite port
         strictPort: true,
     },
