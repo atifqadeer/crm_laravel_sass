@@ -302,6 +302,9 @@ class ImportController extends Controller
                         //     ], 400);
                         // }
 
+                    }else{
+                        $lat = 0.0000;
+                        $lng = 0.0000;
                     }
 
                     // Keep whitespace intact
@@ -692,6 +695,9 @@ class ImportController extends Controller
                         //     ], 400);
                         // }
 
+                    }else{
+                        $lat = 0.0000;
+                        $lng = 0.0000;
                     }
 
                     // Keep whitespace intact
