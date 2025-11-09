@@ -65,10 +65,26 @@ class ImportController extends Controller
     public function officesImport(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv',
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
 
-        ini_set('max_execution_time', 100000);
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
+        ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
@@ -435,9 +451,25 @@ class ImportController extends Controller
     }
     public function unitsImport(Request $request)
     {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv',
+       $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
 
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
@@ -788,14 +820,28 @@ class ImportController extends Controller
     }
     public function applicantsImport(Request $request)
     {
-        // Set resource limits
-        ini_set('max_execution_time', 100000);
-        ini_set('memory_limit', '-1');
-
-        // Validate uploaded file
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:5242880', // 5GB
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
 
         try {
             $startTime = microtime(true);
@@ -2614,12 +2660,28 @@ class ImportController extends Controller
     }
     public function salesImport(Request $request)
     {
-        ini_set('max_execution_time', 100000);
-        ini_set('memory_limit', '-1');
-
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt',
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
 
         try {
             $startTime = microtime(true);
@@ -2931,8 +2993,24 @@ class ImportController extends Controller
     public function usersImport(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,xlsx',
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
 
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
@@ -2997,8 +3075,24 @@ class ImportController extends Controller
     public function messagesImport(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv'
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
         ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
 
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
@@ -3250,17 +3344,30 @@ class ImportController extends Controller
     }
     public function applicantNotesImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -3494,16 +3601,30 @@ class ImportController extends Controller
     }
     public function applicantPivotSaleImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -3735,16 +3856,30 @@ class ImportController extends Controller
     }
     public function notesRangeForPivotSaleImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -4205,15 +4340,30 @@ class ImportController extends Controller
     // }
     public function auditsImport(Request $request)
     {
-        // 🧩 Increase limits for large files
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
         ini_set('post_max_size', '512M');
         ini_set('upload_max_filesize', '512M');
-
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt',
-        ]);
 
         try {
             $startTime = microtime(true);
@@ -4344,19 +4494,32 @@ class ImportController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
     public function crmNotesImport(Request $request)
     {
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
+        
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
-            // Set PHP limits
-            ini_set('max_execution_time', 10000);
-            ini_set('memory_limit', '-1');
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -4586,16 +4749,30 @@ class ImportController extends Controller
     }
     public function crmRejectedCvImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -4826,16 +5003,30 @@ class ImportController extends Controller
     }
     public function cvNotesImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -5064,16 +5255,30 @@ class ImportController extends Controller
     }
     public function historyImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -5303,14 +5508,28 @@ class ImportController extends Controller
     }
     public function interviewImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
-        
-        // Validate file (115 MB limit, CSV only)
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv'
-        ]);
 
         try {
             $startTime = microtime(true);
@@ -5742,16 +5961,30 @@ class ImportController extends Controller
     }
     public function ipAddressImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -5984,19 +6217,30 @@ class ImportController extends Controller
     }
     public function moduleNotesImport(Request $request)
     {
-        // 🔧 Increase PHP resource limits for large files
-        // ini_set('upload_max_filesize', '5G');
-        // ini_set('post_max_size', '5G');
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
+        ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
-        ini_set('max_execution_time', 20000);
-        // ini_set('max_input_time', 0);
 
         try {
-            // 🧾 Validate uploaded file (allow up to 5GB, CSV or TXT only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv,txt|max:5242880', // 5GB = 5 * 1024 * 1024 KB
-            ]);
-
             // 🪵 Ensure log directory writable
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -6224,16 +6468,30 @@ class ImportController extends Controller
     }
     public function qualityNotesImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -6463,16 +6721,30 @@ class ImportController extends Controller
     }
     public function regionsImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -6622,16 +6894,30 @@ class ImportController extends Controller
     }
     public function revertStageImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -6859,16 +7145,30 @@ class ImportController extends Controller
     }
     public function saleDocumentsImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -7339,16 +7639,30 @@ class ImportController extends Controller
     }
     public function sentEmailDataImport(Request $request)
     {
-        // Set PHP limits
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
+
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
+        }
+
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
 
         try {
-            // Validate file (115 MB limit, CSV only)
-            $request->validate([
-                'csv_file' => 'required|file|mimes:csv'
-            ]);
-
             // Check log directory writability
             $logFile = storage_path('logs/laravel.log');
             if (!is_writable(dirname($logFile))) {
@@ -7621,7 +7935,6 @@ class ImportController extends Controller
 
         return back()->with('success', 'File processed successfully. Found keywords: ' . implode(', ', $foundKeywords));
     }
-
     /** PRIVATE FUNCTIONS */
     private function extractText($file)
     {

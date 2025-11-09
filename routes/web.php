@@ -302,7 +302,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::group(['prefix' => 'crm'], function () {
         Route::get('', [CrmController::class, 'index'])->name('crm.list');
         // Route::get('{id}', [CrmController::class, 'changeStatus'])->name('crm.changeStatus');
-        Route::post('notes-history', [CrmController::class, 'crmNotesHistoryIndex'])->name('crmNotesHistoryIndex');
+        Route::get('notes-history/{applicant_id}/{sale_id}', [CrmController::class, 'crmNotesHistoryIndex'])->name('crmNotesHistoryIndex');
     });
     Route::get('getCrmApplicantsAjaxRequest', [CrmController::class, 'getCrmApplicantsAjaxRequest'])->name('getCrmApplicantsAjaxRequest');
     Route::get('getApplicantCrmNotesHistoryAjaxRequest', [CrmController::class, 'getApplicantCrmNotesHistoryAjaxRequest'])->name('getApplicantCrmNotesHistoryAjaxRequest');

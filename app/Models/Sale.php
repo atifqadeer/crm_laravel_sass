@@ -12,7 +12,7 @@ class Sale extends Model
 
     protected $table = 'sales';
     protected $fillable = [
-        // 'id',
+        'id',
         'sale_uid',
         'user_id',
         'office_id',
@@ -35,8 +35,8 @@ class Sale extends Model
         'status',
         'is_on_hold',
         'is_re_open',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 
     public function getFormattedPostcodeAttribute()

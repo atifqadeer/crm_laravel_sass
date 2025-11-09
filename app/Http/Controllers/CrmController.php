@@ -53,6 +53,28 @@ class CrmController extends Controller
 
         return view('crm.list', compact('jobCategories', 'jobTitles'));
     }
+   
+    public function crmNotesHistoryIndex($applicant_id, $sale_id)
+    {
+        // Fetch the applicant or fail with a 404 if not found
+        $applicant = Applicant::findOrFail($applicant_id);
+
+        // Get the latest CV Note for this applicant and sale
+        $cv_notes = CVNote::where('applicant_id', $applicant_id)
+            ->where('sale_id', $sale_id)
+            ->latest()
+            ->first();
+
+        // Get the latest Quality Note for this applicant and sale
+        $quality_notes = QualityNotes::where('applicant_id', $applicant_id)
+            ->where('sale_id', $sale_id)
+            ->latest()
+            ->first();
+
+        // Return the view with all required data
+        return view('crm.notes-history', compact('applicant_id', 'sale_id', 'applicant', 'cv_notes', 'quality_notes'));
+    }
+
     
     public function getCrmApplicantsAjaxRequest(Request $request)
     {

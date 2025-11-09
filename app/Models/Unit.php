@@ -12,7 +12,7 @@ class Unit extends Model
 
     protected $table = 'units';
     protected $fillable = [
-        // 'id',
+        'id',
         'unit_uid',
         'user_id',
         'office_id',
@@ -23,8 +23,8 @@ class Unit extends Model
         'lat',
         'lng',
         'status',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 
     public function getFormattedUnitNameAttribute()

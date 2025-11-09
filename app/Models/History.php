@@ -8,7 +8,7 @@ class History extends Model
 {
     protected $table = 'history';
     protected $fillable = [
-        // 'id',
+        'id',
         'history_uid',
         'user_id',
         'applicant_id',
@@ -16,8 +16,8 @@ class History extends Model
         'stage',
         'sub_stage',
         'status',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 
     public function applicant()

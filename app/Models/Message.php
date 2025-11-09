@@ -9,7 +9,7 @@ class Message extends Model
 {
     protected $table = 'messages';
     protected $fillable=[
-        // 'id',
+        'id',
         'msg_id',
         'module_id',
         'module_type',
@@ -21,8 +21,8 @@ class Message extends Model
         'status',
         'is_sent',
         'is_read',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
     protected $appends = ['FormattedTime'];
 

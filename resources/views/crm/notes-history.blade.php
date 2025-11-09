@@ -1,20 +1,5 @@
 @section('content')
-@php
-$applicant_id = request()->query('applicant_id');
-$sale_id = request()->query('sale_id');
-$applicant = \Horsefly\Applicant::find($applicant_id);  
-// Get the latest CV Note and Quality Note
-$cv_notes = \Horsefly\CVNote::where('applicant_id', $applicant_id)
-    ->where('sale_id', $sale_id)
-    ->latest()
-    ->first(); // Only one, so use first() instead of get()
 
-$quality_notes = \Horsefly\QualityNotes::where('applicant_id', $applicant_id)
-    ->where('sale_id', $sale_id)
-    ->latest()
-    ->first();
-
-@endphp
 @extends('layouts.vertical', ['title' => $applicant->applicant_name. '`s Notes History', 'subTitle' => 'CRM'])
 
 <div class="row">

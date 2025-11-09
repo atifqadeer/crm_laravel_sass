@@ -8,15 +8,15 @@ class SaleDocument extends Model
 {
     protected $table = 'sale_documents';
     protected $fillable = [
-        // 'id',
+        'id',
         'sale_id',
         'user_id',
         'document_name',
         'document_path',
         'document_size',
         'document_extension',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 
     /**
