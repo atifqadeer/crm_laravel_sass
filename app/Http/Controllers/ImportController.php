@@ -267,7 +267,7 @@ class ImportController extends Controller
                     $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : 0.0000);
                     $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : 0.0000);
 
-                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') {
+                    if ($lat == null && $lng == null || $lat == 'null' && $lng == 'null') { 
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
@@ -2367,6 +2367,11 @@ class ImportController extends Controller
                             'id' => 270,
                             'specialist_title' => 'nonnurse specialist',
                             'specialist_prof' => 'Breakfast Server'
+                        ],
+                        [
+                            'id' => 271,
+                            'specialist_title' => 'nonnurse specialist',
+                            'specialist_prof' => 'Dental Coordinator'
                         ],
                     ];
 
