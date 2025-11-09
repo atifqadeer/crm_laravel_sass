@@ -267,7 +267,7 @@ class ImportController extends Controller
                     $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
                     $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
-                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
+                    if ($lat === null || $lng === null || $lat === 0.0000 || $lng === 0.0000 || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
@@ -640,7 +640,7 @@ class ImportController extends Controller
                     $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
                     $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
-                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
+                    if ($lat === null || $lng === null || $lat === 0.0000 || $lng === 0.0000 || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
