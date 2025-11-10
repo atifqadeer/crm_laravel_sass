@@ -1011,16 +1011,29 @@ class ImportController extends Controller
                         preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
                         $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
                     }
-                    $lat = is_numeric($row['lat'] ?? null) ? (float)$row['lat'] : 0.0;
-                    $lng = is_numeric($row['lng'] ?? null) ? (float)$row['lng'] : 0.0;
+                    
+                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
+                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
-                    if ($lat == 0.0 && $lng == 0.0 && $cleanPostcode != '0') {
-                        $query = strlen($cleanPostcode) < 6
+                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
+                        $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
-                        $lat = $query->lat ?? 0.0;
-                        $lng = $query->lng ?? 0.0;
+
+                        if ($postcode_query) {
+                            $lat = $postcode_query->lat ?? 0.0000;
+                            $lng = $postcode_query->lng ?? 0.0000;
+                        } else {
+                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
+                            $lat = 0.0000;
+                            $lng = 0.0000;
+                        }
                     }
+
+                    // Final safety net — always ensure numeric values
+                    $lat = (float)($lat ?? 0.0000);
+                    $lng = (float)($lng ?? 0.0000);
+
 
                     if (strlen($cleanPostcode) == 8) {
                         $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
