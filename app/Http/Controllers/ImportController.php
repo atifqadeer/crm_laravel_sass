@@ -1011,7 +1011,7 @@ class ImportController extends Controller
                         preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
                         $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
                     }
-                    
+
                     $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
                     $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
 
@@ -2389,52 +2389,60 @@ class ImportController extends Controller
                         }
                     }
 
-                    // Handle applicant name
                     $rawName = $row['applicant_name'] ?? '';
                     $cleanedName = is_string($rawName) ? preg_replace('/\s+/', ' ', trim($rawName)) : '';
-                    preg_match('/\d{10,}/', $cleanedName, $matches);
-                    $extractedNumber = $matches[0] ?? null;
-                    $cleanedNumber = $extractedNumber ? preg_replace('/\D/', '', $extractedNumber) : null;
-                    $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName));
-                    $finalName = ($finalName == '' || $finalName == null) ? 'Unknown' : $finalName;
 
-                    // Phone number normalization (UK standard)
+                    // --- Extract email ---
+                    preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $cleanedName, $emailMatches);
+                    $extractedEmail = $emailMatches[0] ?? null;
+                    if ($extractedEmail) {
+                        $cleanedName = str_replace($extractedEmail, '', $cleanedName);
+                    }
+
+                    // --- Extract number ---
+                    preg_match('/[+()0-9\s-]{10,}/', $cleanedName, $matches);
+                    $extractedNumber = $matches[0] ?? null;
+                    $cleanedNumber = $extractedNumber ? preg_replace('/\D+/', '', $extractedNumber) : null;
+
+                    // --- Normalize phone number to UK format ---
                     $normalizePhone = function($number) {
                         $number = trim((string)$number);
 
-                        // Handle +44 prefix (UK country code)
                         if (str_starts_with($number, '+44')) {
-                            $number = '0' . substr($number, 3); // remove +44, add 0
+                            $number = '0' . substr($number, 3);
                         }
 
-                        // Remove all non-digit characters
                         $digits = preg_replace('/\D+/', '', $number);
 
-                        // Ensure starts with 0
-                        if ($digits != '' && $digits[0] != '0') {
+                        if ($digits !== '' && $digits[0] !== '0') {
                             $digits = '0' . $digits;
                         }
 
-                        // Keep only the last 11 digits if longer
                         if (strlen($digits) > 11) {
                             $digits = substr($digits, -11);
-                        }
-                        // Pad with zeros if shorter
-                        elseif (strlen($digits) < 11) {
+                        } elseif (strlen($digits) < 11) {
                             $digits = str_pad($digits, 11, '0', STR_PAD_LEFT);
                         }
 
                         return $digits;
                     };
 
-                    // Process phone numbers
+                    $normalizedCleanedNumber = $cleanedNumber ? $normalizePhone($cleanedNumber) : str_repeat('0', 11);
+
+                    // 🧹 Remove anything left in brackets after extracting
+                    $cleanedName = preg_replace('/[\(\[\{<].*?[\)\]\}>]/u', '', $cleanedName);
+
+                    // Clean up name (letters and spaces only)
+                    $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName));
+                    $finalName = $finalName ?: 'Unknown';
+
+                    // --- Process phone numbers ---
                     $rawPhone = $row['applicant_phone'] ?? '';
                     $rawHomePhone = $row['applicant_homephone'] ?? '';
 
                     $phone = null;
                     $landlinePhone = null;
 
-                    // Normalize primary phone
                     if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
                         $parts = array_map('trim', explode('/', $rawPhone));
                         $phone = $normalizePhone($parts[0] ?? '');
@@ -2443,15 +2451,12 @@ class ImportController extends Controller
                         $phone = $normalizePhone($rawPhone);
                     }
 
-                    // Ensure applicant_phone is never empty or null
                     if (empty($phone)) {
-                        $phone = '0'; // or '00000000000' if you prefer full padding
+                        $phone = str_repeat('0', 11);
                     }
 
                     $homePhone = $normalizePhone($rawHomePhone);
-                    $normalizedCleanedNumber = $cleanedNumber ? $normalizePhone($cleanedNumber) : str_repeat('0', 11);
 
-                    // Pick which to use for applicant_landline
                     $applicantLandline =
                         ($homePhone != str_repeat('0', 11))
                             ? $homePhone
@@ -2459,7 +2464,10 @@ class ImportController extends Controller
                                 ? $landlinePhone
                                 : (($normalizedCleanedNumber != str_repeat('0', 11))
                                     ? $normalizedCleanedNumber
-                                    : str_repeat('0', 11)));
+                                    : '0')); // fallback to single 0
+
+                    // Optional: store email
+                    $applicantEmail = $extractedEmail ?? null;
 
                     // Normalize boolean/enum fields
                     $normalizeBoolean = function ($value) {
@@ -2510,7 +2518,7 @@ class ImportController extends Controller
                         'applicant_uid' => $id ? md5($id) : null,
                         'user_id' => is_numeric($row['applicant_user_id'] ?? null) ? (int)$row['applicant_user_id'] : null,
                         'applicant_name' => $finalName,
-                        'applicant_email' => $row['applicant_email'] ?? '-',
+                        'applicant_email' => $row['applicant_email'] ?? ($applicantEmail ?? '-'),
                         'applicant_notes' => $row['applicant_notes'] ?? null,
                         'lat' => $lat,
                         'lng' => $lng,
