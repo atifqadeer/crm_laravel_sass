@@ -4355,8 +4355,8 @@ class ImportController extends Controller
 
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
-        ini_set('post_max_size', '512M');
-        ini_set('upload_max_filesize', '512M');
+        // ini_set('post_max_size', '512M');
+        // ini_set('upload_max_filesize', '512M');
 
         try {
             $startTime = microtime(true);
@@ -4680,7 +4680,7 @@ class ImportController extends Controller
             // Insert rows in batches
              foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
-                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
                             try {
                                 CrmNote::updateOrCreate(
@@ -4692,7 +4692,7 @@ class ImportController extends Controller
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                               Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                               Log::channel('daily')->error("Row : DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
