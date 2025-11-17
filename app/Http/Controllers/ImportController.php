@@ -4513,185 +4513,172 @@ class ImportController extends Controller
         ini_set('memory_limit', '-1');
         
         try {
-            // Check log directory writability
-            $logFile = storage_path('logs/laravel.log');
-            if (!is_writable(dirname($logFile))) {
-                return response()->json(['error' => 'Log directory is not writable.'], 500);
-            }
+             $startTime = microtime(true);
+            Log::channel('daily')->info('🔹 [crm notes Import] Starting CSV import process...');
 
-            Log::info('Starting CRM Notes CSV import');
-
-            // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
+            Log::channel('daily')->info('File stored at: ' . $filePath);
 
-            if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
-                return response()->json(['error' => 'Failed to store uploaded file.'], 500);
-            }
-            Log::info('File stored at: ' . $filePath);
-
-            // Stream encoding conversion
-            $encoding = $this->detectEncoding($filePath);
+            // Convert file to UTF-8 if needed
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
             if ($encoding != 'UTF-8') {
-                $tempFile = $filePath . '.utf8';
-                $handleIn = fopen($filePath, 'r');
-                if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
-                    return response()->json(['error' => 'Failed to read uploaded file.'], 500);
-                }
-                $handleOut = fopen($tempFile, 'w');
-                if ($handleOut == false) {
-                    fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
-                    return response()->json(['error' => 'Failed to create temporary file.'], 500);
-                }
-                while (!feof($handleIn)) {
-                    $chunk = fread($handleIn, 8192);
-                    fwrite($handleOut, mb_convert_encoding($chunk, 'UTF-8', $encoding));
-                }
-                fclose($handleIn);
-                fclose($handleOut);
-                unlink($filePath);
-                rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
             }
 
-            // Parse CSV with league/csv
+            // Load CSV with League\CSV
             $csv = Reader::createFromPath($filePath, 'r');
-            $csv->setHeaderOffset(0);
-            $csv->setDelimiter(',');
+            $csv->setHeaderOffset(0); // First row is header
+            $csv->setDelimiter(','); // Ensure correct delimiter
             $csv->setEnclosure('"');
             $csv->setEscape('\\');
 
-            $headers = $csv->getHeader();
             $records = $csv->getRecords();
+            $headers = $csv->getHeader();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+
+            // Count total rows
+            $totalRows = iterator_count($records);
+            Log::channel('daily')->info("📊 Total crm notes records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
+            Log::channel('daily')->info('🚀 Starting crm notes row-by-row processing...');
+
             // Process CSV rows
             foreach ($records as $row) {
                 $rowIndex++;
-                if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
-                }
 
-                $row = array_pad($row, $expectedColumnCount, null);
-                $row = array_slice($row, 0, $expectedColumnCount);
-                $row = array_combine($headers, $row);
-                if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sales_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
-                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
-                    continue;
-                }
-
-                // Clean string values
-                $row = array_map(function ($value) {
-                    if (is_string($value)) {
-                        $value = preg_replace('/\s+/', ' ', trim($value));
-                        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                    }
-                    return $value;
-                }, $row);
-
-                // Date preprocessing
-                $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    if (empty($dateString) || !is_string($dateString)) {
-                        return null;
+                try{
+                     // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
                     }
 
-                    // Fix malformed numeric formats (e.g., 1122024 1230)
-                    if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                        $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                        return $fixedDate;
+                    $row = array_pad($row, $expectedColumnCount, null);
+                    $row = array_slice($row, 0, $expectedColumnCount);
+                    $row = array_combine($headers, $row);
+                    if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sales_id'])) {
+                        Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
+                        continue;
                     }
 
-                    return $dateString;
-                };
+                    // Clean string values
+                    $row = array_map(function ($value) {
+                        if (is_string($value)) {
+                            $value = preg_replace('/\s+/', ' ', trim($value));
+                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+                        }
+                        return $value;
+                    }, $row);
 
-                // Parse dates (corrected format order)
-                $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
-                        'Y-m-d',
-                        'd/m/Y H:i',
-                        'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
-                    ];
+                    // Date preprocessing
+                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                        if (empty($dateString) || !is_string($dateString)) {
+                            return null;
+                        }
 
-                    foreach ($formats as $format) {
+                        // Fix malformed numeric formats (e.g., 1122024 1230)
+                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                            Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            return $fixedDate;
+                        }
+
+                        return $dateString;
+                    };
+
+                    // Parse dates (corrected format order)
+                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                        $formats = [
+                            'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                            'Y-m-d',
+                            'd/m/Y H:i',
+                            'd/m/Y',
+                            'm/d/Y H:i',
+                            'm/d/Y'
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                            } catch (\Exception $e) {
+                                // Skip silently for cleaner logs
+                            }
+                        }
+
                         try {
-                            return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
+                            return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            // Skip silently for cleaner logs
+                            Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                            return null;
                         }
-                    }
+                    };
 
-                    try {
-                        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-                        return null;
-                    }
-                };
+                    // Normalizer (unchanged except keeping created_at & updated_at intact)
+                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                        $value = trim((string)($value ?? ''));
 
-                // Normalizer (unchanged except keeping created_at & updated_at intact)
-                $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                    $value = trim((string)($value ?? ''));
-
-                    // Skip invalid placeholders
-                    if (
-                        $value == '' ||
-                        in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
-                    ) {
-                        return null;
-                    }
-
-                    try {
-                        $value = $preprocessDate($value, $field, $rowIndex);
-                        $parsed = $parseDate($value, $rowIndex, $field);
-
-                        if (!$parsed || strtotime($parsed) == false) {
-                            throw new \Exception("Invalid date format: '{$value}'");
+                        // Skip invalid placeholders
+                        if (
+                            $value == '' ||
+                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
+                        ) {
+                            return null;
                         }
 
-                        return $parsed;
-                    } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                        return null;
-                    }
-                };
+                        try {
+                            $value = $preprocessDate($value, $field, $rowIndex);
+                            $parsed = $parseDate($value, $rowIndex, $field);
 
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+                            if (!$parsed || strtotime($parsed) == false) {
+                                throw new \Exception("Invalid date format: '{$value}'");
+                            }
 
-                // Prepare row for insertion
-                $processedRow = [
-                    'id' => $row['id'],
-                    'crm_notes_uid' => md5($row['id']),
-                    'user_id' => $row['user_id'] ?? null,
-                    'applicant_id' => $row['applicant_id'],
-                    'sale_id' => $row['sales_id'],
-                    'details' => $row['details'] ?? '',
-                    'moved_tab_to' => $row['moved_tab_to'] ?? '',
-                    'status' => $row['status'] == 'active' ? 1 : 0,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-                $processedData[] = $processedRow;
+                            return $parsed;
+                        } catch (\Exception $e) {
+                            Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            return null;
+                        }
+                    };
+
+                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+
+                    // Prepare row for insertion
+                    $processedRow = [
+                        'id' => $row['id'],
+                        'crm_notes_uid' => md5($row['id']),
+                        'user_id' => $row['user_id'] ?? null,
+                        'applicant_id' => $row['applicant_id'],
+                        'sale_id' => $row['sales_id'],
+                        'details' => $row['details'] ?? '',
+                        'moved_tab_to' => $row['moved_tab_to'] ?? '',
+                        'status' => $row['status'] == 'active' ? 1 : 0,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ];
+                    $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
             }
 
+            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+
             // Insert rows in batches
-            foreach (array_chunk($processedData, 100) as $chunk) {
+             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
@@ -4705,13 +4692,14 @@ class ImportController extends Controller
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                               Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
+                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                     Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
@@ -4721,23 +4709,36 @@ class ImportController extends Controller
                 Log::info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("CRM Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+
+            Log::channel('daily')->info("🏁 [Offices Import Summary]");
+            Log::channel('daily')->info("• Total rows read: {$totalRows}");
+            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
+            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+
 
             return response()->json([
-                'message' => 'CRM Notes CSV import completed.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
-            return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
-        } catch (\Exception $e) {
-            Log::error('CRM Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
-            if (isset($filePath) && file_exists($filePath)) {
+         } catch (\Exception $e) {
+            if (file_exists($filePath ?? '')) {
                 unlink($filePath);
+                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
+            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
     }
     public function crmRejectedCvImport(Request $request)
