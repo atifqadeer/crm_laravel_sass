@@ -406,11 +406,12 @@ class CommunicationController extends Controller
     {
         try {
             $emailData = $request->input('app_email');
+            $from_email = $request->input('from_email');
 
-            if ($emailData!=null){
+            if ($emailData != null && $from_email != null){
                 $dataEmail = explode(',',$emailData);
 
-                $email_from = 'info@kingsburypersonnel.com';
+                $email_from = $from_email;
                 $email_subject = $request->input('email_subject');
                 $email_body = $request->input('email_body');
                 $email_title = $request->input('email_subject');

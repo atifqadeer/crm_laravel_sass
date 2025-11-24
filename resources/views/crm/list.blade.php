@@ -23,7 +23,7 @@
                                     Open To Applicants
                                 </button>
                                 <!-- Rejected Cv -->
-                                {{-- <div class="dropdown d-inline d-none" id="rejected_cv_export_email">
+                                <div class="dropdown d-inline d-none" id="rejected_cv_export_email">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="rejected_cv_btn" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i>
@@ -32,7 +32,7 @@
                                     <div class="dropdown-menu" aria-labelledby="rejected_cv_btn">
                                         <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'rejected_cv']) }}">Export Emails</a>
                                     </div>
-                                </div> --}}
+                                </div>
                                 <!-- Declined -->
                                 <div class="dropdown d-inline d-none" id="declined_export_email">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -538,7 +538,7 @@
                 // Toggle UI elements
                 $('#openToPaid').toggle(formattedText === 'Paid');
                 $('#schedule_date').toggle(formattedText === 'Confirmation');
-                // $('#rejected_cv_export_email').toggleClass('d-none', formattedText !== 'Rejected Cvs');
+                $('#rejected_cv_export_email').toggleClass('d-none', formattedText !== 'Rejected Cvs');
                 $('#declined_export_email').toggleClass('d-none', formattedText !== 'Declined');
                 $('#not_attended_export_email').toggleClass('d-none', formattedText !== 'Not Attended');
                 $('#start_date_hold_export_email').toggleClass('d-none', formattedText !== 'Start Date Hold');
@@ -5065,6 +5065,38 @@
             });
         });
 
+        function crmRevertPaidApp(applicant_id, sale_id) {
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This action will move the applicant back to the Paid stage in Invoice Sent.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Yes, proceed!",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "{{ route('crmPaidRevertToInvoiceSent') }}",
+                        method: "POST",
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            applicant_id: applicant_id,
+                            sale_id: sale_id
+                        },
+                        success: function (response) {
+                            toastr.success("Applicant reverted successfully!");
+                            // Reload table
+                            $('#applicants_table').DataTable().ajax.reload();
+                        },
+                        error: function (xhr) {
+                            toastr.error("Error: " + xhr.responseJSON?.message);
+                        }
+                    });
+                }
+            });
+        }
+        
     </script>
 
     <script>

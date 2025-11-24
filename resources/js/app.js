@@ -949,18 +949,20 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
 
         const applicantId = $('#emailapplicantId').val();
+        const fromEmail = $('#fromEmail').val().trim();
         const toEmail = $('#emailTo').val().trim();
         const subject = $('#emailSubject').val().trim();
         const message = $('#emailBody').summernote('code').trim(); // get HTML content from Summernote
         const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
-        if (toEmail && subject && message && message !== '<p><br></p>') {
+        if (fromEmail && toEmail && subject && message && message !== '<p><br></p>') {
             $.ajax({
                 url: "/saveComposedEmail",
                 method: "POST",
                 data: {
                     applicant_id: applicantId,
                     app_email: toEmail,
+                    from_email: fromEmail,
                     email_subject: subject,
                     email_body: message,
                     _token: csrfToken

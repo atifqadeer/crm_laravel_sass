@@ -400,6 +400,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     /** CRM Paid */
     Route::post('crmChangePaidStatus', [CrmController::class, 'crmChangePaidStatus'])->name('crmChangePaidStatus');
 	Route::get('openToPaidApplicants', [CrmController::class, 'crmOpenToPaidApplicants'])->name('openToPaidApplicants');
+	Route::post('crmPaidRevertToInvoiceSent', [CrmController::class, 'crmPaidRevertToInvoiceSent'])->name('crmPaidRevertToInvoiceSent');
+
 
     /** regions */ 
     Route::group(['prefix' => 'regions'], function () {

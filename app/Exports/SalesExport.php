@@ -56,92 +56,92 @@ class SalesExport implements FromCollection, WithHeadings
                         ];
                     });
 
-            // case 'rejected_cv':
-            //     return Applicant::query()
-            //         ->select([
-            //             'sales.id as sale_id',
-            //             'offices.office_name',
-            //             'units.unit_name',
-            //             'sales.sale_postcode',
-            //             'contacts.contact_email',
-            //             'job_categories.name as job_category',
-            //             'sales.job_type',
-            //             'job_titles.name as job_title',
-            //             'sales.created_at',
-            //         ])
-            //         ->where('applicants.status', 1)
-            //         ->whereNull('applicants.deleted_at')
+            case 'rejected_cv':
+                return Applicant::query()
+                    ->select([
+                        'sales.id as sale_id',
+                        'offices.office_name',
+                        'units.unit_name',
+                        'sales.sale_postcode',
+                        'contacts.contact_email',
+                        'job_categories.name as job_category',
+                        'sales.job_type',
+                        'job_titles.name as job_title',
+                        'sales.created_at',
+                    ])
+                    ->where('applicants.status', 1)
+                    ->whereNull('applicants.deleted_at')
 
-            //         // ✅ Latest crm_notes per applicant/sale for rejected CVs
-            //         ->joinSub(
-            //             DB::table('crm_notes as cn')
-            //                 ->select('cn.applicant_id', 'cn.sale_id', 'cn.created_at')
-            //                 ->whereIn('cn.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
-            //                 ->whereIn('cn.id', function ($sub) {
-            //                     $sub->select(DB::raw('MAX(id)'))
-            //                         ->from('crm_notes')
-            //                         ->groupBy('applicant_id', 'sale_id');
-            //                 }),
-            //             'latest_crm',
-            //             function ($join) {
-            //                 $join->on('applicants.id', '=', 'latest_crm.applicant_id');
-            //             }
-            //         )
+                    // ✅ Latest crm_notes per applicant/sale for rejected CVs
+                    ->joinSub(
+                        DB::table('crm_notes as cn')
+                            ->select('cn.applicant_id', 'cn.sale_id', 'cn.created_at')
+                            ->whereIn('cn.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
+                            ->whereIn('cn.id', function ($sub) {
+                                $sub->select(DB::raw('MAX(id)'))
+                                    ->from('crm_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'latest_crm',
+                        function ($join) {
+                            $join->on('applicants.id', '=', 'latest_crm.applicant_id');
+                        }
+                    )
 
-            //         // ✅ Related data joins
-            //         ->join('sales', 'latest_crm.sale_id', '=', 'sales.id')
-            //         ->join('offices', 'sales.office_id', '=', 'offices.id')
-            //         ->join('units', 'sales.unit_id', '=', 'units.id')
+                    // ✅ Related data joins
+                    ->join('sales', 'latest_crm.sale_id', '=', 'sales.id')
+                    ->join('offices', 'sales.office_id', '=', 'offices.id')
+                    ->join('units', 'sales.unit_id', '=', 'units.id')
 
-            //         // ✅ History join for rejected entries
-            //         ->join('history', function ($join) {
-            //             $join->on('latest_crm.applicant_id', '=', 'history.applicant_id')
-            //                 ->on('latest_crm.sale_id', '=', 'history.sale_id')
-            //                 ->whereIn('history.sub_stage', ['crm_reject', 'crm_no_job_reject'])
-            //                 ->where('history.status', 1);
-            //         })
+                    // ✅ History join for rejected entries
+                    ->join('history', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'history.applicant_id')
+                            ->on('latest_crm.sale_id', '=', 'history.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_reject', 'crm_no_job_reject'])
+                            ->where('history.status', 1);
+                    })
 
-            //         // ✅ Latest CV notes (optional but kept)
-            //         ->leftJoinSub(
-            //             DB::table('cv_notes as cv')
-            //                 ->select('cv.applicant_id', 'cv.sale_id', 'cv.status')
-            //                 ->whereIn('cv.id', function ($sub) {
-            //                     $sub->select(DB::raw('MAX(id)'))
-            //                         ->from('cv_notes')
-            //                         ->groupBy('applicant_id', 'sale_id');
-            //                 }),
-            //             'latest_cv',
-            //             function ($join) {
-            //                 $join->on('latest_crm.applicant_id', '=', 'latest_cv.applicant_id')
-            //                     ->on('latest_crm.sale_id', '=', 'latest_cv.sale_id');
-            //             }
-            //         )
+                    // ✅ Latest CV notes (optional but kept)
+                    ->leftJoinSub(
+                        DB::table('cv_notes as cv')
+                            ->select('cv.applicant_id', 'cv.sale_id', 'cv.status')
+                            ->whereIn('cv.id', function ($sub) {
+                                $sub->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'latest_cv',
+                        function ($join) {
+                            $join->on('latest_crm.applicant_id', '=', 'latest_cv.applicant_id')
+                                ->on('latest_crm.sale_id', '=', 'latest_cv.sale_id');
+                        }
+                    )
 
-            //         // ✅ Supporting joins
-            //         ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
-            //         ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
-            //         ->leftJoin('contacts', function ($join) {
-            //             $join->on('units.id', '=', 'contacts.contactable_id')
-            //                 ->where('contacts.contactable_type', 'Horsefly\\Unit');
-            //         })
+                    // ✅ Supporting joins
+                    ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+                    ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+                    ->leftJoin('contacts', function ($join) {
+                        $join->on('units.id', '=', 'contacts.contactable_id')
+                            ->where('contacts.contactable_type', 'Horsefly\\Unit');
+                    })
 
-            //         // ✅ Prevent duplicates
-            //         ->distinct('sales.id')
-
-            //         // ✅ Map exactly in your heading order
-            //         ->get()
-            //         ->map(function ($item) {
-            //             return [
-            //                 'Created At'         => $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d M Y, h:i A') : 'N/A',
-            //                 'Head Office Name'   => ucwords(strtolower($item->office_name)),
-            //                 'Unit Name'          => ucwords(strtolower($item->unit_name)),
-            //                 'Sale Postcode'      => strtoupper($item->sale_postcode),
-            //                 'Contact Email'      => $item->contact_email ?? 'N/A',
-            //                 'Job Category'       => ucwords($item->job_category ?? ''),
-            //                 'Job Type'           => ucwords(str_replace('-', ' ', $item->job_type ?? '')),
-            //                 'Job Title'          => strtoupper($item->job_title ?? ''),
-            //             ];
-            //         });
+                    // ✅ Prevent duplicates
+                   ->groupBy('sales.id')
+                    
+                    // ✅ Map exactly in your heading order
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'Created At'         => $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d M Y, h:i A') : 'N/A',
+                            'Head Office Name'   => ucwords(strtolower($item->office_name)),
+                            'Unit Name'          => ucwords(strtolower($item->unit_name)),
+                            'Sale Postcode'      => strtoupper($item->sale_postcode),
+                            'Contact Email'      => $item->contact_email ?? 'N/A',
+                            'Job Category'       => ucwords($item->job_category ?? ''),
+                            'Job Type'           => ucwords(str_replace('-', ' ', $item->job_type ?? '')),
+                            'Job Title'          => strtoupper($item->job_title ?? ''),
+                        ];
+                    });
 
             case 'declined':
                 return Applicant::query()
@@ -399,15 +399,21 @@ class SalesExport implements FromCollection, WithHeadings
                     });
             
             case 'paid':
+                // Subquery: latest cv_note per applicant + sale
+                $latestCvNotes = DB::table('cv_notes as cv1')
+                    ->select('cv1.*')
+                    ->whereIn('cv1.id', function ($q) {
+                        $q->select(DB::raw('MAX(id)'))
+                            ->from('cv_notes')
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 return Applicant::query()
-                    ->with([
-                        'jobTitle',
-                        'jobCategory',
-                        'jobSource'
-                    ])
+                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
                     ->select([
-                        'sales.id', 
-                        'offices.office_name', 
+                        'applicants.id',
+                        'sales.id as sale_id',
+                        'offices.office_name',
                         'units.unit_name',
                         'sales.sale_postcode',
                         'contacts.contact_email',
@@ -416,11 +422,9 @@ class SalesExport implements FromCollection, WithHeadings
                         'job_titles.name as job_title',
                         'sales.created_at'
                     ])
-                    ->where('applicants.status', 1)
-                    ->distinct('applicants.id')
                     ->join('crm_notes', function ($join) {
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                            ->whereIn("crm_notes.moved_tab_to", ["paid"])
+                            ->whereIn('crm_notes.moved_tab_to', ['paid'])
                             ->where('crm_notes.status', 1);
                     })
                     ->join('sales', 'crm_notes.sale_id', '=', 'sales.id')
@@ -430,28 +434,29 @@ class SalesExport implements FromCollection, WithHeadings
                     ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
                     ->leftJoin('contacts', 'units.id', '=', 'contacts.contactable_id')
                     ->join('history', function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id');
-                        $join->on('crm_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["crm_paid"])
-                            ->where("history.status", 1);
+                        $join->on('crm_notes.applicant_id', '=', 'history.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'history.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_paid'])
+                            ->where('history.status', 1);
                     })
-                    ->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->whereColumn('cv_notes.sale_id', 'sales.id') // Fixed: Compare columns, not strings
-                            ->latest();
+                    ->leftJoinSub($latestCvNotes, 'latest_cv', function ($join) {
+                        $join->on('applicants.id', '=', 'latest_cv.applicant_id')
+                            ->on('sales.id', '=', 'latest_cv.sale_id');
                     })
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
+                    ->where('applicants.status', 1)
+                    ->distinct()
                     ->get()
                     ->map(function ($item) {
                         return [
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                            'office_name' => ucwords(strtolower($item->office_name)),
-                            'unit_name' => ucwords(strtolower($item->unit_name)),
+                            'created_at'    => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                            'office_name'   => ucwords(strtolower($item->office_name)),
+                            'unit_name'     => ucwords(strtolower($item->unit_name)),
                             'sale_postcode' => strtoupper($item->sale_postcode),
                             'contact_email' => $item->contact_email,
-                            'job_category' => ucwords($item->job_category),
-                            'job_type' => ucwords(str_replace('-',' ',$item->job_type)),
-                            'job_title' => strtoupper($item->job_title),
+                            'job_category'  => ucwords($item->job_category),
+                            'job_type'      => ucwords(str_replace('-',' ',$item->job_type)),
+                            'job_title'     => strtoupper($item->job_title),
                         ];
                     });
 
@@ -767,8 +772,8 @@ class SalesExport implements FromCollection, WithHeadings
         switch ($this->type) {
             case 'emails':
                 return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Email', 'Job Category', 'Job Type', 'Job Title'];
-            // case 'rejected_cv':
-            //     return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Email', 'Job Category', 'Job Type', 'Job Title'];
+            case 'rejected_cv':
+                return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Email', 'Job Category', 'Job Type', 'Job Title'];
             case 'declined':
                 return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Email', 'Job Category', 'Job Type', 'Job Title'];
             case 'not_attended':

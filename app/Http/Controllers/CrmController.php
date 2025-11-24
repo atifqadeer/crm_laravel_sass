@@ -75,7 +75,6 @@ class CrmController extends Controller
         return view('crm.notes-history', compact('applicant_id', 'sale_id', 'applicant', 'cv_notes', 'quality_notes'));
     }
 
-    
     public function getCrmApplicantsAjaxRequest(Request $request)
     {
         $typeFilter = $request->input('type_filter', '');
@@ -111,7 +110,20 @@ class CrmController extends Controller
         // Apply tab filter logic (optimized with DB::raw)
         switch ($tabFilter) {
             case 'open cvs':
-                $model->joinSub(
+                $model->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('applicants.id', '=', 'cv_notes.applicant_id');
+                    }
+                )
+                ->joinSub(
                     DB::table('revert_stages')
                         ->select('applicant_id', 'sale_id', 'user_id', 'notes', 'stage', 'updated_at')
                         ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
@@ -122,10 +134,11 @@ class CrmController extends Controller
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'revert_stages',
-                    fn ($join) => $join->on('applicants.id', '=', 'revert_stages.applicant_id')
+                    fn ($join) => $join->on('revert_stages.applicant_id', '=', 'cv_notes.applicant_id')
+                                        ->on('revert_stages.sale_id', '=', 'cv_notes.sale_id')
                 )
                 ->join('sales', fn ($join) => 
-                    $join->on('revert_stages.sale_id', '=', 'sales.id')
+                    $join->on('cv_notes.sale_id', '=', 'sales.id')
                         ->where('sales.status', 1)
                 )
                 ->join('offices', fn ($join) => 
@@ -139,30 +152,16 @@ class CrmController extends Controller
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
                         ->from('history')
-                        ->whereColumn('history.applicant_id', 'revert_stages.applicant_id')
-                        ->whereColumn('history.sale_id', 'revert_stages.sale_id')
+                        ->whereColumn('history.applicant_id', 'cv_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'cv_notes.sale_id')
                         ->whereIn('history.sub_stage', ['quality_cvs_hold'])
                         ->where('history.status', 1);
                 })
                 ->leftJoin('interviews', function ($join) {
-                    $join->on('revert_stages.applicant_id', '=', 'interviews.applicant_id');
-                    $join->on('revert_stages.sale_id', '=', 'interviews.sale_id');
+                    $join->on('cv_notes.applicant_id', '=', 'interviews.applicant_id');
+                    $join->on('cv_notes.sale_id', '=', 'interviews.sale_id');
                     $join->where('interviews.status', 1);
                 })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('revert_stages.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('revert_stages.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     'offices.office_name as office_name',
@@ -213,16 +212,16 @@ class CrmController extends Controller
                     }
                 )
                 ->join('sales', function ($join) {
-                    $join->on('quality_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('quality_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -235,7 +234,7 @@ class CrmController extends Controller
                 ->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->where('status', 1)
+                        // ->where('status', 1)
                         ->whereIn('moved_tab_to', ['cv_sent_no_job'])
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
@@ -299,97 +298,102 @@ class CrmController extends Controller
                 break;
 
             case 'rejected cvs':
-                // Subquery to get the latest crm_notes per applicant_id and sale_id
-                $crmNotesSubQuery = DB::table('crm_notes')
-                    ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                    ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
-                    ->whereIn('id', function ($subQuery) {
-                        $subQuery->select(DB::raw('MAX(id)'))
+                // Subquery to get latest CRM notes (rejected)
+                $crmNotesSubQuery = DB::table('crm_notes as cn1')
+                    ->select('cn1.*')
+                    ->whereIn('cn1.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
+                    ->whereIn('cn1.id', function ($q) {
+                        $q->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
                             ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
-                // Subquery for latest cv_notes per applicant_id and sale_id
-                $cvNotesSubQuery = DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                    ->whereIn('id', function ($subQuery) {
-                        $subQuery->select(DB::raw('MAX(id)'))
+                // Subquery to get latest CV notes
+                $cvNotesSubQuery = DB::table('cv_notes as cv1')
+                    ->select('cv1.*')
+                    ->whereIn('cv1.id', function ($q) {
+                        $q->select(DB::raw('MAX(id)'))
                             ->from('cv_notes')
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
-                // Build the main query
-                $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
-                    $join->on('applicants.id', '=', 'crm_notes.applicant_id');
-                })
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_reject', 'crm_no_job_reject'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    'applicants.id as applicant_id',
-                    // CRM Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    // Offices
-                    'offices.office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // Users
-                    'users.name as user_name',
-                ]);
+                // Main query
+                $model->joinSub($crmNotesSubQuery, 'crm_last_notes', function ($join) {
+                        $join->on('applicants.id', '=', 'crm_last_notes.applicant_id');
+                    })
+                    ->join('sales', function ($join) {
+                        $join->on('crm_last_notes.sale_id', '=', 'sales.id');
+                            // ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
+                            // ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
+                            // ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_last_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_last_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_reject', 'crm_no_job_reject'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub($cvNotesSubQuery, 'cv_last_notes', function ($join) {
+                        $join->on('crm_last_notes.applicant_id', '=', 'cv_last_notes.applicant_id')
+                            ->on('crm_last_notes.sale_id', '=', 'cv_last_notes.sale_id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
+                    ->addSelect([
+                        'applicants.id as applicant_id',
+
+                        // CRM Notes
+                        'crm_last_notes.details as notes_detail',
+                        'crm_last_notes.created_at as notes_created_at',
+
+                        // Offices
+                        'offices.office_name',
+
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+
+                        // Users
+                        'users.name as user_name',
+                    ]);
 
                 break;
-
             case 'request':
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
@@ -416,16 +420,16 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -498,16 +502,16 @@ class CrmController extends Controller
                     }
                 )
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -605,16 +609,16 @@ class CrmController extends Controller
                     }
                 )
                 ->join('sales', function ($join) {
-                    $join->on('latest_crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('latest_crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -696,16 +700,16 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                     })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
+                            // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
+                        $join->on('sales.office_id', '=', 'offices.id');
+                            // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
+                        $join->on('sales.unit_id', '=', 'units.id');
+                            // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -764,9 +768,7 @@ class CrmController extends Controller
                         // CV note user
                         'users.name as user_name',
                     ]);
-
                 break;
-
             case 'rebook':
                 $model->joinSub(
                         DB::table('crm_notes')
@@ -781,16 +783,16 @@ class CrmController extends Controller
                         fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                     )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
+                            // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
+                        $join->on('sales.office_id', '=', 'offices.id');
+                            // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
+                        $join->on('sales.unit_id', '=', 'units.id');
+                            // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -881,16 +883,16 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -960,16 +962,16 @@ class CrmController extends Controller
                     fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -1032,90 +1034,89 @@ class CrmController extends Controller
                 break;
             case 'not attended':
                 $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to', ["interview_not_attended"])
-                            ->whereIn('id', fn ($subQuery) => 
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
-                        'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    )
-                    ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
-                    })
-                    ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
-                    })
-                    ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
-                    })
-                    ->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('history')
-                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                            ->whereIn('history.sub_stage', ['crm_interview_not_attended'])
-                            ->where('history.status', 1);
-                    })
-                    ->leftJoin('interviews', function ($join) {
-                        $join->on('applicants.id', '=', 'interviews.applicant_id');
-                        $join->on('sales.id', '=', 'interviews.sale_id');
-                        $join->where('interviews.status', 1);
-                    })
-                    ->leftJoinSub(
-                        DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                            ->whereIn('id', function ($subQuery) {
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->groupBy('applicant_id', 'sale_id');
-                            }),
-                        'cv_notes',
-                        function ($join) {
-                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                        }
-                    )
-                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                    ->addSelect([
-                        'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
-                        // sale
-                        'sales.id as sale_id',
-                        'sales.job_category_id as sale_category_id',
-                        'sales.job_title_id as sale_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type as sale_job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience as sale_experience',
-                        'sales.qualification as sale_qualification',
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
-                        'sales.created_at as sale_posted_date',
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to', ["interview_not_attended"])
+                        ->whereIn('id', fn ($subQuery) => 
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
+                    'crm_notes',
+                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                )
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->whereIn('history.sub_stage', ['crm_interview_not_attended'])
+                        ->where('history.status', 1);
+                })
+                ->leftJoin('interviews', function ($join) {
+                    $join->on('applicants.id', '=', 'interviews.applicant_id');
+                    $join->on('sales.id', '=', 'interviews.sale_id');
+                    $join->where('interviews.status', 1);
+                })
+                ->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    }
+                )
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect([
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+                    'offices.office_name as office_name',
+                    // sale
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
+                    'sales.created_at as sale_posted_date',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
 
-                        'interviews.schedule_time',
-                        'interviews.schedule_date',
-                        'interviews.status as interview_status',
+                    'interviews.schedule_time',
+                    'interviews.schedule_date',
+                    'interviews.status as interview_status',
 
-                        'users.name as user_name'
-                    ]);
-
+                    'users.name as user_name'
+                ]);
                 break;
             case 'start date':
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
@@ -1143,16 +1144,16 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -1210,263 +1211,263 @@ class CrmController extends Controller
                 break;
             case 'start date hold':
                 $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to', ["start_date_hold", "start_date_hold_save"])
-                            ->whereIn('id', fn ($subQuery) => 
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
-                        'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    )
-                    ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
-                    })
-                    ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
-                    })
-                    ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
-                    })
-                    ->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('history')
-                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                            ->whereIn('history.sub_stage', ['crm_start_date_hold', 'crm_start_date_hold_save'])
-                            ->where('history.status', 1);
-                    })
-                    ->leftJoin('interviews', function ($join) {
-                        $join->on('applicants.id', '=', 'interviews.applicant_id');
-                        $join->on('sales.id', '=', 'interviews.sale_id');
-                        $join->where('interviews.status', 1);
-                    })
-                    ->leftJoinSub(
-                        DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                            ->whereIn('id', function ($subQuery) {
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->groupBy('applicant_id', 'sale_id');
-                            }),
-                        'cv_notes',
-                        function ($join) {
-                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                        }
-                    )
-                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                    ->addSelect([
-                        'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
-                        // sale
-                        'sales.id as sale_id',
-                        'sales.job_category_id as sale_category_id',
-                        'sales.job_title_id as sale_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type as sale_job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience as sale_experience',
-                        'sales.qualification as sale_qualification',
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
-                        'sales.created_at as sale_posted_date',
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to', ["start_date_hold", "start_date_hold_save"])
+                        ->whereIn('id', fn ($subQuery) => 
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
+                    'crm_notes',
+                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                )
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->whereIn('history.sub_stage', ['crm_start_date_hold', 'crm_start_date_hold_save'])
+                        ->where('history.status', 1);
+                })
+                ->leftJoin('interviews', function ($join) {
+                    $join->on('applicants.id', '=', 'interviews.applicant_id');
+                    $join->on('sales.id', '=', 'interviews.sale_id');
+                    $join->where('interviews.status', 1);
+                })
+                ->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    }
+                )
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect([
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+                    'offices.office_name as office_name',
+                    // sale
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
+                    'sales.created_at as sale_posted_date',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
 
-                        'interviews.schedule_time',
-                        'interviews.schedule_date',
-                        'interviews.status as interview_status',
+                    'interviews.schedule_time',
+                    'interviews.schedule_date',
+                    'interviews.status as interview_status',
 
-                        'users.name as user_name'
-                    ]);
+                    'users.name as user_name'
+                ]);
 
                 break;
             case 'invoice':
                 $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to', ["invoice", "final_save"])
-                            ->whereIn('id', fn ($subQuery) => 
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
-                        'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    )
-                    ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
-                    })
-                    ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
-                    })
-                    ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
-                    })
-                    ->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('history')
-                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                            ->whereIn('history.sub_stage', ['crm_invoice', 'crm_final_save'])
-                            ->where('history.status', 1);
-                    })
-                    ->leftJoin('interviews', function ($join) {
-                        $join->on('applicants.id', '=', 'interviews.applicant_id');
-                        $join->on('sales.id', '=', 'interviews.sale_id');
-                        $join->where('interviews.status', 1);
-                    })
-                    ->leftJoinSub(
-                        DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                            ->whereIn('id', function ($subQuery) {
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->groupBy('applicant_id', 'sale_id');
-                            }),
-                        'cv_notes',
-                        function ($join) {
-                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                        }
-                    )
-                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                    ->addSelect([
-                        'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
-                        // sale
-                        'sales.id as sale_id',
-                        'sales.job_category_id as sale_category_id',
-                        'sales.job_title_id as sale_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type as sale_job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience as sale_experience',
-                        'sales.qualification as sale_qualification',
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
-                        'sales.created_at as sale_posted_date',
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to', ["invoice", "final_save"])
+                        ->whereIn('id', fn ($subQuery) => 
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
+                    'crm_notes',
+                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                )
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->whereIn('history.sub_stage', ['crm_invoice', 'crm_final_save'])
+                        ->where('history.status', 1);
+                })
+                ->leftJoin('interviews', function ($join) {
+                    $join->on('applicants.id', '=', 'interviews.applicant_id');
+                    $join->on('sales.id', '=', 'interviews.sale_id');
+                    $join->where('interviews.status', 1);
+                })
+                ->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    }
+                )
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect([
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+                    'offices.office_name as office_name',
+                    // sale
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
+                    'sales.created_at as sale_posted_date',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
 
-                        'interviews.schedule_time',
-                        'interviews.schedule_date',
-                        'interviews.status as interview_status',
+                    'interviews.schedule_time',
+                    'interviews.schedule_date',
+                    'interviews.status as interview_status',
 
-                        'users.name as user_name'
-                    ]);
+                    'users.name as user_name'
+                ]);
 
                 break;
             case 'invoice sent':
                 $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to', ["invoice_sent", "final_save"])
-                            ->whereIn('id', fn ($subQuery) => 
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
-                        'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    )
-                    ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
-                    })
-                    ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
-                    })
-                    ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
-                    })
-                    ->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('history')
-                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                            ->whereIn('history.sub_stage', ['crm_invoice_sent', 'crm_final_save'])
-                            ->where('history.status', 1);
-                    })
-                    ->leftJoin('interviews', function ($join) {
-                        $join->on('applicants.id', '=', 'interviews.applicant_id');
-                        $join->on('sales.id', '=', 'interviews.sale_id');
-                        $join->where('interviews.status', 1);
-                    })
-                    ->leftJoinSub(
-                        DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
-                            ->whereIn('id', function ($subQuery) {
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->groupBy('applicant_id', 'sale_id');
-                            }),
-                        'cv_notes',
-                        function ($join) {
-                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                        }
-                    )
-                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                    ->addSelect([
-                        'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
-                        // sale
-                        'sales.id as sale_id',
-                        'sales.job_category_id as sale_category_id',
-                        'sales.job_title_id as sale_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type as sale_job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience as sale_experience',
-                        'sales.qualification as sale_qualification',
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
-                        'sales.created_at as sale_posted_date',
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to', ["invoice_sent", "final_save"])
+                        ->whereIn('id', fn ($subQuery) => 
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
+                    'crm_notes',
+                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                )
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->whereIn('history.sub_stage', ['crm_invoice_sent', 'crm_final_save'])
+                        ->where('history.status', 1);
+                })
+                ->leftJoin('interviews', function ($join) {
+                    $join->on('applicants.id', '=', 'interviews.applicant_id');
+                    $join->on('sales.id', '=', 'interviews.sale_id');
+                    $join->where('interviews.status', 1);
+                })
+                ->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    }
+                )
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect([
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+                    'offices.office_name as office_name',
+                    // sale
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
+                    'sales.created_at as sale_posted_date',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
 
-                        'interviews.schedule_time',
-                        'interviews.schedule_date',
-                        'interviews.status as interview_status',
+                    'interviews.schedule_time',
+                    'interviews.schedule_date',
+                    'interviews.status as interview_status',
 
-                        'users.name as user_name'
-                    ]);
+                    'users.name as user_name'
+                ]);
 
                 break;
             case 'dispute':
@@ -1483,16 +1484,16 @@ class CrmController extends Controller
                     fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                 ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1);
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
                 })
                 ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1);
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
                 })
                 ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1);
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                 })
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -1566,16 +1567,16 @@ class CrmController extends Controller
                         }
                     )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
+                            // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
+                        $join->on('sales.office_id', '=', 'offices.id');
+                            // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
+                        $join->on('sales.unit_id', '=', 'units.id');
+                            // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -1683,24 +1684,24 @@ class CrmController extends Controller
                             ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
                     })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id')
-                            ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
+                            // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
-                        $join->on('sales.office_id', '=', 'offices.id')
-                            ->where('offices.status', 1);
+                        $join->on('sales.office_id', '=', 'offices.id');
+                            // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
-                        $join->on('sales.unit_id', '=', 'units.id')
-                            ->where('units.status', 1);
+                        $join->on('sales.unit_id', '=', 'units.id');
+                            // ->where('units.status', 1);
                     })
                     ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id')
                             ->on('sales.id', '=', 'cv_notes.sale_id');
                     })
                     ->leftJoin('users', function ($join) {
-                        $join->on('cv_notes.user_id', '=', 'users.id')
-                            ->where('users.is_active', 1);
+                        $join->on('cv_notes.user_id', '=', 'users.id');
+                            // ->where('users.is_active', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id')
@@ -1804,7 +1805,7 @@ class CrmController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn("user_name", function ($applicant) {
-                    return ucwords($applicant->user_name) ?? '-';
+                    return $applicant->user_name ? ucwords($applicant->user_name) : '-';
                 })
                 ->addColumn('job_title', function ($applicant) {
                     return $applicant->jobTitle ? strtoupper($applicant->jobTitle) : '-';
@@ -1851,7 +1852,7 @@ class CrmController extends Controller
                             </a>
 
                             <!-- Hidden full notes for copy -->
-                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div>
+                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
 
                             <!-- Copy button under short note -->
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-btn" data-copy-target="#' . $copyId . '">
@@ -2810,6 +2811,14 @@ class CrmController extends Controller
                                         Mark As '. $paid_status_button . '
                                     </a></li>';
                             }
+                            if (Gate::allows('crm-paid-revert', [$applicant, $tabFilter])) {
+                                $actionButtons .= '
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        onclick="crmRevertPaidApp(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Invoice Sent
+                                    </a></li>';
+                            }
                             $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
@@ -2931,7 +2940,6 @@ class CrmController extends Controller
                                 </div>
                             </div>
                         </div>';
-
 
                     /** CRM Send Request Modal */
                     $html .= '<div id="crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmSentCvToRequestModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
@@ -7320,6 +7328,78 @@ class CrmController extends Controller
             'success' => false,
             'message' => 'No matching applicants found.'
         ]);
+    }    
+    public function crmPaidRevertToInvoiceSent(Request $request)
+    {
+        $request->validate([
+            'applicant_id' => 'required|integer',
+            'sale_id' => 'required|integer',
+        ]);
+
+        $applicant_id = $request->applicant_id;
+        $sale_id      = $request->sale_id;
+
+        try {
+            Applicant::where("id", $applicant_id)
+                ->update([
+                    'is_in_crm_paid' => false,
+                    'is_in_crm_invoice' => false,
+                    'is_in_crm_invoice_sent' => true,
+                    'paid_status' => 'pending',
+                    'paid_timestamp' => null
+                ]);
+
+            CrmNote::where([
+                    "applicant_id" => $applicant_id,
+                    "sale_id" => $sale_id,
+                    "status" => 1,
+                    'moved_tab_to' => "paid"
+                ])
+                ->orderByDesc('id')
+                ->limit(1)
+                ->delete();
+
+            CrmNote::where([
+                    'applicant_id' => $applicant_id,
+                    'sale_id'      => $sale_id,
+                    'status'       => 0,
+                    'moved_tab_to' => "invoice_sent"
+                ])
+                ->orderByDesc('id')
+                ->limit(1)
+                ->update(['status' => 1]);
+
+            History::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1,
+                'sub_stage' => 'crm_paid',
+            ])
+                ->orderByDesc('id')
+                ->limit(1)
+                ->delete();
+
+            History::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 0,
+                'sub_stage' => 'crm_invoice_sent'
+            ])
+                ->orderByDesc('id')
+                ->limit(1)
+                ->update(["status" => 1]);
+
+            CVNote::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+            ])->update(["status" => 1]);//active
+                
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            Log::error("Error in crmPaidAction: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /** Get CRM Notes History */
@@ -7463,6 +7543,7 @@ class CrmController extends Controller
                     </div>
                 </div>';
     }
+
     private function saveSentEmails($email_to, $email_cc, $email_from, $email_title, $email_subject, $email_body, $action_name, $applicant_id = Null, $sale_id = Null)
     {
         $sent_email = new SentEmail();
@@ -10625,68 +10706,68 @@ class CrmController extends Controller
     }
 
     /** Paid */
-    private function crmRevertDisputeTosInvoiceAction($applicant_id, $user_id, $sale_id, $details)
-    {
-        try{
-            CVNote::where([
-                "applicant_id" => $applicant_id, 
-                "sale_id" => $sale_id,
-                "status" => 0
-            ])->update(["status" => 1]);
+    // private function crmRevertDisputeTosInvoiceAction($applicant_id, $user_id, $sale_id, $details)
+    // {
+    //     try{
+    //         CVNote::where([
+    //             "applicant_id" => $applicant_id, 
+    //             "sale_id" => $sale_id,
+    //             "status" => 0
+    //         ])->update(["status" => 1]);
 
-            CrmNote::where([
-                "applicant_id" => $applicant_id,
-                "sale_id" => $sale_id,
-                "status" => 0
-            ])
-            ->whereIn('moved_tab_to', [
-                'cv_sent', 'cv_sent_saved', 
-                'cv_sent_request', 'request_save', 
-                'request_confirm', 'prestart_save', 
-                'start_date', 'start_date_save', 
-                'start_date_back', 'interview_attended', 
-                'interview_save'
-            ])->update(["status" => 1]);
+    //         CrmNote::where([
+    //             "applicant_id" => $applicant_id,
+    //             "sale_id" => $sale_id,
+    //             "status" => 0
+    //         ])
+    //         ->whereIn('moved_tab_to', [
+    //             'cv_sent', 'cv_sent_saved', 
+    //             'cv_sent_request', 'request_save', 
+    //             'request_confirm', 'prestart_save', 
+    //             'start_date', 'start_date_save', 
+    //             'start_date_back', 'interview_attended', 
+    //             'interview_save'
+    //         ])->update(["status" => 1]);
 
-            $crm_notes = new CrmNote();
-            $crm_notes->applicant_id = $applicant_id;
-            $crm_notes->user_id = $user_id;
-            $crm_notes->sale_id = $sale_id;
-            $crm_notes->details = $details;
-            $crm_notes->moved_tab_to = "invoice";
-            $crm_notes->save();
+    //         $crm_notes = new CrmNote();
+    //         $crm_notes->applicant_id = $applicant_id;
+    //         $crm_notes->user_id = $user_id;
+    //         $crm_notes->sale_id = $sale_id;
+    //         $crm_notes->details = $details;
+    //         $crm_notes->moved_tab_to = "invoice";
+    //         $crm_notes->save();
 
-            //update uid
-            $crm_notes->crm_notes_uid = md5((string) $crm_notes->id);
-            $crm_notes->save();
+    //         //update uid
+    //         $crm_notes->crm_notes_uid = md5((string) $crm_notes->id);
+    //         $crm_notes->save();
 
-            History::where([
-                "applicant_id" => $applicant_id,
-                "sale_id" => $sale_id,
-                "status" => 1
-            ])->update(["status" => 0]);
+    //         History::where([
+    //             "applicant_id" => $applicant_id,
+    //             "sale_id" => $sale_id,
+    //             "status" => 1
+    //         ])->update(["status" => 0]);
 
-            $history = new History();
-            $history->applicant_id = $applicant_id;
-            $history->user_id = $user_id;
-            $history->sale_id = $sale_id;
-            $history->stage = 'crm';
-            $history->sub_stage = 'crm_invoice';
-            $history->save();
+    //         $history = new History();
+    //         $history->applicant_id = $applicant_id;
+    //         $history->user_id = $user_id;
+    //         $history->sale_id = $sale_id;
+    //         $history->stage = 'crm';
+    //         $history->sub_stage = 'crm_invoice';
+    //         $history->save();
 
-            //update uid
-            $history->history_uid = md5((string) $history->id);
-            $history->save();
+    //         //update uid
+    //         $history->history_uid = md5((string) $history->id);
+    //         $history->save();
                                             
-           return true; // Indicate success
+    //        return true; // Indicate success
 
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            Log::error("Error in crmRevertDisputeToInvoiceAction: " . $e->getMessage());
+    //     } catch (\Exception $e) {
+    //         // Log the error for debugging
+    //         Log::error("Error in crmRevertDisputeToInvoiceAction: " . $e->getMessage());
 
-            // Re-throw the exception to be caught by the calling method
-            throw $e;
-        }  
-    }
+    //         // Re-throw the exception to be caught by the calling method
+    //         throw $e;
+    //     }  
+    // }
 
 }

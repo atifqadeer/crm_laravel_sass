@@ -556,7 +556,7 @@ class HeadOfficeController extends Controller
             ]);
 
             // Fetch the module notes by the given ID
-            $contacts = Contact::where('contactable_id', $request->id)->where('contactable_type', $request->module)->latest()->get();
+            $contacts = Contact::where('contactable_id', $request->id)->where('contactable_type', 'Horsefly\Unit')->latest()->get();
 
             // Check if the module note was found
             if (!$contacts) {

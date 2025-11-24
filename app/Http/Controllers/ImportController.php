@@ -5182,18 +5182,31 @@ class ImportController extends Controller
                 $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
                 $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
+                /** paid status */
+                $status = $row['status'];
+                if($status == 'active'){
+                    $statusVal = 1;
+                }elseif($status == 'paid'){
+                    $statusVal = 2;
+                }elseif($status == 'open'){
+                    $statusVal = 3;
+                }else{
+                    $statusVal = 0;
+                }
+
                 // Prepare row for insertion
                 $processedRow = [
-                    'id' => $row['id'] ?? null,
+                    'id' => $row['id'],
                     'cv_uid' => md5($row['id']),
                     'user_id' => $row['user_id'] ?? null,
                     'applicant_id' => $row['applicant_id'],
                     'sale_id' => $row['sale_id'],
                     'details' => $row['details'] ?? '',
-                    'status' => $row['status'] == 'active' ? 1 : 0,
+                    'status' => $statusVal,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
                 ];
+                
                 $processedData[] = $processedRow;
             }
 

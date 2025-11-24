@@ -60,6 +60,20 @@
             <!-- Header Section -->
             <div class="p-3 border-bottom bg-light">
                 <div class="mb-3">
+                    @php
+                        $fromEmails = DB::table('smtp_settings')->whereNotNull('from_address')->get();
+                    @endphp
+
+                    <label for="fromEmail" class="form-label fw-semibold">From
+                    </label>
+                    <select class="form-control" name="fromEmail" id="fromEmail" required>
+                        <option value="">Select From Email</option>
+                        @foreach($fromEmails as $from)
+                            <option value="{{ $from->from_address }}">{{ $from->from_address }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label for="emailTo" class="form-label fw-semibold">To
                     </label>
                     <input 
@@ -91,12 +105,12 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-0">
                       <textarea 
-    name="emailBody"
-    id="emailBody"
-    class="form-control border-0 p-3 shadow-none summernote"
-    placeholder="Write your email message here..."
-    style="resize:none; min-height:250px;">
-</textarea>
+                        name="emailBody"
+                        id="emailBody"
+                        class="form-control border-0 p-3 shadow-none summernote"
+                        placeholder="Write your email message here..."
+                        style="resize:none; min-height:250px;">
+                    </textarea>
 
                     </div>
                 </div>
