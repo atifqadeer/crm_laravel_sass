@@ -1917,6 +1917,12 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
+            ->leftJoin(DB::raw("
+                (SELECT sale_id, MAX(id) as latest_id 
+                FROM sale_notes
+                GROUP BY sale_id) as latest_notes
+            "), 'sales.id', '=', 'latest_notes.sale_id')
+            ->leftJoin('sale_notes', 'sale_notes.id', '=', 'latest_notes.latest_id')
             ->where('sales.status', 1)
             ->having("distance", "<", $radius)
             ->orderBy("distance");

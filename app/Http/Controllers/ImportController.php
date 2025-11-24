@@ -184,11 +184,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -554,11 +562,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -953,11 +969,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -2762,11 +2786,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -3186,11 +3218,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -3468,7 +3508,22 @@ class ImportController extends Controller
 
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -3476,6 +3531,7 @@ class ImportController extends Controller
                             Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                         }
                     }
+
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
@@ -3529,7 +3585,6 @@ class ImportController extends Controller
 
                 // Prepare row for insertion
                 $processedRow = [
-                    'id' => $row['id'] ?? null,
                     'note_uid' => $row['id'] ? md5($row['id']) : null,
                     'user_id' => $row['user_id'] ?? null,
                     'applicant_id' => $row['applicant_id'] ?? null,
@@ -3725,7 +3780,22 @@ class ImportController extends Controller
 
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -3980,7 +4050,22 @@ class ImportController extends Controller
 
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -4407,10 +4492,20 @@ class ImportController extends Controller
 
                 // Supported date formats
                 $formats = [
-                    'd/m/Y H:i', 'd/m/Y', 'm/d/Y H:i', 'm/d/Y',
-                    'Y-m-d H:i:s', 'Y-m-d',
-                    'j F Y', 'j F Y H:i', 'j F Y g:i A',
-                    'd F Y', 'd F Y g:i A'
+                    'Y-m-d H:i:s',
+                    'Y-m-d H:i',
+                    'Y-m-d',
+                    'm/d/Y H:i',  // US format first
+                    'm/d/Y H:i:s',
+                    'm/d/Y',
+                    'd/m/Y H:i',
+                    'd/m/Y H:i:s',
+                    'd/m/Y',
+                    'j F Y', 
+                    'j F Y H:i', 
+                    'j F Y g:i A',
+                    'd F Y', 
+                    'd F Y g:i A'
                 ];
 
                 foreach ($formats as $format) {
@@ -4601,12 +4696,20 @@ class ImportController extends Controller
                     // Parse dates (corrected format order)
                     $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                         $formats = [
-                            'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                            'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
+                            'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
-                            'm/d/Y H:i',
-                            'm/d/Y'
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -4874,12 +4977,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -5128,12 +5239,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -5206,7 +5325,7 @@ class ImportController extends Controller
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
                 ];
-                
+
                 $processedData[] = $processedRow;
             }
 
@@ -5393,12 +5512,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -5615,7 +5742,20 @@ class ImportController extends Controller
                     if (!empty($row['schedule_date'])) {
                         $rawDate = trim($row['schedule_date']);
                         $formats = [
-                            'j F, Y', 'd F, Y', 'j M, Y', 'd M, Y', 'm/d/Y', 'Y-m-d'
+                            'Y-m-d H:i:s',
+                            'Y-m-d H:i',
+                            'Y-m-d',
+                            'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y H:i:s',
+                            'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
                         foreach ($formats as $fmt) {
                             try {
@@ -5820,11 +5960,19 @@ class ImportController extends Controller
 
                         $formats = [
                             'Y-m-d H:i:s',
+                            'Y-m-d H:i',
                             'Y-m-d',
                             'm/d/Y H:i',  // US format first
+                            'm/d/Y H:i:s',
                             'm/d/Y',
                             'd/m/Y H:i',
+                            'd/m/Y H:i:s',
                             'd/m/Y',
+                            'j F Y', 
+                            'j F Y H:i', 
+                            'j F Y g:i A',
+                            'd F Y', 
+                            'd F Y g:i A'
                         ];
 
                         foreach ($formats as $format) {
@@ -6099,7 +6247,22 @@ class ImportController extends Controller
 
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -6347,12 +6510,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -6606,12 +6777,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -7032,12 +7211,20 @@ class ImportController extends Controller
                 // Parse dates (corrected format order)
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     $formats = [
-                        'Y-m-d H:i:s', // ✅ Most common MySQL format first
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
-                        'm/d/Y H:i',
-                        'm/d/Y'
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
@@ -7284,7 +7471,22 @@ class ImportController extends Controller
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     // Put the most common format first
-                    $formats = ['Y-m-d H:i:s', 'Y-m-d', 'm/d/Y H:i', 'm/d/Y', 'd/m/Y H:i'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -7524,7 +7726,22 @@ class ImportController extends Controller
                 // Parse dates
                 $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
                     // Put the most common format first
-                    $formats = ['Y-m-d H:i:s', 'Y-m-d', 'm/d/Y H:i', 'm/d/Y', 'd/m/Y H:i'];
+                    $formats = [
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'Y-m-d',
+                        'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
+                        'm/d/Y',
+                        'd/m/Y H:i',
+                        'd/m/Y H:i:s',
+                        'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
+                    ];
                     foreach ($formats as $format) {
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
@@ -7782,11 +7999,19 @@ class ImportController extends Controller
 
                     $formats = [
                         'Y-m-d H:i:s',
+                        'Y-m-d H:i',
                         'Y-m-d',
                         'm/d/Y H:i',  // US format first
+                        'm/d/Y H:i:s',
                         'm/d/Y',
                         'd/m/Y H:i',
+                        'd/m/Y H:i:s',
                         'd/m/Y',
+                        'j F Y', 
+                        'j F Y H:i', 
+                        'j F Y g:i A',
+                        'd F Y', 
+                        'd F Y g:i A'
                     ];
 
                     foreach ($formats as $format) {
