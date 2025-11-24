@@ -8,7 +8,7 @@ class Audit extends Model
 {
     protected $table = 'audits';
     protected $fillable = [
-        'id',
+        // 'id',
         'user_id',
         'data',
         'message',
