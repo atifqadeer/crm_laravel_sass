@@ -1893,39 +1893,50 @@ class ApplicantController extends Controller
         $lat = $applicant->lat;
         $lon = $applicant->lng;
 
-        $model = Sale::query()
-            ->select([
-                'sales.*',
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-                'offices.office_name as office_name',
-                'units.unit_name as unit_name',
-                'users.name as user_name',
-                DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
-                        COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) 
-                        AS distance"),
-                DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv")
-            ])
-            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
-            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
-            ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
-            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
-            ->whereNotExists(function ($query) use ($applicant_id) {
-                $query->select(DB::raw(1))
-                    ->from('applicants_pivot_sales')
-                    ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
-                    ->where('applicants_pivot_sales.applicant_id', $applicant_id);
-            })
-            ->leftJoin(DB::raw("
-                (SELECT sale_id, MAX(id) as latest_id 
-                FROM sale_notes
-                GROUP BY sale_id) as latest_notes
-            "), 'sales.id', '=', 'latest_notes.sale_id')
-            ->leftJoin('sale_notes', 'sale_notes.id', '=', 'latest_notes.latest_id')
-            ->where('sales.status', 1)
-            ->having("distance", "<", $radius)
-            ->orderBy("distance");
+       $model = Sale::query()
+                    ->select([
+                        'sales.*',
+                        'job_titles.name as job_title_name',
+                        'job_categories.name as job_category_name',
+                        'offices.office_name as office_name',
+                        'units.unit_name as unit_name',
+                        'users.name as user_name',
+
+                        DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
+                                COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) AS distance"),
+
+                        DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) AS no_of_sent_cv"),
+
+                        // ADD THESE — fields from latest sale note
+                        'updated_notes.id as latest_note_id',
+                        'updated_notes.sale_note as latest_note',
+                        'updated_notes.created_at as latest_note_time',
+                    ])
+                    ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+                    ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+                    ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+                    ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+                    ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+                    ->whereNotExists(function ($query) use ($applicant_id) {
+                        $query->select(DB::raw(1))
+                            ->from('applicants_pivot_sales')
+                            ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
+                            ->where('applicants_pivot_sales.applicant_id', $applicant_id);
+                    })
+
+                    // Subquery to get latest sale_note id per sale
+                    ->leftJoin(DB::raw("
+                        (SELECT sale_id, MAX(id) AS latest_id
+                        FROM sale_notes
+                        GROUP BY sale_id) AS latest_notes
+                    "), 'sales.id', '=', 'latest_notes.sale_id')
+
+                    // Join the actual sale_notes record
+                    ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
+
+                    ->where('sales.status', 1)
+                    ->having("distance", "<", $radius)
+                    ->orderBy("distance");
 
         /** 🔹 Job Title Filtering */
         $jobTitle = JobTitle::find($applicant->job_title_id);
@@ -2177,9 +2188,15 @@ class ApplicantController extends Controller
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
                 })
-                ->addColumn('sale_notes', function ($sale) {                   
-                    $short = Str::limit(strip_tags($sale->sale_notes), 80);
-                    $full = e($sale->sale_notes);
+                ->addColumn('sale_notes', function ($sale) {      
+                    $notes = ''; 
+                    if(!empty($sale->sale_notes)){
+                        $notes = $sale->sale_notes;
+                    }else{
+                        $notes = $sale->latest_note;
+                    }
+                    $short = Str::limit(strip_tags($notes), 80);
+                    $full = e($notes);
                     $id = 'notes-' . $sale->id;
 
                     return '
@@ -2209,7 +2226,7 @@ class ApplicantController extends Controller
                     ';
                 })
                 ->addColumn('status', function ($sale)  use ($applicant) {
-                    $status_value = 'Open';
+                    $status_value = 'Open'; /***if cv_notes status is 3 then it will be apply on that too***/
                     $status_clr = 'bg-dark';
                     foreach ($applicant->cv_notes as $key => $value) {
                         if ($value->sale_id == $sale->id) {
