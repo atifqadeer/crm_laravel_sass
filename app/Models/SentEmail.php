@@ -20,7 +20,7 @@ class SentEmail extends Model
         'title',
         'template',
         'status',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 }
