@@ -34,7 +34,7 @@
                <!-- applicants Menu -->
                @canany(['applicant-index', 'applicant-create'])
                     <li class="nav-item">
-                         <a class="nav-link menu-arrow" href="javascript:void(0);" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarApplicants">
+                         <a class="nav-link menu-arrow" href="#sidebarApplicants" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarApplicants">
                               <span class="nav-icon">
                                    <i class="ri-graduation-cap-line"></i>
                               </span>
