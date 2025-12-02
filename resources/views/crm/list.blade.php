@@ -94,7 +94,7 @@
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterTab">Sent CVs</span>
                                     </button>
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton4">
-                                        <a class="dropdown-item tab-filter" href="#">Sent CVs</a>
+                                        @can('crm-sent-cv-list')<a class="dropdown-item tab-filter" href="#">Sent CVs</a>@endcan
                                         <a class="dropdown-item tab-filter" href="#">Open CVs</a>
                                         <a class="dropdown-item tab-filter" href="#">Sent CVs (No Job)</a>
                                         <a class="dropdown-item tab-filter" href="#">Rejected CVs</a>

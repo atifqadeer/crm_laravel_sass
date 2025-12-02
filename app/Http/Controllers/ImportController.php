@@ -835,7 +835,7 @@ class ImportController extends Controller
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
+            Log::channel('import')->info('📂 File stored at: ' . $filePath);
 
             // Ensure UTF-8 encoding
             $content = file_get_contents($filePath);
@@ -843,7 +843,7 @@ class ImportController extends Controller
             if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
-                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
+                Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             // Load CSV
@@ -854,23 +854,45 @@ class ImportController extends Controller
             $csv->setEscape('\\');
 
             // Validate headers
-            $headers = array_map('trim', $csv->getHeader());
-            $headers = array_map('strtolower', $headers);
+            $headers = array_map(function ($h) {
+                $h = strtolower(trim($h));
+                $h = preg_replace('/\s+/', '', $h); // remove ALL spaces inside
+                return $h;
+            }, $csv->getHeader());
+
+            // Normalize required headers
             $requiredHeaders = [
-                'id', 'applicant_name', 'applicant_email', 'applicant_phone', 'applicant_postcode',
-                'applicant_job_title', 'job_category', 'job_title_prof', 'applicant_source',
-                'created_at', 'updated_at', 'paid_timestamp', 'status'
+                'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
+                'job_title_prof','applicant_name','applicant_email','applicant_postcode',
+                'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
+                'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
+                'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
+                'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
+                'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
+                'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
+                'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
+                'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
+                'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
+                'is_job_within_radius','have_nursing_home_experience','status','paid_status',
+                'paid_timestamp','created_at','updated_at'
             ];
-            $missingHeaders = array_diff($requiredHeaders, $headers);
+
+            $normalizedRequired = array_map(function ($h) {
+                return preg_replace('/\s+/', '', strtolower($h));
+            }, $requiredHeaders);
+
+            // Compare
+            $missingHeaders = array_diff($normalizedRequired, $headers);
+
             if (!empty($missingHeaders)) {
-                Log::channel('daily')->error('❌ Missing required headers: ' . implode(', ', $missingHeaders));
                 throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
             }
+
 
             // Count total rows
             $records = $csv->getRecords();
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total applicant records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total applicant records in CSV: {$totalRows}");
 
             // Recreate iterator
             $csv = Reader::createFromPath($filePath, 'r');
@@ -885,14 +907,14 @@ class ImportController extends Controller
             $successfulRows = 0;
             $rowIndex = 1;
 
-            Log::channel('daily')->info('🚀 Starting applicant row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -907,18 +929,18 @@ class ImportController extends Controller
                     // Helper functions
                     $normalizeId = function ($input, $rowIndex) {
                         if (empty($input) && $input != '0' && $input != 0) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Empty id input, will generate new ID");
+                            Log::channel('import')->debug("Row {$rowIndex}: Empty id input, will generate new ID");
                             return null;
                         }
                         if (is_numeric($input)) {
                             $id = sprintf('%.0f', (float)$input);
                             if ($id == '0') {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Invalid id (0), will generate new ID");
+                                Log::channel('import')->debug("Row {$rowIndex}: Invalid id (0), will generate new ID");
                                 return null;
                             }
                             return $id;
                         }
-                        Log::channel('daily')->debug("Row {$rowIndex}: Invalid id format: {$input}, will generate new ID");
+                        Log::channel('import')->debug("Row {$rowIndex}: Invalid id format: {$input}, will generate new ID");
                         return null;
                     };
 
@@ -931,17 +953,18 @@ class ImportController extends Controller
                     // Skip invalid or placeholder values
                     if (!preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
                         try {
-                            // Try to parse into a timestamp
-                            $ts = strtotime($rawPaid);
+                            // Only parse if non-empty
+                            if ($rawPaid !== '') {
+                                $ts = strtotime($rawPaid);
 
-                            if ($ts != false && $ts > 0) {
-                                // Convert to standard MySQL datetime
-                                $paid_timestamp = date('Y-m-d H:i:s', $ts);
-                            } else {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Invalid paid_timestamp format: '{$rawPaid}'");
+                                if ($ts !== false && $ts > 0) {
+                                    $paid_timestamp = date('Y-m-d H:i:s', $ts);
+                                } else {
+                                    Log::channel('import')->debug("Row {$rowIndex}: Invalid paid_timestamp format: '{$rawPaid}'");
+                                }
                             }
                         } catch (\Throwable $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
                     }
 
@@ -954,7 +977,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -987,7 +1010,7 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
@@ -995,7 +1018,7 @@ class ImportController extends Controller
                         }
 
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -1021,13 +1044,13 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
 
-                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+                    $createdAt = $normalizeDate($row['created_at'], 'created_at', $rowIndex);
+                    $updatedAt = $normalizeDate($row['updated_at'], 'updated_at', $rowIndex);
 
                     // Handle postcode and geolocation
                     $cleanPostcode = '0';
@@ -1036,28 +1059,23 @@ class ImportController extends Controller
                         $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
                     }
 
-                    $lat = (is_numeric($row['lat']) ? (float) $row['lat'] : null);
-                    $lng = (is_numeric($row['lng']) ? (float) $row['lng'] : null);
+                    $lat = (isset($row['lat']) && is_numeric($row['lat'])) ? (float)$row['lat'] : null;
+                    $lng = (isset($row['lng']) && is_numeric($row['lng'])) ? (float)$row['lng'] : null;
 
-                    if ($lat === null || $lng === null || strtolower((string)$lat) === 'null' || strtolower((string)$lng) === 'null') {
+                    if (!$lat || !$lng) {
                         $postcode_query = strlen($cleanPostcode) < 6
                             ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
                             : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
 
                         if ($postcode_query) {
-                            $lat = $postcode_query->lat ?? 0.0000;
-                            $lng = $postcode_query->lng ?? 0.0000;
-                        } else {
-                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
-                            $lat = 0.0000;
-                            $lng = 0.0000;
+                            $lat = (float)$postcode_query->lat;
+                            $lng = (float)$postcode_query->lng;
                         }
                     }
 
-                    // Final safety net — always ensure numeric values
-                    $lat = (float)($lat ?? 0.0000);
-                    $lng = (float)($lng ?? 0.0000);
-
+                    // Ensure numeric fallback
+                    $lat = $lat ?? 0.0000;
+                    $lng = $lng ?? 0.0000;
 
                     if (strlen($cleanPostcode) == 8) {
                         $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
@@ -2377,6 +2395,11 @@ class ImportController extends Controller
                             'specialist_title' => 'nonnurse specialist',
                             'specialist_prof' => 'Dental Coordinator'
                         ],
+                        [
+                            'id' => 272,
+                            'specialist_title' => 'nurse specialist',
+                            'specialist_prof' => 'Practice Nurse'
+                        ],
                     ];
 
                     if (empty($job_title_prof) || $job_title_prof == 'null') {
@@ -2391,9 +2414,9 @@ class ImportController extends Controller
                                 $job_type = $job_title->type ?? '';
                             } elseif ($job_category) {
                                 $job_category_id = $job_category->id;
-                                Log::channel('daily')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
+                                Log::channel('import')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
                             } else {
-                                Log::channel('daily')->warning("Row {$rowIndex}: Job title and category not found: {$requested_job_title} / {$requested_job_category}");
+                                Log::channel('import')->warning("Row {$rowIndex}: Job title and category not found: {$requested_job_title} / {$requested_job_category}");
                             }
                         }
                     } else {
@@ -2406,7 +2429,7 @@ class ImportController extends Controller
                                     $job_title_id = $job_title->id;
                                     $job_type = $job_title->type ?? '';
                                 } else {
-                                    Log::channel('daily')->warning("Row {$rowIndex}: Job title not found for specialist id: {$job_title_prof}");
+                                    Log::channel('import')->warning("Row {$rowIndex}: Job title not found for specialist id: {$job_title_prof}");
                                 }
                                 break;
                             }
@@ -2500,19 +2523,18 @@ class ImportController extends Controller
                     };
 
                     // Normalize and handle boolean / enum field
-                    $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'] ?? '')));
+                    $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'])));
 
                     $is_crm_interview_attended = match ($crmInterviewInput) {
-                        'yes' => 1,
-                        'no' => 0,
-                        '0' => 0,
+                        'yes'     => 1,
+                        'no', '0' => 0,
                         'pending' => 2,
-                        default => null, // null for truly unexpected values
+                        default   => null,
                     };
 
                     // Log only unexpected inputs
                     if ($crmInterviewInput != '' && !in_array($crmInterviewInput, ['yes', 'no', '0', 'pending', 'false'])) {
-                        Log::channel('daily')->warning(
+                        Log::channel('import')->warning(
                             "Row {$rowIndex}: Unexpected is_crm_interview_attended value: '{$crmInterviewInput}', defaulting to null"
                         );
                     }
@@ -2521,7 +2543,7 @@ class ImportController extends Controller
                     $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
 
                     if ($input != '' && $input != 'null' && $input != null) {
-                        $have_nursing_home_experience = in_array($input, ['0', 'inactive', 'disabled', 'no', 'false'], true) ? 0 : 1;
+                        $have_nursing_home_experience = in_array($input, ['0', 'inactive', 'disabled', 'disable', 'no', 'false'], true) ? 0 : 1;
                     }
 
                     // Handle job source
@@ -2542,7 +2564,7 @@ class ImportController extends Controller
                         'applicant_uid' => $id ? md5($id) : null,
                         'user_id' => is_numeric($row['applicant_user_id'] ?? null) ? (int)$row['applicant_user_id'] : null,
                         'applicant_name' => $finalName,
-                        'applicant_email' => $row['applicant_email'] ?? ($applicantEmail ?? '-'),
+                        'applicant_email' => $row['applicant_email'] ?? ($applicantEmail ?? null),
                         'applicant_notes' => $row['applicant_notes'] ?? null,
                         'lat' => $lat,
                         'lng' => $lng,
@@ -2557,35 +2579,39 @@ class ImportController extends Controller
                         'job_type' => $job_type,
                         'applicant_phone' => $phone,
                         'applicant_landline' => $applicantLandline,
-                        'is_blocked' => $normalizeBoolean($row['is_blocked'] ?? ''),
-                        'is_no_job' => $normalizeBoolean($row['is_no_job'] ?? ''),
-                        'is_temp_not_interested' => $normalizeBoolean($row['temp_not_interested'] ?? ''),
-                        'is_no_response' => $normalizeBoolean($row['no_response'] ?? ''),
-                        'is_circuit_busy' => $normalizeBoolean($row['is_circuit_busy'] ?? ''),
-                        'is_callback_enable' => $normalizeBoolean($row['is_callback_enable'] ?? ''),
-                        'is_in_nurse_home' => $normalizeBoolean($row['is_in_nurse_home'] ?? ''),
-                        'is_cv_in_quality' => $normalizeBoolean($row['is_cv_in_quality'] ?? ''),
-                        'is_cv_in_quality_clear' => $normalizeBoolean($row['is_cv_in_quality_clear'] ?? ''),
-                        'is_cv_sent' => $normalizeBoolean($row['is_cv_sent'] ?? ''),
-                        'is_cv_in_quality_reject' => $normalizeBoolean($row['is_cv_reject'] ?? ''),
-                        'is_interview_confirm' => $normalizeBoolean($row['is_interview_confirm'] ?? ''),
-                        'is_interview_attend' => $normalizeBoolean($row['is_interview_attend'] ?? ''),
-                        'is_in_crm_request' => $normalizeBoolean($row['is_in_crm_request'] ?? ''),
-                        'is_in_crm_reject' => $normalizeBoolean($row['is_in_crm_reject'] ?? ''),
-                        'is_in_crm_request_reject' => $normalizeBoolean($row['is_in_crm_request_reject'] ?? ''),
-                        'is_crm_request_confirm' => $normalizeBoolean($row['is_crm_request_confirm'] ?? ''),
+                        'is_blocked' => $normalizeBoolean($row['is_blocked'] ?? false),
+                        'is_no_job' => $normalizeBoolean($row['is_no_job'] ?? false),
+                        'is_temp_not_interested' => $normalizeBoolean($row['temp_not_interested'] ?? false),
+                        'is_no_response' => $normalizeBoolean($row['no_response'] ?? false),
+                        'is_circuit_busy' => $normalizeBoolean($row['is_circuit_busy'] ?? false),
+                        'is_callback_enable' => $normalizeBoolean($row['is_callback_enable'] ?? false),
+                        'is_in_nurse_home' => $normalizeBoolean($row['is_in_nurse_home'] ?? false),
+                        'is_cv_in_quality' => $normalizeBoolean($row['is_cv_in_quality'] ?? false),
+                        'is_cv_in_quality_clear' => $normalizeBoolean($row['is_cv_in_quality_clear'] ?? false),
+                        'is_cv_sent' => $normalizeBoolean($row['is_cv_sent'] ?? false),
+                        'is_cv_in_quality_reject' => $normalizeBoolean($row['is_cv_reject'] ?? false),
+                        'is_interview_confirm' => $normalizeBoolean($row['is_interview_confirm'] ?? false),
+                        'is_interview_attend' => $normalizeBoolean($row['is_interview_attend'] ?? false),
+                        'is_in_crm_request' => $normalizeBoolean($row['is_in_crm_request'] ?? false),
+                        'is_in_crm_reject' => $normalizeBoolean($row['is_in_crm_reject'] ?? false),
+                        'is_in_crm_request_reject' => $normalizeBoolean($row['is_in_crm_request_reject'] ?? false),
+                        'is_crm_request_confirm' => $normalizeBoolean($row['is_crm_request_confirm'] ?? false),
                         'is_crm_interview_attended' => $is_crm_interview_attended,
-                        'is_in_crm_start_date' => $normalizeBoolean($row['is_in_crm_start_date'] ?? ''),
-                        'is_in_crm_invoice' => $normalizeBoolean($row['is_in_crm_invoice'] ?? ''),
-                        'is_in_crm_invoice_sent' => $normalizeBoolean($row['is_in_crm_invoice_sent'] ?? ''),
-                        'is_in_crm_start_date_hold' => $normalizeBoolean($row['is_in_crm_start_date_hold'] ?? ''),
-                        'is_in_crm_paid' => $normalizeBoolean($row['is_in_crm_paid'] ?? ''),
-                        'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? ''),
-                        'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? ''),
+                        'is_in_crm_start_date' => $normalizeBoolean($row['is_in_crm_start_date'] ?? false),
+                        'is_in_crm_invoice' => $normalizeBoolean($row['is_in_crm_invoice'] ?? false),
+                        'is_in_crm_invoice_sent' => $normalizeBoolean($row['is_in_crm_invoice_sent'] ?? false),
+                        'is_in_crm_start_date_hold' => $normalizeBoolean($row['is_in_crm_start_date_hold'] ?? false),
+                        'is_in_crm_paid' => $normalizeBoolean($row['is_in_crm_paid'] ?? false),
+                        'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? false),
+                        'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? false),
                         'have_nursing_home_experience' => $have_nursing_home_experience,
-                        'paid_status' => trim($row['paid_status']) ?? 'pending',
+                        'paid_status' => trim($row['paid_status']),
                         'paid_timestamp' => $paid_timestamp,
-                        'status' => strtolower($row['status'] ?? '') == 'active' ? 1 : 0,
+                        'status' => match (strtolower(trim($row['status'] ?? false))) {
+                            'active', '1', 'yes', 'enabled' => 1,
+                            'inactive', 'no', '0', 'disabled' => 0,
+                            default => 1, // MOST CSVs probably mean enabled unless stated otherwise
+                        },
                         'created_at' => $createdAt,
                         'updated_at' => $updatedAt,
                     ];
@@ -2593,11 +2619,11 @@ class ImportController extends Controller
                     $processedData[] = $processedRow;
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert/Update in chunks
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
@@ -2608,17 +2634,17 @@ class ImportController extends Controller
                             try {
                                 $id = $row['id'];
                                 unset($row['id']);
-                                $filtered = array_filter($row, fn($value) => !is_null($value));
+                                $filtered = $row; // trust your parsed values
                                 if ($id) {
                                     Applicant::updateOrCreate(
                                         ['id' => $id],
                                         $filtered
                                     );
-                                    Log::channel('daily')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
                                 } else {
                                     $newId = Applicant::create($filtered)->id;
                                     Applicant::where('id', $newId)->update(['applicant_uid' => md5($newId)]);
-                                    Log::channel('daily')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})");
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})");
                                 }
                                 $successfulRows++;
                             } catch (\Throwable $e) {
@@ -2627,31 +2653,31 @@ class ImportController extends Controller
                                     'error' => $e->getMessage(),
                                     'email' => $row['applicant_email'] ?? 'unknown',
                                 ];
-                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['applicant_email']} - {$e->getMessage()}");
+                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['applicant_email']} - {$e->getMessage()}");
                             }
                         }
                     });
-                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
             // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Applicant Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Applicant Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
                 'message' => 'CSV import completed successfully!',
@@ -2666,9 +2692,9 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -3587,9 +3613,9 @@ class ImportController extends Controller
                 $processedRow = [
                     'note_uid' => $row['id'] ? md5($row['id']) : null,
                     'user_id' => $row['user_id'] ?? null,
-                    'applicant_id' => $row['applicant_id'] ?? null,
+                    'applicant_id' => $row['applicant_id'],
                     'details' => $row['details'] ?? '',
-                    'moved_tab_to' => $row['moved_tab_to'] ?? null,
+                    'moved_tab_to' => $row['moved_tab_to'],
                     'status' => isset($row['status']) && strtolower($row['status']) == 'active' ? 1 : 0,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
@@ -3604,7 +3630,7 @@ class ImportController extends Controller
                         foreach ($chunk as $index => $row) {
                             try {
                                 ApplicantNote::updateOrCreate(
-                                    ['id' => $row['id']],
+                                    // ['id' => $row['id']],
                                     $row
                                 );
                                 $successfulRows++;
@@ -6032,7 +6058,7 @@ class ImportController extends Controller
                         'details' => $row['details'] ?? '',
                         'status' => strtolower($row['status']) == 'active' ? 1 : 0,
                         'schedule_date' => $schedule_date,
-                        'schedule_time' => $schedule_time,
+                        'schedule_time' => $row['schedule_time'],
                         'created_at' => $createdAt,
                         'updated_at' => $updatedAt,
                     ];

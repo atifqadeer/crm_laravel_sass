@@ -788,12 +788,17 @@ class QualityController extends Controller
 
         $model = Sale::query()
             ->select([
-            'sales.*',
-            'job_titles.name as job_title_name',
-            'job_categories.name as job_category_name',
-            'offices.office_name as office_name',
-            'units.unit_name as unit_name',
-            'users.name as user_name',
+                'sales.*',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'offices.office_name as office_name',
+                'units.unit_name as unit_name',
+                'users.name as user_name',
+
+                 // ADD THESE — fields from latest sale note
+                'updated_notes.id as latest_note_id',
+                'updated_notes.sale_note as latest_note',
+                'updated_notes.created_at as latest_note_time',
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
@@ -801,6 +806,16 @@ class QualityController extends Controller
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
+            // Subquery to get latest sale_note id per sale
+            ->leftJoin(DB::raw("
+                (SELECT sale_id, MAX(id) AS latest_id
+                FROM sale_notes
+                GROUP BY sale_id) AS latest_notes
+            "), 'sales.id', '=', 'latest_notes.sale_id')
+
+            // Join the actual sale_notes record
+            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
+
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
 
         if ($request->has('search.value')) {
@@ -1147,11 +1162,17 @@ class QualityController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $fullHtml = $sale->sale_notes; // HTML from Summernote
+                    $notesIndex = '-'; 
+                    if(!empty($sale->sale_notes)){
+                        $notesIndex = $sale->sale_notes;
+                    }else{
+                        $notesIndex = $sale->latest_note;
+                    }
+
                     $id = 'note-' . $sale->id;
 
                     // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $notesIndex);
                     $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
 
                     // 1. Convert block-level and <br> tags into \n
@@ -1191,7 +1212,7 @@ class QualityController extends Controller
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        ' . $fullHtml . '
+                                        ' . $notesIndex . '
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>

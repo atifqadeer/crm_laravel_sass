@@ -148,6 +148,17 @@ class PermissionsTableSeeder extends Seeder
             'sale-closed-change-status',
             'sale-closed-filters',
 
+            // Sale Sub Modules Rejected Sales Permissions
+            'sale-rejected-index',
+            'sale-rejected-view',
+            'sale-rejected-view-note',
+            'sale-rejected-view-notes-history',
+            'sale-rejected-view-manager-details',
+            'sale-rejected-view-history',
+            'sale-rejected-view-documents',
+            'sale-rejected-change-status',
+            'sale-rejected-filters',
+            
             // Sale Sub Modules On Hold Sales Permissions
             'sale-hold-index',
             'sale-hold-view',
@@ -218,6 +229,13 @@ class PermissionsTableSeeder extends Seeder
             'resource-blocked-export-all',
             'resource-blocked-export-emails',
             'resource-blocked-mark-unblock',
+           
+            // Resource Sub Modules Not Interested Resources Permissions
+            'resource-not-interested-index',
+            'resource-not-interested-filters',
+            'resource-not-interested-view',
+            'resource-not-interested-view-notes-history',
+            'resource-not-interested-revert',
 
             // Resource Sub Modules CRM Paid Resources Permissions
             'resource-crm-paid-index',
@@ -302,6 +320,27 @@ class PermissionsTableSeeder extends Seeder
             'crm-paid-toggle-status',
             'crm-paid-revert',
 
+            // CRM listing
+            'crm-sent-cv-list',
+            'crm-open-cv-list',
+            'crm-request-list',
+            'crm-sent-cv-no-job-list',
+            'crm-rejected-cv-list',
+            'crm-request-no-job-list',
+            'crm-rejected-by-request-list',
+            'crm-confirmation-list',
+            'crm-rebook-list',
+            'crm-attended-to-pre-start-date-list',
+            'crm-declined-list',
+            'crm-not-attended-list',
+            'crm-start-date-list',
+            'crm-start-date-hold-list',
+            'crm-invoice-list',
+            'crm-invoice-sent-list',
+            'crm-dispute-list',
+            'crm-paid-list',
+
+            // CRM filters
             'crm-filter-sent-cv',
             'crm-filter-open-cv',
             'crm-filter-sent-cv-no-job',

@@ -1102,7 +1102,7 @@
                 const dataWithToken = formData + '&_token=' + token;
 
                 $.ajax({
-                    url: '{{ route('moduleNotes.store') }}', // Replace with your endpoint
+                    url: "{{ route('moduleNotes.store') }}", // Replace with your endpoint
                     type: 'POST',
                     data: dataWithToken, // Send the serialized data with the CSRF token
                     success: function(response) {

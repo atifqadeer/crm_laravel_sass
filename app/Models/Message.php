@@ -9,7 +9,7 @@ class Message extends Model
 {
     protected $table = 'messages';
     protected $fillable=[
-        'id',
+        // 'id',
         'msg_id',
         'module_id',
         'module_type',

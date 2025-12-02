@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Horsefly\LoginDetail;
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Console\Kernel;
+use App\Helpers\PermissionHelper;
 
 class LoginController extends Controller
 {
@@ -22,6 +23,11 @@ class LoginController extends Controller
     public function showLoginForm()
     {
         return view('auth.login');
+    }
+
+    protected function authenticated($request, $user)
+    {
+        return redirect()->to(PermissionHelper::firstAllowedRoute($user));
     }
 
     /**
@@ -95,8 +101,8 @@ class LoginController extends Controller
                 // Regenerate session to prevent session fixation
                 $request->session()->regenerate();
 
-                // Redirect to the dashboard if active
-                return redirect('/dashboard');
+                // Redirect to first allowed route based on permissions
+                return redirect()->to(PermissionHelper::firstAllowedRoute($user));
             } else {
                 // If the user is inactive, log them out and show an error
                 Auth::logout();

@@ -3,6 +3,9 @@
 @section('content')
     <!-- start page title -->
     <style>
+        .main-nav {
+            margin-top: 15px;
+        }
         .card {
             margin-bottom: 1.5625rem;
             box-shadow: 0 0.5rem 3.25rem rgba(0, 0, 0, 0.05);
@@ -150,6 +153,7 @@
             </div>
         </div>
     @endcanany
+    @canany(['dashboard-top-stats'])
         <div class="row">
             <div class="col-xl-7 col-lg-12">
                 <div class="card">
@@ -305,6 +309,7 @@
                 </div>
             </div>
         </div>
+    @endcanany
     @canany(['dashboard-sales-analytics-chart','dashboard-sales-weekly-analytics'])
         <div class="row">
             @canany(['dashboard-sales-analytics-chart'])

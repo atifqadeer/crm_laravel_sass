@@ -8,7 +8,7 @@ class SentEmail extends Model
 {
     protected $table = 'sent_emails';
     protected $fillable = [
-        'id',
+        // 'id',
         'user_id',
         'applicant_id',
         'sale_id',

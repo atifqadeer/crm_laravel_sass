@@ -12,7 +12,7 @@ class IpAddress extends Model
     
     protected $table = 'ip_addresses';
     protected $fillable = [
-        'id',
+        // 'id',
         'user_id', 
         'ip_address', 
         'mac_address', 

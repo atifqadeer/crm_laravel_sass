@@ -108,11 +108,12 @@ class UserController extends Controller
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
-            case 'active':
-                $model->where('users.is_active', 1);
-                break;
             case 'inactive':
                 $model->where('users.is_active', 0);
+                break;
+            default:
+            case 'active':
+                $model->where('users.is_active', 1);
                 break;
         }
 
@@ -222,7 +223,7 @@ class UserController extends Controller
     {
         $id = $request->id;
         $model = Audit::query()
-            ->where('user_id', $id);
+            ->where('user_id', $id)->latest('created_at');
 
        if ($request->ajax()) {
             return DataTables::eloquent($model)

@@ -8,7 +8,7 @@ class CrmNote extends Model
 {
     protected $table = 'crm_notes';
     protected $fillable = [
-        'id',
+        //'id',
         'crm_notes_uid',
         'user_id',
         'applicant_id',

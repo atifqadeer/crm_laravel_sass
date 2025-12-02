@@ -8,7 +8,7 @@ class CVNote extends Model
 {
     protected $table = 'cv_notes';
     protected $fillable = [
-        'id',
+        // 'id',
         'cv_uid',
         'user_id',
         'sale_id', 

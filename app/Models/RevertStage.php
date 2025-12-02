@@ -9,7 +9,7 @@ class RevertStage extends Model
     protected $table = 'revert_stages';
 
     protected $fillable = [
-        'id',
+        // 'id',
         'applicant_id',
         'sale_id',
         'user_id',

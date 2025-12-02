@@ -8,7 +8,7 @@ class ModuleNote extends Model
 {
     protected $table = 'module_notes';
     protected $fillable = [
-        'id',
+        // 'id',
         'module_note_uid',
         'user_id',
         'module_noteable_id',

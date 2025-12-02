@@ -604,6 +604,7 @@ class ApplicantController extends Controller
                     } else {
                         $status = '<span class="badge bg-secondary">Inactive</span>';
                     }
+
                     $html = '';
                     $html .= '<div class="btn-group dropstart">
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -1239,9 +1240,11 @@ class ApplicantController extends Controller
             ->select([
                 "applicants.id as app_id",
                 "applicants.applicant_name",
+
                 "crm_notes.id as crm_notes_id",
                 "crm_notes.details as note_details",
                 "crm_notes.created_at as notes_created_at",
+
                 "sales.id as sale_id",
                 "sales.sale_postcode",
                 "sales.is_on_hold",
@@ -1254,10 +1257,14 @@ class ApplicantController extends Controller
                 "sales.timing",
                 "sales.created_at as sale_posted_date",
                 "sales.benefits",
+
                 "history.sub_stage",
                 "history.created_at",
+
                 "offices.office_name",
+
                 "units.unit_name",
+
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
             ])
@@ -1572,146 +1579,7 @@ class ApplicantController extends Controller
         }
     }
 
-    // public function importApplicantsFromCSV(Request $request)
-    // {
-    //     $request->validate([
-    //         'csv_file' => 'required|file|mimes:csv,txt|max:2048',
-    //     ]);
-
-    //     $file = $request->file('csv_file');
-    //     $path = $file->getRealPath();
-    //     $handle = fopen($path, 'r');
-
-    //     if (!$handle) {
-    //         return back()->with('error', 'Unable to open file.');
-    //     }
-
-    //     $header = fgetcsv($handle); // Get header row
-    //     $inserted = 0;
-    //     $skipped = 0;
-
-    //     while (($row = fgetcsv($handle)) !== false) {
-    //         $data = array_combine($header, $row);
-
-    //         // Skip if mandatory fields missing
-    //         if (empty($data['applicant_email']) || empty($data['applicant_name'])) {
-    //             $skipped++;
-    //             continue;
-    //         }
-
-    //         // Pattern to detect email
-    //         $emailPattern = '/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i';
-
-    //         // Check in applicant_name
-    //         if (preg_match($emailPattern, $data['applicant_name'], $matches)) {
-    //             $data['applicant_email_secondary'] = $matches[0];
-    //             $data['applicant_name'] = preg_replace($emailPattern, '', $data['applicant_name']);
-    //         }
-
-    //         // Check in applicant_postcode
-    //         if (preg_match($emailPattern, $data['applicant_postcode'], $matches)) {
-    //             $data['applicant_email_secondary'] = $matches[0];
-    //             $data['applicant_postcode'] = preg_replace($emailPattern, '', $data['applicant_postcode']);
-    //         }
-
-    //         if (!empty($data['job_title_id'])) {
-    //             if ($data['job_title_id'] == 'nonnurse specialist') {
-    //                 $jobType = 'specialist';
-    //             } else {
-    //                 $jobType = 'regular';
-    //             }
-
-    //             $data['job_type'] = $jobType;
-    //         }
-
-    //         if (!empty($data['job_category'])) {
-    //             $jobCategorySlug = str_replace('-', ' ', $data['job_category']);
-
-    //             // Lookup job category ID by slug (assuming you store slugs in DB)
-    //             $category = JobCategory::where('name', $jobCategorySlug)->first();
-
-    //             if ($category) {
-    //                 $data['job_category_id'] = $category->id;
-    //             }
-    //         }
-
-    //         if (!empty($data['applicant_source'])) {
-    //             // Lookup job category ID by slug (assuming you store slugs in DB)
-    //             $source = JobSource::where('name', $data['applicant_source'])->first();
-
-    //             if ($source) {
-    //                 $data['job_source_id'] = $source->id;
-    //             }
-    //         }
-
-    //         if (!empty($data['job_title_prof'])) {
-    //             $specialistJobTitles = [
-    //                 ['id' => 1, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Navigator'],
-    //                 ['id' => 2, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Legal Executive'],
-    //                 ['id' => 3, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Lawyer'],
-    //                 ['id' => 4, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Conveyancer'],
-    //                 ['id' => 5, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Solicitor'],
-    //                 ['id' => 6, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Practice Manager'],
-    //                 ['id' => 7, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Paralegals'],
-    //                 ['id' => 8, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dentist'],
-    //                 ['id' => 9, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Associate Dentist'],
-    //                 ['id' => 10, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Orthodontics'],
-    //                 ['id' => 11, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Dental Receptionist'],
-    //                 ['id' => 12, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Fee Earner'],
-    //                 ['id' => 13, 'specialist_title' => 'nonnurse specialist', 'specialist_prof' => 'Secretary'],
-    //             ];
-
-    //             foreach ($specialistJobTitles as $job) {
-    //                 JobTitle::create($job);
-    //             }
-    //             // Lookup job category ID by slug (assuming you store slugs in DB)
-    //             $title = JobTitle::where('name', $data['job_title_prof'])->first();
-
-    //             if ($title) {
-    //                 $data['job_title_prof'] = $title->id;
-    //             }
-    //         }
-
-    //         // Transformations
-    //         $data['status'] = strtolower($data['status']) === 'active' ? 1 : 0;
-    //         $data['is_blocked'] = (int) $data['is_blocked'] ?? 0;
-    //         $data['applicant_postcode'] = preg_replace('/[^A-Za-z0-9 ]/', '', $data['applicant_postcode']);
-    //         $data['applicant_email'] = preg_replace('/\s+/', '', $data['applicant_email']);
-
-    //         try {
-    //             Applicant::updateOrCreate(
-    //                 ['applicant_uid' => $data['applicant_u_id']],
-    //                 [
-    //                     'user_id '     => $data['applicant_user_id'],
-    //                     'applicant_name'     => $data['applicant_name'],
-    //                     'applicant_email' => $data['applicant_email'],
-    //                     'applicant_email_secondary' => $data['applicant_email_secondary'],
-    //                     'applicant_postcode' => $data['applicant_postcode'],
-    //                     'applicant_phone'    => $data['applicant_phone'],
-    //                     'applicant_landline'    => $data['applicant_homePhone'],
-    //                     'job_category_id'    => $data['job_category_id'],
-    //                     'job_title_id'    => $data['job_title_id'],
-    //                     'job_source_id'    => $data['job_source_id'],
-    //                     'job_type'           => $data['job_type'],
-    //                     'lat'                => $data['lat'] ?? null,
-    //                     'lng'                => $data['lng'] ?? null,
-    //                     'status'             => $data['status'],
-    //                     'is_blocked'         => $data['is_blocked'] ?? 0,
-    //                     'created_at'         => now(),
-    //                     'updated_at'         => now(),
-    //                 ]
-    //             );
-    //             $inserted++;
-    //         } catch (\Exception $e) {
-    //             Log::error('Import failed: ' . $e->getMessage());
-    //             $skipped++;
-    //         }
-    //     }
-
-    //     fclose($handle);
-
-    //     return back()->with('success', "$inserted applicants imported. $skipped skipped.");
-    // }
+    
     // Helper methods
     private function handleHangupCall($request, $user, $applicant, $sale, $notes)
     {
@@ -1893,50 +1761,55 @@ class ApplicantController extends Controller
         $lat = $applicant->lat;
         $lon = $applicant->lng;
 
-       $model = Sale::query()
-                    ->select([
-                        'sales.*',
-                        'job_titles.name as job_title_name',
-                        'job_categories.name as job_category_name',
-                        'offices.office_name as office_name',
-                        'units.unit_name as unit_name',
-                        'users.name as user_name',
+        $model = Sale::query()
+            ->select([
+                'sales.*',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'offices.office_name as office_name',
+                'units.unit_name as unit_name',
+                'users.name as user_name',
 
-                        DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
-                                COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) AS distance"),
+                DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
+                        COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) AS distance"),
 
-                        DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) AS no_of_sent_cv"),
+                DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) AS no_of_sent_cv"),
 
-                        // ADD THESE — fields from latest sale note
-                        'updated_notes.id as latest_note_id',
-                        'updated_notes.sale_note as latest_note',
-                        'updated_notes.created_at as latest_note_time',
-                    ])
-                    ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
-                    ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
-                    ->leftJoin('users', 'sales.user_id', '=', 'users.id')
-                    ->whereNotExists(function ($query) use ($applicant_id) {
-                        $query->select(DB::raw(1))
-                            ->from('applicants_pivot_sales')
-                            ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
-                            ->where('applicants_pivot_sales.applicant_id', $applicant_id);
-                    })
+                // ADD THESE — fields from latest sale note
+                'updated_notes.id as latest_note_id',
+                'updated_notes.sale_note as latest_note',
+                'updated_notes.created_at as latest_note_time',
 
-                    // Subquery to get latest sale_note id per sale
-                    ->leftJoin(DB::raw("
-                        (SELECT sale_id, MAX(id) AS latest_id
-                        FROM sale_notes
-                        GROUP BY sale_id) AS latest_notes
-                    "), 'sales.id', '=', 'latest_notes.sale_id')
+                'cv_notes.status as cv_notes_status'
+            ])
+            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+            ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->whereNotExists(function ($query) use ($applicant_id) {
+                $query->select(DB::raw(1))
+                    ->from('applicants_pivot_sales')
+                    ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
+                    ->where('applicants_pivot_sales.applicant_id', $applicant_id);
+            })
+            ->leftJoin('cv_notes', function($join) use ($applicant_id) {
+                $join->on('cv_notes.sale_id', '=', 'sales.id')
+                    ->where('cv_notes.applicant_id', $applicant_id);
+            })
+            // Subquery to get latest sale_note id per sale
+            ->leftJoin(DB::raw("
+                (SELECT sale_id, MAX(id) AS latest_id
+                FROM sale_notes
+                GROUP BY sale_id) AS latest_notes
+            "), 'sales.id', '=', 'latest_notes.sale_id')
 
-                    // Join the actual sale_notes record
-                    ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
+            // Join the actual sale_notes record
+            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
 
-                    ->where('sales.status', 1)
-                    ->having("distance", "<", $radius)
-                    ->orderBy("distance");
+            ->where('sales.status', 1)
+            ->having("distance", "<", $radius)
+            ->orderBy("distance");
 
         /** 🔹 Job Title Filtering */
         $jobTitle = JobTitle::find($applicant->job_title_id);
@@ -1984,58 +1857,17 @@ class ApplicantController extends Controller
         }
 
         // Filter by status if it's not empty
-        if (!empty($statusFilter)) {
-            switch (strtolower($statusFilter)) {
-                case 'sent':
-                    $model->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('cv_notes as cn')
-                            ->whereColumn('cn.sale_id', 'sales.id')
-                            ->where('cn.id', function ($sub) {
-                                $sub->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
-                            })
-                            ->where('cn.status', 1);
-                    });
-                    break;
+        $statusMap = [
+            'sent' => 1,
+            'reject job' => 0,
+            'paid' => 2,
+            'open' => 3,
+        ];
 
-                case 'reject job':
-                    $model->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('cv_notes as cn')
-                            ->whereColumn('cn.sale_id', 'sales.id')
-                            ->where('cn.id', function ($sub) {
-                                $sub->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
-                            })
-                            ->where('cn.status', 0);
-                    });
-                    break;
+        $statusValue = $statusMap[strtolower($statusFilter)] ?? null;
 
-                case 'paid':
-                    $model->whereExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('cv_notes as cn')
-                            ->whereColumn('cn.sale_id', 'sales.id')
-                            ->where('cn.id', function ($sub) {
-                                $sub->select(DB::raw('MAX(id)'))
-                                    ->from('cv_notes')
-                                    ->whereColumn('cv_notes.sale_id', 'cn.sale_id');
-                            })
-                            ->where('cn.status', 2);
-                    });
-                    break;
-
-                case 'open': // sales with no cv_notes at all
-                    $model->whereNotExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('cv_notes')
-                            ->whereColumn('cv_notes.sale_id', 'sales.id');
-                    });
-                    break;
-            }
+        if ($statusValue !== null) {
+            $model->where('cv_notes.status', $statusValue);
         }
 
         /** 🔹 Sorting */
@@ -2337,7 +2169,14 @@ class ApplicantController extends Controller
                 DB::raw("((ACOS(SIN($lat * PI() / 180) * SIN(sales.lat * PI() / 180) + 
                         COS($lat * PI() / 180) * COS(sales.lat * PI() / 180) * COS(($lon - sales.lng) * PI() / 180)) * 180 / PI()) * 60 * 1.1515) 
                         AS distance"),
-                DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv")
+                DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"),
+
+                // ADD THESE — fields from latest sale note
+                'updated_notes.id as latest_note_id',
+                'updated_notes.sale_note as latest_note',
+                'updated_notes.created_at as latest_note_time',
+
+                'cv_notes.status as cv_notes_status'
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
@@ -2353,6 +2192,19 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
+            ->leftJoin('cv_notes', function($join) use ($applicant_id) {
+                $join->on('cv_notes.sale_id', '=', 'sales.id')
+                    ->where('cv_notes.applicant_id', $applicant_id);
+            })
+            // Subquery to get latest sale_note id per sale
+            ->leftJoin(DB::raw("
+                (SELECT sale_id, MAX(id) AS latest_id
+                FROM sale_notes
+                GROUP BY sale_id) AS latest_notes
+            "), 'sales.id', '=', 'latest_notes.sale_id')
+
+            // Join the actual sale_notes record
+            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user']);
 
         $jobTitle = JobTitle::find($applicant->job_title_id);
@@ -2692,8 +2544,16 @@ class ApplicantController extends Controller
                         </div>';
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
+                    $notesData = '';
+                    if(!empty($sale->sale_notes)){
+                        $notesData = $sale->sale_notes;
+                    }else{
+                        $notesData = $sale->latest_note;
+                    }
+
+                    $notes = nl2br(htmlspecialchars($notesData, ENT_QUOTES, 'UTF-8'));
                     $notes = $notes ? $notes : 'N/A';
+
                     $shortNotes = Str::limit(trim($notes), 80);
                     $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
                     $office = Office::find($sale->office_id);
@@ -2722,24 +2582,29 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('paid_status', function ($sale) use ($applicant) {
                     $status_value = 'open';
-                    $color_class = 'bg-success';
+                    $color_class = 'bg-dark';
                     foreach ($applicant->cv_notes as $key => $value) {
                         if ($value['status'] == 1) { //active
                             $status_value = 'sent';
+                            $color_class = 'bg-success';
                             break;
-                        } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale->id)) {
+                        } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale->id)) { //disable or rejected
                             $status_value = 'reject_job';
                             $color_class = 'bg-danger';
                             break;
-                        } elseif ($value['status'] == 0) { //disable
-                            $status_value = 'reject';
-                            $color_class = 'bg-danger';
                         } elseif (($value['status'] == 2) && //2 for paid
                             ($value['sale_id'] == $sale->id) &&
-                            ($applicant->paid_status == 'open')
+                            ($applicant->paid_status == 'paid')
                         ) {
                             $status_value = 'paid';
                             $color_class = 'bg-primary';
+                            break;
+                        } elseif (($value['status'] == 3) && //3 for open
+                            ($value['sale_id'] == $sale->id) &&
+                            ($applicant->paid_status == 'open')
+                        ) {
+                            $status_value = 'open';
+                            $color_class = 'bg-dark';
                             break;
                         }
                     }
@@ -2756,7 +2621,7 @@ class ApplicantController extends Controller
                         if ($value['status'] == 1) { //active
                             $status_value = 'sent';
                             break;
-                        } elseif ($value['status'] == 0) { //disable
+                        } elseif ($value['status'] == 0) { //disable or rejected
                             $status_value = 'reject_job';
                         } elseif ($value['status'] == 2) { //paid
                             $status_value = 'paid';

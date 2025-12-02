@@ -8,7 +8,7 @@ class QualityNotes extends Model
 {
     protected $table = 'quality_notes';
     protected $fillable = [
-        'id',
+        // 'id',
         'quality_notes_uid',
         'user_id',
         'applicant_id',

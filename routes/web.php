@@ -59,8 +59,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/dashboard/statistics-details', [DashboardController::class, 'getStatisticsDetails']);
     Route::get('/statistics/chart-data', [DashboardController::class, 'getChartData']);
 
-
-
     Route::group(['prefix' => 'applicants'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');
         Route::get('create', [ApplicantController::class, 'create'])->name('applicants.create');

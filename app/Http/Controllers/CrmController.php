@@ -1889,7 +1889,8 @@ class CrmController extends Controller
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('schedule_date', function ($applicant) {
-                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; // Using accessor
+                    // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
+                    return $applicant->schedule_date ? $applicant->schedule_date : '-'; // Using accessor
                 })
                 ->addColumn('paid_status', function ($applicant) {
                     return $applicant->paid_status ?? '-';

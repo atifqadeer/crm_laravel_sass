@@ -8,7 +8,7 @@ class History extends Model
 {
     protected $table = 'history';
     protected $fillable = [
-        'id',
+        // 'id',
         'history_uid',
         'user_id',
         'applicant_id',
