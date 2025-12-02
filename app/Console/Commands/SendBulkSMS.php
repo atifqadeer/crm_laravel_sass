@@ -54,83 +54,168 @@ class SendBulkSMS extends Command
         return 0;
     }
 
-    protected function processMessages($messages, $apiUrl, $port, $username, $password, $isRetry = false)
-    {
-        foreach ($messages as $message) {
+    // protected function processMessages($messages, $apiUrl, $port, $username, $password, $isRetry = false)
+    // {
+    //     foreach ($messages as $message) {
 
-            try {
-                // Encode message properly
-                $encodedMessage = urlencode($message->message);
+    //         try {
+    //             // Encode message properly
+    //             $encodedMessage = urlencode($message->message);
 
-                // Build query
-                $queryString = http_build_query([
-                    'username'    => $username,
-                    'password'    => $password,
-                    'phonenumber' => $message->phone_number,
-                    'message'     => $encodedMessage,
-                    'port'        => $port,
-                    'report'      => 'JSON',
-                    'timeout'     => '0',
-                ]);
+    //             // Build query
+    //             $queryString = http_build_query([
+    //                 'username'    => $username,
+    //                 'password'    => $password,
+    //                 'phonenumber' => $message->phone_number,
+    //                 'message'     => $encodedMessage,
+    //                 'port'        => $port,
+    //                 'report'      => 'JSON',
+    //                 'timeout'     => '0',
+    //             ]);
 
-                $url = "$apiUrl?$queryString";
+    //             $url = "$apiUrl?$queryString";
 
-                Log::info("Sending SMS → {$message->phone_number} | URL: $url");
+    //             Log::info("Sending SMS → {$message->phone_number} | URL: $url");
 
-                // CURL request
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $url);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //             // CURL request
+    //             $ch = curl_init();
+    //             curl_setopt($ch, CURLOPT_URL, $url);
+    //             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-                $response = curl_exec($ch);
-                $curlError = curl_error($ch);
+    //             $response = curl_exec($ch);
+    //             $curlError = curl_error($ch);
 
-                curl_close($ch);
+    //             curl_close($ch);
 
-                // Handle CURL errors
-                if ($response === false) {
-                    throw new \Exception("CURL Failed: $curlError");
-                }
+    //             // Handle CURL errors
+    //             if ($response === false) {
+    //                 throw new \Exception("CURL Failed: $curlError");
+    //             }
 
-                Log::debug("API Response for {$message->phone_number}: $response");
+    //             Log::debug("API Response for {$message->phone_number}: $response");
 
-                // Try decoding JSON
-                $json = json_decode($response, true);
+    //             // Try decoding JSON
+    //             $json = json_decode($response, true);
 
-                if (!is_array($json)) {
-                    throw new \Exception("Invalid JSON Response: $response");
-                }
+    //             if (!is_array($json)) {
+    //                 throw new \Exception("Invalid JSON Response: $response");
+    //             }
 
-                $report = $json['result'] ?? null;
-                $phone  = $json['phonenumber'] ?? null;
-                $time   = $json['time'] ?? null;
+    //             $report = $json['result'] ?? null;
+    //             $phone  = $json['phonenumber'] ?? null;
+    //             $time   = $json['time'] ?? null;
 
-                // Check report status
-                if ($report === "success" || $report === "sending") {
+    //             // Check report status
+    //             if ($report === "success" || $report === "sending") {
 
-                    $message->update(['is_sent' => 1]);
+    //                 $message->update(['is_sent' => 1]);
 
-                    Log::info("SMS Sent Successfully → {$message->phone_number} | Report: $report");
-                } 
-                else {
+    //                 Log::info("SMS Sent Successfully → {$message->phone_number} | Report: $report");
+    //             } 
+    //             else {
 
-                    $message->update(['is_sent' => 2]);
+    //                 $message->update(['is_sent' => 2]);
 
-                    Log::error("SMS Failed → {$message->phone_number} | API Report: $response");
-                }
+    //                 Log::error("SMS Failed → {$message->phone_number} | API Report: $response");
+    //             }
 
-            } catch (\Exception $e) {
+    //         } catch (\Exception $e) {
+
+    //             $message->update(['is_sent' => 2]);
+
+    //             Log::error("Error Sending SMS to {$message->phone_number}: {$e->getMessage()}");
+    //         }
+
+    //         // Add a retry delay (optional)
+    //         if ($isRetry) {
+    //             sleep(30);
+    //         }
+    //     }
+    // }
+    protected function processMessages($messages, $apiUrl, $port, $username, $password)
+{
+    foreach ($messages as $message) {
+
+        try {
+            // Encode message properly
+            $encodedMessage = urlencode($message->message);
+
+            // Build URL
+            $queryString = http_build_query([
+                'username'    => $username,
+                'password'    => $password,
+                'phonenumber' => $message->phone_number,
+                'message'     => $encodedMessage,
+                'port'        => $port,
+                'report'      => 'JSON',
+                'timeout'     => '0',
+            ]);
+
+            $url = "$apiUrl?$queryString";
+
+            Log::info("Sending SMS → {$message->phone_number} | URL: $url");
+
+            // CURL
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+
+            $response = curl_exec($ch);
+            $curlError = curl_error($ch);
+
+            curl_close($ch);
+
+            // ❌ 1. Handle CURL connection failure
+            if ($response === false || !empty($curlError)) {
 
                 $message->update(['is_sent' => 2]);
 
-                Log::error("Error Sending SMS to {$message->phone_number}: {$e->getMessage()}");
+                Log::error("SMS FAILED (CURL ERROR) → {$message->phone_number}: $curlError");
+
+                continue; // process next message
             }
 
-            // Add a retry delay (optional)
-            if ($isRetry) {
-                sleep(30);
+            Log::debug("API Response → {$message->phone_number}: $response");
+
+            // Try decoding JSON
+            $json = json_decode($response, true);
+
+            // ❌ 2. Invalid JSON = fail
+            if (!is_array($json)) {
+
+                $message->update(['is_sent' => 2]);
+
+                Log::error("SMS FAILED (INVALID JSON) → {$message->phone_number}: $response");
+
+                continue;
             }
+
+            $report = $json['result'] ?? null;
+
+            // ❌ 3. API says failure
+            if ($report !== "success" && $report !== "sending") {
+
+                $message->update(['is_sent' => 2]);
+
+                Log::error("SMS FAILED (API ERROR) → {$message->phone_number}: $response");
+
+                continue;
+            }
+
+            // ✅ SUCCESS
+            $message->update(['is_sent' => 1]);
+
+            Log::info("SMS SENT → {$message->phone_number} | Report: $report");
+
+        } catch (\Exception $e) {
+
+            $message->update(['is_sent' => 2]);
+
+            Log::error("SMS FAILED (EXCEPTION) → {$message->phone_number}: {$e->getMessage()}");
         }
     }
+}
+
 
 }

@@ -406,9 +406,9 @@ class CommunicationController extends Controller
     {
         try {
             $emailData = $request->input('app_email');
-            $from_email = $request->input('from_email');
+            $from_email = $request->input('from_email') ?? 'info@kingsburypersonnel.com';
 
-            if ($emailData != null && $from_email != null){
+            if ($emailData != null){
                 $dataEmail = explode(',',$emailData);
 
                 $email_from = $from_email;
@@ -427,12 +427,13 @@ class CommunicationController extends Controller
                         // Optional: throw or log
                         Log::warning('Email saved to DB failed');
                         throw new \Exception('Email is not stored in DB');
+                    }else{
+                        return response()->json(['success' => true, 'message' => 'Email saved successfully']);
                     }
                 }
             }
-            return response()->json(['success' => true, 'message' => 'Email saved successfully']);
         }catch (\Exception $e){
-        return  response()->json(['status'=>false,'message'=>$e->getMessage()],422);
+            return  response()->json(['success'=>false,'message'=>$e->getMessage()],422);
         }
     }
 
