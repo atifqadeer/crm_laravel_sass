@@ -78,11 +78,14 @@ class SendBulkSMS extends Command
                 curl_setopt($link, CURLOPT_URL, $url);
 
                 $response = curl_exec($link);
-                curl_close($link);
 
-                if (!$response) {
-                    throw new \Exception("Empty API response");
+                if ($response == false) {
+                    $error = curl_error($link);
+                    curl_close($link);
+                    throw new \Exception("Empty API response. CURL error: $error");
                 }
+
+                curl_close($link);
 
                 $data = json_decode($response, true);
 
