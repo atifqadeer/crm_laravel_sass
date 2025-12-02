@@ -17,7 +17,7 @@ class SendBulkSMS extends Command
     {
         $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
-        if($smsNotification){
+        if($smsNotification && $smsNotification->value == 1){
             // Fetch settings once
             $settings = Setting::whereIn('key', ['sms_api_url', 'sms_port', 'sms_username', 'sms_password'])
                 ->pluck('value', 'key')
@@ -47,7 +47,8 @@ class SendBulkSMS extends Command
             return 0;
         }else{
             Log::debug('SMS sending command not completed, Because SMS Notifications are disabled. So, Please contact your admin.');
-            Log::info('SMS sending command not completed, Because SMS Notifications are disabled. So, Please contact your admin.');
+            $this->warn('SMS sending command not completed, Because SMS Notifications are disabled. So, Please contact your admin.');
+            return;
         }
     }
 
