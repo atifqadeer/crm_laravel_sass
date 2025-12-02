@@ -1890,7 +1890,7 @@ class CrmController extends Controller
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
-                    return $applicant->schedule_date ? $applicant->schedule_date : '-'; // Using accessor
+                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date)->format('d M Y').' '.$applicant->schedule_time : '-'; // Using accessor
                 })
                 ->addColumn('paid_status', function ($applicant) {
                     return $applicant->paid_status ?? '-';
