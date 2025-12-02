@@ -3628,25 +3628,36 @@ class ImportController extends Controller
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
+
                             try {
                                 ApplicantNote::updateOrCreate(
-                                    // ['id' => $row['id']],
-                                    $row
+                                    ['note_uid' => $row['note_uid']], // unique key
+                                    $row                                // data to insert/update
                                 );
+
                                 $successfulRows++;
+
                                 if (($index + 1) % 100 == 0) {
                                     Log::info("Processed " . ($index + 1) . " rows in chunk");
                                 }
+
                             } catch (\Exception $e) {
+
                                 Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
-                                $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
+
+                                $failedRows[] = [
+                                    'row' => $index + 2,
+                                    'error' => $e->getMessage()
+                                ];
                             }
                         }
                     });
+
                 } catch (\Exception $e) {
                     Log::error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
+
 
             // Clean up temporary file
             if (file_exists($filePath)) {
