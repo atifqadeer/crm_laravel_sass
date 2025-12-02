@@ -76,36 +76,43 @@ class SendBulkSMS extends Command
                 curl_setopt($link, CURLOPT_HEADER, 0);
                 curl_setopt($link, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($link, CURLOPT_URL, $url);
+
                 $response = curl_exec($link);
                 curl_close($link);
-                $report = explode("\"",strchr($response,"result"))[2];
-                $time = explode("\"",strchr($response,"time"))[2];
-                $phone = explode("\"",strchr($response,"phonenumber"))[2];
-                if($response)
-                {
-                    if ($report == "success") {
-                        $message->update([
-                            'is_sent' => 1 /** sent */
-                        ]);
-                        return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
-            
-                    } elseif ($report == "sending") {
-                        $message->update([
-                            'is_sent' => 1 /** sent */
-                        ]);
-                        return ['result'=> 'success','data'=>$response,'phonenumber'=>$phone,'time'=>$time,'report'=>$report];
-                    } else {
-                        $message->update([
-                            'is_sent' => 2 /** failed */
-                        ]);
-                        return ['result'=> 'error','data'=>$response,'report'=>$report];
-                    }
-                }
-                else
-                {
-                    return ['result'=> 'error'];;
 
+                if (!$response) {
+                    throw new \Exception("Empty API response");
                 }
+
+                $data = json_decode($response, true);
+
+                if (!is_array($data)) {
+                    throw new \Exception("Invalid JSON response: $response");
+                }
+
+                $report = $data['result'] ?? null;
+                $time   = $data['time'] ?? null;
+                $phone  = $data['phonenumber'] ?? null;
+
+                if ($report === "success" || $report === "sending") {
+                    $message->update(['is_sent' => 1]);
+
+                    return [
+                        'result'      => 'success',
+                        'data'        => $response,
+                        'phonenumber' => $phone,
+                        'time'        => $time,
+                        'report'      => $report,
+                    ];
+                }
+
+                $message->update(['is_sent' => 2]);
+
+                return [
+                    'result' => 'error',
+                    'data'   => $response,
+                    'report' => $report,
+                ];
             } catch (\Exception $e) {
                 $message->update([
                     'is_sent' => 2 /** failed */
