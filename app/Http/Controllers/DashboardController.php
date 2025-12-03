@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
@@ -179,14 +180,15 @@ class DashboardController extends Controller
                                     )">
                                     <iconify-icon icon="solar:eye-broken"
                                                 class="align-middle fs-18"></iconify-icon>
-                                </a>
-                                <a href="#!" class="btn btn-light btn-sm" onclick="showStatisticsModal(
-                                        \'' . (int)$user->id . '\'
-                                    )">
-                                    <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info align-middle fs-18"></iconify-icon>
-                                </a>
-                            </div>';
-
+                                </a>';
+                    if(Gate::allows('dashboard-users-stats')){
+                        $html .= '<a href="#!" class="btn btn-light btn-sm" onclick="showStatisticsModal(
+                                            \'' . (int)$user->id . '\'
+                                        )">
+                                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info align-middle fs-18"></iconify-icon>
+                                    </a>
+                                </div>';
+                    }
                     return $html;
                 })
                 ->rawColumns(['name', 'is_active', 'action', 'role_name'])
