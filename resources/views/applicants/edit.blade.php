@@ -342,6 +342,14 @@
         const form = document.getElementById('editApplicantForm');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // Remove all spaces from phone fields before submission
+            ['applicant_phone', 'applicant_landline'].forEach(id => {
+                const input = form.querySelector(`[name="${id}"]`);
+                if (input) {
+                    input.value = input.value.replace(/\s+/g, '');
+                }
+            });
             
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -431,28 +439,31 @@
             input.addEventListener('input', function () {
                 let value = this.value;
 
+                // 0️⃣ Remove all whitespace first
+                value = value.replace(/\s+/g, '');
+
                 // 1️⃣ Remove all characters except digits and '+'
                 value = value.replace(/[^0-9+]/g, '');
 
                 // 2️⃣ If number starts with +44, replace it with 0
                 if (value.startsWith('+44')) {
-                    value = '0' + value.slice(3); // remove +44 and add leading 0
+                    value = '0' + value.slice(3); 
                 }
 
-                // 3️⃣ If number doesn’t start with 0, add 0 at the beginning
+                // 3️⃣ If number doesn’t start with 0, add leading 0
                 if (!value.startsWith('0')) {
                     value = '0' + value;
                 }
 
-                // 4️⃣ Keep only digits (no + allowed now)
+                // 4️⃣ Keep only digits (remove + now)
                 value = value.replace(/[^0-9]/g, '');
 
-                // 5️⃣ Limit to 11 digits max
+                // 5️⃣ Limit to max 11 digits
                 if (value.length > 11) {
                     value = value.slice(0, 11);
                 }
 
-                // 6️⃣ Optional — add a space for readability (after 5th digit)
+                // 6️⃣ Optional: Add space after 5 digits
                 if (value.length > 5) {
                     value = value.replace(/(\d{5})(\d+)/, '$1 $2');
                 }
@@ -460,6 +471,7 @@
                 this.value = value;
             });
         });
+
     });
 
     document.addEventListener('DOMContentLoaded', function() {
