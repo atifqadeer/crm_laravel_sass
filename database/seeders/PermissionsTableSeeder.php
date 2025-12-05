@@ -90,6 +90,7 @@ class PermissionsTableSeeder extends Seeder
             'sale-add-note',
             'sale-change-status',
             'sale-mark-on-hold',
+            'sale-mark-as-open-close',
             'sale-view-history',
             'sale-view-documents',
             'sale-view-notes-history',
@@ -105,9 +106,11 @@ class PermissionsTableSeeder extends Seeder
             'sale-edit-job-title',
             'sale-delete',
             'sale-view',
+
             'sale-export',
             'sale-export-all',
             'sale-export-emails',
+
             'sale-import',
 
             // Sale Sub Modules Direct Sales Permissions

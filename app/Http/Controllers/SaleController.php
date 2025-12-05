@@ -28,6 +28,7 @@ use App\Traits\Geocode;
 use Illuminate\Support\Str;
 use League\Csv\Reader;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Gate;
 
 class SaleController extends Controller
 {
@@ -1007,43 +1008,74 @@ class SaleController extends Controller
                     $position = '<span class="badge bg-primary">'. $position_type .'</span>';
 
                     $action = '';
-                    $action = '<div class="btn-group dropstart">
-                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-                                </button>
-                                <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int)$sale->id]) . '">Edit</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                    ' . $sale->id . ',
-                                    \'' . e($posted_date) . '\',
-                                    \'' . e($office_name) . '\',
-                                    \'' . e($unit_name) . '\',
-                                    \'' . e($postcode) . '\',
-                                    \'' . e(strip_tags($jobCategory)) . '\',
-                                    \'' . e(strip_tags($jobTitle)) . '\',
-                                    \'' . e($status_badge) . '\',
-                                    \'' . e($sale->timing) . '\',
-                                    \'' . e(htmlspecialchars($sale->experience, ENT_QUOTES, 'UTF-8')) . '\',
-                                    \'' . e($sale->salary) . '\',
-                                    \'' . e(strip_tags($position)) . '\',
-                                    \'' . e($sale->qualification) . '\',
-                                    \'' . e($sale->benefits) . '\'
-                                )">View</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="addNotesModal(\'' . (int)$sale->id . '\')">Add Note</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
-                    if ($sale->status == 1 && $sale->is_on_hold == 0) {
-                        $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
+                    $action .= '<div class="btn-group dropstart">
+                                    <button type="button" class="border-0 bg-transparent p-0" 
+                                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <iconify-icon icon="solar:menu-dots-square-outline" 
+                                                    class="align-middle fs-24 text-dark"></iconify-icon>
+                                    </button>
+                                    <ul class="dropdown-menu">';
+
+                    if (Gate::allows('sale-edit')) {
+                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int)$sale->id]) . '">Edit</a></li>';
                     }
-                    $url = route('sales.history', [ 'id' => (int)$sale->id ]);
-                    $action .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>
-                                    <li><a class="dropdown-item" target="_blank" href="'. $url .'">View History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
-                                </ul>
-                            </div>';
+
+                    if (Gate::allows('sale-view')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                            ' . $sale->id . ',
+                            \'' . e($posted_date) . '\',
+                            \'' . e($office_name) . '\',
+                            \'' . e($unit_name) . '\',
+                            \'' . e($postcode) . '\',
+                            \'' . e(strip_tags($jobCategory)) . '\',
+                            \'' . e(strip_tags($jobTitle)) . '\',
+                            \'' . e($status_badge) . '\',
+                            \'' . e($sale->timing) . '\',
+                            \'' . e(htmlspecialchars($sale->experience, ENT_QUOTES, 'UTF-8')) . '\',
+                            \'' . e($sale->salary) . '\',
+                            \'' . e(strip_tags($position)) . '\',
+                            \'' . e($sale->qualification) . '\',
+                            \'' . e($sale->benefits) . '\'
+                        )">View</a></li>';
+                    }
+
+                    if (Gate::allows('sale-add-note')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$sale->id . ')">Add Note</a></li>';
+                    }
+
+                    if (Gate::allows('sale-mark-as-open-close')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
+                    }
+
+                    if (Gate::allows('sale-mark-on-hold')) {
+                        if ($sale->status == 1 && $sale->is_on_hold == 0) {
+                            $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
+                        }
+                    }
+
+                    $action .= '<li><hr class="dropdown-divider"></li>';
+
+                    if (Gate::allows('sale-view-documents')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>';
+                    }
+                    
+                    $url = route('sales.history', ['id' => (int)$sale->id]);
+                    if (Gate::allows('sale-view-history')) {
+                        $action .= '<li><a class="dropdown-item" target="_blank" href="'. $url .'">View History</a></li>';
+                    }
+
+                    if (Gate::allows('sale-view-notes-history')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>';
+                    }
+
+                    if (Gate::allows('sale-view-manager-details')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>';
+                    }
+
+                    $action .= '</ul></div>';
 
                     return $action;
+
                 })
                 ->rawColumns(['sale_notes', 'experience', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);

@@ -116,7 +116,7 @@
                         <div class="col-lg-4">
                             <div class="mb-3">
                                 <label for="applicant_landline" class="form-label">Landline</label>
-                                <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-phone') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
+                                <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-landline') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
                             </div>
                         </div>
                         <div class="col-lg-6">

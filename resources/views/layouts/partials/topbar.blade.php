@@ -1,4 +1,12 @@
 <header class="">
+     <style>
+          input[readonly] {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+</style>
      <div class="topbar">
      <div class="container-fluid">
           <div class="navbar-header">

@@ -36,7 +36,7 @@ class IPAddressController extends Controller
         // Validation
         $validator = Validator::make($request->all(), [
             'ip_address' => 'required|string|max:255|unique:ip_addresses,ip_address',
-            'user_id' => 'required|integer|unique:ip_addresses,user_id',
+            'user_id' => 'required|integer',
         ]);
 
         if ($validator->fails()) {
