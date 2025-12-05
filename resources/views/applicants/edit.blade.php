@@ -119,13 +119,13 @@
                                 <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-phone') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
                             </div>
                         </div>
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="applicant_experience" class="form-label">Experience <small class="text-info">(Optional)</small></label>
                                 <textarea class="form-control" id="applicant_experience" name="applicant_experience" rows="3" placeholder="Enter Experience">{{ old('applicant_experience', $applicant->applicant_experience) }}</textarea>
                             </div>
                         </div>
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="applicant_notes" class="form-label">Notes</label>
                                 <textarea class="form-control" id="applicant_notes" name="applicant_notes" rows="3" placeholder="Enter Notes" required>{{ old('applicant_notes') }}</textarea>
@@ -153,75 +153,77 @@
                                 <div class="invalid-feedback">Please provide a nursing option</div>
                             </div>
                         </div>
+
+                        
+                        
                     </div>
-                </div>
-            </div>
-            
-            <!--- <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Upload Documents</h4>
-                </div>
-                
-                <div id="applicantCvDropzone" class="dropzone">
-                    <div class="dz-message needsclick">
-                        <i class="h1 ri-upload-cloud-2-line"></i>
-                        <h3>Drop files here or click to upload.</h3>
-                        <span class="text-muted fs-13">
-                            Allowed file types: docx, doc, csv, pdf (Max 5MB)
-                        </span>
-                    </div>
-                </div>
-            
-                <div class="p-3" id="regularFileInput" style="display: none;">
-                    <label class="form-label">Or select file manually:</label>
-                    {{-- <input type="file" class="form-control" name="applicant_cv" id="applicant_cv"> --}}
-                </div>
-            
-                <div class="text-center p-2">
-                    <button type="button" class="btn btn-sm btn-link" id="toggleUploadMethod">
-                        Switch to manual file selection
-                    </button>
-                </div>
-            
-                <ul class="list-unstyled mb-0" id="dropzone-preview">
-                    <li class="mt-2" id="dropzone-preview-list">
-                        <div class="border rounded">
-                            <div class="d-flex p-2">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="avatar-sm bg-light rounded">
-                                        <img data-dz-thumbnail class="img-fluid rounded d-block" src="#" alt="Dropzone-Image" />
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="pt-1">
-                                        <h5 class="fs-14 mb-1" data-dz-name>&nbsp;</h5>
-                                        <p class="fs-13 text-muted mb-0" data-dz-size></p>
-                                        <strong class="error text-danger" data-dz-errormessage></strong>
-                                    </div>
-                                </div>
-                                <div class="flex-shrink-0 ms-3">
-                                    <button data-dz-remove class="btn btn-sm btn-transparent text-danger">
-                                        <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24"></iconify-icon>
-                                    </button>
-                                </div>
+                    
+                    <!--- <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">Upload Documents</h4>
+                        </div>
+                        
+                        <div id="applicantCvDropzone" class="dropzone">
+                            <div class="dz-message needsclick">
+                                <i class="h1 ri-upload-cloud-2-line"></i>
+                                <h3>Drop files here or click to upload.</h3>
+                                <span class="text-muted fs-13">
+                                    Allowed file types: docx, doc, csv, pdf (Max 5MB)
+                                </span>
                             </div>
                         </div>
-                    </li>
-                </ul>
-            </div>-->
-            <div class="form-group">
-                <label for="applicant_cv">Upload CV</label>
-                <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
-                <small class="text-muted">Allowed file types: docx, doc, csv, pdf, txt (Max 5MB)</small>
-            </div> 
-            
-            <div class="mb-3 rounded">
-                <div class="row justify-content-end g-2">
-                    <div class="col-lg-2">
-                        <a href="{{ route('applicants.list') }}" class="btn btn-dark w-100">Cancel</a>
-                    </div>
-                     <div class="col-lg-2">
-                        <button type="submit" class="btn btn-primary w-100">Update</button>
+                    
+                        <div class="p-3" id="regularFileInput" style="display: none;">
+                            <label class="form-label">Or select file manually:</label>
+                            {{-- <input type="file" class="form-control" name="applicant_cv" id="applicant_cv"> --}}
+                        </div>
+                    
+                        <div class="text-center p-2">
+                            <button type="button" class="btn btn-sm btn-link" id="toggleUploadMethod">
+                                Switch to manual file selection
+                            </button>
+                        </div>
+                    
+                        <ul class="list-unstyled mb-0" id="dropzone-preview">
+                            <li class="mt-2" id="dropzone-preview-list">
+                                <div class="border rounded">
+                                    <div class="d-flex p-2">
+                                        <div class="flex-shrink-0 me-3">
+                                            <div class="avatar-sm bg-light rounded">
+                                                <img data-dz-thumbnail class="img-fluid rounded d-block" src="#" alt="Dropzone-Image" />
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="pt-1">
+                                                <h5 class="fs-14 mb-1" data-dz-name>&nbsp;</h5>
+                                                <p class="fs-13 text-muted mb-0" data-dz-size></p>
+                                                <strong class="error text-danger" data-dz-errormessage></strong>
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 ms-3">
+                                            <button data-dz-remove class="btn btn-sm btn-transparent text-danger">
+                                                <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24"></iconify-icon>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>-->
+                    <div class="form-group">
+                        <label for="applicant_cv">Upload CV</label>
+                        <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
+                        <small class="text-muted">Allowed file types: docx, doc, csv, pdf, txt (Max 5MB)</small>
+                    </div> 
+                    <div class="mb-3 rounded">
+                        <div class="row justify-content-end g-2">
+                            <div class="col-lg-2">
+                                <a href="{{ route('applicants.list') }}" class="btn btn-dark w-100">Cancel</a>
+                            </div>
+                            <div class="col-lg-2">
+                                <button type="submit" class="btn btn-primary w-100">Update</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

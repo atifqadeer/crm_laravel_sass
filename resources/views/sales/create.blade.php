@@ -138,6 +138,13 @@
                                         <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
+                                 <div class="col-lg-12">
+                                    <div class="mb-3">
+                                        <label for="sale_notes" class="form-label">Notes</label>
+                                        <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                        <div class="invalid-feedback">Please provide notes</div>
+                                    </div>
+                                </div>
                                 <div class="col-lg-12">
                                     <div class="mb-3">
                                         <div class="form-group">
@@ -147,13 +154,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-lg-12">
-                                    <div class="mb-3">
-                                        <label for="sale_notes" class="form-label">Notes</label>
-                                        <textarea class="form-control" id="sale_notes" name="sale_notes" rows="3" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
-                                        <div class="invalid-feedback">Please provide notes</div>
-                                    </div>
-                                </div>
+                               
                             
                             <!--   <div class="card">
                                 <div class="card-header">
@@ -209,20 +210,21 @@
                             </div> -->
                         
                         </div>
+                        <div class="mb-3 rounded">
+                            <div class="row justify-content-end g-2">
+                            
+                                <div class="col-lg-2">
+                                    <a href="{{ route('sales.list') }}" class="btn btn-dark w-100">Cancel</a>
+                                </div>
+                                <div class="col-lg-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        Save</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="mb-3 rounded">
-                    <div class="row justify-content-end g-2">
-                    
-                        <div class="col-lg-2">
-                            <a href="{{ route('sales.list') }}" class="btn btn-dark w-100">Cancel</a>
-                        </div>
-                        <div class="col-lg-2">
-                            <button type="submit" class="btn btn-primary w-100">
-                                Save</button>
-                        </div>
-                    </div>
-                </div>
+                
             </form>
         </div>
     </div>

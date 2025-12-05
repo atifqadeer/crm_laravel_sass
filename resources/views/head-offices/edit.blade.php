@@ -52,7 +52,7 @@
                             </div>
                         </div>
                         <div class="col-lg-12">
-                            <div class="mb-3 border px-3 py-5 rounded" style="background-color: #f9f9f9;">
+                            <div class="mb-3 border px-3 py-5 rounded" style="background-color: #e2e2e2;">
                                 <label class="form-label">Contact Persons</label>
                                 <div id="contactPersonsContainer">
                                     @forelse($contacts as $row)
@@ -74,7 +74,7 @@
                                             <div class="invalid-feedback">Please provide a landline number</div>
                                         </div>
                                         <div class="col-lg-12">
-                                            <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note">{{ $row->contact_note }}</textarea>
+                                            <textarea class="form-control" rows="3" name="contact_note[]" placeholder="Enter Contact Note">{{ $row->contact_note }}</textarea>
                                             <div class="invalid-feedback">Please provide a contact note</div>
                                         </div>
                                     </div>
@@ -97,7 +97,7 @@
                                                 <div class="invalid-feedback">Please provide a landline number</div>
                                             </div>
                                             <div class="col-lg-12">
-                                            <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
+                                            <textarea class="form-control" rows="3" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
                                             <div class="invalid-feedback">Please provide a contact note</div>
                                         </div>
                                         </div>
@@ -161,16 +161,16 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="mb-3 rounded">
-                <div class="row justify-content-end g-2">
-                    <div class="col-lg-2">
-                        <a href="{{ route('head-offices.list') }}" class="btn btn-dark w-100">Cancel</a>
-                    </div>
-                    <div class="col-lg-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            Update</button>
+                    <div class="mb-3 rounded">
+                        <div class="row justify-content-end g-2">
+                            <div class="col-lg-2">
+                                <a href="{{ route('head-offices.list') }}" class="btn btn-dark w-100">Cancel</a>
+                            </div>
+                            <div class="col-lg-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Update</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

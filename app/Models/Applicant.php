@@ -12,7 +12,7 @@ class Applicant extends Model
 
     protected $table = 'applicants';
     protected $fillable = [
-        // 'id',
+        'id',
         'applicant_uid',
         'user_id',
         'job_source_id',
@@ -66,8 +66,8 @@ class Applicant extends Model
         'status',
         'paid_status',
         'paid_timestamp',
-        // 'created_at',
-        // 'updated_at'
+        'created_at',
+        'updated_at'
     ];
     protected $casts = [
         'is_blocked' => 'boolean',

@@ -4,15 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Horsefly\Sale;
-use Horsefly\Office;
 use Horsefly\Unit;
 use Horsefly\Applicant;
-use Horsefly\User;
 use Horsefly\Message;
 use Horsefly\ApplicantNote;
 use Horsefly\ModuleNote;
 use Horsefly\CrmRejectedCv;
-use Horsefly\EmailTemplate;
 use Horsefly\IPAddress;
 use Horsefly\Interview;
 use Horsefly\Region;
@@ -24,24 +21,11 @@ use Horsefly\History;
 use Horsefly\JobCategory;
 use Horsefly\ApplicantPivotSale;
 use Horsefly\NotesForRangeApplicant;
-use App\Exports\ApplicantsExport;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Horsefly\Mail\GenericEmail;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Gate;
-use App\Observers\ActionObserver;
-use App\Traits\SendEmails;
-use App\Traits\SendSMS;
-use App\Traits\Geocode;
 use Carbon\Carbon;
 use Exception;
 use Horsefly\Audit;
@@ -587,7 +571,6 @@ class ImportController extends Controller
                             }
                         }
 
-
                         Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
@@ -675,8 +658,6 @@ class ImportController extends Controller
                     $lat = (float)($lat ?? 0.0000);
                     $lng = (float)($lng ?? 0.0000);
 
-
-
                     // Keep whitespace intact
                     if (strlen($cleanPostcode) == 8) {
                         $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
@@ -734,35 +715,69 @@ class ImportController extends Controller
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
+
                         foreach ($chunk as $index => $row) {
                             $rowIndex = ($chunkIndex * 100) + $index + 2;
-                            try {
-                                $unit = Unit::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    array_diff_key($row, ['contact' => ''])
-                                );
-                                Log::channel('daily')->info("Unit created/updated for row " . ($index + 1) . ": ID={$unit->id}");
 
-                                foreach ($row['contacts'] as $contactData) {
-                                    $unit->contact()->create($contactData);
+                            try {
+                                // Extract contacts from row safely
+                                $contacts = $row['contact'] ?? [];
+                                unset($row['contact']);
+
+                                // Create or update Unit
+                                $unit = Unit::updateOrCreate(
+                                    ['id' => $row['id']],   // Match on ID
+                                    $row                    // Update rest of the fields
+                                );
+
+                                // Insert contacts
+                                if (!empty($contacts)) {
+                                    $contactRows = [];
+
+                                    foreach ($contacts as $contact) {
+                                        $contactRows[] = [
+                                            'name'              => $contact['name'] ?? null,
+                                            'phone'             => $contact['phone'] ?? null,
+                                            'email'             => $contact['email'] ?? null,
+                                            'contactable_id'    => $unit->id,
+                                            'contactable_type'  => 'Horsefly\Unit',
+                                            'created_at'        => $contact['created_at'] ?? now(),
+                                            'updated_at'        => $contact['updated_at'] ?? now(),
+                                        ];
+                                    }
+
+                                    DB::table('contacts')->insert($contactRows);
                                 }
-                                Log::channel('daily')->info("Contact created for unit ID {$unit->id}");
+
                                 $successfulRows++;
+
                             } catch (\Throwable $e) {
                                 $failedRows[] = [
                                     'row' => $rowIndex,
                                     'error' => $e->getMessage(),
                                 ];
-                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+
+                                Log::channel('daily')->error(
+                                    "Row {$rowIndex}: Failed for Unit ID {$row['id']} - {$e->getMessage()}"
+                                );
                             }
                         }
                     });
-                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+
+                    Log::channel('daily')->info("Processed chunk #{$chunkIndex}");
+
                 } catch (\Throwable $e) {
-                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    $failedRows[] = [
+                        'chunk' => $chunkIndex,
+                        'error' => $e->getMessage(),
+                    ];
+
+                    Log::channel('daily')->error(
+                        "Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}"
+                    );
                 }
             }
+
 
             // Cleanup
             if (file_exists($filePath)) {
@@ -2436,21 +2451,6 @@ class ImportController extends Controller
                         }
                     }
 
-                    $rawName = $row['applicant_name'] ?? '';
-                    $cleanedName = is_string($rawName) ? preg_replace('/\s+/', ' ', trim($rawName)) : '';
-
-                    // --- Extract email ---
-                    preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $cleanedName, $emailMatches);
-                    $extractedEmail = $emailMatches[0] ?? null;
-                    if ($extractedEmail) {
-                        $cleanedName = str_replace($extractedEmail, '', $cleanedName);
-                    }
-
-                    // --- Extract number ---
-                    preg_match('/[+()0-9\s-]{10,}/', $cleanedName, $matches);
-                    $extractedNumber = $matches[0] ?? null;
-                    $cleanedNumber = $extractedNumber ? preg_replace('/\D+/', '', $extractedNumber) : null;
-
                     // --- Normalize phone number to UK format ---
                     $normalizePhone = function($number) {
                         $number = trim((string)$number);
@@ -2474,26 +2474,15 @@ class ImportController extends Controller
                         return $digits;
                     };
 
-                    $normalizedCleanedNumber = $cleanedNumber ? $normalizePhone($cleanedNumber) : str_repeat('0', 11);
-
-                    // 🧹 Remove anything left in brackets after extracting
-                    $cleanedName = preg_replace('/[\(\[\{<].*?[\)\]\}>]/u', '', $cleanedName);
-
-                    // Clean up name (letters and spaces only)
-                    $finalName = trim(preg_replace('/[^\p{L}\s]/u', '', $cleanedName));
-                    $finalName = $finalName ?: 'Unknown';
-
                     // --- Process phone numbers ---
                     $rawPhone = $row['applicant_phone'] ?? '';
                     $rawHomePhone = $row['applicant_homephone'] ?? '';
 
                     $phone = null;
-                    $landlinePhone = null;
 
                     if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
                         $parts = array_map('trim', explode('/', $rawPhone));
                         $phone = $normalizePhone($parts[0] ?? '');
-                        $landlinePhone = $normalizePhone($parts[1] ?? '');
                     } else {
                         $phone = $normalizePhone($rawPhone);
                     }
@@ -2504,17 +2493,12 @@ class ImportController extends Controller
 
                     $homePhone = $normalizePhone($rawHomePhone);
 
-                    $applicantLandline =
-                        ($homePhone != str_repeat('0', 11))
-                            ? $homePhone
-                            : (($landlinePhone != str_repeat('0', 11))
-                                ? $landlinePhone
-                                : (($normalizedCleanedNumber != str_repeat('0', 11))
-                                    ? $normalizedCleanedNumber
-                                    : '0')); // fallback to single 0
-
-                    // Optional: store email
-                    $applicantEmail = $extractedEmail ?? null;
+                    $applicantLandline = '0'; // default
+                    if (!empty($homePhone) && $homePhone !== str_repeat('0', 11)) {
+                        $applicantLandline = $homePhone;
+                    } elseif (!empty($landlinePhoneClean) && $landlinePhoneClean !== str_repeat('0', 11)) {
+                        $applicantLandline = $landlinePhoneClean;
+                    } // fallback to single 0
 
                     // Normalize boolean/enum fields
                     $normalizeBoolean = function ($value) {
@@ -2555,6 +2539,7 @@ class ImportController extends Controller
                     }elseif($firstTwoWordsSource == 'c.v library'){
                         $firstTwoWordsSource = 'cv library';
                     }
+
                     $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
                     $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
 
@@ -2563,8 +2548,11 @@ class ImportController extends Controller
                         'id' => $id,
                         'applicant_uid' => $id ? md5($id) : null,
                         'user_id' => is_numeric($row['applicant_user_id'] ?? null) ? (int)$row['applicant_user_id'] : null,
-                        'applicant_name' => $finalName,
-                        'applicant_email' => $row['applicant_email'] ?? ($applicantEmail ?? null),
+                        'applicant_name' => $row['applicant_name'],
+                        'applicant_email' =>isset($row['applicant_email']) &&
+                                            !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
+                                                ? strtolower($row['applicant_email'])
+                                                : null,
                         'applicant_notes' => $row['applicant_notes'] ?? null,
                         'lat' => $lat,
                         'lng' => $lng,

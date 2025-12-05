@@ -19,6 +19,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Exports\SalesExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -131,7 +132,21 @@ class SaleController extends Controller
         $validator = Validator::make($request->all(), [
             'office_id' => 'required',
             'unit_id' => 'required',
-            'sale_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
+            'sale_postcode' => [
+                'required',
+                'string',
+                'min:3',
+                'max:8',
+                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
+                Rule::unique('sales')->where(function ($q) use ($request) {
+                    return $q->where('office_id', $request->office_id)
+                        ->where('unit_id', $request->unit_id)
+                        ->where('sale_postcode', $request->sale_postcode)
+                        ->where('job_category_id', $request->job_category_id)
+                        ->where('job_title_id', $request->job_title_id)
+                        ->where('status',1);
+                }),
+            ],
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_type' => 'required',
@@ -176,21 +191,6 @@ class SaleController extends Controller
                 'sale_notes',
                 'job_description',
             ]);
-
-            // Check for existing sale with the same critical fields (e.g., office_id, unit_id, sale_postcode, job_title_id)
-            $existingSale = Sale::where([
-                ['office_id', '=', $saleData['office_id']],
-                ['unit_id', '=', $saleData['unit_id']],
-                ['sale_postcode', '=', $saleData['sale_postcode']],
-                ['job_title_id', '=', $saleData['job_title_id']]
-            ])->first();
-
-            if ($existingSale) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'A sale with the same details already exists.'
-                ], 409); // 409 Conflict
-            }
 
             $postcode = $request->sale_postcode;
             $postcode_query = strlen($postcode) < 6
@@ -306,9 +306,22 @@ class SaleController extends Controller
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'office_id' => 'required',
-            'unit_id' => 'required',
-            'sale_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
+            'office_id' => ['required'],
+            'unit_id' => ['required'],
+            'sale_postcode' => [
+                'required',
+                'string',
+                'min:3',
+                'max:8',
+                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
+                Rule::unique('sales')->where(function ($q) use ($request) {
+                    return $q->where('office_id', $request->office_id)
+                        ->where('unit_id', $request->unit_id)
+                        ->where('sale_postcode', $request->sale_postcode)
+                        ->where('job_category_id', $request->job_category_id)
+                        ->where('job_title_id', $request->job_title_id)->where('status',1);
+                })->ignore($request->sale_id),
+            ],
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_type' => 'required',
@@ -321,7 +334,7 @@ class SaleController extends Controller
             'qualification' => 'required',
             'sale_notes' => 'required',
             'job_description' => 'nullable',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:5120', // max 5MB
+            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:5120',
         ]);
 
         if ($validator->fails()) {
@@ -357,20 +370,20 @@ class SaleController extends Controller
             $id = $request->input('sale_id');
 
             // Check for existing sale with the same critical fields (e.g., office_id, unit_id, sale_postcode, job_title_id)
-            $exists = Sale::where('office_id', $saleData['office_id'])
-                ->where('unit_id', $saleData['unit_id'])
-                ->where('sale_postcode', $saleData['sale_postcode'])
-                ->where('job_category_id', $saleData['job_category_id'])
-                ->where('job_title_id', $saleData['job_title_id'])
-                ->where('id', '!=', $id) // exclude the current sale itself
-                ->first();
+            // $exists = Sale::where('office_id', $saleData['office_id'])
+            //     ->where('unit_id', $saleData['unit_id'])
+            //     ->where('sale_postcode', $saleData['sale_postcode'])
+            //     ->where('job_category_id', $saleData['job_category_id'])
+            //     ->where('job_title_id', $saleData['job_title_id'])
+            //     ->when($id, fn($q) => $q->where('id', '!=', $id)) // safely exclude current sale
+            //     ->first();
 
-            if ($exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'A sale with the same details already exists.'
-                ], 409);
-            }
+            // if ($exists) {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'A sale with the same details already exists.'
+            //     ], 409);
+            // }
 
             // Retrieve the office record
             $sale = Sale::find($id);

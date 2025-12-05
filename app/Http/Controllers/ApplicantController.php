@@ -318,58 +318,71 @@ class ApplicantController extends Controller
             ->with(['jobTitle', 'jobCategory', 'jobSource']);
 
         // Sorting logic
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
+        // if ($request->has('order')) {
+        //     $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+        //     $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Handle special cases first
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
-                $model->orderBy('applicants.created_at', 'desc');
-            }
-        } else {
-            // Default sorting when no order is specified
-            $model->orderBy('applicants.created_at', 'desc');
-        }
+        //     // Handle special cases first
+        //     if ($orderColumn === 'job_source') {
+        //         $model->orderBy('applicants.job_source_id', $orderDirection);
+        //     } elseif ($orderColumn === 'job_category') {
+        //         $model->orderBy('applicants.job_category_id', $orderDirection);
+        //     } elseif ($orderColumn === 'job_title') {
+        //         $model->orderBy('applicants.job_title_id', $orderDirection);
+        //     }
+        //     // Default case for valid columns
+        //     elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+        //         $model->orderBy($orderColumn, $orderDirection);
+        //     }
+        //     // Fallback if no valid order column is found
+        //     else {
+        //         $model->orderBy('applicants.created_at', 'desc');
+        //     }
+        // } else {
+        //     // Default sorting when no order is specified
+        //     $model->orderBy('applicants.created_at', 'desc');
+        // }
 
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
+        if ($request->filled('search.value')) {
+            $searchTerm = trim($request->input('search.value'));
 
-            if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
-                    // Direct column searches
-                    $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%");
+            // Keep digits only for phone/landline search
+            $cleanPhone = preg_replace('/\D/', '', $searchTerm);
 
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
-                        $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
-                    });
+            $model->where(function ($query) use ($searchTerm, $cleanPhone) {
 
-                    $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
-                        $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
-                    });
+                // Direct searchable fields
+                $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%");
 
-                    $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
-                        $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
-                    });
+                // Phone/landline search using digits only
+                if (!empty($cleanPhone)) {
+                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ["%{$cleanPhone}%"]);
+                }
+                $query->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ["%{$searchTerm}%"]);
+
+                // Related tables search
+                $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
+                    $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
                 });
-            }
+                $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
+                    $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
+                });
+                $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
+                    $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
+                });
+
+                // Optional: Multi-word keyword search
+                $keywords = explode(' ', $searchTerm);
+                foreach ($keywords as $word) {
+                    if (strlen($word) > 2) {
+                        $query->orWhere('applicants.applicant_name', 'LIKE', "%{$word}%");
+                        $query->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%");
+                    }
+                }
+            });
         }
 
         // Filter by status if it's not empty
