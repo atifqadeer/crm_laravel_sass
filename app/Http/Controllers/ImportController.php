@@ -350,7 +350,11 @@ class ImportController extends Controller
                                 Log::channel('daily')->info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
 
                                 // Optional: remove old contacts for this office to avoid duplicates
-                                DB::table('contacts')->where('contactable_id', $row['id'])->delete();
+                                DB::table('contacts')
+                                    ->where('contactable_type', 'Horsefly\\Office')
+                                    ->where('contactable_id', $row['id'])
+                                    ->delete();
+
 
                                 // Insert contacts if available
                                 if (!empty($contacts)) {
@@ -721,32 +725,37 @@ class ImportController extends Controller
 
                             try {
                                 // Extract contacts from row safely
-                                $contacts = $row['contact'] ?? [];
-                                unset($row['contact']);
+                                $contacts = $row['contacts'] ?? [];
+                                unset($row['contacts']);
 
                                 // Create or update Unit
-                                $unit = Unit::updateOrCreate(
+                                Unit::updateOrCreate(
                                     ['id' => $row['id']],   // Match on ID
                                     $row                    // Update rest of the fields
                                 );
 
-                                // Insert contacts
+                                // Optional: remove old contacts for this office to avoid duplicates
+                                DB::table('contacts')
+                                    ->where('contactable_type', 'Horsefly\\Office')
+                                    ->where('contactable_id', $row['id'])
+                                    ->delete();
+
+
+                                // Insert contacts if available
                                 if (!empty($contacts)) {
                                     $contactRows = [];
-
-                                    foreach ($contacts as $contact) {
-                                        $contactRows[] = [
-                                            'name'              => $contact['name'] ?? null,
-                                            'phone'             => $contact['phone'] ?? null,
-                                            'email'             => $contact['email'] ?? null,
-                                            'contactable_id'    => $unit->id,
-                                            'contactable_type'  => 'Horsefly\Unit',
-                                            'created_at'        => $contact['created_at'] ?? now(),
-                                            'updated_at'        => $contact['updated_at'] ?? now(),
-                                        ];
+                                    foreach ($contacts as $contactData) {
+                                        $contactData['contactable_id'] = $row['id'];
+                                        $contactData['contactable_type'] = 'Horsefly\Unit';
+                                        $contactData['created_at'] = $contactData['created_at'] ?? now();
+                                        $contactData['updated_at'] = $contactData['updated_at'] ?? now();
+                                        $contactRows[] = $contactData;
                                     }
 
-                                    DB::table('contacts')->insert($contactRows);
+                                    if (!empty($contactRows)) {
+                                        DB::table('contacts')->insert($contactRows);
+                                        Log::channel('daily')->info("Contacts inserted for office ID {$row['id']}");
+                                    }
                                 }
 
                                 $successfulRows++;
