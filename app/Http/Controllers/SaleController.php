@@ -1043,7 +1043,7 @@ class SaleController extends Controller
                         $action .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$sale->id . ')">Add Note</a></li>';
                     }
 
-                    if (Gate::allows('sale-mark-as-open-close')) {
+                    if (Gate::allows('sale-change-status')) {
                         $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
                     }
 

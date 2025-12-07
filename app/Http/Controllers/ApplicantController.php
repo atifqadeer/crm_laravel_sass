@@ -2694,7 +2694,7 @@ class ApplicantController extends Controller
 
             // Check if the module note was found
             if (!$applicant_notes) {
-                return response()->json(['error' => 'Applicant note not found'], 404);  // Return 404 if not found
+                return response()->json(['error' => 'Applicant callback notes not found'], 404);  // Return 404 if not found
             }
 
             // Return the specific fields you need (e.g., applicant name, notes, etc.)
@@ -2727,7 +2727,7 @@ class ApplicantController extends Controller
 
             // Check if the module note was found
             if (!$applicant_notes) {
-                return response()->json(['error' => 'Applicant note not found'], 404);  // Return 404 if not found
+                return response()->json(['error' => 'Applicant notes not found'], 404);  // Return 404 if not found
             }
 
             // Return the specific fields you need (e.g., applicant name, notes, etc.)

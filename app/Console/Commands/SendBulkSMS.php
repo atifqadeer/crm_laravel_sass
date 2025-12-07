@@ -138,7 +138,7 @@ class SendBulkSMS extends Command
 
         try {
             // Encode message properly
-            $encodedMessage = urlencode($message->message);
+            $encodedMessage = rawurlencode($message->message);
 
             // Build URL
             $queryString = http_build_query([

@@ -12,7 +12,7 @@ use Horsefly\LoginDetail;
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Console\Kernel;
 use App\Helpers\PermissionHelper;
-
+use Illuminate\Support\Facades\Log;
 class LoginController extends Controller
 {
     /**
