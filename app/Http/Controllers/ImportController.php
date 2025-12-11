@@ -911,8 +911,7 @@ class ImportController extends Controller
             if (!empty($missingHeaders)) {
                 throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
             }
-
-
+            
             // Count total rows
             $records = $csv->getRecords();
             $totalRows = iterator_count($records);

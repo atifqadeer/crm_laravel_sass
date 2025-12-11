@@ -207,6 +207,10 @@ class Applicant extends Model
     {
         return $this->hasMany(CrmNote::class, 'applicant_id');
     }
+    public function crmHistory()
+    {
+        return $this->hasMany(History::class)->where('stage', 'crm')->where('status', 1);
+    }
     public function history()
     {
         return $this->hasMany(History::class, 'applicant_id');
@@ -244,16 +248,21 @@ class Applicant extends Model
     {
         return $this->hasMany(ApplicantNote::class, 'applicant_id');
     }
-    public function updated_by_audits()
-    {
-        return $this->morphMany(Audit::class, 'auditable')->with('user')
-            ->where('message', 'like', '%has been updated%');
-    }
-    public function created_by_audit()
-    {
-        return $this->morphOne(Audit::class, 'auditable')->with('user')
-            ->where('message', 'like', '%has been created%');
-    }
+public function updated_by_audits()
+{
+    return $this->morphMany(Audit::class, 'auditable')
+        ->where('message', 'like', '%has been updated%')
+        ->with('user');
+}
+
+public function created_by_audit()
+{
+    return $this->morphOne(Audit::class, 'auditable')
+        ->where('message', 'like', '%has been created%')
+        ->with('user');
+}
+
+
     public function messages()
     {
         return $this->hasMany(Message::class, 'module_id')

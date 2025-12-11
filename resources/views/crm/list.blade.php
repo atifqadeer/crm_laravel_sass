@@ -5113,7 +5113,7 @@
             // Disable button + show loader
             $btn.prop('disabled', true);
             $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
-            $text.text('Downloading...');
+            $text.text('Exporting...');
 
             $.ajax({
                 url: url,

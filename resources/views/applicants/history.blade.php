@@ -129,16 +129,17 @@
 
     <script>
         $(document).ready(function() {
-            // Create a loader row and append it to the table before initialization
-            const loadingRow = document.createElement('tr');
-            loadingRow.innerHTML = `<td colspan="100%" class="text-center py-4">
+             // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-            </td>`;
+            </td></tr>`;
 
-            // Append the loader row to the table's tbody
-            $('#history_table tbody').append(loadingRow);
+            // Function to show loader
+            function showLoader() {
+                $('#history_table tbody').empty().append(loadingRow);
+            }
 
             // Initialize DataTable with server-side processing
             var table = $('#history_table').DataTable({
@@ -153,11 +154,18 @@
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseText);
+                        $('#history_table tbody').html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'history.created_at' },
+                    { data: 'history_created_at', name: 'history.created_at' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
                     { data: 'job_details', name: 'job_details', orderable: false, searchable: false },
                     { data: 'office_name', name: 'offices.office_name' },
@@ -468,10 +476,10 @@
                 success: function(response) {
                     let notesHtml = '';
 
-                    if (!response.audit_history || response.audit_history.length === 0) {
+                    if (!response.updated_by_audits || response.updated_by_audits.length === 0) {
                         notesHtml = '<p>No record found.</p>';
                     } else {
-                        response.audit_history.forEach(function(entry) {
+                        response.updated_by_audits.forEach(function(entry) {
                             const user = entry.changes_made_by;
                             const changes = entry.changes_made;
 

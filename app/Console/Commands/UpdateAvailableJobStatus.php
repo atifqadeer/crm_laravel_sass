@@ -55,7 +55,7 @@ class UpdateAvailableJobStatus extends Command
             ];
 
             $isNearSales = $this->checkNearbySales($data, $radius);
-            Log::info('Applicant ID: ' . $applicant->id . ' - Is near sales: ' . ($isNearSales ? 'Yes' : 'No'));
+            // Log::info('Applicant ID: ' . $applicant->id . ' - Is near sales: ' . ($isNearSales ? 'Yes' : 'No'));
             DB::table('applicants')
                 ->where('id', $applicant->id)
                 ->update([
@@ -67,7 +67,7 @@ class UpdateAvailableJobStatus extends Command
 
         $this->info('Applicant job statuses updated successfully.');
     }
-    private function checkNearbySales(array $data, int $radius)
+    private function checkNearbySales(array $data, int $radiusKm)
     {
         $lat = $data['lat'];
         $lon = $data['lng'];
@@ -104,7 +104,7 @@ class UpdateAvailableJobStatus extends Command
             ->where("sales.status", 1)
             ->where("sales.is_on_hold", 0)
             ->whereIn("sales.job_title_id", $jobTitleIds)
-            ->havingRaw("distance < ?", [$radius])
+            ->havingRaw("distance < ?", [$radiusKm])
             ->get();
 
         return $location_distance->isNotEmpty();

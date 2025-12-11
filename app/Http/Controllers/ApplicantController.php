@@ -63,9 +63,9 @@ class ApplicantController extends Controller
     }
     public function create()
     {
-        $jobSources = JobSource::all();
-        $jobCategories = JobCategory::all();
-        $jobTitles = JobTitle::all();
+        $jobSources = JobSource::orderBy('name','asc')->get();
+        $jobCategories = JobCategory::orderBy('name','asc')->get();
+        $jobTitles = JobTitle::orderBy('name','asc')->get();
         return view('applicants.create', compact('jobSources', 'jobCategories', 'jobTitles'));
     }
     public function store(Request $request)
@@ -315,98 +315,123 @@ class ApplicantController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource']);
+            ->with(['jobTitle', 'jobCategory', 'jobSource', 'crmHistory']);
 
-        // Sorting logic
-        // if ($request->has('order')) {
-        //     $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-        //     $orderDirection = $request->input('order.0.dir', 'asc');
+        /** Sorting logic */
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-        //     // Handle special cases first
-        //     if ($orderColumn === 'job_source') {
-        //         $model->orderBy('applicants.job_source_id', $orderDirection);
-        //     } elseif ($orderColumn === 'job_category') {
-        //         $model->orderBy('applicants.job_category_id', $orderDirection);
-        //     } elseif ($orderColumn === 'job_title') {
-        //         $model->orderBy('applicants.job_title_id', $orderDirection);
-        //     }
-        //     // Default case for valid columns
-        //     elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-        //         $model->orderBy($orderColumn, $orderDirection);
-        //     }
-        //     // Fallback if no valid order column is found
-        //     else {
-        //         $model->orderBy('applicants.created_at', 'desc');
-        //     }
-        // } else {
-        //     // Default sorting when no order is specified
-        //     $model->orderBy('applicants.created_at', 'desc');
-        // }
+            // Handle special cases first
+            if ($orderColumn === 'job_source') {
+                $model->orderBy('applicants.job_source_id', $orderDirection);
+            } elseif ($orderColumn === 'job_category') {
+                $model->orderBy('applicants.job_category_id', $orderDirection);
+            } elseif ($orderColumn === 'job_title') {
+                $model->orderBy('applicants.job_title_id', $orderDirection);
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
+                $model->orderBy('applicants.created_at', 'desc');
+            }
+        } else {
+            // Default sorting when no order is specified
+            $model->orderBy('applicants.created_at', 'desc');
+        }
 
         if ($request->filled('search.value')) {
-            $searchTerm = trim($request->input('search.value'));
+            $search = trim($request->search['value']);
 
-            // Keep digits only for phone/landline search
-            $cleanPhone = preg_replace('/\D/', '', $searchTerm);
+            // If search is short, use LIKE with index-friendly pattern
+            if (strlen($search) >= 3) {
+                $model->where(function ($q) use ($search) {
+                    $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
 
-            $model->where(function ($query) use ($searchTerm, $cleanPhone) {
-
-                // Direct searchable fields
-                $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%");
-
-                // Phone/landline search using digits only
-                if (!empty($cleanPhone)) {
-                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ["%{$cleanPhone}%"]);
-                }
-                $query->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ["%{$searchTerm}%"]);
-
-                // Related tables search
-                $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
-                    $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
+                    // For related tables, only search if the keyword is long enough
+                    $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
+                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
+                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
                 });
-                $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
-                    $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
+            } else {
+                // For very short searches (1-2 chars), limit to phone/postcode or skip
+                $model->where(function ($q) use ($search) {
+                    $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
                 });
-                $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
-                    $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
-                });
-
-                // Optional: Multi-word keyword search
-                $keywords = explode(' ', $searchTerm);
-                foreach ($keywords as $word) {
-                    if (strlen($word) > 2) {
-                        $query->orWhere('applicants.applicant_name', 'LIKE', "%{$word}%");
-                        $query->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%");
-                    }
-                }
-            });
+            }
         }
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
-            case 'active':
-                $model->where('applicants.status', 1)
-                    ->where('applicants.is_no_job', false)
+            // case 'active':
+            //     $model->where('applicants.status', 1)
+            //         ->where('applicants.is_no_job', false)
+            //         ->where('applicants.is_blocked', false)
+            //         ->where('applicants.is_temp_not_interested', false);
+            //     break;
+            // case 'inactive':
+            //     $model->where('applicants.status', 0)
+            //         ->where('applicants.is_no_job', false)
+            //         ->where('applicants.is_blocked', false)
+            //         ->where('applicants.is_temp_not_interested', false);
+            //     break;
+            case 'crm active':
+                $model->whereHas('crmHistory')
                     ->where('applicants.is_blocked', false)
-                    ->where('applicants.is_temp_not_interested', false);
-                break;
-            case 'inactive':
-                $model->where('applicants.status', 0)
                     ->where('applicants.is_no_job', false)
-                    ->where('applicants.is_blocked', false)
-                    ->where('applicants.is_temp_not_interested', false);
+                    ->where('applicants.is_circuit_busy', false)
+                    ->where('applicants.is_temp_not_interested', false)
+                    ->where(function ($q) {
+                        $q->where('applicants.is_cv_in_quality_clear', 1)
+                            ->orWhere('applicants.is_interview_confirm', 1)
+                            ->orWhere('applicants.is_interview_attend', 1)
+                            ->orWhere('applicants.is_in_crm_request', 1)
+                            ->orWhere('applicants.is_crm_request_confirm', 1)
+                            ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
+                            ->orWhere('applicants.is_in_crm_start_date', 1)
+                            ->orWhere('applicants.is_in_crm_invoice', 1)
+                            ->orWhere('applicants.is_in_crm_invoice_sent', 1)
+                            ->orWhere('applicants.is_in_crm_start_date_hold', 1)
+                            ->orWhere('applicants.is_in_crm_paid', 1);
+                    });
                 break;
+
             case 'blocked':
-                $model->where('applicants.is_blocked', true);
+                $model->where('applicants.is_blocked', true)
+                    ->where('applicants.is_no_job', false)
+                    ->where('applicants.is_circuit_busy', false)
+                    ->where('applicants.is_temp_not_interested', false);
+                break;
+            case 'circuit busy':
+                $model->where('applicants.is_blocked', false)
+                    ->where('applicants.is_no_job', false)
+                    ->where('applicants.is_circuit_busy', true)
+                    ->where('applicants.is_temp_not_interested', false);
                 break;
             case 'not interested':
-                $model->where('applicants.is_temp_not_interested', true);
+                $model->where('applicants.is_no_job', false)
+                    ->where('applicants.is_blocked', false)
+                    ->where('applicants.is_circuit_busy', false)
+                    ->where('applicants.is_temp_not_interested', true);
                 break;
             case 'no job':
-                $model->where('applicants.is_no_job', true);
+                $model->where('applicants.is_blocked', false)
+                    ->where('applicants.is_circuit_busy', false)
+                    ->where('applicants.is_no_job', true)
+                    ->where('applicants.is_temp_not_interested', false);
+                break;
+            default:
+                $model->where('applicants.status', 1);
                 break;
         }
 
@@ -444,10 +469,10 @@ class ApplicantController extends Controller
                 ->addColumn('job_source', function ($applicant) {
                     return $applicant->jobSource ? $applicant->jobSource->name : '-';
                 })
-                ->addColumn('applicant_name', function ($applicant) {
+                ->editColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
-                ->addColumn('applicant_experience', function ($applicant) {
+                ->editColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
                     $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
@@ -478,7 +503,7 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-                ->addColumn('applicant_email', function ($applicant) {
+                ->editColumn('applicant_email', function ($applicant) {
                     $email = '';
                     if($applicant->applicant_email_secondary){
                         $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
@@ -488,7 +513,7 @@ class ApplicantController extends Controller
 
                     return $email; // Using accessor
                 })
-                ->addColumn('applicant_postcode', function ($applicant) {
+                ->editColumn('applicant_postcode', function ($applicant) {
                     if($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked){
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" target="_blank" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
@@ -497,32 +522,45 @@ class ApplicantController extends Controller
                     }
                     return $button;
                 })
-                ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
+                ->editColumn('applicant_notes', function ($applicant) {
+                    // Convert new lines to <br> but DO NOT escape HTML tags
+                    $notes = nl2br($applicant->applicant_notes);
+
                     return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                        <a href="#" title="Add Short Note" style="color:blue"
+                        onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                             ' . $notes . '
                         </a>
                     ';
                 })
-                ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if($applicant->applicant_landline){
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+                ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
-                    }else{
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    return $strng;
+                    return $str;
                 })
-                ->addColumn('created_at', function ($applicant) {
+                // In your DataTable or controller
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                        ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
+                })
+                ->editColumn('created_at', function ($applicant) {
                     return $applicant->formatted_created_at; // Using accessor
                 })
-                ->addColumn('updated_at', function ($applicant) {
+                ->editColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
@@ -572,23 +610,26 @@ class ApplicantController extends Controller
                     } elseif ($applicant->is_temp_not_interested == 1) {
                         $status = '<span class="badge bg-danger">Not<br>Interested</span>';
                     } elseif ($applicant->paid_status == 'open') {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($applicant->is_cv_in_quality_clear || 
-                        $applicant->is_interview_confirm ||
-                        $applicant->is_interview_attend ||
-                        $applicant->is_in_crm_request ||
-                        $applicant->is_crm_request_confirm ||
-                        $applicant->is_crm_interview_attended != 0 ||
-                        $applicant->is_in_crm_start_date ||
-                        $applicant->is_in_crm_invoice ||
-                        $applicant->is_in_crm_invoice_sent ||
-                        $applicant->is_in_crm_start_date_hold ||
-                        $applicant->is_in_crm_paid) {
+                        $status = '<span class="badge bg-primary">Open</span>';
+                    }elseif (
+                        ($applicant->crmHistory && $applicant->crmHistory->count() > 0) &&
+                        (
+                            $applicant->is_cv_in_quality_clear == 1 ||
+                            $applicant->is_interview_confirm == 1 ||
+                            $applicant->is_interview_attend == 1 ||
+                            $applicant->is_in_crm_request == 1 ||
+                            $applicant->is_crm_request_confirm == 1 ||
+                            $applicant->is_crm_interview_attended != 0 ||
+                            $applicant->is_in_crm_start_date == 1 ||
+                            $applicant->is_in_crm_invoice == 1 ||
+                            $applicant->is_in_crm_invoice_sent == 1 ||
+                            $applicant->is_in_crm_start_date_hold == 1 ||
+                            $applicant->is_in_crm_paid == 1
+                        )
+                    ) {
                         $status = '<span class="badge bg-primary">CRM Active</span>';
-                    } elseif ($applicant->status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($applicant->status == 0) {
-                        $status = '<span class="badge bg-danger">Inactive</span>';
+                    } else {
+                        $status = '-';
                     }
 
                     return $status;
@@ -675,7 +716,7 @@ class ApplicantController extends Controller
 
                         return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicant_phone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -820,7 +861,12 @@ class ApplicantController extends Controller
             ]);
 
             // Log audit
-            $applicant = Applicant::find($applicant_id)->select('applicant_name', 'applicant_notes', 'id')->first();
+            $applicant = Applicant::where('id', $applicant_id)
+                ->select('applicant_name', 'applicant_notes', 'id')
+                ->first();
+
+            Log::info('Updated request for applicant', $applicant->toArray());
+
             $observer = new ActionObserver();
             $observer->customApplicantAudit($applicant, 'applicant_notes');
 
@@ -1226,21 +1272,24 @@ class ApplicantController extends Controller
     }
     public function getApplicantHistoryAjaxRequest(Request $request)
     {
-        $id = $request->applicant_id;
         // Prepare CRM Notes query
-        $model = Applicant::query()
-            ->with('callback_notes', 'no_nursing_home_notes')
-            ->join(DB::raw('
-                (
-                    SELECT *
-                    FROM crm_notes
-                    WHERE id IN (
-                        SELECT MAX(id)
-                        FROM crm_notes
-                        GROUP BY applicant_id, sale_id
-                    )
-                ) AS crm_notes
-            '), 'crm_notes.applicant_id', '=', 'applicants.id')
+        $id = $request->applicant_id;
+
+        $model = Applicant::query();
+
+        // Subquery: get latest CRM note per applicant-sale
+        $latestCrmNotes = DB::table('crm_notes')
+            ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
+            ->whereIn('id', function($query) {
+                $query->selectRaw('MAX(id)')
+                    ->from('crm_notes')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        // Join with the latest CRM notes
+        $model->joinSub($latestCrmNotes, 'crm_notes', function ($join) {
+                $join->on('crm_notes.applicant_id', '=', 'applicants.id');
+            })
             ->join('sales', 'sales.id', '=', 'crm_notes.sale_id')
             ->join('offices', 'offices.id', '=', 'sales.office_id')
             ->join('units', 'units.id', '=', 'sales.unit_id')
@@ -1251,32 +1300,31 @@ class ApplicantController extends Controller
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->select([
-                "applicants.id as app_id",
-                "applicants.applicant_name",
+                'applicants.id as app_id',
+                'applicants.applicant_name',
 
-                "crm_notes.id as crm_notes_id",
-                "crm_notes.details as note_details",
-                "crm_notes.created_at as notes_created_at",
+                'crm_notes.id as crm_notes_id',
+                'crm_notes.details as crm_note_details',
+                'crm_notes.created_at as crm_notes_created_at',
 
-                "sales.id as sale_id",
-                "sales.sale_postcode",
-                "sales.is_on_hold",
-                "sales.status as sale_status",
-                "sales.job_type as sale_job_type",
-                "sales.position_type",
-                "sales.experience as sale_experience",
-                "sales.qualification as sale_qualification",
-                "sales.salary",
-                "sales.timing",
-                "sales.created_at as sale_posted_date",
-                "sales.benefits",
+                'sales.id as sale_id',
+                'sales.sale_postcode',
+                'sales.is_on_hold',
+                'sales.status as sale_status',
+                'sales.job_type as sale_job_type',
+                'sales.position_type',
+                'sales.experience as sale_experience',
+                'sales.qualification as sale_qualification',
+                'sales.salary',
+                'sales.timing',
+                'sales.created_at as sale_posted_date',
+                'sales.benefits',
 
-                "history.sub_stage",
-                "history.created_at",
+                'history.sub_stage as history_sub_stage',
+                'history.created_at as history_created_at',
 
-                "offices.office_name",
-
-                "units.unit_name",
+                'offices.office_name',
+                'units.unit_name',
 
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
@@ -1286,37 +1334,66 @@ class ApplicantController extends Controller
                 'history.status' => 1
             ]);
 
-        // Sorting logic
+        /*** Sorting */ 
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
+            $direction = $request->input('order.0.dir', 'asc');
 
-            // Handle special cases first
-            if ($orderColumn === 'job_category') {
-                $model->orderBy('job_category_name', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('job_title_name', $orderDirection);
+            switch ($orderColumn) {
+
+                case 'job_category':
+                    $model->orderBy('job_category_name', $direction);
+                    break;
+
+                case 'job_title':
+                    $model->orderBy('job_title_name', $direction);
+                    break;
+
+                case 'crm_note_details':
+                    $model->orderBy('crm_note_details', $direction);
+                    break;
+
+                case 'history_sub_stage':
+                    $model->orderBy('history_sub_stage', $direction);
+                    break;
+
+                case 'sale_postcode':
+                    $model->orderBy('sale_postcode', $direction);
+                    break;
+
+                case 'crm_notes_created_at':
+                    $model->orderBy('crm_notes_created_at', $direction);
+                    break;
+
+                case 'history_created_at':
+                    $model->orderBy('history.created_at', $direction);
+                    break;
+
+                default:
+                    if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                        $model->orderBy($orderColumn, $direction);
+                    } else {
+                        $model->orderBy('history_created_at', 'desc');
+                    }
             }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            } else {
-                $model->orderBy('history.created_at', 'desc');
-            }
+
         } else {
-            $model->orderBy('history.created_at', 'desc');
+            $model->orderBy('history_created_at', 'desc');
         }
 
-        // Apply search filter BEFORE sending to DataTables
+        /*** search */
         if ($request->has('search.value')) {
-            $searchTerm = $request->input('search.value');
-            $model->where(function ($query) use ($searchTerm) {
-                $query->where('history.sub_stage', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('history.created_at', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('crm_notes.details', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('sales.sale_postcode', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%");
+            $search = $request->input('search.value');
+
+            $model->where(function ($q) use ($search) {
+                $q->where('history.sub_stage', 'LIKE', "%{$search}%")
+                ->orWhere('history.created_at', 'LIKE', "%{$search}%")
+                ->orWhere('crm_notes.details', 'LIKE', "%{$search}%")
+                ->orWhere('sale_postcode', 'LIKE', "%{$search}%")
+                ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
+                ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
+                ->orWhere('office_name', 'LIKE', "%{$search}%")
+                ->orWhere('unit_name', 'LIKE', "%{$search}%");
             });
         }
 
@@ -1324,25 +1401,27 @@ class ApplicantController extends Controller
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
-                ->addColumn('created_at', function ($row) {
-                    return Carbon::parse($row->created_at)->format('d M Y, h:i A');
+                ->addColumn('history_created_at', function ($row) {
+                    return Carbon::parse($row->history_created_at)->format('d M Y, h:i A');
                 })
                 ->addColumn('job_title', function ($row) {
                     return $row->job_title_name ? strtoupper($row->job_title_name) : '-';
                 })
                 ->addColumn('sub_stage', function ($row) {
-                    return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->sub_stage)) . '</span>';
+                    return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->history_sub_stage)) . '</span>';
                 })
                 ->addColumn('details', function ($row) {
-                    $short = Str::limit(strip_tags($row->note_details), 100);
-                    $full = e($row->note_details);
-                    $id = 'exp-' . $row->id;
+                    $short = Str::limit(strip_tags($row->crm_note_details), 100);
+                    $full  = e($row->crm_note_details);
 
-                    return '
+                    // Use NOTE ID from your query
+                    $id = 'note-' . $row->crm_notes_id;
+
+                    $html = '
                         <a href="#" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
-                            ' . $short . '
+                        ' . $short . '
                         </a>
 
                         <!-- Modal -->
@@ -1363,8 +1442,8 @@ class ApplicantController extends Controller
                             </div>
                         </div>
                     ';
-                    // Tooltip content with additional data-bs-placement and title
-                    return $notes;
+
+                    return $html;
                 })
                 ->addColumn('job_details', function ($row) {
                     $position_type = strtoupper(str_replace('-', ' ', $row->position_type));
@@ -1416,7 +1495,7 @@ class ApplicantController extends Controller
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
-                ->rawColumns(['details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
+                ->rawColumns(['history_created_at', 'details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
                 ->make(true);
         }
     }
@@ -1592,7 +1671,6 @@ class ApplicantController extends Controller
         }
     }
 
-    
     // Helper methods
     private function handleHangupCall($request, $user, $applicant, $sale, $notes)
     {
@@ -1688,7 +1766,6 @@ class ApplicantController extends Controller
             ->where('moved_tab_to', 'rejected')
             ->exists();
     }
-
     public function markApplicantNoNursingHome(Request $request)
     {
         $user = Auth::user();

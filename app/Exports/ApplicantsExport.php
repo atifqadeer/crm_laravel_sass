@@ -73,8 +73,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     'job_titles.name as job_title',
                     'applicants.created_at'
                 )
-                    ->whereNull('applicants.lat')
-                    ->whereNull('applicants.lng')
+                    ->whereIn('applicants.lat', ['0', '', null])
+                    ->whereIn('applicants.lng', ['0', '', null])
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->get()

@@ -80,6 +80,11 @@ class User extends Authenticatable
     {
         return $this->morphMany(Audit::class, 'auditable');
     }
+    public function performedAudits()
+    {
+        return $this->hasMany(Audit::class, 'user_id');
+    }
+
     public function cv_notes()
     {
         return $this->hasMany(CVNote::class, 'user_id');

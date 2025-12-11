@@ -17,6 +17,7 @@ use Horsefly\Applicant;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\JobTitle;
+use Horsefly\ApplicantNote;
 use Horsefly\ModuleNote;
 use Horsefly\Unit;
 use Horsefly\Office;
@@ -61,7 +62,23 @@ class ModuleNotesController extends Controller
 
                     Applicant::where('id', $applicant_id)->update([
                         'is_temp_not_interested' => true,
-                        'is_no_job' => false
+                        'is_no_response' => false,
+                        'is_no_job' => false,
+                        'is_blocked' => false,
+                        'is_circuit_busy' => false,
+                        'applicant_notes' => $noteDetail
+                    ]);
+
+                    // Save applicant note
+                    $applicantNote = ApplicantNote::create([
+                        'details' => $request->input('details') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y'),
+                        'applicant_id' => $applicant_id,
+                        'moved_tab_to' => 'not interested',
+                        'user_id' => $user->id,
+                    ]);
+
+                    $applicantNote->update([
+                        'note_uid' => md5($applicantNote->id),
                     ]);
 
                 } elseif ($request->has('no_job') && $request->input('no_job') == 'on') {
@@ -77,6 +94,18 @@ class ModuleNotesController extends Controller
                         'is_circuit_busy' => false,
                         'is_no_job' => true,
                         'applicant_notes' => $noteDetail
+                    ]);
+
+                    // Save applicant note
+                    $applicantNote = ApplicantNote::create([
+                        'details' => $request->input('details') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y'),
+                        'applicant_id' => $applicant_id,
+                        'moved_tab_to' => 'no job',
+                        'user_id' => $user->id,
+                    ]);
+
+                    $applicantNote->update([
+                        'note_uid' => md5($applicantNote->id),
                     ]);
 
                 } else {
@@ -96,6 +125,10 @@ class ModuleNotesController extends Controller
                     $noteDetail .= '<strong>No Job:</strong> ' . ($request->has('no_job') ? 'Yes' : 'No') . '<br>';
                     $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
                     $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+
+                    Applicant::where('id', $applicant_id)->update([
+                        'applicant_notes' => $request->input('details') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y')
+                    ]);
                 }
 
             } else {
@@ -146,10 +179,15 @@ class ModuleNotesController extends Controller
             // Validate the incoming request to ensure 'id' is provided and is a valid integer
             $request->validate([
                 'id' => 'required|integer',  // Assuming 'module_notes' is the table name and 'id' is the primary key
+                'module' => 'required|string'
             ]);
 
+            $model_class = 'Horsefly\\' . $request->module;
+            
             // Fetch the module notes by the given ID
-            $moduleNote = ModuleNote::where('module_noteable_id', $request->id)->where('module_noteable_type', $request->module)->latest()->get();
+            $moduleNote = ModuleNote::where('module_noteable_id', $request->id)
+                    ->where('module_noteable_type', $model_class)
+                    ->latest()->get();
 
             // Check if the module note was found
             if (!$moduleNote) {
@@ -182,6 +220,7 @@ class ModuleNotesController extends Controller
             $validator->validate();
             $module = $request->input('module');
             $model_class = 'Horsefly\\' . $module;
+            $audit_data = [];
 
             if($module == 'Sale'){
                 $model = $model_class::with('unit', 'office', 'updated_by_audits.user', 'created_by_audit')
@@ -194,7 +233,6 @@ class ModuleNotesController extends Controller
                     ], 404);
                 }
 
-                $audit_data = [];
                 $index = 0;
                 foreach ($model->updated_by_audits as $audit) {
                     if (!empty($audit->data['changes_made'])) {
@@ -256,9 +294,14 @@ class ModuleNotesController extends Controller
 
                 $audit_data = array_reverse($audit_data); // latest first
                 $original_sale = $model->created_by_audit;
-            }else{
-                $model = $model_class::with('jobCategory', 'jobTitle', 'jobSource', 'updated_by_audits.user', 'created_by_audit')
-                    ->find($request->input('module_key'));
+            }elseif($module == 'Applicant'){
+                $model = $model_class::with([
+                    'jobCategory',
+                    'jobTitle',
+                    'jobSource',
+                    'updated_by_audits.user',
+                    'created_by_audit.user',
+                ])->find($request->input('module_key'));
 
                 if (!$model) {
                     return response()->json([
@@ -267,12 +310,92 @@ class ModuleNotesController extends Controller
                     ], 404);
                 }
 
-                $audit_data = [];
                 $index = 0;
+
+                foreach ($model->updated_by_audits as $audit) {
+                    if (!empty($audit->data['changes_made'])) {
+
+                        $changes_made = Arr::except($audit->data['changes_made'], [
+                            'user_id', 'created_at', 'updated_at',
+                            'lat', 'lng',
+                            'job_source_id', 'job_category_id', 'job_title_id'
+                        ]);
+
+                        if (empty($changes_made)) continue;   // <-- FIXED
+
+                        // Replace foreign keys with names
+                        if (isset($changes_made['job_source_id'])) {
+                            $changes_made['job_source'] = @JobSource::find($changes_made['job_source_id'])->name;
+                        }
+
+                        if (isset($changes_made['job_category_id'])) {
+                            $changes_made['job_category'] = @JobCategory::find($changes_made['job_category_id'])->name;
+                        }
+
+                        if (isset($changes_made['job_title_id'])) {
+                            $changes_made['job_title'] = @JobTitle::find($changes_made['job_title_id'])->name;
+                        }
+
+                        // Date formatting
+                        if (isset($changes_made['updated_at'])) {
+                            $changes_made['updated_at'] = @Carbon::parse($changes_made['updated_at'])->format('d M Y, h:i A');
+                        }
+
+                        if (isset($changes_made['created_at'])) {
+                            $changes_made['created_at'] = @Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
+                        }
+
+                        // Interview Attended
+                        if (isset($changes_made['is_crm_interview_attended'])) {
+                            $changes_made['is_crm_interview_attended'] = match($changes_made['is_crm_interview_attended']) {
+                                '0' => 'No',
+                                '1' => 'Yes',
+                                '2' => 'Pending',
+                            };
+                        }
+
+                        // Status
+                        if (isset($changes_made['status'])) {
+                            $changes_made['status'] = match($changes_made['status']) {
+                                '0' => 'Inactive',
+                                '1' => 'Active',
+                            };
+                        }
+
+                        // Append to audit result
+                        $audit_data[$index]['changes_made'] = $changes_made;
+                        $audit_data[$index++]['changes_made_by'] = $audit->user->name;
+                    }
+                }
+
+                // Latest first
+                $audit_data = array_reverse($audit_data);
+
+                $original_sale = $model->created_by_audit;
+            }else{
+                $model = $model_class::with([
+                        'jobCategory',
+                        'jobTitle',
+                        'jobSource',
+                        'updated_by_audits.user',
+                        'created_by_audit.user',
+                    ])->find($request->input('module_key'));
+
+                if (!$model) {
+                    return response()->json([
+                        'error' => 'Record not found.',
+                        'success' => false
+                    ], 404);
+                }
+
+                $index = 0;
+
                 foreach ($model->updated_by_audits as $audit) {
                     if (!empty($audit->data['changes_made'])) {
                         $changes_made = Arr::except($audit->data['changes_made'], ['user_id', 'created_at', 'updated_at', 'lat', 'lng', 'job_source_id', 'job_category_id', 'job_title_id']);
-                        if (count($changes_made) == 1) continue;
+                        // if (count($changes_made) == 1) continue;
+                        if (empty($changes_made)) continue;
+
                         if (isset($changes_made['job_source_id'])) {
                             $changes_made['job_source'] = @JobSource::find($changes_made['job_source_id'])->name;
                         }
@@ -314,6 +437,7 @@ class ModuleNotesController extends Controller
                             }
                             $changes_made['status'] = $status_string;
                         }
+                  
                         $audit_data[$index]['changes_made'] = $changes_made;
                         $audit_data[$index++]['changes_made_by'] = $audit->user->name;
                     }
@@ -321,6 +445,7 @@ class ModuleNotesController extends Controller
 
                 $audit_data = array_reverse($audit_data); // latest first
                 $original_sale = $model->created_by_audit;
+            
             }
 
             return response()->json([
