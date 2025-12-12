@@ -7,6 +7,7 @@ use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\User;
 use Horsefly\Sale;
+use Horsefly\CvNote;
 use Horsefly\SaleNote;
 use Horsefly\Applicant;
 use Horsefly\JobCategory;
@@ -528,7 +529,7 @@ class SaleController extends Controller
         // Subquery to get the latest audit (open_date) for each sale
         $latestAuditSub = DB::table('audits')
             ->select(DB::raw('MAX(id) as id'))
-            ->where('auditable_type', 'Horsefly\Sale')
+            ->where('auditable_type', 'Horsefly\\Sale')
             ->where('message', 'like', '%sale-opened%')
             ->groupBy('auditable_id');
 
@@ -555,7 +556,7 @@ class SaleController extends Controller
              // Join only the latest audit for each sale
             ->leftJoin('audits', function ($join) use ($latestAuditSub) {
             $join->on('audits.auditable_id', '=', 'sales.id')
-                ->where('audits.auditable_type', '=', 'Horsefly\Sale')
+                ->where('audits.auditable_type', '=', 'Horsefly\\Sale')
                 ->where('audits.message', 'like', '%sale-opened%')
                 ->whereIn('audits.id', $latestAuditSub);
             })
@@ -4955,6 +4956,7 @@ class SaleController extends Controller
     public function saleHistoryIndex($id)
     {
         $sale = Sale::withCount('active_cvs')->find($id);
+
         if (!$sale) {
             return redirect()->back()->with('error', 'Sale not found.');
         }   

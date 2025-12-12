@@ -22,4 +22,9 @@ class CVNote extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class, 'sale_id', 'id');
+    }
+
 }
