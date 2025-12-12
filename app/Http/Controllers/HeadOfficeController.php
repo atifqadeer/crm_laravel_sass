@@ -174,9 +174,10 @@ class HeadOfficeController extends Controller
 
         // Query builder with minimal selected columns
         $model = Office::query()
-            ->with(['contact' => function ($query) {
-                $query->select('id', 'contactable_id', 'contactable_type', 'contact_name', 'contact_phone', 'contact_landline', 'contact_email');
-            }])
+            ->leftJoin('contacts', function ($join) {
+            $join->on('contacts.contactable_id', '=', 'offices.id')
+                 ->where('contacts.contactable_type', 'Horsefly\\Office');
+        })
             ->select(
                 'offices.id',
                 'offices.office_name',
@@ -201,26 +202,20 @@ class HeadOfficeController extends Controller
                 break;
         }
 
-        // Search logic with optimized LIKE-based search
-        $searchTerm = $request->input('search.value');
-
-        if (!empty($searchTerm)) {
-            $likeSearch = "%{$searchTerm}%";
-            $model->where(function ($query) use ($likeSearch) {
-                $query->where('offices.office_name', 'LIKE', $likeSearch)
-                      ->orWhere('offices.office_postcode', 'LIKE', $likeSearch)
-                      ->orWhere('offices.office_type', 'LIKE', $likeSearch)
-                      ->orWhere('offices.office_notes', 'LIKE', $likeSearch);
-
-                // Search contact fields
-                $query->orWhereHas('contact', function ($q) use ($likeSearch) {
-                    $q->where('contact_name', 'LIKE', $likeSearch)
-                      ->orWhere('contact_email', 'LIKE', $likeSearch)
-                      ->orWhere('contact_phone', 'LIKE', $likeSearch)
-                      ->orWhere('contact_landline', 'LIKE', $likeSearch);
-                });
-            });
-        }
+       // Global search (now works on contact fields too)
+    if ($request->filled('search.value')) {
+        $search = trim($request->input('search.value'));
+        $model->where(function ($q) use ($search) {
+            $q->where('offices.office_name', 'LIKE', "%{$search}%")
+              ->orWhere('offices.office_postcode', 'LIKE', "%{$search}%")
+              ->orWhere('offices.office_type', 'LIKE', "%{$search}%")
+              ->orWhere('offices.office_notes', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
+        });
+    }
         
         // Sorting logic
         if ($request->has('order')) {
@@ -228,20 +223,10 @@ class HeadOfficeController extends Controller
             $orderColumn = $request->input("columns.$orderColumnIndex.data");
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            if ($orderColumn === 'contact') {
-                // Sorting by contact_name requires joining or subquery if not using leftJoin
-                $model->orderBy(
-                    Contact::select('contact_name')
-                        ->whereColumn('contacts.contactable_id', 'offices.id')
-                        ->where('contacts.contactable_type', 'Horsefly\\Office')
-                        ->orderBy('contact_name', $orderDirection)
-                        ->limit(1),
-                    $orderDirection
-                );
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 // Handle contact.* columns differently if needed
-                $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
-                $model->orderBy($column, $orderDirection);
+                // $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
+                $model->orderBy($orderColumn, $orderDirection);
             } else {
                 $model->orderBy('offices.created_at', 'desc');
             }
@@ -290,6 +275,24 @@ class HeadOfficeController extends Controller
                             return $phones ? implode('<br>', $phones) : '-';
                         }
                         return '-';
+                    })
+                    ->filterColumn('contact_email', function ($query, $keyword) {
+                        $query->where('contacts.contact_email', 'LIKE', "%{$keyword}%");
+                    })
+                    ->filterColumn('contact_phone', function ($query, $keyword) {
+                        $query->where('contacts.contact_phone', 'LIKE', "%{$keyword}%");
+                    })
+                    ->filterColumn('contact_landline', function ($query, $keyword) {
+                        $query->where('contacts.contact_landline', 'LIKE', "%{$keyword}%");
+                    })
+                    ->orderColumn('contact_email', function ($query, $order) {
+                        $query->orderBy('contacts.contact_email', $order);
+                    })
+                    ->orderColumn('contact_phone', function ($query, $order) {
+                        $query->orderBy('contacts.contact_phone', $order);
+                    })
+                    ->orderColumn('contact_landline', function ($query, $order) {
+                        $query->orderBy('contacts.contact_landline', $order);
                     })
                     ->addColumn('updated_at', function ($office) {
                         return $office->formatted_updated_at;
@@ -553,10 +556,13 @@ class HeadOfficeController extends Controller
             // Validate the incoming request to ensure 'id' is provided and is a valid integer
             $request->validate([
                 'id' => 'required',  // Assuming 'module_notes' is the table name and 'id' is the primary key
+                'module' => 'required',  // Assuming 'module_notes' is the table name and 'id' is the primary key
             ]);
 
+            $module = 'Horsefly\\' . $request->input('module');
+
             // Fetch the module notes by the given ID
-            $contacts = Contact::where('contactable_id', $request->id)->where('contactable_type', 'Horsefly\Unit')->latest()->get();
+            $contacts = Contact::where('contactable_id', $request->id)->where('contactable_type', $module)->latest()->get();
 
             // Check if the module note was found
             if (!$contacts) {

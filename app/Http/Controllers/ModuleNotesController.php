@@ -172,7 +172,6 @@ class ModuleNotesController extends Controller
                 </div>';
         }
     }
-
     public function getModuleNotesHistory(Request $request)
     {
         try {
@@ -223,7 +222,7 @@ class ModuleNotesController extends Controller
             $audit_data = [];
 
             if($module == 'Sale'){
-                $model = $model_class::with('unit', 'office', 'updated_by_audits.user', 'created_by_audit')
+                $model = $model_class::with('unit', 'office', 'updated_by_audits.user', 'created_by_audit.user')
                     ->find($request->input('module_key'));
 
                 if (!$model) {

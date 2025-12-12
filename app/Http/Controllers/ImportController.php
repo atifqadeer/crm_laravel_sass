@@ -2499,14 +2499,25 @@ class ImportController extends Controller
                         $phone = str_repeat('0', 11);
                     }
 
+                    // $homePhone = $normalizePhone($rawHomePhone);
+
+                    // $applicantLandline = '0'; // default
+                    // if (!empty($homePhone) && $homePhone !== str_repeat('0', 11)) {
+                    //     $applicantLandline = $homePhone;
+                    // } elseif (!empty($landlinePhoneClean) && $landlinePhoneClean !== str_repeat('0', 11)) {
+                    //     $applicantLandline = $landlinePhoneClean;
+                    // } // fallback to single 0
+
                     $homePhone = $normalizePhone($rawHomePhone);
 
-                    $applicantLandline = '0'; // default
-                    if (!empty($homePhone) && $homePhone !== str_repeat('0', 11)) {
+                    $applicantLandline = null; // default to null
+
+                    // Only assign if number has 10 or more digits
+                    if (!empty($homePhone) && strlen(preg_replace('/\D/', '', $homePhone)) >= 10) {
                         $applicantLandline = $homePhone;
-                    } elseif (!empty($landlinePhoneClean) && $landlinePhoneClean !== str_repeat('0', 11)) {
+                    } elseif (!empty($landlinePhoneClean) && strlen(preg_replace('/\D/', '', $landlinePhoneClean)) >= 10) {
                         $applicantLandline = $landlinePhoneClean;
-                    } // fallback to single 0
+                    }
 
                     // Normalize boolean/enum fields
                     $normalizeBoolean = function ($value) {

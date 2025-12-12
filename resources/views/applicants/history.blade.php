@@ -53,7 +53,7 @@
                     <div class="col-lg-12">
                         <button class="btn btn-md btn-dark" onclick="showNoNursingHomeNotes('{{ $applicant->id }}')">No Nursing Home Notes</button>
                         <button class="btn btn-md btn-secondary" onclick="showCallbackNotes('{{ $applicant->id }}')">Callback Notes</button>
-                        <button class="btn btn-md btn-primary" onclick="showUpdateHistory('{{ $applicant->id }}')">Update History</button>
+                        <button class="btn btn-md btn-primary" onclick="showUpdateHistory('{{ $applicant->id }}')">Updated History</button>
                     </div>
                 </div>
             </div>

@@ -87,14 +87,27 @@ class Sale extends Model
     {
         return $this->hasMany(CvNote::class, 'sale_id', 'id')->where('status', 1);
     }
+    // public function updated_by_audits()
+    // {
+    //     return $this->morphMany(Audit::class, 'auditable')->with('user')
+    //         ->where('message', 'like', '%has been updated%');
+    // }
+    // public function created_by_audit()
+    // {
+    //     return $this->morphOne(Audit::class, 'auditable')->with('user')
+    //         ->where('message', 'like', '%has been created%');
+    // }
     public function updated_by_audits()
     {
-        return $this->morphMany(Audit::class, 'auditable')->with('user')
-            ->where('message', 'like', '%has been updated%');
+        return $this->morphMany(Audit::class, 'auditable')
+            ->where('message', 'like', '%has been updated%')
+            ->with('user');
     }
+
     public function created_by_audit()
     {
-        return $this->morphOne(Audit::class, 'auditable')->with('user')
-            ->where('message', 'like', '%has been created%');
+        return $this->morphOne(Audit::class, 'auditable')
+            ->where('message', 'like', '%has been created%')
+            ->with('user');
     }
 }

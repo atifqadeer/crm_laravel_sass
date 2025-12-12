@@ -44,30 +44,28 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                 
             case 'noLatLong':
                 return Office::select(
-                    'id',
-                    'office_name',
-                    'office_postcode',
-                    'office_lat',
-                    'office_lng',
-                    'created_at'
-                )
-                ->whereAny(
-                    ['office_lat', 'office_lng'], // fields to check
-                    [null, '', 0, '0']           // values considered empty/invalid
-                )
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id'              => $item->id,
-                        'office_name'     => ucwords(strtolower($item->office_name)),
-                        'office_postcode' => strtoupper($item->office_postcode),
-                        'office_lat'      => $item->office_lat,
-                        'office_lng'      => $item->office_lng,
-                        'created_at'      => $item->created_at
-                                                ? $item->created_at->format('d M Y, h:i A')
-                                                : 'N/A',
-                    ];
-                });
+                        'id',
+                        'office_name',
+                        'office_postcode',
+                        'office_lat',
+                        'office_lng',
+                        'created_at'
+                    )
+                    ->whereIn('office_lng', ['0', '', null])
+                    ->whereIn('office_lat', ['0', '', null])
+                    ->get() // execute the query to get a collection
+                    ->map(function ($item) {
+                        return [
+                            'id'              => $item->id,
+                            'office_name'     => ucwords(strtolower($item->office_name)),
+                            'office_postcode' => strtoupper($item->office_postcode),
+                            'office_lat'      => $item->office_lat,
+                            'office_lng'      => $item->office_lng,
+                            'created_at'      => $item->created_at
+                                                    ? $item->created_at->format('d M Y, h:i A')
+                                                    : 'N/A',
+                        ];
+                    });
                 
             case 'all':
                 return Office::select(
