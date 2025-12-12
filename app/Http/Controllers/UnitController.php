@@ -284,24 +284,6 @@ class UnitController extends Controller
                 ->addColumn('contact_phone', function ($unit) {
                     return $unit->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
                 })
-                ->filterColumn('contact_email', function ($query, $keyword) {
-                    $query->where('contacts.contact_email', 'LIKE', "%{$keyword}%");
-                })
-                ->filterColumn('contact_phone', function ($query, $keyword) {
-                    $query->where('contacts.contact_phone', 'LIKE', "%{$keyword}%");
-                })
-                ->filterColumn('contact_landline', function ($query, $keyword) {
-                    $query->where('contacts.contact_landline', 'LIKE', "%{$keyword}%");
-                })
-                ->orderColumn('contact_email', function ($query, $order) {
-                    $query->orderBy('contacts.contact_email', $order);
-                })
-                ->orderColumn('contact_phone', function ($query, $order) {
-                    $query->orderBy('contacts.contact_phone', $order);
-                })
-                ->orderColumn('contact_landline', function ($query, $order) {
-                    $query->orderBy('contacts.contact_landline', $order);
-                })
                 ->addColumn('created_at', fn($unit) => $unit->formatted_created_at)
                 ->addColumn('updated_at', fn($unit) => $unit->formatted_updated_at)
                 ->addColumn('unit_notes', function ($unit) {
