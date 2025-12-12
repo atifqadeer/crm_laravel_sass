@@ -21,7 +21,7 @@
                 <form id="composeEmailForm" method="POST" action="">
                     @csrf
                     <div class="card-body" id="composeCard">
-                        <input type="hidden" name="sale_id" value="{{ $sale->id }}">
+                        <input type="hidden" name="sale_id" id="sale_id" value="{{ $sale->id }}">
                         <div class="mb-3">
                             <input type="text" class="form-control" id="toEmail" name="to_email[]" placeholder="To: " value="{{ $emails }}">
                             <div class="invalid-feedback">Please provide emails</div>
@@ -116,8 +116,9 @@
             // Extract content from Quill editor
             // const quill = new Quill('#snow-editor'); // Ensure you initialized it globally
             // const email_body = window.quill.root.innerHTML;
+            
+            const sale_id = $('#sale_id').val(); // Put into hidden input
             const email_body = $('#emailBody').val(); // Put into hidden input
-
             const app_email = $("#toEmail").val().trim();
             const subject = $("#subject").val().trim();
 
@@ -154,6 +155,7 @@
                 type: "POST",
                 dataType: "json",
                 data: {
+                    sale_id: sale_id,
                     email_body: email_body,
                     app_email: app_email,
                     email_subject: subject,
