@@ -48,6 +48,7 @@ trait SendEmails
     }
     public function saveEmailDB($email_to, $from_email, $emailSubject, $email_body, $email_title, $applicant_id = null, $sale_id = null)
     {
+        $user = Auth::user();
         try {
             $sent_email = new SentEmail();
             $sent_email->action_name   = strtolower(str_replace(' ', '_', $email_title));
@@ -59,7 +60,7 @@ trait SendEmails
             $sent_email->template      = $email_body;
             $sent_email->applicant_id  = $applicant_id;
             $sent_email->sale_id       = $sale_id;
-            $sent_email->user_id       = Auth::id(); // safer than Auth::user()->id
+            $sent_email->user_id       = $user->id; // safer than Auth::user()->id
             $sent_email->save();
 
             return true;
@@ -68,7 +69,7 @@ trait SendEmails
                 'to'      => $email_to,
                 'subject' => $emailSubject,
                 'title'   => $email_title,
-                'user_id' => Auth::id(),
+                'user_id' => $user->id
             ]);
             return false;
         }
