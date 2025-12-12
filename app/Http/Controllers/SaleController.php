@@ -55,7 +55,12 @@ class SaleController extends Controller
     }
     public function directSaleIndex()
     {
-        return view('sales.direct');
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        $users = User::where('is_active', 1)->orderBy('name','asc')->get();
+
+        return view('sales.direct', compact('jobCategories', 'jobTitles', 'offices', 'users'));
     }
     public function openSaleIndex()
     {

@@ -810,7 +810,7 @@
                 type: 'GET',
                 data: {
                     id: id,
-                    module: 'Horsefly\\Sale'
+                    module: 'Sale'
                 },
                 success: function(response) {
                     let notesHtml = '';
@@ -882,7 +882,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Unit'
+                    module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';

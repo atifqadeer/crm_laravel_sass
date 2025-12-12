@@ -474,7 +474,7 @@
                 type: 'GET',
                 data: {
                     id: sale_id,
-                    module: 'Horsefly\\Sale'
+                    module: 'Sale'
                 },
                 success: function(response) {
                     let notesHtml = '';

@@ -180,11 +180,11 @@
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-download-line me-1"></i> Export
+                                        <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                        <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'allClose']) }}">Export All Data</a>
-                                        <a class="dropdown-item" href="{{ route('salesExport', ['type' => 'emailsClose']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'allClose']) }}">Export All Data</a>
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'emailsClose']) }}">Export Emails</a>
                                     </div>
                                 </div>
                             </div>
@@ -1287,7 +1287,7 @@
                 type: 'GET',
                 data: {
                     id: id,
-                    module: 'Horsefly\\Sale'
+                    module: 'Sale'
                 },
                 success: function(response) {
                     let notesHtml = '';
@@ -1359,7 +1359,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Unit'
+                    module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';
@@ -1402,6 +1402,48 @@
                     e.preventDefault();
                     const experience = e.target.getAttribute('data-experience');
                     document.getElementById('experienceModalBody').innerHTML = experience;
+                }
+            });
+        });
+
+         $(document).on('click', '.export-btn', function (e) {
+            e.preventDefault();
+
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
+
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Exporting...');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: { responseType: 'blob' }, // for binary file
+                success: function (data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function () {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function () {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
                 }
             });
         });

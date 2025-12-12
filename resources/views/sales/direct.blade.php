@@ -10,12 +10,6 @@
 </style>
 @endsection
 @section('content')
-@php
-$jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-$jobTitles = \Horsefly\JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-$offices = \Horsefly\Office::where('status', 1)->orderBy('office_name','asc')->get();
-$users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
-@endphp
 <div class="row">
     <div class="col-lg-12">
         <div class="card">
@@ -1085,7 +1079,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Unit'
+                    module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';
@@ -1167,7 +1161,7 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                 type: 'GET',
                 data: {
                     id: id,
-                    module: 'Horsefly\\Sale'
+                    module: 'Sale'
                 },
                 success: function(response) {
                     let notesHtml = '';
@@ -1206,6 +1200,48 @@ $users = \Horsefly\User::where('is_active', 1)->orderBy('name','asc')->get();
                     e.preventDefault();
                     const experience = e.target.getAttribute('data-experience');
                     document.getElementById('experienceModalBody').innerHTML = experience;
+                }
+            });
+        });
+
+        $(document).on('click', '.export-btn', function (e) {
+            e.preventDefault();
+
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
+
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Exporting...');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: { responseType: 'blob' }, // for binary file
+                success: function (data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function () {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function () {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
                 }
             });
         });

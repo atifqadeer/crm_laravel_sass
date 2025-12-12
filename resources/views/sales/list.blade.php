@@ -1472,6 +1472,7 @@
                 xhr.send(formData);
             });
         });
+        
         $(document).on('click', '.export-btn', function (e) {
             e.preventDefault();
 
