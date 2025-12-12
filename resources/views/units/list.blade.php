@@ -35,16 +35,16 @@
                             @canany(['unit-export','unit-export-all','unit-export-emails'])
                             <div class="dropdown d-inline">
                                 <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-download-line me-1"></i> Export
+                                    <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                                     @canany(['unit-export-all'])
-                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'all']) }}">Export All Data</a>
+                                    <a class="dropdown-item export-btn" href="{{ route('unitsExport', ['type' => 'all']) }}">Export All Data</a>
                                     @endcanany
                                     @canany(['unit-export-emails'])
-                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'emails']) }}">Export Emails</a>
+                                    <a class="dropdown-item export-btn" href="{{ route('unitsExport', ['type' => 'emails']) }}">Export Emails</a>
                                     @endcanany
-                                    <a class="dropdown-item" href="{{ route('unitsExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                    <a class="dropdown-item export-btn" href="{{ route('unitsExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
                                 </div>
                             </div>
                             @endcanany
@@ -168,9 +168,9 @@
                 { data: 'office_name', name: 'offices.office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
-                { data: 'contact_email', name: 'contacts.contact_email', orderable: false, searchable: false  },                
-                { data: 'contact_phone', name: 'contacts.contact_phone', orderable: false, searchable: false  },                
-                { data: 'contact_landline', name: 'contacts.contact_landline', orderable: false, searchable: false },
+                { data: 'contact_email', name: 'contacts.contact_email'},                
+                { data: 'contact_phone', name: 'contacts.contact_phone'},                
+                { data: 'contact_landline', name: 'contacts.contact_landline'},
             ];
 
             if (hasViewNotePermission || hasAddNotePermission) {
@@ -785,7 +785,47 @@
                 xhr.send(formData);
             });
         });
+        $(document).on('click', '.export-btn', function (e) {
+            e.preventDefault();
 
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
+
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Exporting...');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: { responseType: 'blob' }, // for binary file
+                success: function (data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function () {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function () {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
+                }
+            });
+        });
     </script>
     
 @endsection

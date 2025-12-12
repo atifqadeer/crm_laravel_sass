@@ -51,8 +51,16 @@ class UnitsExport implements FromCollection, WithHeadings
                         'lng',
                         'created_at'
                     )
-                    ->whereNull('lat')
-                    ->whereNull('lng')
+                    ->where(function($query) {
+                        $query->where('lat', '0')
+                            ->orWhereNull('lat')
+                            ->orWhere('lat', '');
+                    })
+                    ->where(function($query) {
+                        $query->where('lng', '0')
+                            ->orWhereNull('lng')
+                            ->orWhere('lng', '');
+                    })
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -61,7 +69,9 @@ class UnitsExport implements FromCollection, WithHeadings
                             'unit_postcode' => strtoupper($item->unit_postcode),
                             'lat' => $item->lat,
                             'lng' => $item->lng,
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                            'created_at' => $item->created_at 
+                                ? $item->created_at->format('d M Y, h:i A') 
+                                : 'N/A',
                         ];
                     });
                 

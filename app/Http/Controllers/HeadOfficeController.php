@@ -175,9 +175,9 @@ class HeadOfficeController extends Controller
         // Query builder with minimal selected columns
         $model = Office::query()
             ->leftJoin('contacts', function ($join) {
-            $join->on('contacts.contactable_id', '=', 'offices.id')
-                 ->where('contacts.contactable_type', 'Horsefly\\Office');
-        })
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+            })
             ->select(
                 'offices.id',
                 'offices.office_name',
@@ -203,19 +203,19 @@ class HeadOfficeController extends Controller
         }
 
        // Global search (now works on contact fields too)
-    if ($request->filled('search.value')) {
-        $search = trim($request->input('search.value'));
-        $model->where(function ($q) use ($search) {
-            $q->where('offices.office_name', 'LIKE', "%{$search}%")
-              ->orWhere('offices.office_postcode', 'LIKE', "%{$search}%")
-              ->orWhere('offices.office_type', 'LIKE', "%{$search}%")
-              ->orWhere('offices.office_notes', 'LIKE', "%{$search}%")
-              ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
-              ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
-              ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
-              ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
-        });
-    }
+        if ($request->filled('search.value')) {
+            $search = trim($request->input('search.value'));
+            $model->where(function ($q) use ($search) {
+                $q->where('offices.office_name', 'LIKE', "%{$search}%")
+                ->orWhere('offices.office_postcode', 'LIKE', "%{$search}%")
+                ->orWhere('offices.office_type', 'LIKE', "%{$search}%")
+                ->orWhere('offices.office_notes', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
+            });
+        }
         
         // Sorting logic
         if ($request->has('order')) {
@@ -247,34 +247,13 @@ class HeadOfficeController extends Controller
                         return ucwords(str_replace('_', ' ', $office->office_type));
                     })
                     ->addColumn('contact_email', function ($office) {
-                        $contacts = $office->contact; // morphMany relationship
-                        if ($contacts && $contacts->count() > 0) {
-                            $emails = $contacts->pluck('contact_email')->filter()->map(function ($email) {
-                                return e($email);
-                            })->toArray();
-                            return $emails ? implode('<br>', $emails) : '-';
-                        }
-                        return '-';
+                        return $office->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
                     })
                     ->addColumn('contact_landline', function ($office) {
-                        $contacts = $office->contact;
-                        if ($contacts && $contacts->count() > 0) {
-                            $landlines = $contacts->pluck('contact_landline')->filter()->map(function ($landline) {
-                                return e($landline);
-                            })->toArray();
-                            return $landlines ? implode('<br>', $landlines) : '-';
-                        }
-                        return '-';
+                        return $office->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
                     })
                     ->addColumn('contact_phone', function ($office) {
-                        $contacts = $office->contact;
-                        if ($contacts && $contacts->count() > 0) {
-                            $phones = $contacts->pluck('contact_phone')->filter()->map(function ($phone) {
-                                return e($phone);
-                            })->toArray();
-                            return $phones ? implode('<br>', $phones) : '-';
-                        }
-                        return '-';
+                        return $office->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
                     })
                     ->filterColumn('contact_email', function ($query, $keyword) {
                         $query->where('contacts.contact_email', 'LIKE', "%{$keyword}%");

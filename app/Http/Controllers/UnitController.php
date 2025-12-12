@@ -189,12 +189,15 @@ class UnitController extends Controller
                 DB::raw('offices.office_name as office_name') // include joined office name
             ])
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-            ->with('contact'); // eager load contacts for pluck() later
+            ->leftJoin('contacts', function ($join) {
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+            });
 
         // Filter by status
-        if ($statusFilter === 'active') {
+        if ($statusFilter == 'active') {
             $query->where('units.status', 1);
-        } elseif ($statusFilter === 'inactive') {
+        } elseif ($statusFilter == 'inactive') {
             $query->where('units.status', 0);
         }
 
@@ -222,33 +225,49 @@ class UnitController extends Controller
             }
         }
 
-        // Sorting: prefer columns[index].name if set, otherwise columns[index].data
         if ($request->has('order')) {
-            $orderIndex = $request->input('order.0.column');
-            $orderDir = $request->input('order.0.dir', 'asc');
-
-            $colName = $request->input("columns.$orderIndex.name") ?? $request->input("columns.$orderIndex.data");
-
-            // Map friendly names to fully-qualified DB columns (extend as needed)
-            $map = [
-                'office_name'   => 'offices.office_name',
-                'unit_name'     => 'units.unit_name',
-                'unit_postcode' => 'units.unit_postcode',
-                'created_at'    => 'units.created_at',
-                'status'        => 'units.status',
-                'id'            => 'units.id',
-            ];
-
-            $orderColumn = $map[$colName] ?? $colName;
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderColumn = $request->input("columns.$orderColumnIndex.data");
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
             if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $query->orderBy($orderColumn, $orderDir);
+                $query->orderBy($orderColumn, $orderDirection);
+            }elseif ($orderColumn == 'offices') {
+                $query->orderBy('offices.office_name', $orderDirection);
             } else {
                 $query->orderBy('units.created_at', 'desc');
             }
         } else {
             $query->orderBy('units.created_at', 'desc');
         }
+
+        // Sorting: prefer columns[index].name if set, otherwise columns[index].data
+        // if ($request->has('order')) {
+        //     $orderIndex = $request->input('order.0.column');
+        //     $orderDir = $request->input('order.0.dir', 'asc');
+
+        //     $colName = $request->input("columns.$orderIndex.name") ?? $request->input("columns.$orderIndex.data");
+
+        //     // Map friendly names to fully-qualified DB columns (extend as needed)
+        //     $map = [
+        //         'office_name'   => 'offices.office_name',
+        //         'unit_name'     => 'units.unit_name',
+        //         'unit_postcode' => 'units.unit_postcode',
+        //         'created_at'    => 'units.created_at',
+        //         'status'        => 'units.status',
+        //         'id'            => 'units.id',
+        //     ];
+
+        //     $orderColumn = $map[$colName] ?? $colName;
+
+        //     if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+        //         $query->orderBy($orderColumn, $orderDir);
+        //     } else {
+        //         $query->orderBy('units.created_at', 'desc');
+        //     }
+        // } else {
+        //     $query->orderBy('units.created_at', 'desc');
+        // }
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
@@ -264,6 +283,24 @@ class UnitController extends Controller
                 })
                 ->addColumn('contact_phone', function ($unit) {
                     return $unit->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
+                })
+                ->filterColumn('contact_email', function ($query, $keyword) {
+                    $query->where('contacts.contact_email', 'LIKE', "%{$keyword}%");
+                })
+                ->filterColumn('contact_phone', function ($query, $keyword) {
+                    $query->where('contacts.contact_phone', 'LIKE', "%{$keyword}%");
+                })
+                ->filterColumn('contact_landline', function ($query, $keyword) {
+                    $query->where('contacts.contact_landline', 'LIKE', "%{$keyword}%");
+                })
+                ->orderColumn('contact_email', function ($query, $order) {
+                    $query->orderBy('contacts.contact_email', $order);
+                })
+                ->orderColumn('contact_phone', function ($query, $order) {
+                    $query->orderBy('contacts.contact_phone', $order);
+                })
+                ->orderColumn('contact_landline', function ($query, $order) {
+                    $query->orderBy('contacts.contact_landline', $order);
                 })
                 ->addColumn('created_at', fn($unit) => $unit->formatted_created_at)
                 ->addColumn('updated_at', fn($unit) => $unit->formatted_updated_at)
