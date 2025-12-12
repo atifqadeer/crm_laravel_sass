@@ -85,7 +85,7 @@ class Sale extends Model
     }
     public function active_cvs()
     {
-        return $this->hasMany(CvNote::class, 'sale_id', 'id')->where('status', 1);
+        return $this->hasMany(CVNote::class, 'sale_id', 'id')->where('status', 1);
     }
     // public function updated_by_audits()
     // {
