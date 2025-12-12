@@ -76,7 +76,7 @@
         $(document).ready(function() {
             // Initialize Summernote and set content
             $('.summernote').summernote({
-                height: 200,
+                height: 500,
                 toolbar: [
                     ['style', ['bold', 'italic', 'underline', 'clear']],
                     ['font', ['strikethrough', 'superscript', 'subscript']],
