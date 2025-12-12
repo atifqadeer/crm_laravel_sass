@@ -69,9 +69,9 @@
             <div class="email-body">
                 {!! $template !!}
             </div>
-            <div class="email-footer">
+            {{-- <div class="email-footer">
                 &copy; {{ date('Y') }} {{ $from_name }}. All rights reserved.
-            </div>
+            </div> --}}
         </div>
     </div>
 </body>

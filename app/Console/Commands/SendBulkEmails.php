@@ -60,7 +60,7 @@ class SendBulkEmails extends Command
                         'username' => $smtp->username,
                         'password' => $smtp->password,
                         'timeout' => null,
-                        'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL'), PHP_URL_HOST)),
+                        // 'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL'), PHP_URL_HOST)),
                     ],
                     'mail.from.address' => $smtp->from_address,
                     'mail.from.name' => $smtp->from_name,
