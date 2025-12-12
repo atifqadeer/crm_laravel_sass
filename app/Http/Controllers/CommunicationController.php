@@ -68,7 +68,7 @@ class CommunicationController extends Controller
         $unit_name = ($unit ? $unit->unit_name : '-');
         $salary = $sale->salary ?? '-';
         $qualification = $sale->qualification ?? '-';
-        $job_type = $sale->job_type ?? '-';
+        $job_type = $sale->position_type ?? '-';
         $timing = $sale->timing ?? '-';
         $experience = $sale->experience ?? '-';
         $location = '-';
@@ -80,7 +80,7 @@ class CommunicationController extends Controller
             optional($unit)->unit_name ?? '-',
             $sale->salary ?? '-',
             $sale->qualification ?? '-',
-            $sale->job_type ?? '-',
+            $sale->position_type ?? '-',
             $sale->timing ?? '-',
             $sale->experience ?? '-',
             '-', 
@@ -376,6 +376,8 @@ class CommunicationController extends Controller
     public function saveEmailsForApplicants(Request $request)
     {
         try {
+            $sale_id = $request->input('sale_id', null);
+            
             $emailData = $request->input('app_email');
             $template = EmailTemplate::where('slug','send_job_vacancy_details')->where('is_active', 1)->first();
 
@@ -389,7 +391,7 @@ class CommunicationController extends Controller
 
                 foreach($dataEmail as $email){
                     $applicant = Applicant::where('applicant_email', $email)->orWhere('applicant_email_secondary', $email)->first();
-                    $is_save = $this->saveEmailDB($email, $email_from, $email_subject, $email_body, $email_title, $applicant->id);
+                    $is_save = $this->saveEmailDB($email, $email_from, $email_subject, $email_body, $email_title, $applicant->id, $sale_id);
                     if (!$is_save) {
                         // Optional: throw or log
                         Log::warning('Email saved to DB failed for applicant ID: ' . $applicant->id);

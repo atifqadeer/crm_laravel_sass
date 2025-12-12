@@ -23,7 +23,7 @@ class SendBulkEmails extends Command
 
         if ($emailNotification && $emailNotification->value == 1) {
             // Get all unsent emails
-            $unsentEmails = SentEmail::whereIn('status', ['0','2'])->get();
+            $unsentEmails = SentEmail::whereIn('status', [0,2])->get();
 
             if ($unsentEmails->isEmpty()) {
                 $this->info('No unsent emails found.');

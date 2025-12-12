@@ -964,18 +964,32 @@ class SaleController extends Controller
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
-                    if ($sale->status == 1 && $sale->is_on_hold == 1) {
-                        $status = '<span class="badge bg-warning">On Hold</span>';
-                    } elseif ($sale->status == 1 && $sale->is_re_open == 1) {
-                        $status = '<span class="badge bg-dark">Re-Open</span>';
-                    } elseif ($sale->status == 0) {
-                        $status = '<span class="badge bg-danger">Closed</span>';
-                    } elseif ($sale->status == 1) {
-                        $status = '<span class="badge bg-success">Open</span>';
-                    } elseif ($sale->status == 2) {
-                        $status = '<span class="badge bg-warning">Pending</span>';
-                    } elseif ($sale->status == 3) {
-                        $status = '<span class="badge bg-danger">Rejected</span>';
+
+                    // PRIORITY 1 — Check main status first
+                    if ($sale->status == 0) {
+                        return '<span class="badge bg-danger">Closed</span>';
+                    }
+
+                    if ($sale->status == 2) {
+                        return '<span class="badge bg-warning">Pending</span>';
+                    }
+
+                    if ($sale->status == 3) {
+                        return '<span class="badge bg-danger">Rejected</span>';
+                    }
+
+                    // PRIORITY 2 — Status = 1 (Open) — Now check sub-status
+                    if ($sale->status == 1) {
+
+                        if ($sale->is_on_hold == 1) {
+                            return '<span class="badge bg-warning">On Hold</span>';
+                        }
+
+                        if ($sale->is_re_open == 1) {
+                            return '<span class="badge bg-dark">Re-Open</span>';
+                        }
+
+                        return '<span class="badge bg-success">Open</span>';
                     }
 
                     return $status;
@@ -4445,7 +4459,17 @@ class SaleController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource']);
+            ->with(['jobTitle', 'jobCategory', 'jobSource'])
+            ->selectRaw("
+                CASE
+                    WHEN applicants.paid_status = 'close' THEN 1
+                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 1) THEN 2
+                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0 AND cv_notes.sale_id = ?) THEN 3
+                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0) THEN 4
+                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 2 AND cv_notes.sale_id = ? AND applicants.paid_status = 'open') THEN 5
+                    ELSE 6
+                END AS paid_status_order
+            ", [$sale_id, $sale_id]);
 
         $jobTitle = JobTitle::find($sale->job_title_id);
 
@@ -4761,6 +4785,7 @@ class SaleController extends Controller
 
                     return $status;
                 })
+                ->orderColumn('paid_status', 'paid_status_order $1')
                 ->addColumn('action', function ($applicant) use ($sale_id) {
                     $status_value = 'open';
                     if ($applicant->paid_status == 'close') {

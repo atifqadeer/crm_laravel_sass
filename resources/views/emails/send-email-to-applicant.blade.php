@@ -1,8 +1,8 @@
 @extends('layouts.vertical', ['title' => 'Send Email to Applicants', 'subTitle' => 'Emails'])
 
-@section('css')
+{{-- @section('css')
     @vite(['node_modules/quill/dist/quill.snow.css'])
-@endsection
+@endsection --}}
 
 @section('content')
 
@@ -21,6 +21,7 @@
                 <form id="composeEmailForm" method="POST" action="">
                     @csrf
                     <div class="card-body" id="composeCard">
+                        <input type="hidden" name="sale_id" value="{{ $sale->id }}">
                         <div class="mb-3">
                             <input type="text" class="form-control" id="toEmail" name="to_email[]" placeholder="To: " value="{{ $emails }}">
                             <div class="invalid-feedback">Please provide emails</div>
@@ -33,8 +34,9 @@
                         </div>
 
                         <div class="mb-3">
-                            <div id="snow-editor" style="height: 400px;">{!! $formattedMessage !!}</div>
-                            <input type="hidden" name="body" id="emailBody" value="{!! $formattedMessage !!}">
+                            {{-- <div id="snow-editor" style="height: 400px;">{!! $formattedMessage !!}</div> --}}
+                            {{-- <input type="hidden" name="body" id="emailBody" value=""> --}}
+                            <textarea name="body" id="emailBody" class="summernote form-control @error('body') is-invalid @enderror">{!! $formattedMessage !!}</textarea>
                             <div class="invalid-feedback">Please provide email body</div>
                         </div>
 
@@ -62,7 +64,11 @@
 
     <!-- Toastr JS -->
     <script src="{{ asset('js/toastr.min.js')}}"></script>
-    
+            <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
     <script>
         $("#export_email").on("click", function(e){
             var app_email = $("input[name='to_email[]']")
@@ -89,7 +95,21 @@
                 }
             });
         });
-
+        $(document).ready(function() {
+            // Initialize Summernote and set content
+            $('.summernote').summernote({
+                height: 500,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+        });
         $("#sendEmailBtn").on("click", function (e) {
             e.preventDefault();
 
@@ -156,6 +176,6 @@
     </script>
     @endsection
 
-    @section('script-bottom')
+    {{-- @section('script-bottom')
         @vite(['resources/js/components/form-quilljs.js'])
-    @endsection
+    @endsection --}}

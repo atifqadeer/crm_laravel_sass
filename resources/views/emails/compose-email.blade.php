@@ -1,8 +1,8 @@
 @extends('layouts.vertical', ['title' => 'Compose Email', 'subTitle' => 'Emails'])
 
-@section('css')
+{{-- @section('css')
     @vite(['node_modules/quill/dist/quill.snow.css'])
-@endsection
+@endsection --}}
 
 @section('content')
 
