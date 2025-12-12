@@ -51,12 +51,17 @@ class SendBulkEmails extends Command
 
                 // Dynamically configure mailer per SMTP
                 config([
-                    'mail.mailers.smtp.transport' => $smtp->mailer ?? 'smtp',
-                    'mail.mailers.smtp.host' => $smtp->host,
-                    'mail.mailers.smtp.port' => $smtp->port,
-                    'mail.mailers.smtp.username' => $smtp->username,
-                    'mail.mailers.smtp.password' => $smtp->password,
-                    'mail.mailers.smtp.encryption' => $smtp->encryption ?? 'tls',
+                    'mail.default' => 'dynamic_smtp',
+                    'mail.mailers.dynamic_smtp' => [
+                        'transport' => 'smtp',
+                        'host' => $smtp->host,
+                        'port' => $smtp->port,
+                        'encryption' => $smtp->encryption ?? 'tls',
+                        'username' => $smtp->username,
+                        'password' => $smtp->password,
+                        'timeout' => null,
+                        'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL'), PHP_URL_HOST)),
+                    ],
                     'mail.from.address' => $smtp->from_address,
                     'mail.from.name' => $smtp->from_name,
                 ]);
@@ -72,7 +77,7 @@ class SendBulkEmails extends Command
                                 ? array_filter(array_map('trim', explode(',', $email->cc_emails)))
                                 : [];
 
-                            Mail::send('emails.bulk', [
+                            Mail::mailer('dynamic_smtp')->send('emails.bulk', [
                                 'subject' => $email->subject ?? 'Bulk Email',
                                 'template' => $email->template ?? 'This is a bulk email sent via cron job.',
                                 'from_address' => $smtp->from_address,
