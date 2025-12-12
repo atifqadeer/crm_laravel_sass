@@ -568,7 +568,7 @@ class SalesExport implements FromCollection, WithHeadings
                 
             case 'noLatLong':
                 return Sale::select(
-                        'sales.id', 
+                        'sales.id',
                         'offices.office_name',
                         'units.unit_name',
                         'sales.sale_postcode',
@@ -579,8 +579,8 @@ class SalesExport implements FromCollection, WithHeadings
                         'job_titles.name as job_title',
                         'sales.created_at'
                     )
-                    ->whereNull('sales.lat')
-                    ->whereNull('sales.lng')
+                    ->whereIn('sales.lat', ['0', '', null])
+                    ->whereIn('sales.lng', ['0', '', null])
                     ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
                     ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
                     ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
@@ -599,6 +599,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_title' => strtoupper($item->job_title),
                         ];
                     });
+
                 
             case 'all':
                 return Sale::select(
