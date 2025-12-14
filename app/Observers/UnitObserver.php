@@ -12,11 +12,11 @@ class UnitObserver
      */
     public function created(Unit $unit): void
     {
-        $unit->audits()->create([
-            "user_id" => Auth::id(),
-            "data" => $unit->toJson(),
-            "message" => "Unit '{$unit->unit_name}' has been created successfully at {$unit->created_at}",
-        ]);
+        // $unit->audits()->create([
+        //     "user_id" => Auth::id(),
+        //     "data" => $unit->toJson(),
+        //     "message" => "Unit '{$unit->unit_name}' has been created successfully at {$unit->created_at}",
+        // ]);
     }
 
     /**

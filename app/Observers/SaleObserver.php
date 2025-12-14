@@ -15,13 +15,13 @@ class SaleObserver
      */
     public function created(Sale $sale): void
     {
-        $jobTitle = JobTitle::find($sale->job_title_id);
+        // $jobTitle = JobTitle::find($sale->job_title_id);
 
-        $sale->audits()->create([
-            "user_id" => Auth::id(),
-            "data" => $sale->toJson(),
-            "message" => "Sale '{$jobTitle?->name}' has been created successfully at {$sale->created_at}",
-        ]);
+        // $sale->audits()->create([
+        //     "user_id" => Auth::id(),
+        //     "data" => $sale->toJson(),
+        //     "message" => "Sale '{$jobTitle?->name}' has been created successfully at {$sale->created_at}",
+        // ]);
     }
 
     /**
