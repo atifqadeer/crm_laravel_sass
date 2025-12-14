@@ -21,10 +21,10 @@ class Audit extends Model
         'data' => 'array',
     ];
 
-    public function auditable()
-    {
-        return $this->morphTo();
-    }
+    // public function auditable()
+    // {
+    //     return $this->morphTo();
+    // }
 
     public function user()
     {

@@ -75,10 +75,10 @@ class Sale extends Model
     {
         return $this->hasMany(SaleNote::class, 'sale_id', 'id');
     }
-    public function audits()
-    {
-        return $this->morphMany(Audit::class, 'auditable');
-    }
+    // public function audits()
+    // {
+    //     return $this->morphMany(Audit::class, 'auditable');
+    // }
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
