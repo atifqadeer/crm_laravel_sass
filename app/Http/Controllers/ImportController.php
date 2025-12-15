@@ -2516,15 +2516,15 @@ class ImportController extends Controller
                         return in_array($value, ['yes', '1', 'true'], true) ? 1 : 0;
                     };
 
-                    function normalizeCrmInterview($value): int
-                    {
-                        return match (strtolower(trim((string)$value))) {
-                            'yes','1','true'    => 1,
-                            'pending','2'       => 2,
-                            'false'             => 0,
-                        };
-                    }
-                    $is_crm_interview_attended = normalizeCrmInterview($row['is_crm_interview_attended'] ?? null);
+                    $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'] ?? '')));
+
+                    $is_crm_interview_attended = match ($crmInterviewInput) {
+                        'yes', '1', 'true'  => 1,
+                        'pending', '2'      => 2,
+                        'no', '0', 'false', '', 'null' => 0,
+                        default             => 0, // REQUIRED for safety
+                    };
+
 
 
                     $have_nursing_home_experience = null;
