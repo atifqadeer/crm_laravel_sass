@@ -942,7 +942,12 @@ class ImportController extends Controller
                     }
 
                     // Normalize keys to lowercase to match headers
-                    $row = array_change_key_case($row, CASE_LOWER);
+                    $row = collect($row)->mapWithKeys(function ($value, $key) {
+    $key = strtolower(trim($key));
+    $key = preg_replace('/\s+/', '_', $key); // 👈 SAME RULE
+    return [$key => $value];
+})->toArray();
+
 
                     // Clean data
                     $row = array_map(function ($value) {
