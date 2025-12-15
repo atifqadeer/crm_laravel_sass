@@ -23,7 +23,10 @@ class CreateApplicantsTable extends Migration
             $table->unsignedBigInteger('job_title_id')->nullable();
             $table->string('job_type')->nullable();
             $table->string('applicant_name', 255);
-            $table->string('applicant_email', 255);
+            $table->string('applicant_email', 255)->nullable();
+            $table->string('applicant_email_secodary', 255)->nullable();
+            $table->enum('gender', ['m','f','u'])->nullable()->default('u');
+            $table->date('date')->nullable();
             $table->string('applicant_postcode', 50)->nullable();
             $table->string('applicant_phone', 50);
             $table->string('applicant_landline', 50)->nullable();
@@ -66,11 +69,11 @@ class CreateApplicantsTable extends Migration
             $table->string('paid_status', 20)->default('pending');
             $table->timestamp('paid_timestamp')->nullable();
 
-            $table->softDeletes();
-
             // Timestamps with default values and automatic update on change
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+            $table->softDeletes();
 
             // Foreign keys
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');

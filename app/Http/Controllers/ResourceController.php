@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 use Exception;
 use Carbon\Carbon;
 use Horsefly\CrmNote;
@@ -3029,37 +3030,44 @@ class ResourceController extends Controller
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                        ' . (int)$applicant->id . ',
-                                        \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
-                                        \'' . addslashes(htmlspecialchars($applicant->applicant_email ?? '-')) . '\',
-                                        \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary ?? '-')) . '\',
-                                        \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                        \'' . addslashes(htmlspecialchars($landline)) . '\',
-                                        \'' . addslashes(htmlspecialchars($phone)) . '\',
-                                        \'' . addslashes(htmlspecialchars($job_title)) . '\',
-                                        \'' . addslashes(htmlspecialchars($job_category)) . '\',
-                                        \'' . addslashes(htmlspecialchars($job_source)) . '\',
-                                        \'' . addslashes(htmlspecialchars($posted_date)) . '\',
-                                        \'' . addslashes(htmlspecialchars($status)) . '\'
-                                    )">View Details</a>
-                                </li>
-                                <li>
+                            <ul class="dropdown-menu">';
+                    if(Gate::allows('resource-category-view')){
+                        $html .= '<li>
+                                <a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                    ' . (int)$applicant->id . ',
+                                    \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
+                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email ?? '-')) . '\',
+                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary ?? '-')) . '\',
+                                    \'' . addslashes(htmlspecialchars($postcode)) . '\',
+                                    \'' . addslashes(htmlspecialchars($landline)) . '\',
+                                    \'' . addslashes(htmlspecialchars($phone)) . '\',
+                                    \'' . addslashes(htmlspecialchars($job_title)) . '\',
+                                    \'' . addslashes(htmlspecialchars($job_category)) . '\',
+                                    \'' . addslashes(htmlspecialchars($job_source)) . '\',
+                                    \'' . addslashes(htmlspecialchars($posted_date)) . '\',
+                                    \'' . addslashes(htmlspecialchars($status)) . '\'
+                                )">View Details</a>
+                            </li>';
+                    }
+                    if(Gate::allows('resource-category-upload-applicant-resume')){
+                        $html .= '<li>
                                     <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                     <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                 </li>';
-                    $html .= '<li>
-                                <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
-                                <!-- Hidden File Input -->
-                                <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
-                            </li>';
-                    $html .= '<li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
-                            </ul>
-                        </div>';
-
+                    }
+                    if(Gate::allows('resource-category-upload-crm-resume')){
+                        $html .= '<li>
+                                    <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <!-- Hidden File Input -->
+                                    <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                                </li>';
+                    }
+                    if(Gate::allows('resource-category-view-notes-history')){
+                        $html .= '<li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
+                                </ul>
+                            </div>';
+                    }
                     return $html;
                 })
                 // ->setRowClass(function ($applicant) {

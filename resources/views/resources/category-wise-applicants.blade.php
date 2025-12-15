@@ -602,7 +602,7 @@
             if ($('#' + modalID).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalID}Label">Applicant Notes History</h5>

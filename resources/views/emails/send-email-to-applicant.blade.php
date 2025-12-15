@@ -73,18 +73,21 @@
         $("#export_email").on("click", function(e){
             var app_email = $("input[name='to_email[]']")
                 .val();
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
             $.ajax({
                 url: "{{route('exportDirectApplicantsEmails')}}",
                 type: "post",
                 data: {
                     app_email : app_email,
-                    _token: '{{ csrf_token() }}'
+                    _token: csrfToken
                 },
                 success: function(response, status, xhr) {
                     var blob = new Blob([response], { type: xhr.getResponseHeader('content-type') });
                     var link = document.createElement('a');
                     link.href = window.URL.createObjectURL(blob);
-                    link.download = 'applicants.csv';
+                    link.download = 'applicants_email_data.csv';
                     link.click();
                     toastr.success('Email export successfully!');
 
