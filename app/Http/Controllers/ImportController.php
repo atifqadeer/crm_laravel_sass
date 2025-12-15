@@ -981,7 +981,8 @@ class ImportController extends Controller
                                 $ts = strtotime($rawPaid);
 
                                 if ($ts !== false && $ts > 0) {
-                                    $paid_timestamp = date('Y-m-d H:i:s', $ts);
+                                    $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
+
                                 } else {
                                     Log::channel('import')->debug("Row {$rowIndex}: Invalid paid_timestamp format: '{$rawPaid}'");
                                 }
@@ -2499,14 +2500,6 @@ class ImportController extends Controller
                         $phone = str_repeat('0', 11);
                     }
 
-                    // $homePhone = $normalizePhone($rawHomePhone);
-
-                    // $applicantLandline = '0'; // default
-                    // if (!empty($homePhone) && $homePhone !== str_repeat('0', 11)) {
-                    //     $applicantLandline = $homePhone;
-                    // } elseif (!empty($landlinePhoneClean) && $landlinePhoneClean !== str_repeat('0', 11)) {
-                    //     $applicantLandline = $landlinePhoneClean;
-                    // } // fallback to single 0
 
                     $homePhone = $normalizePhone($rawHomePhone);
 
@@ -2515,14 +2508,12 @@ class ImportController extends Controller
                     // Only assign if number has 10 or more digits
                     if (!empty($homePhone) && strlen(preg_replace('/\D/', '', $homePhone)) >= 10) {
                         $applicantLandline = $homePhone;
-                    } elseif (!empty($landlinePhoneClean) && strlen(preg_replace('/\D/', '', $landlinePhoneClean)) >= 10) {
-                        $applicantLandline = $landlinePhoneClean;
                     }
 
                     // Normalize boolean/enum fields
                     $normalizeBoolean = function ($value) {
                         $value = strtolower(trim((string)($value ?? '')));
-                        return in_array($value, ['yes', '1', 'true']) ? 1 : 0;
+                        return in_array($value, ['yes', '1', 'true'], true) ? 1 : 0;
                     };
 
                     // Normalize and handle boolean / enum field
@@ -2633,7 +2624,7 @@ class ImportController extends Controller
             Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert/Update in chunks
-            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
+            foreach (array_chunk($processedData, 50) as $chunkIndex => $chunk) {
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
@@ -2643,10 +2634,10 @@ class ImportController extends Controller
                                 unset($row['id']);
                                 $filtered = $row; // trust your parsed values
                                 if ($id) {
-                                    Applicant::updateOrCreate(
-                                        ['id' => $id],
-                                        $filtered
-                                    );
+                                    Applicant::where('id', $id)->exists()
+    ? Applicant::where('id', $id)->update($filtered)
+    : Applicant::create(array_merge(['id' => $id], $filtered));
+
                                     Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
                                 } else {
                                     $newId = Applicant::create($filtered)->id;

@@ -1001,7 +1001,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Sale'
+                    module: 'Sale'
 
                 }, // Pass the id to your server to fetch the corresponding applicant's notes
                 success: function(response) {
@@ -1075,7 +1075,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Unit'
+                    module: 'Unit'
 
                 }, // Pass the id to your server to fetch the corresponding applicant's notes
                 success: function(response) {

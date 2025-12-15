@@ -584,7 +584,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Applicant'
+                    module: 'Applicant'
                 },
                 success: function(response) {
                     let notesHtml = '';

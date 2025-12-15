@@ -468,9 +468,9 @@ class ResourceController extends Controller
     public function getResourcesIndirectApplicants(Request $request)
     {
         // --- Normalize boolean input ---
-        $request->merge([
-            'updated_sales_filter' => filter_var($request->updated_sales_filter, FILTER_VALIDATE_BOOLEAN),
-        ]);
+        // $request->merge([
+        //     'updated_sales_filter' => filter_var($request->updated_sales_filter, FILTER_VALIDATE_BOOLEAN),
+        // ]);
 
         // --- Validation ---
         $validated = $request->validate([

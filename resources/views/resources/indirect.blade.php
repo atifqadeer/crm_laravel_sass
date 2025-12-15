@@ -724,7 +724,7 @@
                 type: 'GET',
                 data: { 
                     id: id,
-                    module: 'Horsefly\\Applicant'
+                    module: 'Applicant'
 
                 }, // Pass the id to your server to fetch the corresponding applicant's notes
                 success: function(response) {
@@ -771,7 +771,7 @@
             if ($('#viewNotesHistoryModal').length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="viewNotesHistoryModal" tabindex="-1" aria-labelledby="viewNotesHistoryModalLabel" aria-hidden="true">' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="viewNotesHistoryModalLabel">Applicant Notes History</h5>' +
