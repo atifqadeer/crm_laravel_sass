@@ -2516,22 +2516,16 @@ class ImportController extends Controller
                         return in_array($value, ['yes', '1', 'true'], true) ? 1 : 0;
                     };
 
-                    // Normalize and handle boolean / enum field
-                    $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'])));
-
-                    $is_crm_interview_attended = match ($crmInterviewInput) {
-                        'yes'     => 1,
-                        'no', '0' => 0,
-                        'pending' => 2,
-                        default   => null,
-                    };
-
-                    // Log only unexpected inputs
-                    if ($crmInterviewInput != '' && !in_array($crmInterviewInput, ['yes', 'no', '0', 'pending', 'false'])) {
-                        Log::channel('import')->warning(
-                            "Row {$rowIndex}: Unexpected is_crm_interview_attended value: '{$crmInterviewInput}', defaulting to null"
-                        );
+                    function normalizeCrmInterview($value): int
+                    {
+                        return match (strtolower(trim((string)$value))) {
+                            'yes','1','true'    => 1,
+                            'pending','2'       => 2,
+                            'false'             => 0,
+                        };
                     }
+                    $is_crm_interview_attended = normalizeCrmInterview($row['is_crm_interview_attended'] ?? null);
+
 
                     $have_nursing_home_experience = null;
                     $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
