@@ -877,40 +877,40 @@ class ImportController extends Controller
             $csv->setEnclosure('"');
             $csv->setEscape('\\');
 
-            // Validate headers
-            $headers = array_map(function ($h) {
-                $h = strtolower(trim($h));
-                $h = preg_replace('/\s+/', '', $h); // remove ALL spaces inside
-                return $h;
-            }, $csv->getHeader());
+            // // Validate headers
+            // $headers = array_map(function ($h) {
+            //     $h = strtolower(trim($h));
+            //     $h = preg_replace('/\s+/', '', $h); // remove ALL spaces inside
+            //     return $h;
+            // }, $csv->getHeader());
 
-            // Normalize required headers
-            $requiredHeaders = [
-                'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
-                'job_title_prof','applicant_name','applicant_email','applicant_postcode',
-                'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
-                'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
-                'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
-                'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
-                'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
-                'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
-                'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
-                'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
-                'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
-                'is_job_within_radius','have_nursing_home_experience','status','paid_status',
-                'paid_timestamp','created_at','updated_at'
-            ];
+            // // Normalize required headers
+            // $requiredHeaders = [
+            //     'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
+            //     'job_title_prof','applicant_name','applicant_email','applicant_postcode',
+            //     'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
+            //     'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
+            //     'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
+            //     'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
+            //     'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
+            //     'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
+            //     'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
+            //     'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
+            //     'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
+            //     'is_job_within_radius','have_nursing_home_experience','status','paid_status',
+            //     'paid_timestamp','created_at','updated_at'
+            // ];
 
-            $normalizedRequired = array_map(function ($h) {
-                return preg_replace('/\s+/', '', strtolower($h));
-            }, $requiredHeaders);
+            // $normalizedRequired = array_map(function ($h) {
+            //     return preg_replace('/\s+/', '', strtolower($h));
+            // }, $requiredHeaders);
 
-            // Compare
-            $missingHeaders = array_diff($normalizedRequired, $headers);
+            // // Compare
+            // $missingHeaders = array_diff($normalizedRequired, $headers);
 
-            if (!empty($missingHeaders)) {
-                throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
-            }
+            // if (!empty($missingHeaders)) {
+            //     throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
+            // }
             
             // Count total rows
             $records = $csv->getRecords();
@@ -942,11 +942,12 @@ class ImportController extends Controller
                     }
 
                     // Normalize keys to lowercase to match headers
-                    $row = collect($row)->mapWithKeys(function ($value, $key) {
-    $key = strtolower(trim($key));
-    $key = preg_replace('/\s+/', '_', $key); // 👈 SAME RULE
-    return [$key => $value];
-})->toArray();
+                   $row = collect($row)->mapWithKeys(function ($value, $key) {
+                        $key = strtolower(trim($key));
+                        $key = preg_replace('/\s+/', '_', $key);
+                        return [$key => $value];
+                    })->toArray();
+
 
 
                     // Clean data
