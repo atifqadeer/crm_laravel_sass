@@ -760,7 +760,7 @@
                 type: 'GET',
                 data: {
                     id: id,
-                    module: 'Horsefly\\Unit'
+                    module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';
