@@ -76,10 +76,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(LoginDetail::class);
     }
-    // public function audits()
-    // {
-    //     return $this->morphMany(Audit::class, 'auditable');
-    // }
+    public function audits()
+    {
+        return $this->morphMany(Audit::class, 'auditable');
+    }
     public function performedAudits()
     {
         return $this->hasMany(Audit::class, 'user_id');

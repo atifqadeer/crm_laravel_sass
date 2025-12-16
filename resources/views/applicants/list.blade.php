@@ -1385,43 +1385,58 @@
 
         function uploadFile() {
             const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0]; // Get the selected file
+            const file = fileInput.files[0];
 
-            if (file && applicantId) {
-                // Create a FormData object to send the file along with the applicant ID
-                const formData = new FormData();
-                formData.append('resume', file);
-                formData.append('applicant_id', applicantId); // Append applicant ID
-
-                // Include CSRF token if you're using Laravel or any framework that requires CSRF protection
-                formData.append('_token', '{{ csrf_token() }}'); // CSRF token
-
-                // You can send the file to the server using an AJAX request or any method you prefer
-                // Example using Fetch API
-                fetch('{{ route('applicants.uploadCv') }}', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            // If needed, add other headers here (like Authorization headers if you're using token-based auth)
-                            //'Authorization': 'Bearer ' + YOUR_TOKEN // Uncomment if needed
-                        }
-                    })
-                    .then(response => response.json()) // Assuming the server returns JSON
-                    .then(data => {
-                        if (data.success) {
-                            toastr.success('File uploaded successfully');
-                            $('#applicants_table').DataTable().ajax.reload(); // Reload the DataTable
-                        } else {
-                            toastr.error('Error:', data.message);
-                        }
-                    })
-                    .catch(error => {
-                        toastr.error('Error uploading file:', error);
-                    });
-            } else {
+            if (!file || !applicantId) {
                 toastr.error('No file selected or applicant ID missing.');
+                return;
             }
+
+            const formData = new FormData();
+            formData.append('resume', file);
+            formData.append('applicant_id', applicantId);
+
+            fetch('{{ route('applicants.uploadCv') }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin' // ✅ important for session
+            })
+            .then(async response => {
+                // 🚨 Handle redirects / session issues
+                if (response.status === 302 || response.status === 401) {
+                    throw new Error('Session expired. Please refresh the page.');
+                }
+
+                if (response.status === 419) {
+                    throw new Error('CSRF token mismatch. Refresh the page.');
+                }
+
+                if (response.status === 422) {
+                    const err = await response.json();
+                    throw new Error(err.message || 'Validation failed');
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    toastr.success(data.message || 'File uploaded successfully');
+                    $('#applicants_table').DataTable().ajax.reload(null, false);
+                    fileInput.value = '';
+                } else {
+                    toastr.error(data.message || 'Upload failed');
+                }
+            })
+            .catch(error => {
+                toastr.error(error.message || 'Error uploading file');
+                console.error(error);
+            });
         }
+
 
         $(document).ready(function() {
             $('#pdfImportForm').on('submit', function(e) {
