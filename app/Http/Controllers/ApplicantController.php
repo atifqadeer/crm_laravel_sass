@@ -1118,11 +1118,18 @@ class ApplicantController extends Controller
     public function uploadCv(Request $request)
     {
         // Validate the request
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
             'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
         // Get file and applicant data
         $file = $request->file('resume');
         $applicantId = $request->input('applicant_id');
