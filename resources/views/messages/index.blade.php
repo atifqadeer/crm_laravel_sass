@@ -21,6 +21,15 @@
     .simplebar-content {
         pointer-events: auto !important;
     }
+    .chat-item.active {
+        background-color: #e9f2ff;
+        border-left: 4px solid #0d6efd;
+    }
+    .applicant-chat.active,
+    .user-chat.active {
+        background-color: #f0f5ff !important;
+        border-left: 4px solid #0d6efd;
+    }
     #chatConversationLoader {
         position: absolute;
         top: 50%;
@@ -156,6 +165,8 @@
     let isLoadingUsers = false;
     let currentRecipientId = null;
     let currentRecipientType = null; // 'applicant' or 'user'
+
+    
 
     function loadApplicants(page = 1) {
         if (isLoadingApplicants) return; // Prevent multiple simultaneous requests
@@ -431,7 +442,7 @@
 
         // Infinite scroll for applicants
         $(chatListSimpleBar.getScrollElement()).on('scroll', debounce(function() {
-            alert("this");
+
             if (isLoadingApplicants) return;
             const scrollElement = chatListSimpleBar.getScrollElement();
             const scrollPosition = scrollElement.scrollTop + scrollElement.clientHeight;

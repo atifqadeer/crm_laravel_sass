@@ -534,27 +534,53 @@ class CommunicationController extends Controller
                 $query->where('user_id', Auth::id());
             }
 
-            $messages = $query->get()->map(function ($message) {
-                    return [
-                        'message' => $message->message,
-                        'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
-                        'is_sender' => $message->user_id == Auth::id(),
-                        'user_name' => $message->user ? $message->user->name : 'Unknown',
-                        'is_read' => $message->is_read ?? 0,
-                        'is_sent' => $message->is_sent ?? 0,
-                        'phone_number' => $message->phone_number,
-                        'status' => $message->status == 'outgoing' ? 'Sent' : 'Received',
-                    ];
-                });
+            // $messages = $query->get()->map(function ($message) {
+            //         return [
+            //             'message' => $message->message,
+            //             'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
+            //             'is_sender' => $message->user_id == Auth::id(),
+            //             'user_name' => $message->user ? $message->user->name : 'Unknown',
+            //             'is_read' => $message->is_read ?? 0,
+            //             'is_sent' => $message->is_sent ?? 0,
+            //             'phone_number' => $message->phone_number,
+            //             'status' => $message->status == 'outgoing' ? 'Sent' : 'Received',
+            //         ];
+            //     });
+
+            // Fetch messages WITH pagination (IMPORTANT)
+$messages = Message::where('module_id', $recipientId)
+    ->where('module_type', $moduleType)
+    ->with('user')
+    ->orderByDesc('id') // newest first for pagination
+    ->paginate(20);
+
+// Transform messages
+$formattedMessages = collect($messages->items())->map(function ($message) {
+    return [
+        'id' => $message->id,
+        'message' => $message->message,
+        'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
+        'is_sender' => $message->user_id == Auth::id(),
+        'user_name' => $message->user ? $message->user->name : 'Unknown',
+        'is_read' => $message->is_read ?? 0,
+        'is_sent' => $message->is_sent ?? 0,
+        'phone_number' => $message->phone_number,
+        'status' => $message->status === 'outgoing' ? 'Sent' : 'Received',
+    ];
+});
+
 
             return response()->json([
-                'recipient' => [
-                    'id' => $recipient_id,
-                    'name' => $recipient_name,
-                    'phone' => $recipient_phone
-                ],
-                'messages' => $messages,
-            ]);
+    'recipient' => [
+        'id' => $recipient_id,
+        'name' => $recipient_name,
+        'phone' => $recipient_phone
+    ],
+    'messages' => $formattedMessages,
+    'has_more' => $messages->hasMorePages(),
+    'next_page' => $messages->currentPage() + 1,
+]);
+
         } catch (\Exception $e) {
             Log::error('Error in getChatBoxMessages: ' . $e->getMessage());
             return response()->json(['error' => 'An error occurred while fetching messages'], 500);
