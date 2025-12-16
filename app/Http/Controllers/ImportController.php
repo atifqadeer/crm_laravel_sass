@@ -73,13 +73,13 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Offices Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Offices Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
             $filename = $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Convert file to UTF-8 if needed
             $content = file_get_contents($filePath);
@@ -99,25 +99,25 @@ class ImportController extends Controller
             $records = $csv->getRecords();
             $headers = $csv->getHeader();
             $expectedColumnCount = count($headers);
-            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             // Count total rows
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total offices records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total offices records in CSV: {$totalRows}");
 
             $processedData = [];
             $successfulRows = 0;
             $failedRows = [];
             $rowIndex = 1; // Start from 1 to skip header
 
-            Log::channel('daily')->info('🚀 Starting offices row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting offices row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -128,7 +128,7 @@ class ImportController extends Controller
                     // Combine headers with row data
                     $row = array_combine($headers, $row);
                     if ($row == false) {
-                        Log::channel('daily')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
+                        Log::channel('import')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
                         $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
                         continue;
                     }
@@ -153,7 +153,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -186,7 +186,7 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
@@ -194,7 +194,7 @@ class ImportController extends Controller
                         }
 
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -220,7 +220,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -268,7 +268,7 @@ class ImportController extends Controller
                             $lat = $postcode_query->lat ?? 0.0000;
                             $lng = $postcode_query->lng ?? 0.0000;
                         } else {
-                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
+                            Log::channel('import')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
                             $lat = 0.0000;
                             $lng = 0.0000;
                         }
@@ -326,11 +326,11 @@ class ImportController extends Controller
                     $processedData[] = $processedRow;
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
@@ -347,7 +347,7 @@ class ImportController extends Controller
                                     $row // update/insert data
                                 );
 
-                                Log::channel('daily')->info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
+                                Log::channel('import')->info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
 
                                 // Optional: remove old contacts for this office to avoid duplicates
                                 DB::table('contacts')
@@ -369,7 +369,7 @@ class ImportController extends Controller
 
                                     if (!empty($contactRows)) {
                                         DB::table('contacts')->insert($contactRows);
-                                        Log::channel('daily')->info("Contacts inserted for office ID {$row['id']}");
+                                        Log::channel('import')->info("Contacts inserted for office ID {$row['id']}");
                                     }
                                 }
 
@@ -379,31 +379,31 @@ class ImportController extends Controller
                                     'row' => $rowIndex,
                                     'error' => $e->getMessage(),
                                 ];
-                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                             }
                         }
                     });
-                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
             // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Offices Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Offices Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
 
             return response()->json([
@@ -419,9 +419,9 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -455,13 +455,13 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Units Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Units Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
             $filename = $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Convert file to UTF-8 if needed
             $content = file_get_contents($filePath);
@@ -481,25 +481,25 @@ class ImportController extends Controller
             $records = $csv->getRecords();
             $headers = $csv->getHeader();
             $expectedColumnCount = count($headers);
-            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             // Count total rows
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total units records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total units records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1; // Start from 1 to skip header
 
-            Log::channel('daily')->info('🚀 Starting units row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting units row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -510,7 +510,7 @@ class ImportController extends Controller
                     // Combine headers with row data
                     $row = array_combine($headers, $row);
                     if ($row == false) {
-                        Log::channel('daily')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
+                        Log::channel('import')->warning("Skipped row {$rowIndex} due to header mismatch.", ['row' => $row]);
                         $failedRows[] = ['row' => $rowIndex, 'error' => 'Header mismatch'];
                         continue;
                     }
@@ -535,7 +535,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -568,14 +568,14 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
                             }
                         }
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -601,7 +601,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -652,7 +652,7 @@ class ImportController extends Controller
                             $lat = $postcode_query->lat ?? 0.0000;
                             $lng = $postcode_query->lng ?? 0.0000;
                         } else {
-                            Log::channel('daily')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
+                            Log::channel('import')->warning("Row {$rowIndex}: No lat/lng found for postcode '{$cleanPostcode}', defaulting to 0.0000,0.0000");
                             $lat = 0.0000;
                             $lng = 0.0000;
                         }
@@ -709,11 +709,11 @@ class ImportController extends Controller
                     $processedData[] = $processedRow;
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Save data to database
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
@@ -754,7 +754,7 @@ class ImportController extends Controller
 
                                     if (!empty($contactRows)) {
                                         DB::table('contacts')->insert($contactRows);
-                                        Log::channel('daily')->info("Contacts inserted for office ID {$row['id']}");
+                                        Log::channel('import')->info("Contacts inserted for office ID {$row['id']}");
                                     }
                                 }
 
@@ -766,14 +766,14 @@ class ImportController extends Controller
                                     'error' => $e->getMessage(),
                                 ];
 
-                                Log::channel('daily')->error(
+                                Log::channel('import')->error(
                                     "Row {$rowIndex}: Failed for Unit ID {$row['id']} - {$e->getMessage()}"
                                 );
                             }
                         }
                     });
 
-                    Log::channel('daily')->info("Processed chunk #{$chunkIndex}");
+                    Log::channel('import')->info("Processed chunk #{$chunkIndex}");
 
                 } catch (\Throwable $e) {
                     $failedRows[] = [
@@ -781,7 +781,7 @@ class ImportController extends Controller
                         'error' => $e->getMessage(),
                     ];
 
-                    Log::channel('daily')->error(
+                    Log::channel('import')->error(
                         "Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}"
                     );
                 }
@@ -791,17 +791,17 @@ class ImportController extends Controller
             // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Units Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Units Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
              return response()->json([
                 'message' => 'CSV import completed successfully!',
@@ -816,9 +816,9 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -852,7 +852,7 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Applicant Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Applicant Import] Starting CSV import process...');
 
             // Store file
             $file = $request->file('csv_file');
@@ -878,39 +878,39 @@ class ImportController extends Controller
             $csv->setEscape('\\');
 
             // // Validate headers
-            // $headers = array_map(function ($h) {
-            //     $h = strtolower(trim($h));
-            //     $h = preg_replace('/\s+/', '', $h); // remove ALL spaces inside
-            //     return $h;
-            // }, $csv->getHeader());
+            $headers = array_map(function ($h) {
+                $h = strtolower(trim($h));
+                $h = preg_replace('/\s+/', '_', $h); // remove ALL spaces inside
+                return $h;
+            }, $csv->getHeader());
 
-            // // Normalize required headers
-            // $requiredHeaders = [
-            //     'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
-            //     'job_title_prof','applicant_name','applicant_email','applicant_postcode',
-            //     'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
-            //     'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
-            //     'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
-            //     'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
-            //     'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
-            //     'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
-            //     'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
-            //     'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
-            //     'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
-            //     'is_job_within_radius','have_nursing_home_experience','status','paid_status',
-            //     'paid_timestamp','created_at','updated_at'
-            // ];
+            // Normalize required headers
+            $requiredHeaders = [
+                'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
+                'job_title_prof','applicant_name','applicant_email','applicant_postcode',
+                'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
+                'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
+                'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
+                'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
+                'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
+                'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
+                'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
+                'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
+                'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
+                'is_job_within_radius','have_nursing_home_experience','status','paid_status',
+                'paid_timestamp','created_at','updated_at'
+            ];
 
-            // $normalizedRequired = array_map(function ($h) {
-            //     return preg_replace('/\s+/', '', strtolower($h));
-            // }, $requiredHeaders);
+            $normalizedRequired = array_map(function ($h) {
+                return preg_replace('/\s+/', '', strtolower($h));
+            }, $requiredHeaders);
 
-            // // Compare
-            // $missingHeaders = array_diff($normalizedRequired, $headers);
+            // Compare
+            $missingHeaders = array_diff($normalizedRequired, $headers);
 
-            // if (!empty($missingHeaders)) {
-            //     throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
-            // }
+            if (!empty($missingHeaders)) {
+                throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
+            }
             
             // Count total rows
             $records = $csv->getRecords();
@@ -948,8 +948,6 @@ class ImportController extends Controller
                         return [$key => $value];
                     })->toArray();
 
-
-
                     // Clean data
                     $row = array_map(function ($value) {
                         return is_string($value) ? trim(preg_replace('/[^\x20-\x7E]/', '', $value)) : $value;
@@ -974,26 +972,23 @@ class ImportController extends Controller
                     };
 
                     // Normalize ID
-                    $id = $normalizeId($row['id'] ?? null, $rowIndex);
+                    $id = $normalizeId($row['id'], $rowIndex);
 
-                    $paid_timestamp = null;
                     $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
 
-                    // Skip invalid or placeholder values
-                    if (!preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
+                    // Initialize as null
+                    $paid_timestamp = null;
+
+                    // Only parse valid dates
+                    if ($rawPaid !== '' && !preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
                         try {
-                            // Only parse if non-empty
-                            if ($rawPaid !== '') {
-                                $ts = strtotime($rawPaid);
+                            $ts = strtotime($rawPaid);
 
-                                if ($ts !== false && $ts > 0) {
-                                    $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
-
-                                } else {
-                                    Log::channel('import')->debug("Row {$rowIndex}: Invalid paid_timestamp format: '{$rawPaid}'");
-                                }
+                            if ($ts !== false && $ts > 0) {
+                                $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
                             }
                         } catch (\Throwable $e) {
+                            // If parsing fails, remain null
                             Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
                     }
@@ -1132,7 +1127,7 @@ class ImportController extends Controller
                     }
 
                     // Handle job title and category
-                    $job_category_id = null;
+                    $job_category_id = null;                  
                     $job_title_id = null;
                     $job_type = '';
                     $requested_job_title = strtolower(trim($row['applicant_job_title'] ?? ''));
@@ -2531,7 +2526,16 @@ class ImportController extends Controller
                         default             => 0, // REQUIRED for safety
                     };
 
+                    $rawStatus = trim((string)($row['paid_status'] ?? ''));
 
+                    // Convert to lowercase for normalization
+                    $normalizedStatus = strtolower($rawStatus);
+
+                    // Allowed statuses
+                    $allowedStatuses = ['pending', 'close', 'open'];
+
+                    // Default to 'pending' if not valid
+                    $paid_status = in_array($normalizedStatus, $allowedStatuses) ? $normalizedStatus : 'pending';
 
                     $have_nursing_home_experience = null;
                     $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
@@ -2603,7 +2607,7 @@ class ImportController extends Controller
                         'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? false),
                         'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? false),
                         'have_nursing_home_experience' => $have_nursing_home_experience,
-                        'paid_status' => trim($row['paid_status']),
+                        'paid_status' => $paid_status,
                         'paid_timestamp' => $paid_timestamp,
                         'status' => match (strtolower(trim($row['status'] ?? false))) {
                             'active', '1', 'yes', 'enabled' => 1,
@@ -2726,14 +2730,14 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Sales Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Sales Import] Starting CSV import process...');
 
             // Step 1: Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
+            Log::channel('import')->info('📂 File stored at: ' . $filePath);
 
             // Step 2: Ensure UTF-8
             $content = file_get_contents($filePath);
@@ -2741,7 +2745,7 @@ class ImportController extends Controller
             if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
-                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
+                Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             // Step 3: Load CSV
@@ -2755,13 +2759,13 @@ class ImportController extends Controller
             $headers = array_filter($headers, fn($h) => $h != '');
 
             if (empty($headers)) {
-                Log::channel('daily')->error('❌ No valid headers found in CSV.');
+                Log::channel('import')->error('❌ No valid headers found in CSV.');
                 return response()->json(['error' => 'No valid headers found in CSV.'], 400);
             }
 
             $records = $csv->getRecords();
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total records in CSV: {$totalRows}");
             // Recreate iterator since iterator_count exhausts it
             $csv = Reader::createFromPath($filePath, 'r');
             $csv->setHeaderOffset(0);
@@ -2772,7 +2776,7 @@ class ImportController extends Controller
             $successfulRows = 0;
             $rowIndex = 1;
 
-            Log::channel('daily')->info('🚀 Starting row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
@@ -2795,7 +2799,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -2828,7 +2832,7 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
@@ -2836,7 +2840,7 @@ class ImportController extends Controller
                         }
 
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -2862,7 +2866,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -2973,11 +2977,11 @@ class ImportController extends Controller
                     ];
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("❌ Row {$rowIndex} failed: " . $e->getMessage());
+                    Log::channel('import')->error("❌ Row {$rowIndex} failed: " . $e->getMessage());
                 }
             }
 
-            Log::channel('daily')->info("✅ Processing complete. Total processed: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processing complete. Total processed: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Step 4: Batch insert/update with detailed error tracking
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
@@ -2996,18 +3000,18 @@ class ImportController extends Controller
                                     'job_title_id' => $row['job_title_id'] ?? null,
                                     'job_category_id' => $row['job_category_id'] ?? null,
                                 ];
-                                Log::channel('daily')->error("❌ DB insert failed for ID {$row['id']} - " . $e->getMessage());
+                                Log::channel('import')->error("❌ DB insert failed for ID {$row['id']} - " . $e->getMessage());
                             }
                         }
                     });
 
-                    Log::channel('daily')->info("💾 Successfully processed chunk #{$chunkIndex} ({$successfulRows} total so far)");
+                    Log::channel('import')->info("💾 Successfully processed chunk #{$chunkIndex} ({$successfulRows} total so far)");
                 } catch (\Throwable $e) {
                     $failedRows[] = [
                         'chunk' => $chunkIndex,
                         'error' => $e->getMessage(),
                     ];
-                    Log::channel('daily')->error("⚠️ Chunk #{$chunkIndex} failed: " . $e->getMessage());
+                    Log::channel('import')->error("⚠️ Chunk #{$chunkIndex} failed: " . $e->getMessage());
                 }
             }
 
@@ -3018,11 +3022,11 @@ class ImportController extends Controller
             $endTime = microtime(true);
             $duration = round(($endTime - $startTime), 2);
 
-            Log::channel('daily')->info("🏁 [Sales Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Sales Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
                 'message' => 'CSV import completed successfully!',
@@ -3035,7 +3039,7 @@ class ImportController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::channel('daily')->error('💥 Sales import failed: ' . $e->getMessage());
+            Log::channel('import')->error('💥 Sales import failed: ' . $e->getMessage());
             return response()->json(['error' => 'Sales import failed: ' . $e->getMessage()], 500);
         }
     }
@@ -3094,7 +3098,7 @@ class ImportController extends Controller
                         ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s')
                         : now();
                 } catch (\Exception $e) {
-                    Log::error('Date format error: ' . $e->getMessage());
+                    Log::channel('import')->error('Date format error: ' . $e->getMessage());
                     continue; // Skip row with bad date
                 }
 
@@ -3110,14 +3114,14 @@ class ImportController extends Controller
                         ]
                     );
                 } catch (\Exception $e) {
-                    Log::error("Failed to import user (DB::table): " . json_encode($row) . ' — ' . $e->getMessage());
+                    Log::channel('import')->error("Failed to import user (DB::table): " . json_encode($row) . ' — ' . $e->getMessage());
                     continue; // Skip row on DB error
                 }
             }
 
             return response()->json(['message' => 'CSV imported and users saved successfully.']);
         } catch (\Exception $e) {
-            Log::error('CSV import failed: ' . $e->getMessage());
+            Log::channel('import')->error('CSV import failed: ' . $e->getMessage());
             return response()->json(['error' => 'An error occurred while processing the CSV.'], 500);
         }
     }
@@ -3148,14 +3152,14 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Applicant Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Applicant Import] Starting CSV import process...');
 
             // Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
+            Log::channel('import')->info('📂 File stored at: ' . $filePath);
 
             // Ensure UTF-8 encoding
             $content = file_get_contents($filePath);
@@ -3163,7 +3167,7 @@ class ImportController extends Controller
             if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
-                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
+                Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             $csv = Reader::createFromPath($filePath, 'r');
@@ -3179,21 +3183,21 @@ class ImportController extends Controller
             // Count total rows
             $records = $csv->getRecords();
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total messages records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total messages records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
-            Log::channel('daily')->info('🚀 Starting messages row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting messages row-by-row processing...');
 
             foreach ($records as $row) {
                 $rowIndex++;
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -3215,7 +3219,7 @@ class ImportController extends Controller
                             : now()->format('Y-m-d');
                         $time = !empty($row['time']) ? Carbon::createFromFormat('H:i:s', $row['time'])->format('H:i:s') : now()->format('H:i:s');
                     } catch (\Exception $e) {
-                        Log::warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
+                        Log::channel('import')->warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
                     }
 
                     // Date preprocessing
@@ -3227,7 +3231,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -3260,7 +3264,7 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
@@ -3268,7 +3272,7 @@ class ImportController extends Controller
                         }
 
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -3294,7 +3298,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -3322,11 +3326,11 @@ class ImportController extends Controller
 
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
@@ -3340,7 +3344,7 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
 
                                 $successfulRows++;
@@ -3350,32 +3354,32 @@ class ImportController extends Controller
                                     'error' => $e->getMessage(),
                                 ];
 
-                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                             }
                         }
                     });
 
-                  Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                  Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
              // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Messages Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Messages Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
                 'message' => 'CSV import completed successfully!',
@@ -3390,9 +3394,9 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -3431,7 +3435,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Applicant Notes CSV import');
+            Log::channel('import')->info('Starting Applicant Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -3440,10 +3444,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -3451,13 +3455,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -3468,7 +3472,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -3481,7 +3485,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -3492,14 +3496,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['details'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -3520,11 +3524,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -3552,14 +3556,14 @@ class ImportController extends Controller
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                         }
                     }
 
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -3578,7 +3582,7 @@ class ImportController extends Controller
                         strcasecmp($value, 'na') == 0 ||
                         strcasecmp($value, '-') == 0
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -3599,7 +3603,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -3636,12 +3640,12 @@ class ImportController extends Controller
                                 $successfulRows++;
 
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
 
                             } catch (\Exception $e) {
 
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
 
                                 $failedRows[] = [
                                     'row' => $index + 2,
@@ -3652,7 +3656,7 @@ class ImportController extends Controller
                     });
 
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
@@ -3660,10 +3664,10 @@ class ImportController extends Controller
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Applicant Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Applicant Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Applicant Notes CSV import completed.',
@@ -3672,10 +3676,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Applicant Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Applicant Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -3714,7 +3718,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Applicant Notes CSV import');
+            Log::channel('import')->info('Starting Applicant Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -3723,10 +3727,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -3734,13 +3738,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -3751,7 +3755,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -3764,7 +3768,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -3775,14 +3779,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['applicant_id'], $row['applicant_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -3803,11 +3807,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -3835,13 +3839,13 @@ class ImportController extends Controller
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                         }
                     }
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -3860,7 +3864,7 @@ class ImportController extends Controller
                         strcasecmp($value, 'na') == 0 ||
                         strcasecmp($value, '-') == 0
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -3881,7 +3885,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -3914,26 +3918,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Applicant Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Applicant Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Applicant Notes CSV import completed.',
@@ -3942,10 +3946,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Applicant Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Applicant Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -3984,7 +3988,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Applicant Notes CSV import');
+            Log::channel('import')->info('Starting Applicant Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -3993,10 +3997,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -4004,13 +4008,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -4021,7 +4025,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -4034,7 +4038,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -4045,14 +4049,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['applicants_pivot_sales_id'], $row['applicants_pivot_sales_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -4073,11 +4077,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -4105,13 +4109,13 @@ class ImportController extends Controller
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                         }
                     }
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -4130,7 +4134,7 @@ class ImportController extends Controller
                         strcasecmp($value, 'na') == 0 ||
                         strcasecmp($value, '-') == 0
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -4151,7 +4155,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -4184,26 +4188,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Pivot Notes Range CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Pivot Notes Range CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Pivot Notes Range CSV import completed.',
@@ -4212,10 +4216,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Pivot Notes Range CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Pivot Notes Range CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -4224,399 +4228,245 @@ class ImportController extends Controller
     }
     // public function auditsImport(Request $request)
     // {
-    //     // Set PHP limits
+    //     $request->validate([
+    //         'csv_file' => [
+    //             'required',
+    //             'file',
+    //             'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+    //             'mimes:csv,txt',
+    //             'max:5242880'
+    //         ],
+    //     ]);
+
+    //     if ($request->hasFile('csv_file')) {
+    //         $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+    //         if ($ext !== 'csv') {
+    //             return response()->json([
+    //                 'error' => 'Invalid file type. Please upload a CSV file only.',
+    //                 'success' => false
+    //             ], 422);
+    //         }
+    //     }
+
     //     ini_set('max_execution_time', 10000);
     //     ini_set('memory_limit', '-1');
 
-    //     // Validate file (115 MB limit, CSV only)
-    //     $request->validate([
-    //         'csv_file' => 'required|file|mimes:csv',
-    //     ]);
-        
     //     try {
     //         $startTime = microtime(true);
-    //         Log::channel('daily')->info('🔹 [Audits Import] Starting CSV import process...');
+    //         Log::channel('import')->info('🔹 [Audits Import] Starting CSV import process...');
 
-    //         // Store file
+    //         // 🗂 Store the uploaded file
     //         $file = $request->file('csv_file');
     //         $filename = time() . '_' . $file->getClientOriginalName();
     //         $path = $file->storeAs('uploads/import_files', $filename);
     //         $filePath = storage_path("app/{$path}");
-    //         Log::channel('daily')->info('📂 File stored at: ' . $filePath);
+    //         Log::channel('import')->info("📂 File stored at: {$filePath}");
 
-    //         // Ensure UTF-8 encoding
+    //         // 🧠 Ensure UTF-8
     //         $content = file_get_contents($filePath);
     //         $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-    //         if ($encoding != 'UTF-8') {
+    //         if ($encoding !== 'UTF-8') {
     //             $content = mb_convert_encoding($content, 'UTF-8', $encoding);
     //             file_put_contents($filePath, $content);
-    //             Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
+    //             Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
     //         }
 
-    //         // Parse CSV with league/csv
+    //         // 📊 Parse CSV
     //         $csv = Reader::createFromPath($filePath, 'r');
     //         $csv->setHeaderOffset(0);
-    //         $csv->setDelimiter(',');
-    //         $csv->setEnclosure('"');
-    //         $csv->setEscape('\\');
-
     //         $headers = $csv->getHeader();
     //         $records = $csv->getRecords();
-    //         $expectedColumnCount = count($headers);
-
-    //         $totalRows = iterator_count($records);
-    //         Log::channel('daily')->info("📊 Total audits records in CSV: {$totalRows}");
 
     //         $processedData = [];
     //         $failedRows = [];
-    //         $successfulRows = 0;
     //         $rowIndex = 1;
+    //         $successfulRows = 0;
 
-    //         Log::channel('daily')->info('🚀 Starting audits row-by-row processing...');
+    //         // 🔧 Helper: Clean invalid characters
+    //         $cleanString = fn($v) => is_string($v)
+    //             ? preg_replace('/[^\x20-\x7E]/', '', trim($v))
+    //             : $v;
 
-    //         // Process CSV rows
+    //         // 🔧 Helper: Normalize & parse date correctly
+    //         $normalizeDate = function ($value, $field, $rowIndex) {
+    //             $value = trim((string)($value ?? ''));
+
+    //             if ($value === '' || in_array(strtolower($value), ['null', 'na', 'n/a', '-', 'pending'])) {
+    //                 return null;
+    //             }
+
+    //             // Remove ordinal suffixes like "st", "nd", "rd", "th"
+    //             $value = preg_replace('/(\d+)(st|nd|rd|th)/i', '$1', $value);
+
+    //             // Supported date formats
+    //             $formats = [
+    //                 'Y-m-d H:i:s',
+    //                 'Y-m-d H:i',
+    //                 'Y-m-d',
+    //                 'm/d/Y H:i',  // US format first
+    //                 'm/d/Y H:i:s',
+    //                 'm/d/Y',
+    //                 'd/m/Y H:i',
+    //                 'd/m/Y H:i:s',
+    //                 'd/m/Y',
+    //                 'j F Y', 
+    //                 'j F Y H:i', 
+    //                 'j F Y g:i A',
+    //                 'd F Y', 
+    //                 'd F Y g:i A'
+    //             ];
+
+    //             foreach ($formats as $format) {
+    //                 try {
+    //                     return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
+    //                 } catch (\Exception $e) {
+    //                     continue;
+    //                 }
+    //             }
+
+    //             // Fallback parser
+    //             try {
+    //                 return Carbon::parse($value)->format('Y-m-d H:i:s');
+    //             } catch (\Exception $e) {
+    //                 Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}'");
+    //                 return null;
+    //             }
+    //         };
+
+    //         // 🚀 Process each row
     //         foreach ($records as $row) {
     //             $rowIndex++;
     //             try {
-    //                 // Skip empty rows
-    //                 if (empty(array_filter($row))) {
-    //                     Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+    //                 $row = array_map($cleanString, $row);
+
+    //                 if (empty($row['user_id']) || empty($row['auditable_id'])) {
+    //                     Log::channel('import')->warning("Row {$rowIndex}: Missing key fields");
     //                     continue;
     //                 }
 
-    //                 $row = array_pad($row, $expectedColumnCount, null);
-    //                 $row = array_slice($row, 0, $expectedColumnCount);
-    //                 $row = array_combine($headers, $row);
-    //                 if ($row == false || !isset($row['user_id'], $row['auditable_id'])) {
-    //                     Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
-    //                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
-    //                     continue;
-    //                 }
+    //                 $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
+    //                 $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
 
-    //                 // Clean string values
-    //                 $row = array_map(function ($value) {
-    //                     if (is_string($value)) {
-    //                         $value = preg_replace('/\s+/', ' ', trim($value));
-    //                         $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-    //                     }
-    //                     return $value;
-    //                 }, $row);
-
-    //             // Date preprocessing
-    //             $preprocessDate = function ($dateString, $field, $rowIndex) {
-    //                 if (empty($dateString) || !is_string($dateString)) {
-    //                     return null;
-    //                 }
-    //                 if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-    //                     $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-    //                     Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-    //                     return $fixedDate;
-    //                 } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
-    //                     $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-    //                     Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-    //                     return $fixedDate;
-    //                 }
-    //                 return $dateString;
-    //             };
-
-    //             // Parse dates
-    //             $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-    //                 $formats = ['m/d/Y H:i', 'm/d/Y', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d'];
-    //                 foreach ($formats as $format) {
-    //                     try {
-    //                         return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
-    //                     } catch (\Exception $e) {
-    //                         Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
-    //                     }
-    //                 }
-    //                 try {
-    //                     return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-    //                 } catch (\Exception $e) {
-    //                     Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
-    //                     return null;
-    //                 }
-    //             };
-
-    //             // Define a reusable helper closure (you can move it outside loop)
-    //             $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-    //                 $value = trim((string)($value ?? ''));
-
-    //                 // Skip invalid placeholders
-    //                 if (
-    //                     $value == '' ||
-    //                     strcasecmp($value, 'null') == 0 ||
-    //                     strcasecmp($value, 'pending') == 0 ||
-    //                     strcasecmp($value, 'active') == 0 ||
-    //                     strcasecmp($value, 'n/a') == 0 ||
-    //                     strcasecmp($value, 'na') == 0 ||
-    //                     strcasecmp($value, '-') == 0
-    //                 ) {
-    //                     Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
-    //                     return null;
-    //                 }
-
-    //                 try {
-    //                     // Preprocess if defined
-    //                     if (isset($preprocessDate)) {
-    //                         $value = $preprocessDate($value, $field, $rowIndex);
-    //                     }
-
-    //                     // Parse with your custom logic, fallback to strtotime
-    //                     $parsed = isset($parseDate)
-    //                         ? $parseDate($value, $rowIndex, $field)
-    //                         : date('Y-m-d H:i:s', strtotime($value));
-
-    //                     if (!$parsed || strtotime($parsed) == false) {
-    //                         throw new \Exception("Invalid date format: '{$value}'");
-    //                     }
-
-    //                     return $parsed;
-    //                 } catch (\Exception $e) {
-    //                     Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-    //                     return null;
-    //                 }
-    //             };
-
-    //             $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-    //             $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-    //                 // Prepare row for insertion
-    //                 $processedRow = [
-    //                     'id' => $row['id'] ?? null,
-    //                     'user_id' => $row['user_id'] ?? null,
-    //                     'auditable_id' => $row['auditable_id'] ?? null,
+    //                 $processedData[] = [
+    //                     // 💡 Let MySQL handle ID auto-increment
+    //                     'user_id'        => $row['user_id'] ?? null,
+    //                     'auditable_id'   => $row['auditable_id'] ?? null,
     //                     'auditable_type' => $row['auditable_type'] ?? null,
-    //                     'data' => $row['data'] ?? '',
-    //                     'message' => $row['message'] ?? '',
-    //                     'created_at' => $createdAt,
-    //                     'updated_at' => $updatedAt,
+    //                     'data'           => $row['data'] ?? '',
+    //                     'message'        => $row['message'] ?? '',
+    //                     'created_at'     => $createdAt,
+    //                     'updated_at'     => $updatedAt,
     //                 ];
-    //                 $processedData[] = $processedRow;
-
     //             } catch (\Throwable $e) {
     //                 $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-    //                 Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+    //                 Log::channel('import')->error("Row {$rowIndex} failed: {$e->getMessage()}");
     //             }
     //         }
 
-    //         Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+    //        Log::channel('import')->info("✅ Parsed " . count($processedData) . " valid rows.");
 
-    //         // Insert rows in batches
-    //         foreach (array_chunk($processedData, 100) as $chunk) {
+    //         // 💾 Save in batches
+    //         foreach (array_chunk($processedData, 200) as $chunk) {
     //             try {
-    //                 DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
-    //                     foreach ($chunk as $index => $row) {
-    //                         try {
-    //                             Audit::updateOrCreate(
-    //                                 ['id' => $row['id']],
-    //                                 $row
-    //                             );
-    //                             $successfulRows++;
-    //                             if (($index + 1) % 100 == 0) {
-    //                                 Log::info("Processed " . ($index + 1) . " rows in chunk");
-    //                             }
-    //                         } catch (\Exception $e) {
-    //                             Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
-    //                             $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
-    //                         }
-    //                     }
-    //                 });
+    //                 DB::transaction(fn() => Audit::insert($chunk));
+    //                 $successfulRows += count($chunk);
     //             } catch (\Exception $e) {
-    //                 Log::error("Transaction failed for chunk: " . $e->getMessage());
+    //                Log::channel('import')->error("Batch insert failed: " . $e->getMessage());
     //             }
     //         }
 
-    //         // Clean up temporary file
-    //         if (file_exists($filePath)) {
-    //             unlink($filePath);
-    //             Log::info("Deleted temporary file: {$filePath}");
-    //         }
-
-    //         Log::info("Audits CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+    //         // 🧹 Clean up
+    //         if (file_exists($filePath)) unlink($filePath);
 
     //         return response()->json([
-    //             'message' => 'Audits CSV import completed.',
+    //             'message' => 'Audits CSV import completed successfully.',
     //             'successful_rows' => $successfulRows,
     //             'failed_rows' => count($failedRows),
     //             'failed_details' => $failedRows,
-    //         ], 200);
-    //     } catch (\Illuminate\Validation\ValidationException $e) {
-    //         Log::error('Validation failed: ' . json_encode($e->errors()));
-    //         return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
-    //     } catch (\Exception $e) {
-    //         Log::error('Audits CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
-    //         if (isset($filePath) && file_exists($filePath)) {
-    //             unlink($filePath);
-    //         }
-    //         return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
+    //             'execution_time' => round(microtime(true) - $startTime, 2) . 's'
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         Log::channel('import')->error("Audits import failed: " . $e->getMessage());
+    //         return response()->json(['error' => $e->getMessage()], 500);
     //     }
     // }
     public function auditsImport(Request $request)
-    {
-        $request->validate([
-            'csv_file' => [
-                'required',
-                'file',
-                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
-                'mimes:csv,txt',
-                'max:5242880'
-            ],
-        ]);
+{
+    $request->validate([
+        'csv_file' => 'required|file|mimes:csv,txt|max:5242880'
+    ]);
 
-        if ($request->hasFile('csv_file')) {
-            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
-            if ($ext !== 'csv') {
-                return response()->json([
-                    'error' => 'Invalid file type. Please upload a CSV file only.',
-                    'success' => false
-                ], 422);
-            }
-        }
+    if (!$request->hasFile('csv_file')) {
+        return response()->json(['error' => 'No file uploaded'], 422);
+    }
 
-        ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
-        // ini_set('post_max_size', '512M');
-        // ini_set('upload_max_filesize', '512M');
+    $file = $request->file('csv_file');
+    $filePath = $file->getRealPath();
+
+    // Parse CSV using League\Csv
+    $csv = Reader::createFromPath($filePath, 'r');
+    $csv->setHeaderOffset(0);
+
+    $processedData = [];
+    $failedRows = [];
+    $rowIndex = 1;
+
+    foreach ($csv->getRecords() as $row) {
+        $rowIndex++;
 
         try {
-            $startTime = microtime(true);
-            Log::info('🔹 [Audits Import] Starting CSV import process...');
+            $userId = trim($row['user_id'] ?? '');
+            $auditableId = trim($row['auditable_id'] ?? '');
+            $auditableType = trim($row['auditable_type'] ?? '');
+            $data = trim($row['data'] ?? '');
+            $message = trim($row['message'] ?? '');
 
-            // 🗂 Store the uploaded file
-            $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('uploads/import_files', $filename);
-            $filePath = storage_path("app/{$path}");
-            Log::info("📂 File stored at: {$filePath}");
-
-            // 🧠 Ensure UTF-8
-            $content = file_get_contents($filePath);
-            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding !== 'UTF-8') {
-                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-                file_put_contents($filePath, $content);
-                Log::info("✅ Converted file to UTF-8 from {$encoding}");
+            if (!$userId || !$auditableId) {
+                $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing user_id or auditable_id'];
+                continue;
             }
 
-            // 📊 Parse CSV
-            $csv = Reader::createFromPath($filePath, 'r');
-            $csv->setHeaderOffset(0);
-            $headers = $csv->getHeader();
-            $records = $csv->getRecords();
+            // Normalize dates
+            $normalizeDate = fn($value) => ($value && strtolower($value) != 'null') 
+                ? Carbon::parse($value)->format('Y-m-d H:i:s') 
+                : null;
 
-            $processedData = [];
-            $failedRows = [];
-            $rowIndex = 1;
-            $successfulRows = 0;
+            $createdAt = $normalizeDate($row['created_at']);
+            $updatedAt = $normalizeDate($row['updated_at']);
 
-            // 🔧 Helper: Clean invalid characters
-            $cleanString = fn($v) => is_string($v)
-                ? preg_replace('/[^\x20-\x7E]/', '', trim($v))
-                : $v;
-
-            // 🔧 Helper: Normalize & parse date correctly
-            $normalizeDate = function ($value, $field, $rowIndex) {
-                $value = trim((string)($value ?? ''));
-
-                if ($value === '' || in_array(strtolower($value), ['null', 'na', 'n/a', '-', 'pending'])) {
-                    return null;
-                }
-
-                // Remove ordinal suffixes like "st", "nd", "rd", "th"
-                $value = preg_replace('/(\d+)(st|nd|rd|th)/i', '$1', $value);
-
-                // Supported date formats
-                $formats = [
-                    'Y-m-d H:i:s',
-                    'Y-m-d H:i',
-                    'Y-m-d',
-                    'm/d/Y H:i',  // US format first
-                    'm/d/Y H:i:s',
-                    'm/d/Y',
-                    'd/m/Y H:i',
-                    'd/m/Y H:i:s',
-                    'd/m/Y',
-                    'j F Y', 
-                    'j F Y H:i', 
-                    'j F Y g:i A',
-                    'd F Y', 
-                    'd F Y g:i A'
-                ];
-
-                foreach ($formats as $format) {
-                    try {
-                        return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        continue;
-                    }
-                }
-
-                // Fallback parser
-                try {
-                    return Carbon::parse($value)->format('Y-m-d H:i:s');
-                } catch (\Exception $e) {
-                    Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}'");
-                    return null;
-                }
-            };
-
-            // 🚀 Process each row
-            foreach ($records as $row) {
-                $rowIndex++;
-                try {
-                    $row = array_map($cleanString, $row);
-
-                    if (empty($row['user_id']) || empty($row['auditable_id'])) {
-                        Log::warning("Row {$rowIndex}: Missing key fields");
-                        continue;
-                    }
-
-                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-                    $processedData[] = [
-                        // 💡 Let MySQL handle ID auto-increment
-                        'user_id'        => $row['user_id'] ?? null,
-                        'auditable_id'   => $row['auditable_id'] ?? null,
-                        'auditable_type' => $row['auditable_type'] ?? null,
-                        'data'           => $row['data'] ?? '',
-                        'message'        => $row['message'] ?? '',
-                        'created_at'     => $createdAt,
-                        'updated_at'     => $updatedAt,
-                    ];
-                } catch (\Throwable $e) {
-                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::error("Row {$rowIndex} failed: {$e->getMessage()}");
-                }
-            }
-
-            Log::info("✅ Parsed " . count($processedData) . " valid rows.");
-
-            // 💾 Save in batches
-            foreach (array_chunk($processedData, 200) as $chunk) {
-                try {
-                    DB::transaction(fn() => Audit::insert($chunk));
-                    $successfulRows += count($chunk);
-                } catch (\Exception $e) {
-                    Log::error("Batch insert failed: " . $e->getMessage());
-                }
-            }
-
-            // 🧹 Clean up
-            if (file_exists($filePath)) unlink($filePath);
-
-            return response()->json([
-                'message' => 'Audits CSV import completed successfully.',
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
-                'execution_time' => round(microtime(true) - $startTime, 2) . 's'
-            ]);
+            $processedData[] = [
+                'user_id'        => $userId,
+                'auditable_id'   => $auditableId,
+                'auditable_type' => $auditableType,
+                'data'           => $data,
+                'message'        => $message,
+                'created_at'     => $createdAt,
+                'updated_at'     => $updatedAt,
+            ];
         } catch (\Throwable $e) {
-            Log::error("Audits import failed: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
         }
     }
+
+    // Insert in chunks
+    $successfulRows = 0;
+    foreach (array_chunk($processedData, 200) as $chunk) {
+        try {
+            Audit::insert($chunk);
+            $successfulRows += count($chunk);
+        } catch (\Throwable $e) {
+            $failedRows[] = ['row' => 'batch', 'error' => $e->getMessage()];
+        }
+    }
+
+    return response()->json([
+        'message' => 'Import completed.',
+        'successful_rows' => $successfulRows,
+        'failed_rows' => count($failedRows),
+        'failed_details' => $failedRows,
+    ]);
+}
+
     public function crmNotesImport(Request $request)
     {
         $request->validate([
@@ -4644,13 +4494,13 @@ class ImportController extends Controller
         
         try {
              $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [crm notes Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [crm notes Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
             $filename = $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Convert file to UTF-8 if needed
             $content = file_get_contents($filePath);
@@ -4670,18 +4520,18 @@ class ImportController extends Controller
             $records = $csv->getRecords();
             $headers = $csv->getHeader();
             $expectedColumnCount = count($headers);
-            Log::channel('daily')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             // Count total rows
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total crm notes records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total crm notes records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
-            Log::channel('daily')->info('🚀 Starting crm notes row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting crm notes row-by-row processing...');
 
             // Process CSV rows
             foreach ($records as $row) {
@@ -4690,7 +4540,7 @@ class ImportController extends Controller
                 try{
                      // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -4698,7 +4548,7 @@ class ImportController extends Controller
                     $row = array_slice($row, 0, $expectedColumnCount);
                     $row = array_combine($headers, $row);
                     if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sales_id'])) {
-                        Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                        Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                         $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                         continue;
                     }
@@ -4809,11 +4659,11 @@ class ImportController extends Controller
                     $processedData[] = $processedRow;
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert rows in batches
              foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
@@ -4827,34 +4677,34 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                               Log::channel('daily')->error("Row : DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                               Log::channel('import')->error("Row : DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
-                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Exception $e) {
-                     Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                     Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Offices Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Offices Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
 
             return response()->json([
@@ -4870,9 +4720,9 @@ class ImportController extends Controller
          } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -4911,7 +4761,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting CRM Rejected Cv CSV import');
+            Log::channel('import')->info('Starting CRM Rejected Cv CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -4920,10 +4770,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -4931,13 +4781,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -4948,7 +4798,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -4961,7 +4811,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -4972,14 +4822,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -5103,26 +4953,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("CRM Rejected Cv CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("CRM Rejected Cv CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'CRM Rejected Cv CSV import completed.',
@@ -5131,10 +4981,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('CRM Rejected Cv CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('CRM Rejected Cv CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -5173,7 +5023,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting CV Notes CSV import');
+            Log::channel('import')->info('Starting CV Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -5182,10 +5032,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -5193,13 +5043,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -5210,7 +5060,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -5223,7 +5073,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -5234,14 +5084,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -5376,26 +5226,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'CV Notes CSV import completed.',
@@ -5404,10 +5254,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -5446,7 +5296,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting CV Notes CSV import');
+            Log::channel('import')->info('Starting CV Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -5455,10 +5305,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -5466,13 +5316,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -5483,7 +5333,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -5496,7 +5346,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -5507,14 +5357,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -5637,26 +5487,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'CV Notes CSV import completed.',
@@ -5665,10 +5515,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -5702,14 +5552,14 @@ class ImportController extends Controller
 
         try {
             $startTime = microtime(true);
-            Log::channel('daily')->info('🔹 [Interview Import] Starting CSV import process...');
+            Log::channel('import')->info('🔹 [Interview Import] Starting CSV import process...');
 
             // Store file
             $file = $request->file('csv_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
-            Log::channel('daily')->info('📂 File stored at: ' . $filePath);
+            Log::channel('import')->info('📂 File stored at: ' . $filePath);
 
             // Ensure UTF-8 encoding
             $content = file_get_contents($filePath);
@@ -5717,7 +5567,7 @@ class ImportController extends Controller
             if ($encoding != 'UTF-8') {
                 $content = mb_convert_encoding($content, 'UTF-8', $encoding);
                 file_put_contents($filePath, $content);
-                Log::channel('daily')->info("✅ Converted file to UTF-8 from {$encoding}");
+                Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -5733,14 +5583,14 @@ class ImportController extends Controller
             
             // Count total rows
             $totalRows = iterator_count($records);
-            Log::channel('daily')->info("📊 Total interview records in CSV: {$totalRows}");
+            Log::channel('import')->info("📊 Total interview records in CSV: {$totalRows}");
 
             $processedData = [];
             $failedRows = [];
             $successfulRows = 0;
             $rowIndex = 1;
 
-            Log::channel('daily')->info('🚀 Starting interview row-by-row processing...');
+            Log::channel('import')->info('🚀 Starting interview row-by-row processing...');
 
             // Process CSV rows
             foreach ($records as $row) {
@@ -5748,7 +5598,7 @@ class ImportController extends Controller
                 try {
                     // Skip empty rows
                     if (empty(array_filter($row))) {
-                        Log::channel('daily')->warning("Row {$rowIndex}: Empty row , skipping");
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
                     }
 
@@ -5756,7 +5606,7 @@ class ImportController extends Controller
                     $row = array_slice($row, 0, $expectedColumnCount);
                     $row = array_combine($headers, $row);
                     if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                        Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                        Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                         $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                         continue;
                     }
@@ -5804,7 +5654,7 @@ class ImportController extends Controller
                             try {
                                 $schedule_date = Carbon::parse($rawDate)->format('Y-m-d');
                             } catch (\Exception $e) {
-                                Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_date '{$row['schedule_date']}'");
+                                Log::channel('import')->warning("Row {$rowIndex}: Invalid schedule_date '{$row['schedule_date']}'");
                             }
                         }
                     }
@@ -5886,7 +5736,7 @@ class ImportController extends Controller
                     //         // ✅ Store only hour:minute
                     //         $schedule_time = $parsed->format('H:i');
                     //     } else {
-                    //         \Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
+                    //         \Log::channel('import')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
                     //         $schedule_time = '00:00';
                     //     }
                     // }
@@ -5964,7 +5814,7 @@ class ImportController extends Controller
                             // Save HH:MM format
                             $schedule_time = $parsed->format('H:i');
                         } else {
-                            Log::channel('daily')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
+                            Log::channel('import')->warning("Row {$rowIndex}: Invalid schedule_time '{$originalRaw}', defaulted to 00:00");
                             $schedule_time = '00:00';
                         }
                     }
@@ -5980,7 +5830,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -6013,7 +5863,7 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                                 return $dt->format('Y-m-d H:i:s');
                             } catch (\Exception $e) {
                                 // continue
@@ -6021,7 +5871,7 @@ class ImportController extends Controller
                         }
 
 
-                        Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
@@ -6047,7 +5897,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -6075,11 +5925,11 @@ class ImportController extends Controller
                     $processedData[] = $processedRow;
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
                 }
             }
 
-            Log::channel('daily')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert rows in batches
             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
@@ -6094,38 +5944,38 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Throwable $e) {
                                 $failedRows[] = [
                                     'row' => $rowIndex,
                                     'error' => $e->getMessage(),
                                 ];
-                                Log::channel('daily')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                             }
                         }
                     });
-                    Log::channel('daily')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('daily')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
             // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
             }
 
             $endTime = microtime(true);
             $duration = round($endTime - $startTime, 2);
 
-            Log::channel('daily')->info("🏁 [Interview Import Summary]");
-            Log::channel('daily')->info("• Total rows read: {$totalRows}");
-            Log::channel('daily')->info("• Successfully imported: {$successfulRows}");
-            Log::channel('daily')->info("• Failed rows: " . count($failedRows));
-            Log::channel('daily')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Interview Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
             return response()->json([
                 'message' => 'CSV import completed successfully!',
@@ -6140,9 +5990,9 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
-                Log::channel('daily')->info("🗑️ Deleted temporary file after error: {$filePath}");
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
             }
-            Log::channel('daily')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
             return response()->json([
                 'error' => 'CSV import failed: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
@@ -6181,7 +6031,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Ip Address CSV import');
+            Log::channel('import')->info('Starting Ip Address CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -6190,10 +6040,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -6201,13 +6051,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -6218,7 +6068,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -6231,7 +6081,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -6242,14 +6092,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['ip_address'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -6270,11 +6120,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -6302,13 +6152,13 @@ class ImportController extends Controller
                         try {
                             return Carbon::createFromFormat($format, $dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                         }
                     }
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6327,7 +6177,7 @@ class ImportController extends Controller
                         strcasecmp($value, 'na') == 0 ||
                         strcasecmp($value, '-') == 0
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -6348,7 +6198,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6382,26 +6232,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("IP Address CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("IP Address CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'IP Address CSV import completed.',
@@ -6410,10 +6260,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('IP Address CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('IP Address CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -6452,7 +6302,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('📥 Starting Module Notes CSV import');
+            Log::channel('import')->info('📥 Starting Module Notes CSV import');
 
             // 🗂️ Store uploaded file
             $file = $request->file('csv_file');
@@ -6461,10 +6311,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('✅ File stored at: ' . $filePath);
+            Log::channel('import')->info('✅ File stored at: ' . $filePath);
 
             // 🔄 Detect and convert encoding if needed
             $encoding = $this->detectEncodingd($filePath);
@@ -6482,7 +6332,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV from {$encoding} to UTF-8");
+                Log::channel('import')->info("Converted CSV from {$encoding} to UTF-8");
             }
 
             // 🧩 Parse CSV in streaming mode
@@ -6496,7 +6346,7 @@ class ImportController extends Controller
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
 
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $batchSize = 100;
             $batch = [];
@@ -6634,10 +6484,10 @@ class ImportController extends Controller
             // 🧹 Clean up file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("🧽 Deleted temp file: {$filePath}");
+                Log::channel('import')->info("🧽 Deleted temp file: {$filePath}");
             }
 
-            Log::info("✅ Module Notes import complete: {$successfulRows} success, " . count($failedRows) . " failed.");
+            Log::channel('import')->info("✅ Module Notes import complete: {$successfulRows} success, " . count($failedRows) . " failed.");
 
             return response()->json([
                 'message' => 'Module Notes import completed.',
@@ -6646,10 +6496,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0] ?? 'Invalid file'], 422);
         } catch (\Exception $e) {
-            Log::error('Import failed: ' . $e->getMessage());
+            Log::channel('import')->error('Import failed: ' . $e->getMessage());
             return response()->json(['error' => 'Error: ' . $e->getMessage()], 500);
         }
     }
@@ -6670,7 +6520,7 @@ class ImportController extends Controller
                 }
             });
         } catch (\Exception $e) {
-            Log::error("Transaction failed: " . $e->getMessage());
+            Log::channel('import')->error("Transaction failed: " . $e->getMessage());
         }
     }
     private function detectEncodingd($filePath)
@@ -6711,7 +6561,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Quality Notes CSV import');
+            Log::channel('import')->info('Starting Quality Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -6720,10 +6570,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -6731,13 +6581,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -6748,7 +6598,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -6761,7 +6611,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -6772,14 +6622,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -6902,26 +6752,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Quality Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Quality Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Quality Notes CSV import completed.',
@@ -6930,10 +6780,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Quality Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Quality Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -6972,7 +6822,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Regions CSV import');
+            Log::channel('import')->info('Starting Regions CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -6981,10 +6831,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -6992,13 +6842,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -7009,7 +6859,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -7022,7 +6872,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -7033,14 +6883,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['districts_code'], $row['districts_code'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -7075,26 +6925,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Regions CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Regions CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Regions CSV import completed.',
@@ -7103,10 +6953,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Regions CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Regions CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -7145,7 +6995,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Revert Stage CSV import');
+            Log::channel('import')->info('Starting Revert Stage CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -7154,10 +7004,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -7165,13 +7015,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -7182,7 +7032,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -7195,7 +7045,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -7206,14 +7056,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['applicant_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -7334,26 +7184,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("CV Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'CV Notes CSV import completed.',
@@ -7362,10 +7212,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('CV Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -7404,7 +7254,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Sale Documents CSV import');
+            Log::channel('import')->info('Starting Sale Documents CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -7413,10 +7263,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -7424,13 +7274,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -7441,7 +7291,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -7454,7 +7304,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -7465,14 +7315,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['sale_id'], $row['document_path'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -7493,11 +7343,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -7528,7 +7378,7 @@ class ImportController extends Controller
                         } catch (\Exception $e) {
                             // Only log verbose debug for unusual cases
                             if (!in_array($format, ['Y-m-d H:i:s', 'Y-m-d'])) {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                                Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                             }
                         }
                     }
@@ -7536,7 +7386,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7549,7 +7399,7 @@ class ImportController extends Controller
                         $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -7568,7 +7418,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7603,26 +7453,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Sale Documents CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Sale Documents CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Sale Documents CSV import completed.',
@@ -7631,10 +7481,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Sale Documents CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Sale Documents CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -7659,7 +7509,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Sale Notes CSV import');
+            Log::channel('import')->info('Starting Sale Notes CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -7668,10 +7518,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -7679,13 +7529,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -7696,7 +7546,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -7709,7 +7559,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -7720,14 +7570,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['user_id'], $row['sale_id'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -7748,11 +7598,11 @@ class ImportController extends Controller
                     }
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     } elseif (preg_match('/^(\d{1})(\d{1})(\d{4})\s(\d{1,2})(\d{2})$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} {$matches[4]}:{$matches[5]}";
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
                     return $dateString;
@@ -7783,7 +7633,7 @@ class ImportController extends Controller
                         } catch (\Exception $e) {
                             // Only log verbose debug for unusual cases
                             if (!in_array($format, ['Y-m-d H:i:s', 'Y-m-d'])) {
-                                Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
+                                Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$dateString}' with format {$format}");
                             }
                         }
                     }
@@ -7791,7 +7641,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7804,7 +7654,7 @@ class ImportController extends Controller
                         $value == '' ||
                         in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
                     ) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
+                        Log::channel('import')->debug("Row {$rowIndex}: Skipping {$field} (invalid placeholder: '{$value}')");
                         return null;
                     }
 
@@ -7823,7 +7673,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7858,26 +7708,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Sale Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Sale Notes CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Sale Notes CSV import completed.',
@@ -7886,10 +7736,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Sale Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Sale Notes CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -7928,7 +7778,7 @@ class ImportController extends Controller
                 return response()->json(['error' => 'Log directory is not writable.'], 500);
             }
 
-            Log::info('Starting Sent Email CSV import');
+            Log::channel('import')->info('Starting Sent Email CSV import');
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
@@ -7937,10 +7787,10 @@ class ImportController extends Controller
             $filePath = storage_path("app/{$path}");
 
             if (!file_exists($filePath)) {
-                Log::error("Failed to store file at: {$filePath}");
+                Log::channel('import')->error("Failed to store file at: {$filePath}");
                 return response()->json(['error' => 'Failed to store uploaded file.'], 500);
             }
-            Log::info('File stored at: ' . $filePath);
+            Log::channel('import')->info('File stored at: ' . $filePath);
 
             // Stream encoding conversion
             $encoding = $this->detectEncoding($filePath);
@@ -7948,13 +7798,13 @@ class ImportController extends Controller
                 $tempFile = $filePath . '.utf8';
                 $handleIn = fopen($filePath, 'r');
                 if ($handleIn == false) {
-                    Log::error("Failed to open file for reading: {$filePath}");
+                    Log::channel('import')->error("Failed to open file for reading: {$filePath}");
                     return response()->json(['error' => 'Failed to read uploaded file.'], 500);
                 }
                 $handleOut = fopen($tempFile, 'w');
                 if ($handleOut == false) {
                     fclose($handleIn);
-                    Log::error("Failed to create temporary file: {$tempFile}");
+                    Log::channel('import')->error("Failed to create temporary file: {$tempFile}");
                     return response()->json(['error' => 'Failed to create temporary file.'], 500);
                 }
                 while (!feof($handleIn)) {
@@ -7965,7 +7815,7 @@ class ImportController extends Controller
                 fclose($handleOut);
                 unlink($filePath);
                 rename($tempFile, $filePath);
-                Log::info("Converted CSV to UTF-8 from {$encoding}");
+                Log::channel('import')->info("Converted CSV to UTF-8 from {$encoding}");
             }
 
             // Parse CSV with league/csv
@@ -7978,7 +7828,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            Log::info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
+            Log::channel('import')->info('Headers: ' . json_encode($headers) . ', Count: ' . $expectedColumnCount);
 
             $processedData = [];
             $failedRows = [];
@@ -7989,14 +7839,14 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
                 if ($rowIndex % 100 == 0) {
-                    Log::info("Processing row {$rowIndex}");
+                    Log::channel('import')->info("Processing row {$rowIndex}");
                 }
 
                 $row = array_pad($row, $expectedColumnCount, null);
                 $row = array_slice($row, 0, $expectedColumnCount);
                 $row = array_combine($headers, $row);
                 if ($row == false || !isset($row['sent_from'], $row['sent_to'])) {
-                    Log::warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
+                    Log::channel('import')->warning("Skipped row {$rowIndex}: Invalid or incomplete data.");
                     $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid or incomplete data'];
                     continue;
                 }
@@ -8019,7 +7869,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::channel('daily')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -8052,7 +7902,7 @@ class ImportController extends Controller
                     foreach ($formats as $format) {
                         try {
                             $dt = Carbon::createFromFormat($format, $dateString);
-                            // Log::channel('daily')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                            // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
                             return $dt->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
                             // continue
@@ -8060,7 +7910,7 @@ class ImportController extends Controller
                     }
 
 
-                    Log::channel('daily')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                    Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                     return null;
                 };
 
@@ -8086,7 +7936,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::channel('daily')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -8126,26 +7976,26 @@ class ImportController extends Controller
                                 );
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
-                                    Log::info("Processed " . ($index + 1) . " rows in chunk");
+                                    Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                                Log::error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
+                                Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                 } catch (\Exception $e) {
-                    Log::error("Transaction failed for chunk: " . $e->getMessage());
+                    Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
             }
 
             // Clean up temporary file
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Deleted temporary file: {$filePath}");
+                Log::channel('import')->info("Deleted temporary file: {$filePath}");
             }
 
-            Log::info("Sent Email CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
+            Log::channel('import')->info("Sent Email CSV import completed. Successful: {$successfulRows}, Failed: " . count($failedRows));
 
             return response()->json([
                 'message' => 'Sent Email CSV import completed.',
@@ -8154,10 +8004,10 @@ class ImportController extends Controller
                 'failed_details' => $failedRows,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed: ' . json_encode($e->errors()));
+            Log::channel('import')->error('Validation failed: ' . json_encode($e->errors()));
             return response()->json(['error' => $e->errors()['csv_file'][0]], 422);
         } catch (\Exception $e) {
-            Log::error('Sent Email CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+            Log::channel('import')->error('Sent Email CSV import failed: ' . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
             if (isset($filePath) && file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -8168,7 +8018,7 @@ class ImportController extends Controller
     {
         $handle = fopen($filePath, 'r');
         if ($handle == false) {
-            Log::error("Failed to open file for encoding detection: {$filePath}");
+            Log::channel('import')->error("Failed to open file for encoding detection: {$filePath}");
             throw new \Exception('Unable to open file for encoding detection.');
         }
         $sample = fread($handle, 4096);
@@ -8212,7 +8062,7 @@ class ImportController extends Controller
             // try {
             return Pdf::getText(Storage::path($path), 'C:\poppler\bin\pdftotext.exe'); // Adjust path if needed
             // } catch (\Exception $e) {
-            //     Log::error('PDF text extraction failed: ' . $e->getMessage());
+            //     Log::channel('import')->error('PDF text extraction failed: ' . $e->getMessage());
             //     return null;
             // }
         } elseif (in_array($extension, ['doc', 'docx'])) {
@@ -8228,7 +8078,7 @@ class ImportController extends Controller
                 }
                 return $text;
             } catch (\Exception $e) {
-                Log::error('DOC text extraction failed: ' . $e->getMessage());
+                Log::channel('import')->error('DOC text extraction failed: ' . $e->getMessage());
                 return null;
             }
         } elseif ($extension == 'csv') {
@@ -8241,7 +8091,7 @@ class ImportController extends Controller
                 }
                 return $text;
             } catch (\Exception $e) {
-                Log::error('CSV text extraction failed: ' . $e->getMessage());
+                Log::channel('import')->error('CSV text extraction failed: ' . $e->getMessage());
                 return null;
             }
         } elseif (in_array($extension, ['xlsx', 'xls'])) {
@@ -8255,7 +8105,7 @@ class ImportController extends Controller
                 }
                 return $text;
             } catch (\Exception $e) {
-                Log::error('Excel text extraction failed: ' . $e->getMessage());
+                Log::channel('import')->error('Excel text extraction failed: ' . $e->getMessage());
                 return null;
             }
         }
