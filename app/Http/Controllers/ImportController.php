@@ -2635,8 +2635,8 @@ class ImportController extends Controller
                                 $filtered = $row; // trust your parsed values
                                 if ($id) {
                                     Applicant::where('id', $id)->exists()
-    ? Applicant::where('id', $id)->update($filtered)
-    : Applicant::create(array_merge(['id' => $id], $filtered));
+                                    ? Applicant::where('id', $id)->update($filtered)
+                                    : Applicant::create(array_merge(['id' => $id], $filtered));
 
                                     Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
                                 } else {

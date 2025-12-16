@@ -121,66 +121,166 @@
             });
 
             // Form submit handler
+            // $('#csv{{ $type }}ImportForm').on('submit', function (e) {
+            //     e.preventDefault();
+
+            //     let form = $(this);
+            //     let submitBtn = form.find('button[type="submit"]');
+            //     let progressBar = $('#upload{{ $type }}ProgressBar');
+            //     let processingStatus = $('#processing{{ $type }}Status');
+            //     let formData = new FormData(this);
+            //     let xhr = new XMLHttpRequest();
+
+            //     submitBtn.prop('disabled', true).text('Uploading...');
+            //     progressBar.removeClass('bg-success bg-danger').addClass('progress-bar-animated');
+            //     processingStatus.addClass('d-none');
+
+            //     xhr.open('POST', '{{ route($route . ".import") }}', true);
+            //     xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+            //     xhr.upload.addEventListener('progress', function (event) {
+            //         if (event.lengthComputable) {
+            //             let percent = Math.round((event.loaded / event.total) * 100);
+            //             progressBar.css('width', percent + '%').text(percent + '%');
+            //             if (percent === 100) {
+            //                 processingStatus.removeClass('d-none');
+            //             }
+            //         }
+            //     });
+
+            //     xhr.onload = function () {
+            //         submitBtn.prop('disabled', false).text('Upload');
+
+            //         try {
+            //             let response = JSON.parse(xhr.responseText);
+            //             if (xhr.status === 200 || xhr.status === 201) {
+            //                 progressBar.removeClass('progress-bar-animated').addClass('bg-success').text('Upload Complete');
+            //                 toastr.success(response.message || 'CSV import completed successfully.', '{{ $type }} Import');
+
+            //                 form[0].reset();
+            //                 setTimeout(() => {
+            //                     $('#csv{{ $type }}ImportModal').modal('hide');
+            //                     progressBar.css('width', '0%').removeClass('bg-success bg-danger').text('0%');
+            //                     processingStatus.addClass('d-none');
+            //                 }, 1000);
+            //             } else {
+            //                 progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Failed');
+            //                 toastr.error(response.error || 'Failed to import CSV.', '{{ $type }} Import');
+            //             }
+            //         } catch (e) {
+            //             progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Failed');
+            //             toastr.error('Invalid server response', '{{ $type }} Import');
+            //         }
+            //     };
+
+            //     xhr.onerror = function () {
+            //         submitBtn.prop('disabled', false).text('Upload');
+            //         progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Error');
+            //         toastr.error('Network error occurred.', '{{ $type }} Import');
+            //     };
+
+            //     xhr.send(formData);
+            // });
+
             $('#csv{{ $type }}ImportForm').on('submit', function (e) {
-                e.preventDefault();
+    e.preventDefault();
 
-                let form = $(this);
-                let submitBtn = form.find('button[type="submit"]');
-                let progressBar = $('#upload{{ $type }}ProgressBar');
-                let processingStatus = $('#processing{{ $type }}Status');
-                let formData = new FormData(this);
-                let xhr = new XMLHttpRequest();
+    let form = $(this);
+    let submitBtn = form.find('button[type="submit"]');
+    let progressBar = $('#upload{{ $type }}ProgressBar');
+    let processingStatus = $('#processing{{ $type }}Status');
 
-                submitBtn.prop('disabled', true).text('Uploading...');
-                progressBar.removeClass('bg-success bg-danger').addClass('progress-bar-animated');
-                processingStatus.addClass('d-none');
+    let formData = new FormData(this);
+    let xhr = new XMLHttpRequest();
 
-                xhr.open('POST', '{{ route($route . ".import") }}', true);
-                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+    submitBtn.prop('disabled', true).text('Uploading...');
+    progressBar
+        .css('width', '0%')
+        .removeClass('bg-success bg-danger')
+        .addClass('progress-bar-animated')
+        .text('0%');
 
-                xhr.upload.addEventListener('progress', function (event) {
-                    if (event.lengthComputable) {
-                        let percent = Math.round((event.loaded / event.total) * 100);
-                        progressBar.css('width', percent + '%').text(percent + '%');
-                        if (percent === 100) {
-                            processingStatus.removeClass('d-none');
-                        }
-                    }
-                });
+    processingStatus.addClass('d-none');
 
-                xhr.onload = function () {
-                    submitBtn.prop('disabled', false).text('Upload');
+    xhr.open('POST', '{{ route($route . ".import") }}', true);
 
-                    try {
-                        let response = JSON.parse(xhr.responseText);
-                        if (xhr.status === 200 || xhr.status === 201) {
-                            progressBar.removeClass('progress-bar-animated').addClass('bg-success').text('Upload Complete');
-                            toastr.success(response.message || 'CSV import completed successfully.', '{{ $type }} Import');
+    // ✅ REQUIRED HEADERS
+    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-                            form[0].reset();
-                            setTimeout(() => {
-                                $('#csv{{ $type }}ImportModal').modal('hide');
-                                progressBar.css('width', '0%').removeClass('bg-success bg-danger').text('0%');
-                                processingStatus.addClass('d-none');
-                            }, 1000);
-                        } else {
-                            progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Failed');
-                            toastr.error(response.error || 'Failed to import CSV.', '{{ $type }} Import');
-                        }
-                    } catch (e) {
-                        progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Failed');
-                        toastr.error('Invalid server response', '{{ $type }} Import');
-                    }
-                };
+    // ✅ Upload progress
+    xhr.upload.onprogress = function (event) {
+        if (event.lengthComputable) {
+            let percent = Math.round((event.loaded / event.total) * 100);
+            progressBar.css('width', percent + '%').text(percent + '%');
 
-                xhr.onerror = function () {
-                    submitBtn.prop('disabled', false).text('Upload');
-                    progressBar.removeClass('progress-bar-animated').addClass('bg-danger').text('Upload Error');
-                    toastr.error('Network error occurred.', '{{ $type }} Import');
-                };
+            if (percent === 100) {
+                processingStatus.removeClass('d-none');
+            }
+        }
+    };
 
-                xhr.send(formData);
-            });
+    xhr.onload = function () {
+        submitBtn.prop('disabled', false).text('Upload');
+
+        // 🚨 Handle redirects / auth / csrf
+        if (xhr.status === 302) {
+            progressBar.addClass('bg-danger').text('Session expired');
+            toastr.error('Session expired. Please refresh and try again.');
+            return;
+        }
+
+        if (xhr.status === 419) {
+            progressBar.addClass('bg-danger').text('CSRF Error');
+            toastr.error('CSRF token expired. Refresh the page.');
+            return;
+        }
+
+        if (xhr.status === 422) {
+            progressBar.addClass('bg-danger').text('Validation Failed');
+            toastr.error('Invalid CSV file.');
+            return;
+        }
+
+        try {
+            let response = JSON.parse(xhr.responseText);
+
+            if (xhr.status === 200 || xhr.status === 201) {
+                progressBar
+                    .removeClass('progress-bar-animated')
+                    .addClass('bg-success')
+                    .text('Upload Complete');
+
+                toastr.success(response.message ?? 'CSV imported successfully.');
+
+                form[0].reset();
+
+                setTimeout(() => {
+                    $('#csv{{ $type }}ImportModal').modal('hide');
+                    progressBar
+                        .css('width', '0%')
+                        .removeClass('bg-success bg-danger')
+                        .text('0%');
+                    processingStatus.addClass('d-none');
+                }, 1000);
+            } else {
+                throw response;
+            }
+        } catch (err) {
+            progressBar.addClass('bg-danger').text('Upload Failed');
+            toastr.error('Server returned invalid response.');
+        }
+    };
+
+    xhr.onerror = function () {
+        submitBtn.prop('disabled', false).text('Upload');
+        progressBar.addClass('bg-danger').text('Network Error');
+        toastr.error('Network error occurred.');
+    };
+
+    xhr.send(formData);
+});
+
         @endforeach
     });
 </script>
