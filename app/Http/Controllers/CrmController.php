@@ -1669,7 +1669,7 @@ class CrmController extends Controller
 
                     // Derived table for latest cv_notes (if needed for user_name)
                     $latestCv = DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'id')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'id', 'created_at')
                         ->whereIn('id', function ($sub) {
                             $sub->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1719,7 +1719,7 @@ class CrmController extends Controller
                     ->addSelect([
                         // CRM Notes
                         'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
+                        'cv_notes.created_at as cv_created_at',
                         // Offices
                         'offices.office_name',
                         // Sales
@@ -1795,10 +1795,10 @@ class CrmController extends Controller
                 $model->orderBy('applicants.job_title_id', $orderDirection); 
             } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
                 $model->orderBy($orderColumn, $orderDirection); 
-            } else { $model->orderBy('notes_created_at', 'desc'); 
+            } else { $model->orderBy('cv_created_at', 'desc'); 
             } 
         } else { 
-            $model->orderBy('notes_created_at', 'desc'); 
+            $model->orderBy('cv_created_at', 'desc'); 
         }
 
         if ($request->ajax()) {
@@ -1884,9 +1884,8 @@ class CrmController extends Controller
                         </div>
                     ';
                 })
-
-                ->addColumn('updated_at', function ($applicant) {
-                    return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A'); // Using accessor
+                ->addColumn('cv_created_at', function ($applicant) {
+                    return Carbon::parse($applicant->cv_created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
@@ -4254,7 +4253,7 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'cv_created_at', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

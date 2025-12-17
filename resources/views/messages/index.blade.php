@@ -21,15 +21,6 @@
     .simplebar-content {
         pointer-events: auto !important;
     }
-    .chat-item.active {
-        background-color: #e9f2ff;
-        border-left: 4px solid #0d6efd;
-    }
-    .applicant-chat.active,
-    .user-chat.active {
-        background-color: #f0f5ff !important;
-        border-left: 4px solid #0d6efd;
-    }
     #chatConversationLoader {
         position: absolute;
         top: 50%;
@@ -161,182 +152,324 @@
         };
     }
 
-    let isLoadingApplicants = false;
-    let isLoadingUsers = false;
-    let currentRecipientId = null;
-    let currentRecipientType = null; // 'applicant' or 'user'
+    // let isLoadingApplicants = false;
+    // let isLoadingUsers = false;
+    // let currentRecipientId = null;
+    // let currentRecipientType = null; // 'applicant' or 'user'
 
-    
+    // function loadApplicants(page = 1) {
+    //     if (isLoadingApplicants) return; // Prevent multiple simultaneous requests
+    //     isLoadingApplicants = true;
+    //     $('#chatListLoader').show(); // Show loader
 
-    function loadApplicants(page = 1) {
-        if (isLoadingApplicants) return; // Prevent multiple simultaneous requests
-        isLoadingApplicants = true;
-        $('#chatListLoader').show(); // Show loader
+    //     $.ajax({
+    //         url: '{{ route("getApplicantsForMessage") }}',
+    //         method: 'GET',
+    //         data: { page: page, per_page: 20},
+    //         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+    //         success: function(response) {
+    //             console.log('Applicants Response (Page ' + page + '):', response); // Debug: Log response
+    //             let chatListHtml = '';
+    //             let unreadCount = parseInt($('#unreadCount').text()) || 0;
+
+    //             if (!response.data || !Array.isArray(response.data)) {
+    //                 console.error('Invalid response data:', response);
+    //                 isLoadingApplicants = false;
+    //                 $('#chatListLoader').hide();
+    //                 return;
+    //             }
+
+    //             response.data.forEach(applicant => {
+    //                 // Render all applicants, even without messages
+    //                 const lastMessage = applicant.last_message ? applicant.last_message.message : 'No messages';
+    //                 const time = applicant.last_message ? applicant.last_message.time : '';
+    //                 const unread = applicant.last_message ? applicant.last_message.unread_count || 0 : 0;
+    //                 unreadCount += unread;
+    //                 chatListHtml += `
+    //                     <div class="d-flex flex-column h-100 border-bottom">
+    //                         <a href="#!" class="d-block applicant-chat" data-ref-name="applicant-chat" data-recipient-id="${applicant.id}" data-recipient-type="applicant">
+    //                             <div class="d-flex align-items-center p-2 mb-1 rounded">
+    //                                 <div class="position-relative">
+    //                                     <img src="/images/users/avatar-${applicant.id % 10 || 1}.jpg" alt="" class="avatar rounded-circle flex-shrink-0">
+    //                                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
+    //                                         <span class="visually-hidden">New alerts</span>
+    //                                     </span>
+    //                                 </div>
+    //                                 <div class="d-block ms-3 flex-grow-1">
+    //                                     <div class="d-flex justify-content-between align-items-center mb-1">
+    //                                         <h5 class="mb-0">${applicant.name}</h5>
+    //                                         <div>
+    //                                             <p class="text-muted fs-13 mb-0">${time}</p>
+    //                                         </div>
+    //                                     </div>
+    //                                     <div class="d-flex justify-content-between align-items-center">
+    //                                         <p class="mb-0 text-muted d-flex align-items-center gap-1">${lastMessage}</p>
+    //                                         ${unread > 0 ? `<span class="badge bg-danger badge-pill">${unread}</span>` : ''}
+    //                                     </div>
+    //                                 </div>
+    //                             </div>
+    //                         </a>
+    //                     </div>
+    //                 `;
+    //             });
+
+    //             console.log('Generated HTML (Page ' + page + '):', chatListHtml); // Debug: Log generated HTML
+
+    //             // Use DocumentFragment for efficient DOM updates
+    //             const fragment = document.createDocumentFragment();
+    //             const tempDiv = document.createElement('div');
+    //             tempDiv.innerHTML = chatListHtml;
+    //             while (tempDiv.firstChild) {
+    //                 fragment.appendChild(tempDiv.firstChild);
+    //             }
+
+    //             // Append records (never clear)
+    //             $('#chatList').append(fragment);
+    //             $('#unreadCount').text(unreadCount);
+
+    //             // Store next page if more data exists
+    //             $('#chatList').data('next-page', response.has_more ? response.next_page : null);
+    //             console.log('Stored next-page for applicants:', $('#chatList').data('next-page')); // Debug: Log next-page
+
+    //             // Debug: Verify DOM update
+    //             console.log('chatList children:', $('#chatList').children().length);
+    //         },
+    //         error: function(xhr) {
+    //             console.error('Error loading applicants (Page ' + page + '):', xhr);
+    //         },
+    //         complete: function() {
+    //             isLoadingApplicants = false;
+    //             $('#chatListLoader').hide(); // Hide loader
+    //             // Reinitialize SimpleBar
+    //             const chatListSimpleBar = new SimpleBar(document.getElementById('chatList'));
+    //             chatListSimpleBar.recalculate();
+    //         }
+    //     });
+    // }
+
+    // function loadUsers(page = 1) {
+    //     if (isLoadingUsers) return;
+    //     isLoadingUsers = true;
+    //     $('#userListLoader').show(); // Show loader
+
+    //     $.ajax({
+    //         url: "{{ route('getUserChats') }}",
+    //         method: 'GET',
+    //         data: { page: page, per_page: 20 },
+    //         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+    //         success: function(response) {
+    //             console.log('Users Response (Page ' + page + '):', response); // Debug: Log response
+    //             let userListHtml = '';
+
+    //             if (!response.data || !Array.isArray(response.data)) {
+    //                 console.error('Invalid response data:', response);
+    //                 isLoadingUsers = false;
+    //                 $('#userListLoader').hide();
+    //                 return;
+    //             }
+
+    //             response.data.forEach(user => {
+    //                 userListHtml += `
+    //                     <div class="d-flex flex-column h-100 border-bottom">
+    //                         <a href="#!" class="d-block user-chat" data-ref-name="user-chat" data-recipient-id="${user.id}" data-recipient-type="applicant">
+    //                             <div class="d-flex align-items-center p-2 mb-1 rounded">
+    //                                 <div class="position-relative">
+    //                                     <img src="/images/users/avatar-${user.id % 10 || 1}.jpg" alt="" class="avatar rounded-circle flex-shrink-0">
+    //                                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
+    //                                         <span class="visually-hidden">New alerts</span>
+    //                                     </span>
+    //                                 </div>
+    //                                 <div class="d-block ms-3 flex-grow-1">
+    //                                     <div class="d-flex justify-content-between align-items-center mb-1">
+    //                                         <h5 class="mb-0">${user.name}</h5>
+    //                                         <div>
+    //                                             <p class="text-muted fs-13 mb-0">${user.last_message ? user.last_message.time : ''}</p>
+    //                                         </div>
+    //                                     </div>
+    //                                     <div class="d-flex justify-content-between align-items-center">
+    //                                         <p class="mb-0 text-muted d-flex align-items-center gap-1">${user.last_message.message}</p>
+    //                                         ${user.last_message && user.last_message.unread_count > 0 ? `<span class="badge bg-danger badge-pill">${user.last_message.unread_count}</span>` : ''}
+    //                                     </div>
+    //                                 </div>
+    //                             </div>
+    //                         </a>
+    //                     </div>
+    //                     `;
+    //             });
+
+    //             console.log('Generated User HTML (Page ' + page + '):', userListHtml); // Debug: Log generated HTML
+
+    //             // Use DocumentFragment for efficient DOM updates
+    //             const fragment = document.createDocumentFragment();
+    //             const tempDiv = document.createElement('div');
+    //             tempDiv.innerHTML = userListHtml;
+    //             while (tempDiv.firstChild) {
+    //                 fragment.appendChild(tempDiv.firstChild);
+    //             }
+
+    //             // Append records (never clear)
+    //             $('#userList').append(fragment);
+
+    //             // Store next page if more data exists
+    //             $('#userList').data('next-page', response.has_more ? response.next_page : null);
+    //             console.log('Stored next-page for users:', $('#userList').data('next-page')); // Debug: Log next-page
+
+    //             // Debug: Verify DOM update
+    //             console.log('userList children:', $('#userList').children().length);
+    //         },
+    //         error: function(xhr) {
+    //             console.error('Error loading users (Page ' + page + '):', xhr);
+    //         },
+    //         complete: function() {
+    //             isLoadingUsers = false;
+    //             $('#userListLoader').hide(); // Hide loader
+    //             // Reinitialize SimpleBar
+    //             const userListSimpleBar = new SimpleBar(document.getElementById('userList'));
+    //             userListSimpleBar.recalculate();
+    //         }
+    //     });
+    // }
+    let lastApplicantId = 0;
+    let lastUserId = 0;
+    let loadingApplicants = false;
+    let loadingUsers = false;
+
+    // Declare SimpleBar instances globally
+    let chatListSimpleBar;
+    let userListSimpleBar;
+
+    function loadApplicants() {
+        if (loadingApplicants) return;
+        loadingApplicants = true;
+        $('#chatListLoader').show();
 
         $.ajax({
             url: '{{ route("getApplicantsForMessage") }}',
             method: 'GET',
-            data: { page: page, per_page: 20},
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: { last_id: lastApplicantId },
             success: function(response) {
-                console.log('Applicants Response (Page ' + page + '):', response); // Debug: Log response
-                let chatListHtml = '';
-                let unreadCount = parseInt($('#unreadCount').text()) || 0;
-
-                if (!response.data || !Array.isArray(response.data)) {
-                    console.error('Invalid response data:', response);
-                    isLoadingApplicants = false;
-                    $('#chatListLoader').hide();
+                if (response.data.length === 0) {
+                    // No more data
                     return;
                 }
 
+                let chatListHtml = '';
+                let unreadCount = parseInt($('#unreadCount').text()) || 0;
+
                 response.data.forEach(applicant => {
-                    // Render all applicants, even without messages
                     const lastMessage = applicant.last_message ? applicant.last_message.message : 'No messages';
                     const time = applicant.last_message ? applicant.last_message.time : '';
                     const unread = applicant.last_message ? applicant.last_message.unread_count || 0 : 0;
                     unreadCount += unread;
+
                     chatListHtml += `
-                        <div class="d-flex flex-column h-100 border-bottom">
-                            <a href="#!" class="d-block applicant-chat" data-ref-name="applicant-chat" data-recipient-id="${applicant.id}" data-recipient-type="applicant">
-                                <div class="d-flex align-items-center p-2 mb-1 rounded">
+                        <div class="d-flex flex-column border-bottom">
+                            <a href="#!" class="d-block applicant-chat" 
+                               data-ref-name="applicant-chat" 
+                               data-recipient-id="${applicant.id}" 
+                               data-recipient-type="applicant">
+                                <div class="d-flex align-items-center p-2 rounded">
                                     <div class="position-relative">
-                                        <img src="/images/users/avatar-${applicant.id % 10 || 1}.jpg" alt="" class="avatar rounded-circle flex-shrink-0">
+                                        <img src="/images/users/avatar-${applicant.id % 10 || 1}.jpg" 
+                                             alt="" class="avatar rounded-circle flex-shrink-0">
                                         <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
-                                            <span class="visually-hidden">New alerts</span>
+                                            <span class="visually-hidden">Online</span>
                                         </span>
                                     </div>
-                                    <div class="d-block ms-3 flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="ms-3 flex-grow-1">
+                                        <div class="d-flex justify-content-between mb-1">
                                             <h5 class="mb-0">${applicant.name}</h5>
-                                            <div>
-                                                <p class="text-muted fs-13 mb-0">${time}</p>
-                                            </div>
+                                            <p class="text-muted fs-13 mb-0">${time}</p>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <p class="mb-0 text-muted d-flex align-items-center gap-1">${lastMessage}</p>
+                                            <p class="mb-0 text-muted">${lastMessage}</p>
                                             ${unread > 0 ? `<span class="badge bg-danger badge-pill">${unread}</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
                             </a>
-                        </div>
-                    `;
+                        </div>`;
                 });
 
-                console.log('Generated HTML (Page ' + page + '):', chatListHtml); // Debug: Log generated HTML
-
-                // Use DocumentFragment for efficient DOM updates
                 const fragment = document.createDocumentFragment();
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = chatListHtml;
-                while (tempDiv.firstChild) {
-                    fragment.appendChild(tempDiv.firstChild);
-                }
+                const temp = document.createElement('div');
+                temp.innerHTML = chatListHtml;
+                while (temp.firstChild) fragment.appendChild(temp.firstChild);
 
-                // Append records (never clear)
                 $('#chatList').append(fragment);
                 $('#unreadCount').text(unreadCount);
 
-                // Store next page if more data exists
-                $('#chatList').data('next-page', response.has_more ? response.next_page : null);
-                console.log('Stored next-page for applicants:', $('#chatList').data('next-page')); // Debug: Log next-page
+                // Update last ID for next load
+                lastApplicantId = response.last_id;
 
-                // Debug: Verify DOM update
-                console.log('chatList children:', $('#chatList').children().length);
-            },
-            error: function(xhr) {
-                console.error('Error loading applicants (Page ' + page + '):', xhr);
+                // Recalculate SimpleBar
+                if (chatListSimpleBar) chatListSimpleBar.recalculate();
             },
             complete: function() {
-                isLoadingApplicants = false;
-                $('#chatListLoader').hide(); // Hide loader
-                // Reinitialize SimpleBar
-                const chatListSimpleBar = new SimpleBar(document.getElementById('chatList'));
-                chatListSimpleBar.recalculate();
+                loadingApplicants = false;
+                $('#chatListLoader').hide();
+
+                // If no more data, optionally hide loader permanently
+                // if (!response.has_more) $('#chatListLoader').remove();
             }
         });
     }
 
-    function loadUsers(page = 1) {
-        if (isLoadingUsers) return;
-        isLoadingUsers = true;
-        $('#userListLoader').show(); // Show loader
+    function loadUsers() {
+        if (loadingUsers) return;
+        loadingUsers = true;
+        $('#userListLoader').show();
 
         $.ajax({
             url: "{{ route('getUserChats') }}",
             method: 'GET',
-            data: { page: page, per_page: 20 },
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: { last_id: lastUserId },
             success: function(response) {
-                console.log('Users Response (Page ' + page + '):', response); // Debug: Log response
-                let userListHtml = '';
+                if (response.data.length === 0) return;
 
-                if (!response.data || !Array.isArray(response.data)) {
-                    console.error('Invalid response data:', response);
-                    isLoadingUsers = false;
-                    $('#userListLoader').hide();
-                    return;
-                }
+                let userListHtml = '';
 
                 response.data.forEach(user => {
                     userListHtml += `
-                        <div class="d-flex flex-column h-100 border-bottom">
-                            <a href="#!" class="d-block user-chat" data-ref-name="user-chat" data-recipient-id="${user.id}" data-recipient-type="applicant">
-                                <div class="d-flex align-items-center p-2 mb-1 rounded">
+                        <div class="d-flex flex-column border-bottom">
+                            <a href="#!" class="d-block user-chat" 
+                               data-ref-name="user-chat" 
+                               data-recipient-id="${user.id}" 
+                               data-recipient-type="applicant">
+                                <div class="d-flex align-items-center p-2 rounded">
                                     <div class="position-relative">
-                                        <img src="/images/users/avatar-${user.id % 10 || 1}.jpg" alt="" class="avatar rounded-circle flex-shrink-0">
-                                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
-                                            <span class="visually-hidden">New alerts</span>
-                                        </span>
+                                        <img src="/images/users/avatar-${user.id % 10 || 1}.jpg" 
+                                             alt="" class="avatar rounded-circle flex-shrink-0">
+                                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle"></span>
                                     </div>
-                                    <div class="d-block ms-3 flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="ms-3 flex-grow-1">
+                                        <div class="d-flex justify-content-between mb-1">
                                             <h5 class="mb-0">${user.name}</h5>
-                                            <div>
-                                                <p class="text-muted fs-13 mb-0">${user.last_message ? user.last_message.time : ''}</p>
-                                            </div>
+                                            <p class="text-muted fs-13 mb-0">${user.last_message?.time || ''}</p>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <p class="mb-0 text-muted d-flex align-items-center gap-1">${user.last_message.message}</p>
-                                            ${user.last_message && user.last_message.unread_count > 0 ? `<span class="badge bg-danger badge-pill">${user.last_message.unread_count}</span>` : ''}
+                                            <p class="mb-0 text-muted">${user.last_message?.message || ''}</p>
+                                            ${user.last_message?.unread_count > 0 ? `<span class="badge bg-danger badge-pill">${user.last_message.unread_count}</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
                             </a>
-                        </div>
-                        `;
+                        </div>`;
                 });
 
-                console.log('Generated User HTML (Page ' + page + '):', userListHtml); // Debug: Log generated HTML
-
-                // Use DocumentFragment for efficient DOM updates
                 const fragment = document.createDocumentFragment();
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = userListHtml;
-                while (tempDiv.firstChild) {
-                    fragment.appendChild(tempDiv.firstChild);
-                }
+                const temp = document.createElement('div');
+                temp.innerHTML = userListHtml;
+                while (temp.firstChild) fragment.appendChild(temp.firstChild);
 
-                // Append records (never clear)
                 $('#userList').append(fragment);
+                lastUserId = response.last_id;
 
-                // Store next page if more data exists
-                $('#userList').data('next-page', response.has_more ? response.next_page : null);
-                console.log('Stored next-page for users:', $('#userList').data('next-page')); // Debug: Log next-page
-
-                // Debug: Verify DOM update
-                console.log('userList children:', $('#userList').children().length);
-            },
-            error: function(xhr) {
-                console.error('Error loading users (Page ' + page + '):', xhr);
+                if (userListSimpleBar) userListSimpleBar.recalculate();
             },
             complete: function() {
-                isLoadingUsers = false;
-                $('#userListLoader').hide(); // Hide loader
-                // Reinitialize SimpleBar
-                const userListSimpleBar = new SimpleBar(document.getElementById('userList'));
-                userListSimpleBar.recalculate();
+                loadingUsers = false;
+                $('#userListLoader').hide();
             }
         });
     }
@@ -432,46 +565,29 @@
     }
 
     $(document).ready(function() {
-        // Initialize SimpleBar
-        const chatListSimpleBar = new SimpleBar(document.getElementById('chatList'));
-        const userListSimpleBar = new SimpleBar(document.getElementById('userList'));
+        // Initialize SimpleBar ONCE
+        chatListSimpleBar = new SimpleBar(document.getElementById('chatList'));
+        userListSimpleBar = new SimpleBar(document.getElementById('userList'));
 
-        // Load initial lists
-        loadApplicants(1);
-        loadUsers(1);
+        // Initial load
+        loadApplicants();
+        loadUsers();
 
-        // Infinite scroll for applicants
-        $(chatListSimpleBar.getScrollElement()).on('scroll', debounce(function() {
-
-            if (isLoadingApplicants) return;
-            const scrollElement = chatListSimpleBar.getScrollElement();
-            const scrollPosition = scrollElement.scrollTop + scrollElement.clientHeight;
-            const scrollThreshold = scrollElement.scrollHeight - 100; // Increased threshold for reliability
-            console.log('Scroll Position:', scrollPosition, 'Scroll Threshold:', scrollThreshold, 'Scroll Height:', scrollElement.scrollHeight); // Debug: Log scroll metrics
-            if (scrollPosition >= scrollThreshold) {
-                let nextPage = $('#chatList').data('next-page');
-                console.log('Triggering loadApplicants for page:', nextPage); // Debug: Log page trigger
-                if (nextPage) {
-                    loadApplicants(nextPage);
-                }
+        // Infinite scroll - All Chats
+        chatListSimpleBar.getScrollElement().addEventListener('scroll', function() {
+            const el = chatListSimpleBar.getScrollElement();
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100 && !loadingApplicants) {
+                loadApplicants();
             }
-        }, 100)); // Reduced debounce to 100ms for faster response
+        });
 
-        // Infinite scroll for users
-        $(userListSimpleBar.getScrollElement()).on('scroll', debounce(function() {
-            if (isLoadingUsers) return;
-            const scrollElement = userListSimpleBar.getScrollElement();
-            const scrollPosition = scrollElement.scrollTop + scrollElement.clientHeight;
-            const scrollThreshold = scrollElement.scrollHeight - 100; // Increased threshold
-            console.log('Scroll Position (Users):', scrollPosition, 'Scroll Threshold (Users):', scrollThreshold, 'Scroll Height (Users):', scrollElement.scrollHeight); // Debug: Log scroll metrics
-            if (scrollPosition >= scrollThreshold) {
-                let nextPage = $('#userList').data('next-page');
-                console.log('Triggering loadUsers for page:', nextPage); // Debug: Log page trigger
-                if (nextPage) {
-                    loadUsers(nextPage);
-                }
+        // Infinite scroll - My Chats
+        userListSimpleBar.getScrollElement().addEventListener('scroll', function() {
+            const el = userListSimpleBar.getScrollElement();
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100 && !loadingUsers) {
+                loadUsers();
             }
-        }, 100)); // Reduced debounce to 100ms
+        });
 
         // Send message
         $('#chat-form').submit(function(e) {

@@ -379,7 +379,7 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'updated_at', name: 'applicants.updated_at' },
+                    { data: 'cv_created_at', name: 'cv_notes.created_at' },
                     { data: 'user_name', name: 'users.name' },
                     { 
                         data: 'schedule_date', 
@@ -5097,9 +5097,6 @@
             });
         }
         
-    </script>
-
-    <script>
         $(document).on('click', '.export-btn', function (e) {
             e.preventDefault();
 
