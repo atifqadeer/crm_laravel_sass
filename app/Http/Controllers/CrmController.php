@@ -112,7 +112,7 @@ class CrmController extends Controller
             case 'open cvs':
                 $model->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'updated_at')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -166,8 +166,8 @@ class CrmController extends Controller
                 ->addSelect([
                     //office
                     'offices.office_name as office_name',
-                    // CV Notes
-                    'cv_notes.updated_at as cv_created_at',
+                    // show created date
+                    'revert_stages.updated_at as show_created_at',
                     //sales
                     'sales.id as sale_id',
                     'sales.job_category_id as sale_category_id',
@@ -276,11 +276,11 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Quality Notes
                     'quality_notes.details as notes_detail',
                     'quality_notes.created_at as notes_created_at',
+                    // show created date
+                    'quality_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name as office_name',
                     // Sales
@@ -371,13 +371,13 @@ class CrmController extends Controller
                         // Applicants
                         'applicants.id as applicant_id',
 
-                        // CV Notes
-                        'cv_last_notes.created_at as cv_created_at',
-
                         // CRM Notes
                         'crm_last_notes.details as notes_detail',
                         'crm_last_notes.created_at as notes_created_at',
 
+                        // show created date
+                        'crm_last_notes.created_at as show_created_at',
+                        
                         // Offices
                         'offices.office_name',
 
@@ -469,13 +469,14 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
@@ -564,11 +565,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+
+                    // show created date
+                    'crm_last_notes.created_at as show_created_at',
 
                     // interviews
                     'interviews.schedule_time',
@@ -668,13 +670,13 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'latest_cv_notes.created_at as cv_created_at',
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'latest_crm_notes.details as notes_detail',
                     'latest_crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_last_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
@@ -762,11 +764,11 @@ class CrmController extends Controller
                     })
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
-                        // CV Notes
-                        'cv_notes.created_at as cv_created_at',
                         // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
                         // Offices
                         'offices.office_name as office_name',
 
@@ -855,11 +857,11 @@ class CrmController extends Controller
                     )
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
-                        // CV Notes
-                        'cv_notes.created_at as cv_created_at',
                         // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
                         // offices
                         'offices.office_name as office_name',
                         // Sale
@@ -948,13 +950,13 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
@@ -1040,11 +1042,11 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // offices
                     'offices.office_name as office_name',
                     // sale
@@ -1128,11 +1130,11 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // offices
                     'offices.office_name as office_name',
                     // sale
@@ -1220,13 +1222,13 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
@@ -1312,11 +1314,11 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // offices
                     'offices.office_name as office_name',
                     // sale
@@ -1403,11 +1405,11 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // offices
                     'offices.office_name as office_name',
                     // sale
@@ -1494,8 +1496,8 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -1585,8 +1587,8 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
-                    // CV Notes
-                    'cv_notes.created_at as cv_created_at',
+                    // show created date
+                    'crm_notes.created_at as show_created_at',
                     // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
@@ -1676,8 +1678,8 @@ class CrmController extends Controller
                     )
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
-                        // CV Notes
-                        'cv_notes.created_at as cv_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
                         // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
@@ -1793,8 +1795,8 @@ class CrmController extends Controller
                         // CRM Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
-                        // CV Notes
-                        'cv_notes.updated_at as cv_created_at',
+                        // Quality Notes
+                        'quality_notes.created_at as show_created_at',
                         // Offices
                         'offices.office_name',
                         // Sales
@@ -1871,10 +1873,10 @@ class CrmController extends Controller
             } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
                 $model->orderBy($orderColumn, $orderDirection); 
             } else { 
-                $model->orderBy('cv_created_at', 'desc'); 
+                $model->orderBy('show_created_at', 'desc'); 
             } 
         } else { 
-            $model->orderBy('cv_created_at', 'desc'); 
+            $model->orderBy('show_created_at', 'desc'); 
         }
 
         if ($request->ajax()) {
@@ -1960,8 +1962,8 @@ class CrmController extends Controller
                         </div>
                     ';
                 })
-                ->addColumn('cv_created_at', function ($applicant) {
-                    return Carbon::parse($applicant->cv_created_at)->format('d M Y, h:i A'); // Using accessor
+                ->addColumn('show_created_at', function ($applicant) {
+                    return Carbon::parse($applicant->show_created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
@@ -4329,7 +4331,7 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'cv_created_at', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'show_created_at', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

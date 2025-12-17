@@ -379,7 +379,7 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'cv_created_at', name: 'cv_notes.updated_at' },
+                    { data: 'show_created_at', name: 'show_created_at' },
                     { data: 'user_name', name: 'users.name' },
                     { 
                         data: 'schedule_date', 
