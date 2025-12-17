@@ -126,8 +126,17 @@ class SalesExport implements FromCollection, WithHeadings
                     })
 
                     // ✅ Prevent duplicates
-                   ->groupBy('sales.id')
-                    
+                    ->groupBy([
+                        'sales.id',
+                        'offices.office_name',
+                        'units.unit_name',
+                        'sales.sale_postcode',
+                        'contacts.contact_email',
+                        'job_categories.name',
+                        'sales.job_type',
+                        'job_titles.name',
+                        'sales.created_at',
+                    ])
                     // ✅ Map exactly in your heading order
                     ->get()
                     ->map(function ($item) {
