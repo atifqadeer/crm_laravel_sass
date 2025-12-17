@@ -112,7 +112,7 @@ class CrmController extends Controller
             case 'open cvs':
                 $model->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -164,7 +164,11 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    //office
                     'offices.office_name as office_name',
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    //sales
                     'sales.id as sale_id',
                     'sales.job_category_id as sale_category_id',
                     'sales.job_title_id as sale_title_id',
@@ -180,15 +184,18 @@ class CrmController extends Controller
                     'sales.position_type',
                     'sales.status as sale_status',
                     'sales.created_at as sale_posted_date',
+                    //units
                     'units.unit_name',
                     'units.unit_postcode',
                     'units.unit_website',
+                    //revert stages
                     'revert_stages.user_id as revert_user_id',
                     'revert_stages.notes as notes_detail',
                     'revert_stages.stage as revert_stage',
                     'revert_stages.updated_at as notes_created_at',
+                    //user
                     'users.name as user_name',
-
+                    //interviews
                     'interviews.schedule_time',
                     'interviews.schedule_date',
                     'interviews.status as interview_status',
@@ -255,7 +262,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -269,9 +276,14 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Quality Notes
                     'quality_notes.details as notes_detail',
                     'quality_notes.created_at as notes_created_at',
+                    // Offices
                     'offices.office_name as office_name',
+                    // Sales
                     'sales.id as sale_id',
                     'sales.job_category_id as sale_category_id',
                     'sales.job_title_id as sale_title_id',
@@ -287,10 +299,13 @@ class CrmController extends Controller
                     'sales.position_type',
                     'sales.status as sale_status',
                     'sales.created_at as sale_posted_date',
+                    // Units
                     'units.unit_name',
                     'units.unit_postcode',
                     'units.unit_website',
+                    // User
                     'users.name as user_name',
+                    // Interviews
                     'interviews.schedule_time',
                     'interviews.schedule_date',
                     'interviews.status as interview_status',
@@ -353,7 +368,11 @@ class CrmController extends Controller
                     })
                     ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
                     ->addSelect([
+                        // Applicants
                         'applicants.id as applicant_id',
+
+                        // CV Notes
+                        'cv_last_notes.created_at as cv_created_at',
 
                         // CRM Notes
                         'crm_last_notes.details as notes_detail',
@@ -408,7 +427,7 @@ class CrmController extends Controller
 
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                    ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('cv_notes')
@@ -450,6 +469,9 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
@@ -528,7 +550,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -542,6 +564,9 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
 
@@ -594,7 +619,7 @@ class CrmController extends Controller
 
                 // Subquery for latest cv_notes
                 $cvNotesSubQuery = DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                    ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('cv_notes')
@@ -643,6 +668,9 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'latest_cv_notes.created_at as cv_created_at',
+                    // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'latest_crm_notes.details as notes_detail',
@@ -690,7 +718,7 @@ class CrmController extends Controller
                     );
 
                 $latestCvNotes = DB::table('cv_notes as cv1')
-                    ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status')
+                    ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status', 'cv1.created_at')
                     ->join(DB::raw('(SELECT MAX(id) as id FROM cv_notes GROUP BY applicant_id, sale_id) as latest_cv'),
                         'cv1.id', '=', 'latest_cv.id'
                     );
@@ -734,8 +762,12 @@ class CrmController extends Controller
                     })
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
+                        // CV Notes
+                        'cv_notes.created_at as cv_created_at',
+                        // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
+                        // Offices
                         'offices.office_name as office_name',
 
                         // Sale details
@@ -809,7 +841,7 @@ class CrmController extends Controller
                     })
                     ->leftJoinSub(
                         DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                             ->whereIn('id', function ($subQuery) {
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('cv_notes')
@@ -823,10 +855,14 @@ class CrmController extends Controller
                     )
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
+                        // CV Notes
+                        'cv_notes.created_at as cv_created_at',
+                        // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
+                        // offices
                         'offices.office_name as office_name',
-                        // sale
+                        // Sale
                         'sales.id as sale_id',
                         'sales.job_category_id as sale_category_id',
                         'sales.job_title_id as sale_title_id',
@@ -842,16 +878,15 @@ class CrmController extends Controller
                         'sales.position_type',
                         'sales.status as sale_status',
                         'sales.created_at as sale_posted_date',
-
                         // units
                         'units.unit_name',
                         'units.unit_postcode',
                         'units.unit_website',
-
+                        // interviews
                         'interviews.schedule_time',
                         'interviews.schedule_date',
                         'interviews.status as interview_status',
-
+                        // users
                         'users.name as user_name'
                     ]);
 
@@ -871,7 +906,7 @@ class CrmController extends Controller
 
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                    ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('cv_notes')
@@ -913,6 +948,9 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
@@ -988,7 +1026,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1002,8 +1040,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
                     // sale
                     'sales.id as sale_id',
@@ -1072,7 +1114,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1086,8 +1128,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
                     // sale
                     'sales.id as sale_id',
@@ -1132,7 +1178,7 @@ class CrmController extends Controller
 
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                    ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('cv_notes')
@@ -1174,6 +1220,9 @@ class CrmController extends Controller
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
                     'crm_notes.details as notes_detail',
@@ -1249,7 +1298,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1263,8 +1312,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
                     // sale
                     'sales.id as sale_id',
@@ -1336,7 +1389,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1350,8 +1403,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
                     // sale
                     'sales.id as sale_id',
@@ -1423,7 +1480,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1437,8 +1494,12 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
                     // sale
                     'sales.id as sale_id',
@@ -1510,7 +1571,7 @@ class CrmController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1524,9 +1585,14 @@ class CrmController extends Controller
                 )
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
+                    // CV Notes
+                    'cv_notes.created_at as cv_created_at',
+                    // Crm Notes
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
+                    // offices
                     'offices.office_name as office_name',
+                    // sale
                     'sales.id as sale_id',
                     'sales.job_category_id as sale_category_id',
                     'sales.job_title_id as sale_title_id',
@@ -1542,12 +1608,15 @@ class CrmController extends Controller
                     'sales.position_type',
                     'sales.status as sale_status',
                     'sales.created_at as sale_posted_date',
+                    // units
                     'units.unit_name',
                     'units.unit_postcode',
                     'units.unit_website',
+                    // interview
                     'interviews.schedule_time',
                     'interviews.schedule_date',
                     'interviews.status as interview_status',
+                    // user
                     'users.name as user_name'
                 ]);
                 break;
@@ -1593,7 +1662,7 @@ class CrmController extends Controller
                     })
                     ->leftJoinSub(
                         DB::table('cv_notes')
-                            ->select('applicant_id', 'sale_id', 'user_id', 'status')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
                             ->whereIn('id', function ($subQuery) {
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('cv_notes')
@@ -1607,8 +1676,12 @@ class CrmController extends Controller
                     )
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
+                        // CV Notes
+                        'cv_notes.created_at as cv_created_at',
+                        // Crm Notes
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
+                        // Offices
                         'offices.office_name as office_name',
                         // Sale fields
                         'sales.id as sale_id',
@@ -1788,16 +1861,17 @@ class CrmController extends Controller
         if ($request->has('order')) { 
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data'); 
             $orderDirection = $request->input('order.0.dir', 'asc'); 
-            if ($orderColumn === 'job_source') { 
+            if ($orderColumn == 'job_source') { 
                 $model->orderBy('applicants.job_source_id', $orderDirection); 
-            } elseif ($orderColumn === 'job_category') { 
+            } elseif ($orderColumn == 'job_category') { 
                 
                 $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') { 
+            } elseif ($orderColumn == 'job_title') { 
                 $model->orderBy('applicants.job_title_id', $orderDirection); 
             } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
                 $model->orderBy($orderColumn, $orderDirection); 
-            } else { $model->orderBy('cv_created_at', 'desc'); 
+            } else { 
+                $model->orderBy('cv_created_at', 'desc'); 
             } 
         } else { 
             $model->orderBy('cv_created_at', 'desc'); 
