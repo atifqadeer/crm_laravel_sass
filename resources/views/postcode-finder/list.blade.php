@@ -210,11 +210,12 @@
                                         <p><b><i class="ri-arrow-right-s-line me-1"></i> Head Office:</b> ${result.office_name}</p>
                                     </div>
                                     <div class="col-md-4 text-center">
-                                        <b><i class="ri-arrow-right-s-line me-1"></i> Position Type:</b> <span class="badge bg-primary text-white">${result.position_type.toUpperCase()}</span>
-                                    </div>
-                                    <div class="col-md-4">
                                         <p><b><i class="ri-arrow-right-s-line me-1"></i> Unit:</b> ${result.unit_name}</p>
                                     </div>
+                                    <div class="col-md-4">
+                                        <b><i class="ri-arrow-right-s-line me-1"></i> Position Type:</b> <span class="badge bg-primary text-white">${result.position_type.toUpperCase()}</span>
+                                    </div>
+                                    
                                 </div><hr>
                                 <div class="mt-1">
                                     <p><b><i class="ri-arrow-right-s-line me-1"></i> Benefits:</b> ${result.benefits}</p><hr>                           
