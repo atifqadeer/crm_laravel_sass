@@ -186,7 +186,7 @@
                                                 </a>
                                             </div>
                                             <div class="d-flex gap-2">
-                                                <span class="badge bg-info text-white">
+                                                <span class="badge bg-primary text-white">
                                                     Distance: 
                                                     ${result.distance 
                                                         ? parseFloat(result.distance).toFixed(2) + ' KMs / ' + 
@@ -220,7 +220,7 @@
                                 <div class="mt-1">
                                     <p><b><i class="ri-arrow-right-s-line me-1"></i> Benefits:</b> ${result.benefits}</p><hr>                           
                                     <p><b><i class="ri-arrow-right-s-line me-1"></i> Salary:</b> ${result.salary}</p><hr>
-                                    <p><b><i class="ri-arrow-right-s-line me-1"></i> Timing:</b> ${result.timing}</p><hr>
+                                    <p><b><i class="ri-arrow-right-s-line me-1"></i> Timings:</b> ${result.timing}</p><hr>
                                     <p><b><i class="ri-arrow-right-s-line me-1"></i> Experience:</b> ${result.experience}</p><hr>
                                     <p><b><i class="ri-arrow-right-s-line me-1"></i> Qualification:</b> ${result.qualification}</p>
                                 </div>
