@@ -112,7 +112,7 @@ class CrmController extends Controller
             case 'open cvs':
                 $model->leftJoinSub(
                     DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'updated_at')
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -167,7 +167,7 @@ class CrmController extends Controller
                     //office
                     'offices.office_name as office_name',
                     // CV Notes
-                    'cv_notes.created_at as cv_created_at',
+                    'cv_notes.updated_at as cv_created_at',
                     //sales
                     'sales.id as sale_id',
                     'sales.job_category_id as sale_category_id',
@@ -1742,7 +1742,7 @@ class CrmController extends Controller
 
                     // Derived table for latest cv_notes (if needed for user_name)
                     $latestCv = DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'id', 'created_at')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
                         ->whereIn('id', function ($sub) {
                             $sub->select(DB::raw('MAX(id)'))
                                 ->from('cv_notes')
@@ -1794,7 +1794,7 @@ class CrmController extends Controller
                         'crm_notes.details as notes_detail',
                         'crm_notes.created_at as notes_created_at',
                         // CV Notes
-                        'cv_notes.created_at as cv_created_at',
+                        'cv_notes.updated_at as cv_created_at',
                         // Offices
                         'offices.office_name',
                         // Sales
