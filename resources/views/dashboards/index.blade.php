@@ -78,7 +78,7 @@
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <p class="mb-2 fs-15 fw-medium">Total Sales</p>
+                                <p class="mb-2 fs-15 fw-medium">Total Open Sales</p>
                                 <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0 fs-22" id="salesCount">
                                     <span class="skeleton-loader w-16 h-8 rounded animate-pulse bg-gray-200"></span>
                                 </h3>
