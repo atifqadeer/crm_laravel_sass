@@ -628,8 +628,10 @@ class ApplicantController extends Controller
                         $status = '<span class="badge bg-warning">No Job</span>';
                     } elseif ($applicant->is_temp_not_interested == 1) {
                         $status = '<span class="badge bg-danger">Not<br>Interested</span>';
-                    } elseif ($applicant->paid_status == 'open') {
+                    } elseif ($applicant->paid_status == 'open' && $applicant->is_in_crm_paid == 0) {
                         $status = '<span class="badge bg-primary">Open</span>';
+                    } elseif ($applicant->paid_status == 'close' && $applicant->is_in_crm_paid == 1) {
+                        $status = '<span class="badge bg-dark">CRM Paid</span>';
                     } elseif (
                         ($applicant->crmHistory && $applicant->crmHistory->count() > 0) &&
                         (
@@ -642,17 +644,11 @@ class ApplicantController extends Controller
                             $applicant->is_in_crm_start_date == 1 ||
                             $applicant->is_in_crm_invoice == 1 ||
                             $applicant->is_in_crm_invoice_sent == 1 ||
-                            $applicant->is_in_crm_start_date_hold == 1
+                            $applicant->is_in_crm_start_date_hold == 1 || 
+                            $applicant->is_in_crm_paid == 0
                         )
                     ) {
                         $status = '<span class="badge bg-primary">CRM Active</span>';
-                    } elseif (
-                        ($applicant->crmHistory && $applicant->crmHistory->count() > 0) &&
-                        (
-                            $applicant->is_in_crm_paid == 1
-                        )
-                    ) {
-                        $status = '<span class="badge bg-dark">CRM Paid</span>';
                     } else {
                         $status = '-';
                     }
