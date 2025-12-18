@@ -162,7 +162,7 @@ class CrmController extends Controller
                     $join->on('cv_notes.sale_id', '=', 'interviews.sale_id');
                     $join->where('interviews.status', 1);
                 })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->leftJoin('users', 'users.id', '=', 'revert_stages.user_id')
                 ->addSelect([
                     //office
                     'offices.office_name as office_name',
