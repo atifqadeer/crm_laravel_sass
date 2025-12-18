@@ -541,7 +541,7 @@ class ApplicantController extends Controller
                         }
                     }
 
-                    if ($applicant->is_blocked == 0 && $status_value == 'open' || $status_value == 'reject') {
+                    if ($status_value == 'open' || $status_value == 'reject') {
                         return '
                             <a href="#" title="Add Short Note" style="color:blue"
                             onclick="addShortNotesModal(' . (int)$applicant->id . ')">
