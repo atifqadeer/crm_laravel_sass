@@ -278,6 +278,89 @@ class CommunicationController extends Controller
             ], 500);
         }
     }
+
+    // public function sendMessageToApplicant(Request $request)
+    // {
+    //     return $request->all();
+    //     try {
+    //         $phone_number = $request->input('phone_number');
+    //         $message = $request->input('message');
+
+    //         if (!$phone_number || !$message) {
+    //             return response()->json([
+    //                 'error' => 'Phone number and message are required.'
+    //             ], 400);
+    //         }
+
+    //         // Encode message to be safely used in a URL
+    //         $encoded_message = urlencode($message);
+
+    //         $url = 'http://milkyway.tranzcript.com:1008/sendsms?username=admin&password=admin&phonenumber='
+    //             . $phone_number . '&message=' . $encoded_message . '&port=1&report=JSON&timeout=0';
+
+    //         $curl = curl_init();
+    //         curl_setopt_array($curl, [
+    //             CURLOPT_URL => $url,
+    //             CURLOPT_RETURNTRANSFER => true,
+    //             CURLOPT_HEADER => false,
+    //             CURLOPT_TIMEOUT => 10,
+    //         ]);
+
+    //         $response = curl_exec($curl);
+    //         $curlError = curl_error($curl);
+    //         curl_close($curl);
+
+    //         if ($response === false) {
+    //             return response()->json([
+    //                 'error' => 'Failed to connect to SMS API: ' . $curlError,
+    //                 'query_string' => $url
+    //             ], 500);
+    //         }
+
+    //         // Try to parse JSON response
+    //         $parsed = json_decode($response, true);
+    //         if (json_last_error() === JSON_ERROR_NONE) {
+    //             $report = $parsed['result'] ?? null;
+    //             $time = $parsed['time'] ?? null;
+    //             $phone = $parsed['phonenumber'] ?? null;
+    //         } else {
+    //             // Fallback (non-JSON API response)
+    //             $report = explode('"', strstr($response, "result"))[2] ?? null;
+    //             $time = explode('"', strstr($response, "time"))[2] ?? null;
+    //             $phone = explode('"', strstr($response, "phonenumber"))[2] ?? null;
+    //         }
+
+    //         if ($report === "success") {
+    //             return response()->json([
+    //                 'success' => 'SMS sent successfully!',
+    //                 'data' => $response,
+    //                 'phonenumber' => $phone,
+    //                 'time' => $time,
+    //                 'report' => $report
+    //             ]);
+    //         } elseif ($report === "sending") {
+    //             return response()->json([
+    //                 'success' => 'SMS is sending, please check later!',
+    //                 'data' => $response,
+    //                 'phonenumber' => $phone,
+    //                 'time' => $time,
+    //                 'report' => $report
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 'error' => 'SMS failed, please check your device or settings!',
+    //                 'data' => $response,
+    //                 'report' => $report,
+    //                 'query_string' => $url
+    //             ]);
+    //         }
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'error' => 'An unexpected error occurred: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function sendRejectionEmail(Request $request)
     {
         try {
@@ -484,7 +567,6 @@ class CommunicationController extends Controller
                 ];
             });
 
-
             return response()->json([
                 'recipient' => [
                     'id' => $recipient_id,
@@ -543,209 +625,118 @@ class CommunicationController extends Controller
             'created_at' => date('H:i', strtotime($message->time)),
         ]);
     }
-    // public function getApplicantsForMessage(Request $request)
-    // {
-    //     $perPage = 20; // Fixed to 20 records per chunk
-    //     $page = $request->input('page', 1); // Current page for pagination
-
-    //     $applicants = Applicant::with(['messages' => function ($query) {
-    //         $query->latest()->take(1); // Get only the latest message
-    //     }])
-    //         ->withCount(['messages as unread_count' => function ($query) {
-    //             $query->where('module_type', 'Horsefly\Applicant')
-    //                 ->where('is_read', 0);
-    //         }])
-    //         ->orderBy('id', 'desc') // Consistent ordering for chats
-    //         ->paginate($perPage);
-
-    //     $applicants->getCollection()->transform(function ($applicant) {
-    //         $lastMessage = $applicant->messages->first();
-
-    //         return [
-    //             'id' => $applicant->id,
-    //             'name' => $applicant->applicant_name,
-    //             'last_message' => $lastMessage ? [
-    //                 'message' => Str::limit($lastMessage->message, 50),
-    //                 'time' => Carbon::parse($lastMessage->time)->format('h:i A'),
-    //                 'is_sent' => $lastMessage->is_sent ?? 0,
-    //                 'is_read' => $lastMessage->is_read ?? 0,
-    //                 'unread_count' => $applicant->unread_count,
-    //             ] : null,
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         'data' => $applicants->items(),
-    //         'has_more' => $applicants->hasMorePages(),
-    //         'next_page' => $applicants->currentPage() + 1,
-    //     ]);
-    // }
-    // public function getUserChats(Request $request)
-    // {
-    //     try {
-    //         $currentUserId = Auth::id();
-    //         $perPage = 20; // Fixed to 20 records per chunk
-    //         $page = $request->input('page', 1); // Current page for pagination
-
-    //         // Step 1: Get latest message ID per applicant sent by current user
-    //         $latestMessageIds = DB::table('messages')
-    //             ->select(DB::raw('MAX(id) as id'))
-    //             ->where('user_id', $currentUserId)
-    //             ->where('module_type', 'Horsefly\Applicant')
-    //             ->whereNotNull('message')
-    //             ->groupBy('module_id');
-
-    //         // Step 2: Join to get full message and applicant
-    //         $applicants = DB::table('messages')
-    //             ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
-    //                 $join->on('messages.id', '=', 'latest_messages.id');
-    //             })
-    //             ->join('applicants', 'messages.module_id', '=', 'applicants.id')
-    //             ->leftJoin(
-    //                 DB::raw('(SELECT module_id, COUNT(*) as unread_count 
-    //                                 FROM messages 
-    //                                 WHERE is_read = 0 
-    //                                 AND module_type = "Horsefly\Applicant" 
-    //                                 AND user_id = ' . $currentUserId . '
-    //                                 GROUP BY module_id) as unread_msgs'),
-    //                 'messages.module_id',
-    //                 '=',
-    //                 'unread_msgs.module_id'
-    //             )
-    //             ->select(
-    //                 'applicants.id',
-    //                 'applicants.applicant_name as name',
-    //                 'messages.message',
-    //                 'messages.created_at',
-    //                 DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
-    //             )
-    //             ->orderByDesc('messages.created_at')
-    //             ->paginate($perPage);
-
-    //         // Transform the collection to match frontend expectations
-    //         $applicants->getCollection()->transform(function ($applicant) {
-    //             return [
-    //                 'id' => $applicant->id,
-    //                 'name' => $applicant->name,
-    //                 'last_message' => [
-    //                     'message' => Str::limit($applicant->message, 50),
-    //                     'time' => Carbon::parse($applicant->created_at)->format('h:i A'),
-    //                     'unread_count' => $applicant->unread_count,
-    //                     'applicant_name' => $applicant->name,
-    //                 ],
-    //             ];
-    //         });
-
-    //         return response()->json([
-    //             'data' => $applicants->items(),
-    //             'has_more' => $applicants->hasMorePages(),
-    //             'next_page' => $applicants->currentPage() + 1,
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error fetching applicants for messages: ' . $e->getMessage());
-    //         return response()->json(['error' => 'Failed to fetch applicants'], 500);
-    //     }
-    // }
-
-
     public function getApplicantsForMessage(Request $request)
-{
-    $lastId = $request->input('last_id', 0);
-    $perChunk = 20;
+    {
+        $limit = (int) $request->input('limit', 10);
+        $start = (int) $request->input('start', 0);
 
-    $applicants = Applicant::with(['messages' => function ($query) {
-        $query->latest()->take(1);
-    }])
-    ->withCount(['messages as unread_count' => function ($query) {
-        $query->where('module_type', 'Horsefly\Applicant')
-              ->where('is_read', 0);
-    }])
-    ->where('id', '>', $lastId)  // Cursor: load after this ID
-    ->orderBy('id', 'desc')
-    ->take($perChunk)
-    ->get();
-
-    $applicants = $applicants->map(function ($applicant) {
-        $lastMessage = $applicant->messages->first();
-
-        return [
-            'id' => $applicant->id,
-            'name' => $applicant->applicant_name,
-            'last_message' => $lastMessage ? [
-                'message' => Str::limit($lastMessage->message, 50),
-                'time' => Carbon::parse($lastMessage->time)->format('h:i A'),
-                'unread_count' => $applicant->unread_count,
-            ] : null,
-        ];
-    });
-
-    $hasMore = $applicants->count() === $perChunk;
-
-return response()->json([
-    'data' => $applicants,  // or $transformed if you prefer
-    'has_more' => $hasMore,
-    'last_id' => $applicants->isNotEmpty() ? $applicants->last()['id'] : $lastId,
-]);
-}
-
-public function getUserChats(Request $request)
-{
-    $lastId = $request->input('last_id', 0);
-    $perChunk = 20;
-    $currentUserId = Auth::id();
-
-    $latestMessageIds = DB::table('messages')
-        ->select(DB::raw('MAX(id) as id'))
-        ->where('user_id', $currentUserId)
-        ->where('module_type', 'Horsefly\Applicant')
-        ->whereNotNull('message')
-        ->where('module_id', '>', $lastId)  // Add cursor here too if needed
-        ->groupBy('module_id');
-
-    $applicants = DB::table('messages')
-        ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
-            $join->on('messages.id', '=', 'latest_messages.id');
-        })
-        ->join('applicants', 'messages.module_id', '=', 'applicants.id')
-        ->leftJoin(
-            DB::raw('(SELECT module_id, COUNT(*) as unread_count
-                            FROM messages
-                            WHERE is_read = 0
-                            AND module_type = "Horsefly\Applicant"
-                            AND user_id = ' . $currentUserId . '
-                            GROUP BY module_id) as unread_msgs'),
-            'messages.module_id', '=', 'unread_msgs.module_id'
-        )
-        ->where('applicants.id', '>', $lastId)  // Cursor based on applicant ID
-        ->select(
-            'applicants.id',
-            'applicants.applicant_name as name',
-            'messages.message',
-            'messages.created_at',
-            DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
-        )
-        ->orderByDesc('messages.created_at')
-        ->take($perChunk)
+        $applicants = Applicant::with([
+            'messages' => function ($query) {
+                $query->latest()->limit(1);
+            }
+        ])
+        ->withCount([
+            'messages as unread_count' => function ($query) {
+                $query->where('module_type', 'Horsefly\\Applicant')
+                    ->where('is_read', 0);
+            }
+        ])
+        ->orderByDesc('unread_count')                 // 🔥 unread first
+        ->orderBy('applicants.applicant_name', 'asc') // 🔤 then alphabetically
+        ->offset($start)
+        ->limit($limit)
         ->get();
 
-    $transformed = $applicants->map(function ($applicant) {
-        return [
-            'id' => $applicant->id,
-            'name' => $applicant->name,
-            'last_message' => [
-                'message' => Str::limit($applicant->message, 50),
-                'time' => Carbon::parse($applicant->created_at)->format('h:i A'),
-                'unread_count' => $applicant->unread_count,
-            ],
-        ];
-    });
 
-    $hasMore = $applicants->count() === $perChunk;
+        $data = $applicants->map(function ($applicant) {
 
-    return response()->json([
-        'data' => $transformed,
-        'has_more' => $hasMore,
-        'last_id' => $applicants->isNotEmpty() ? $applicants->last()->id : $lastId,
-    ]);
-}
+            $lastMessage = $applicant->messages->first();
+
+            return [
+                'id'   => $applicant->id,
+                'name' => $applicant->applicant_name,
+                'last_message' => $lastMessage ? [
+                    'message'       => Str::limit($lastMessage->message, 50),
+                    'time'          => $lastMessage->created_at
+                        ? $lastMessage->created_at->format('h:i A')
+                        : '',
+                    'is_sent'       => (int) ($lastMessage->is_sent ?? 0),
+                    'is_read'       => (int) ($lastMessage->is_read ?? 0),
+                    'unread_count'  => (int) $applicant->unread_count,
+                ] : null,
+            ];
+        });
+
+        return response()->json([
+            'data'     => $data,
+            'has_more' => $data->count() === $limit // key logic
+        ]);
+    }
+
+    public function getUserChats(Request $request)
+    {
+        try {
+            $currentUserId = Auth::id();
+            $perPage = 20; // Fixed to 20 records per chunk
+            $page = $request->input('page', 1); // Current page for pagination
+
+            // Step 1: Get latest message ID per applicant sent by current user
+            $latestMessageIds = DB::table('messages')
+                ->select(DB::raw('MAX(id) as id'))
+                ->where('user_id', $currentUserId)
+                ->where('module_type', 'Horsefly\Applicant')
+                ->whereNotNull('message')
+                ->groupBy('module_id');
+
+            // Step 2: Join to get full message and applicant
+            $applicants = DB::table('messages')
+                ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
+                    $join->on('messages.id', '=', 'latest_messages.id');
+                })
+                ->join('applicants', 'messages.module_id', '=', 'applicants.id')
+                ->leftJoin(
+                    DB::raw('(SELECT module_id, COUNT(*) as unread_count 
+                                    FROM messages 
+                                    WHERE is_read = 0 
+                                    AND module_type = "Horsefly\Applicant" 
+                                    AND user_id = ' . $currentUserId . '
+                                    GROUP BY module_id) as unread_msgs'),
+                    'messages.module_id',
+                    '=',
+                    'unread_msgs.module_id'
+                )
+                ->select(
+                    'applicants.id',
+                    'applicants.applicant_name as name',
+                    'messages.message',
+                    'messages.created_at',
+                    DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
+                )
+                ->orderByDesc('messages.created_at')
+                ->paginate($perPage);
+
+            // Transform the collection to match frontend expectations
+            $applicants->getCollection()->transform(function ($applicant) {
+                return [
+                    'id' => $applicant->id,
+                    'name' => $applicant->name,
+                    'last_message' => [
+                        'message' => Str::limit($applicant->message, 50),
+                        'time' => Carbon::parse($applicant->created_at)->format('h:i A'),
+                        'unread_count' => $applicant->unread_count,
+                        'applicant_name' => $applicant->name,
+                    ],
+                ];
+            });
+
+            return response()->json([
+                'data' => $applicants->items(),
+                'has_more' => $applicants->hasMorePages(),
+                'next_page' => $applicants->currentPage() + 1,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching applicants for messages: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch applicants'], 500);
+        }
+    }
 }
