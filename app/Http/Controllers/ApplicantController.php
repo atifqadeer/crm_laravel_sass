@@ -64,9 +64,9 @@ class ApplicantController extends Controller
     }
     public function create()
     {
-        $jobSources = JobSource::orderBy('name','asc')->get();
-        $jobCategories = JobCategory::orderBy('name','asc')->get();
-        $jobTitles = JobTitle::orderBy('name','asc')->get();
+        $jobSources = JobSource::orderBy('name', 'asc')->get();
+        $jobCategories = JobCategory::orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::orderBy('name', 'asc')->get();
         return view('applicants.create', compact('jobSources', 'jobCategories', 'jobTitles'));
     }
     public function store(Request $request)
@@ -134,7 +134,7 @@ class ApplicantController extends Controller
             $applicantData['applicant_email_secondary'] = isset($applicantData['applicant_email_secondary'])
                 ? strtolower(trim($applicantData['applicant_email_secondary']))
                 : null;
-            
+
             $applicantData['user_id'] = Auth::id();
 
             $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
@@ -225,10 +225,10 @@ class ApplicantController extends Controller
             $emailNotification = Setting::where('key', 'email_notifications')->first();
 
             if (
-                $email_template 
-                && $emailNotification 
-                && $emailNotification->value == '1'  
-                && !empty($email_template->template) 
+                $email_template
+                && $emailNotification
+                && $emailNotification->value == '1'
+                && !empty($email_template->template)
                 && !empty($applicant->applicant_email)
             ) {
                 $email_to = $applicant->applicant_email;
@@ -260,10 +260,10 @@ class ApplicantController extends Controller
             $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
             if (
-                $sms_template 
-                && $smsNotification 
-                && $smsNotification->value == '1'  
-                && !empty($sms_template->template) 
+                $sms_template
+                && $smsNotification
+                && $smsNotification->value == '1'
+                && !empty($sms_template->template)
                 && !empty($applicant->applicant_email)
             ) {
                 $sms_to = $applicant->applicant_phone;
@@ -351,23 +351,23 @@ class ApplicantController extends Controller
             if (strlen($search) >= 3) {
                 $model->where(function ($q) use ($search) {
                     $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
+                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
 
                     // For related tables, only search if the keyword is long enough
                     $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
-                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
-                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
+                        ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
+                        ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
                 });
             } else {
                 // For very short searches (1-2 chars), limit to phone/postcode or skip
                 $model->where(function ($q) use ($search) {
                     $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
+                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
                 });
             }
         }
@@ -506,19 +506,19 @@ class ApplicantController extends Controller
                 })
                 ->editColumn('applicant_email', function ($applicant) {
                     $email = '';
-                    if($applicant->applicant_email_secondary){
-                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
-                    }else{
+                    if ($applicant->applicant_email_secondary) {
+                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    } else {
                         $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email;
                     }
 
                     return $email; // Using accessor
                 })
                 ->editColumn('applicant_postcode', function ($applicant) {
-                    if($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked){
+                    if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="'. $url .'" target="_blank" style="color:blue;">'. $applicant->formatted_postcode .'</a>'; // Using accessor
-                    }else{
+                        $button = '<a href="' . $url . '" target="_blank" style="color:blue;">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                    } else {
                         $button = $applicant->formatted_postcode;
                     }
                     return $button;
@@ -527,12 +527,30 @@ class ApplicantController extends Controller
                     // Convert new lines to <br> but DO NOT escape HTML tags
                     $notes = nl2br($applicant->applicant_notes);
 
-                    return '
-                        <a href="#" title="Add Short Note" style="color:blue"
-                        onclick="addShortNotesModal(' . (int)$applicant->id . ')">
-                            ' . $notes . '
-                        </a>
-                    ';
+                    $status_value = 'open';
+                    if ($applicant->paid_status == 'close') {
+                        $status_value = 'paid';
+                    } else {
+                        foreach ($applicant->cv_notes as $key => $value) {
+                            if ($value->status == 1) {
+                                $status_value = 'sent';
+                                break;
+                            } elseif ($value->status == 0) {
+                                $status_value = 'reject';
+                            }
+                        }
+                    }
+
+                    if ($applicant->is_blocked == 0 && $status_value == 'open' || $status_value == 'reject') {
+                        return '
+                            <a href="#" title="Add Short Note" style="color:blue"
+                            onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                                ' . $notes . '
+                            </a>
+                        ';
+                    } else {
+                        return $notes;
+                    }
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
                     $str = '';
@@ -555,7 +573,7 @@ class ApplicantController extends Controller
 
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
-                        ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
                 ->editColumn('created_at', function ($applicant) {
@@ -612,7 +630,7 @@ class ApplicantController extends Controller
                         $status = '<span class="badge bg-danger">Not<br>Interested</span>';
                     } elseif ($applicant->paid_status == 'open') {
                         $status = '<span class="badge bg-primary">Open</span>';
-                    }elseif (
+                    } elseif (
                         ($applicant->crmHistory && $applicant->crmHistory->count() > 0) &&
                         (
                             $applicant->is_cv_in_quality_clear == 1 ||
@@ -666,11 +684,11 @@ class ApplicantController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">';
-                            if(Gate::allows('applicant-edit')){
-                            $html .= '<li><a class="dropdown-item" href="' . route('applicants.edit', ['id' => (int)$applicant->id]) . '">Edit</a></li>';
-                            }
-                            if(Gate::allows('applicant-view')){
-                                $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                    if (Gate::allows('applicant-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('applicants.edit', ['id' => (int)$applicant->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('applicant-view')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
                                         ' . (int)$applicant->id . ',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                         \'' . addslashes(htmlspecialchars($emailstatus)) . '\',
@@ -683,39 +701,39 @@ class ApplicantController extends Controller
                                         \'' . addslashes(htmlspecialchars($job_source)) . '\',
                                         \'' . addslashes(htmlspecialchars($status)) . '\'
                                     )">View</a></li>';
-                            }
-                            if(Gate::allows('applicant-add-note')){
-                                $html .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
-                            }
-                            if(Gate::allows('applicant-upload-resume')){
-                                $html .= '<li>
+                    }
+                    if (Gate::allows('applicant-add-note')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
+                    }
+                    if (Gate::allows('applicant-upload-resume')) {
+                        $html .= '<li>
                                         <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                     </li>';
-                            }
-                            if(Gate::allows('applicant-upload-crm-resume')){
-                                $html .= '<li>
+                    }
+                    if (Gate::allows('applicant-upload-crm-resume')) {
+                        $html .= '<li>
                                         <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                     </li>';
-                            }
-                            if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
-                                $html .= '<li><hr class="dropdown-divider"></li>';
-                            }
+                    }
+                    if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
 
-                            $html .= '<!-- <li><a class="dropdown-item" target="_blank" href="' . route('applicants.available_no_job', ['id' => (int)$applicant->id, 'radius' => 15]) . '">Go to No Job</a></li> -->';
-                            if(Gate::allows('applicant-view-history')){
-                                $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
-                            }
-                            if(Gate::allows('applicant-view-notes-history')){
-                                $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
-                            }
-                            $html .= '</ul>
+                    $html .= '<!-- <li><a class="dropdown-item" target="_blank" href="' . route('applicants.available_no_job', ['id' => (int)$applicant->id, 'radius' => 15]) . '">Go to No Job</a></li> -->';
+                    if (Gate::allows('applicant-view-history')) {
+                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
+                    }
+                    if (Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                    }
+                    $html .= '</ul>
                         </div>';
 
-                        return $html;
+                    return $html;
                 })
                 ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
@@ -846,8 +864,8 @@ class ApplicantController extends Controller
                 'module_noteable_id' => $applicant_id,
                 'module_noteable_type' => 'Horsefly\Applicant',
             ])
-            ->where('status', 1)
-            ->update(['status' => 0]);
+                ->where('status', 1)
+                ->update(['status' => 0]);
 
             // Add new module note
             $moduleNote = ModuleNote::create([
@@ -913,7 +931,7 @@ class ApplicantController extends Controller
         // Debug the incoming id
         Log::info('Trying to edit applicant with ID: ' . $id);
 
-        $applicant = Applicant::find($id);   
+        $applicant = Applicant::find($id);
         $jobCategory = JobCategory::where('id', $applicant->job_category_id)->select('name')->first();
         $jobTitle = JobTitle::where('id', $applicant->job_title_id)->select('name')->first();
         $jobSource = JobSource::where('id', $applicant->job_source_id)->select('name')->first();
@@ -944,24 +962,24 @@ class ApplicantController extends Controller
             'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
             // 'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
             // Custom validation for landline
-    'applicant_landline' => [
-        'nullable',
-        'string',
-        'max:11',
-        function ($attribute, $value, $fail) use ($request) {
-            if ($value) {
-                $exists = Applicant::where('applicant_landline', $value)
-                    ->when($request->input('applicant_id'), function ($q) use ($request) {
-                        $q->where('id', '!=', $request->input('applicant_id'));
-                    })
-                    ->exists();
+            'applicant_landline' => [
+                'nullable',
+                'string',
+                'max:11',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($value) {
+                        $exists = Applicant::where('applicant_landline', $value)
+                            ->when($request->input('applicant_id'), function ($q) use ($request) {
+                                $q->where('id', '!=', $request->input('applicant_id'));
+                            })
+                            ->exists();
 
-                if ($exists) {
-                    $fail('This landline already exists.');
-                }
-            }
-        },
-    ],
+                        if ($exists) {
+                            $fail('This landline already exists.');
+                        }
+                    }
+                },
+            ],
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // 5mb
@@ -1291,7 +1309,7 @@ class ApplicantController extends Controller
             ->update(['status' => 0]);
 
         // Create new module note
-       $moduleNote = ModuleNote::create([
+        $moduleNote = ModuleNote::create([
             'details' => $notes,
             'module_noteable_id' => $applicant_id,
             'module_noteable_type' => 'Horsefly\Applicant',
@@ -1314,7 +1332,7 @@ class ApplicantController extends Controller
         // Subquery: get latest CRM note per applicant-sale
         $latestCrmNotes = DB::table('crm_notes')
             ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
-            ->whereIn('id', function($query) {
+            ->whereIn('id', function ($query) {
                 $query->selectRaw('MAX(id)')
                     ->from('crm_notes')
                     ->groupBy('applicant_id', 'sale_id');
@@ -1322,8 +1340,8 @@ class ApplicantController extends Controller
 
         // Join with the latest CRM notes
         $model->joinSub($latestCrmNotes, 'crm_notes', function ($join) {
-                $join->on('crm_notes.applicant_id', '=', 'applicants.id');
-            })
+            $join->on('crm_notes.applicant_id', '=', 'applicants.id');
+        })
             ->join('sales', 'sales.id', '=', 'crm_notes.sale_id')
             ->join('offices', 'offices.id', '=', 'sales.office_id')
             ->join('units', 'units.id', '=', 'sales.unit_id')
@@ -1368,7 +1386,7 @@ class ApplicantController extends Controller
                 'history.status' => 1
             ]);
 
-        /*** Sorting */ 
+        /*** Sorting */
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
             $direction = $request->input('order.0.dir', 'asc');
@@ -1410,7 +1428,6 @@ class ApplicantController extends Controller
                         $model->orderBy('history_created_at', 'desc');
                     }
             }
-
         } else {
             $model->orderBy('history_created_at', 'desc');
         }
@@ -1421,13 +1438,13 @@ class ApplicantController extends Controller
 
             $model->where(function ($q) use ($search) {
                 $q->where('history.sub_stage', 'LIKE', "%{$search}%")
-                ->orWhere('history.created_at', 'LIKE', "%{$search}%")
-                ->orWhere('crm_notes.details', 'LIKE', "%{$search}%")
-                ->orWhere('sale_postcode', 'LIKE', "%{$search}%")
-                ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
-                ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
-                ->orWhere('office_name', 'LIKE', "%{$search}%")
-                ->orWhere('unit_name', 'LIKE', "%{$search}%");
+                    ->orWhere('history.created_at', 'LIKE', "%{$search}%")
+                    ->orWhere('crm_notes.details', 'LIKE', "%{$search}%")
+                    ->orWhere('sale_postcode', 'LIKE', "%{$search}%")
+                    ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
+                    ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
+                    ->orWhere('office_name', 'LIKE', "%{$search}%")
+                    ->orWhere('unit_name', 'LIKE', "%{$search}%");
             });
         }
 
@@ -1684,7 +1701,6 @@ class ApplicantController extends Controller
                 'success' => false,
                 'message' => 'Record not found: ' . $e->getMessage()
             ], 404);
-
         } catch (Exception $e) {
             // Handles any other outer exception
             Log::error('Outer error in sendCVtoQuality', [
@@ -1917,7 +1933,7 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
-            ->leftJoin('cv_notes', function($join) use ($applicant_id) {
+            ->leftJoin('cv_notes', function ($join) use ($applicant_id) {
                 $join->on('cv_notes.sale_id', '=', 'sales.id')
                     ->where('cv_notes.applicant_id', $applicant_id);
             })
@@ -2144,11 +2160,11 @@ class ApplicantController extends Controller
                 ->addColumn('updated_at', function ($sale) {
                     return $sale->formatted_updated_at; // Using accessor
                 })
-                ->addColumn('sale_notes', function ($sale) {      
-                    $notes = ''; 
-                    if(!empty($sale->sale_notes)){
+                ->addColumn('sale_notes', function ($sale) {
+                    $notes = '';
+                    if (!empty($sale->sale_notes)) {
                         $notes = $sale->sale_notes;
-                    }else{
+                    } else {
                         $notes = $sale->latest_note;
                     }
                     $short = Str::limit(strip_tags($notes), 80);
@@ -2182,7 +2198,8 @@ class ApplicantController extends Controller
                     ';
                 })
                 ->addColumn('status', function ($sale)  use ($applicant) {
-                    $status_value = 'Open'; /***if cv_notes status is 3 then it will be apply on that too***/
+                    $status_value = 'Open';
+                    /***if cv_notes status is 3 then it will be apply on that too***/
                     $status_clr = 'bg-dark';
                     foreach ($applicant->cv_notes as $key => $value) {
                         if ($value->sale_id == $sale->id) {
@@ -2202,7 +2219,7 @@ class ApplicantController extends Controller
                         }
                     }
 
-                    return '<span class="badge '. $status_clr .'">'. $status_value .'</span>';
+                    return '<span class="badge ' . $status_clr . '">' . $status_value . '</span>';
                 })
                 ->addColumn('action', function ($sale) use ($applicant) {
                     $status_value = 'open';
@@ -2246,7 +2263,6 @@ class ApplicantController extends Controller
                         $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                     <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
                                 </button>';
-
                     }
 
                     $html .= '</ul>
@@ -2271,7 +2287,7 @@ class ApplicantController extends Controller
 
         $applicant = Applicant::with('cv_notes')->find($applicant_id);
 
-        if($applicant->lat == null || $applicant->lng == null){
+        if ($applicant->lat == null || $applicant->lng == null) {
             return response()->json([
                 'data' => [],
                 'draw' => 0,
@@ -2316,7 +2332,7 @@ class ApplicantController extends Controller
                     ->whereColumn('applicants_pivot_sales.sale_id', 'sales.id')
                     ->where('applicants_pivot_sales.applicant_id', $applicant_id);
             })
-            ->leftJoin('cv_notes', function($join) use ($applicant_id) {
+            ->leftJoin('cv_notes', function ($join) use ($applicant_id) {
                 $join->on('cv_notes.sale_id', '=', 'sales.id')
                     ->where('cv_notes.applicant_id', $applicant_id);
             })
@@ -2669,9 +2685,9 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('sale_notes', function ($sale) {
                     $notesData = '';
-                    if(!empty($sale->sale_notes)){
+                    if (!empty($sale->sale_notes)) {
                         $notesData = $sale->sale_notes;
-                    }else{
+                    } else {
                         $notesData = $sale->latest_note;
                     }
 
