@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -941,7 +942,26 @@ class ApplicantController extends Controller
             'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary,' . $request->input('applicant_id'),
             'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
-            'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
+            // 'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
+            // Custom validation for landline
+    'applicant_landline' => [
+        'nullable',
+        'string',
+        'max:11',
+        function ($attribute, $value, $fail) use ($request) {
+            if ($value) {
+                $exists = Applicant::where('applicant_landline', $value)
+                    ->when($request->input('applicant_id'), function ($q) use ($request) {
+                        $q->where('id', '!=', $request->input('applicant_id'));
+                    })
+                    ->exists();
+
+                if ($exists) {
+                    $fail('This landline already exists.');
+                }
+            }
+        },
+    ],
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
             'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // 5mb
@@ -1033,6 +1053,13 @@ class ApplicantController extends Controller
             // If the applicant doesn't exist, throw an exception
             if (!$applicant) {
                 throw new Exception("Applicant not found with ID: " . $id);
+            }
+
+            $landline = trim((string) $request->input('applicant_landline'));
+
+            // Treat 0, empty, or invalid values as null
+            if ($landline == '' || $landline == '0') {
+                $applicantData['applicant_landline'] = null;
             }
 
             $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');

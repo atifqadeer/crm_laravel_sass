@@ -95,6 +95,7 @@
                                 <label for="applicant_email_secondary" class="form-label">Email <small class="text-info">(Secondary)</small></label>
                                 <input type="email" id="applicant_email_secondary" class="form-control" @cannot('applicant-edit-email') readonly @endcannot name="applicant_email_secondary" 
                                 value="{{ old('applicant_email_secondary', $applicant->applicant_email_secondary) }}" placeholder="Enter Email">
+                                <div class="invalid-feedback">Please provide a valid email secondary</div>
                             </div>
                         </div>
                         <div class="col-lg-4">
@@ -117,6 +118,7 @@
                             <div class="mb-3">
                                 <label for="applicant_landline" class="form-label">Landline</label>
                                 <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-landline') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
+                                <div class="invalid-feedback">Please provide a landline number</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
