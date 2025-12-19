@@ -529,10 +529,10 @@ class QualityController extends Controller
                 })
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';
-                    if($applicant->applicant_email_secondary){
-                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
-                    }else{
-                        $email = $applicant->applicant_email;
+                    if ($applicant->applicant_email_secondary) {
+                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    } else {
+                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email;
                     }
 
                     return $email; // Using accessor
@@ -552,7 +552,7 @@ class QualityController extends Controller
                         }
                     }
 
-                    if($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject'){
+                    if($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked){
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="'. $url .'" style="color:blue;" target="_blank">'. $applicant->formatted_postcode .'</a>'; // Using accessor
                     }else{
@@ -615,18 +615,19 @@ class QualityController extends Controller
                         </div>';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if($applicant->applicant_landline){
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+                    $str = '';
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
-                    }else{
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    return $strng;
+                    return $str;
                 })
                 ->addColumn('notes_created_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'); // Using accessor
