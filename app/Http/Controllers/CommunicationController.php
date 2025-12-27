@@ -774,6 +774,10 @@ class CommunicationController extends Controller
             }
         ])
         ->withCount([
+            // total messages count
+            'messages as messages_count',
+
+            // unread messages count
             'messages as unread_count' => function ($query) {
                 $query->where('module_type', 'Horsefly\\Applicant')
                     ->where('status', 'incoming')
@@ -783,18 +787,20 @@ class CommunicationController extends Controller
 
         if (!empty($request->search)) {
             $search = trim($request->search);
-            $raw_query->where('applicant_name', 'like', '%' . $search . '%'); // no table prefix needed
+            $raw_query->where('applicant_name', 'like', '%' . $search . '%');
         }
 
-        $applicants = $raw_query->orderByDesc('unread_count')                 // 🔥 unread first
-            ->orderBy('applicants.applicant_name', 'asc') // 🔤 then alphabetically
+        $applicants = $raw_query
+            ->orderByDesc('messages_count')      // ✅ has messages first
+            ->orderByDesc('unread_count')        // 🔥 unread first
+            ->orderBy('applicants.applicant_name', 'asc')
             ->offset($start)
             ->limit($limit)
             ->get();
 
         $data = $applicants->map(function ($applicant) {
 
-        $lastMessage = $applicant->messages->first();
+            $lastMessage = $applicant->messages->first();
 
             return [
                 'id'   => $applicant->id,
