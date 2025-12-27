@@ -3,14 +3,14 @@
 @section('css')
 @vite(['node_modules/swiper/swiper-bundle.min.css'])
 <style>
-    .chat-conversation-list { max-height: 500px; overflow-y: auto; }
+    .chat-conversation-list { max-height: 700px; overflow-y: auto; }
     .chat-setting-height { max-height: 400px; overflow-y: auto; }
-    .chat-box { display: flex; flex-direction: column; height: 72vh; }
+    .chat-box { display: flex; flex-direction: column; height: 71vh; }
     .chat-conversation-list { flex-grow: 1; }
     .nav-link { cursor: pointer; }
     .applicant-chat:hover, .user-chat:hover { background-color: #f8f9fa; }
     .chatbox-height { max-height: calc(100vh - 255px) !important; }
-    #chatList, #userList { display: block; min-height: 54vh; } /* Ensure visibility and minimum height */
+    #chatList, #userList { display: block; min-height: 52.4vh; } /* Ensure visibility and minimum height */
     .loader { text-align: center; padding: 10px; display: none; }
     .loader i { font-size: 20px; color: #007bff; }
     .simplebar-mask,
@@ -21,6 +21,27 @@
     .simplebar-content {
         pointer-events: auto !important;
     }
+    .user_name{
+        font-size: 17px;
+        font-weight: 700;
+    }
+    .active-chat {
+        background: #eef3ff;
+        border-radius: 0 6px 6px 0;
+        position: relative;
+    }
+
+    .active-chat::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #4f6ef7;
+        border-radius: 6px 0 0 6px;
+    }
+
     #chatConversationLoader {
         position: absolute;
         top: 50%;
@@ -60,7 +81,7 @@
                     <form class="chat-search pb-0">
                         <div class="chat-search-box">
                             <input class="form-control" type="text" name="search" placeholder="Search ..." id="searchApplicants">
-                            <button type="submit" class="btn btn-sm btn-link search-icon p-0 fs-15"><i class="ri-search-eye-line"></i></button>
+                            <span class="btn btn-sm btn-link search-icon p-0 fs-15"><i class="ri-search-eye-line"></i></span>
                         </div>
                     </form>
                 </div>
@@ -89,7 +110,6 @@
                             style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: none; z-index: 999;">
                             ↓ Scroll to Bottom
                         </button>
-
                     </div>
 
                     <div class="tab-pane" id="contact-list">
@@ -167,16 +187,19 @@
         };
     }
 
+    let currentRecipientId = null;
+    let currentRecipientType = null; // applicant | user
+    let currentListRef = null;       // all-chat | user-chat
+    
     let applicantLimit = 10;
     let applicantStart = 0;
-    let applicantAction = 'inactive';
-    let userAction = 'inactive';
     let isLoadingApplicants = false;
-    let isLoadingUsers = false;
-    let currentRecipientId = null;
-    let currentRecipientType = null; // 'applicant' or 'user'
+    let applicantAction = 'inactive';
 
-    function loadApplicants() {
+    let activeTab = 'all-chat'; // default
+    let currentSearchKeyword = '';
+
+    function loadApplicants(search = '') {
         if (isLoadingApplicants) return;
 
         isLoadingApplicants = true;
@@ -199,7 +222,8 @@
             method: 'GET',
             data: {
                 limit: applicantLimit,
-                start: applicantStart
+                start: applicantStart,
+                search: search
             },
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -218,7 +242,7 @@
 
                     chatListHtml += `
                         <div class="d-flex flex-column h-100 border-bottom">
-                            <a href="#!" class="d-block applicant-chat"
+                            <a href="#!" class="d-block applicant-chat" data-ref-name="all-chat"
                             data-recipient-id="${applicant.id}"
                             data-recipient-type="applicant">
                                 <div class="d-flex align-items-center p-2 mb-1 rounded">
@@ -237,7 +261,7 @@
 
                                     <div class="ms-3 flex-grow-1">
                                         <div class="d-flex justify-content-between">
-                                            <h5 class="mb-0">${applicant.name}</h5>
+                                            <h5 class="mb-0 user_name">${applicant.name}</h5>
                                             <small class="text-muted">${time}</small>
                                         </div>
                                         <div class="d-flex justify-content-between">
@@ -281,175 +305,102 @@
         });
     }
 
-    function loadUsers(page = 1) {
-        if (isLoadingUsers) return;
+    let loading = false;
+    let oldestMessageId = null;
+    let activeRecipient = null;
+    
+    let userLimit = 10;
+    let userStart = 0;
+    let isLoadingUsers = false;
+    let hasMoreUsers = true;
+
+    function loadUsers(search = '') {
+        if (isLoadingUsers || !hasMoreUsers) return;
+
         isLoadingUsers = true;
-        $('#userListLoader').show(); // Show loader
+
+        const loaderId = 'userListScrollLoader';
+        // Append loader if it doesn't exist
+        if ($('#' + loaderId).length === 0) {
+            $('#userList').append(`
+                <div class="text-center py-2" id="${loaderId}">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `);
+        }
 
         $.ajax({
             url: "{{ route('getUserChats') }}",
             method: 'GET',
-            data: { page: page, per_page: 20 },
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: {
+                limit: userLimit,
+                start: userStart,
+                search: search
+            },
             success: function(response) {
-                console.log('Users Response (Page ' + page + '):', response); // Debug: Log response
-                let userListHtml = '';
+                // Remove loader first
+                $('#' + loaderId).remove();
 
-                if (!response.data || !Array.isArray(response.data)) {
-                    console.error('Invalid response data:', response);
-                    isLoadingUsers = false;
-                    $('#userListLoader').hide();
+                if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+                    hasMoreUsers = false;
+                    // Optional: show "End of List"
+                    $('#userList').append('<p class="text-center fw-bold">End of users</p>');
                     return;
                 }
 
+                let userListHtml = '';
+
                 response.data.forEach(user => {
                     userListHtml += `
-                        <div class="d-flex flex-column h-100 border-bottom">
-                            <a href="#!" class="d-block user-chat" data-ref-name="user-chat" data-recipient-id="${user.id}" data-recipient-type="applicant">
-                                <div class="d-flex align-items-center p-2 mb-1 rounded">
-                                    <div class="position-relative">
-                                        <img src="/images/users/avatar-${user.id % 10 || 1}.jpg" alt="" class="avatar rounded-circle flex-shrink-0">
-                                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
-                                            <span class="visually-hidden">New alerts</span>
-                                        </span>
-                                    </div>
-                                    <div class="d-block ms-3 flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <h5 class="mb-0">${user.name}</h5>
-                                            <div>
-                                                <p class="text-muted fs-13 mb-0">${user.last_message ? user.last_message.time : ''}</p>
-                                            </div>
+                        <div class="border-bottom">
+                            <a href="#!"
+                            class="d-block user-chat"
+                            data-ref-name="user-chat"
+                            data-recipient-id="${user.id}"
+                            data-recipient-type="applicant">
+                                <div class="d-flex align-items-center p-2">
+                                    <img src="/images/users/avatar-${user.id % 10 || 1}.jpg"
+                                        class="avatar rounded-circle">
+                                    <div class="ms-3 flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="mb-0 user_name">${user.name}</h6>
+                                            <small class="text-muted">
+                                                ${user.last_message?.time ?? ''}
+                                            </small>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <p class="mb-0 text-muted d-flex align-items-center gap-1">${user.last_message.message}</p>
-                                            ${user.last_message && user.last_message.unread_count > 0 ? `<span class="badge bg-danger badge-pill">${user.last_message.unread_count}</span>` : ''}
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">
+                                                ${user.last_message?.message ?? ''}
+                                            </span>
+                                            ${
+                                                user.last_message?.unread_count > 0
+                                                    ? `<span class="badge bg-danger">${user.last_message.unread_count}</span>`
+                                                    : ''
+                                            }
                                         </div>
                                     </div>
                                 </div>
                             </a>
                         </div>
-                        `;
+                    `;
                 });
 
-                console.log('Generated User HTML (Page ' + page + '):', userListHtml); // Debug: Log generated HTML
+                $('#userList').append(userListHtml);
 
-                // Use DocumentFragment for efficient DOM updates
-                const fragment = document.createDocumentFragment();
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = userListHtml;
-                while (tempDiv.firstChild) {
-                    fragment.appendChild(tempDiv.firstChild);
-                }
-
-                // Append records (never clear)
-                $('#userList').append(fragment);
-
-                // Store next page if more data exists
-                $('#userList').data('next-page', response.has_more ? response.next_page : null);
-                console.log('Stored next-page for users:', $('#userList').data('next-page')); // Debug: Log next-page
-
-                // Debug: Verify DOM update
-                console.log('userList children:', $('#userList').children().length);
+                // ✅ Update pagination
+                userStart += userLimit;
+                hasMoreUsers = response.has_more === true; // must come from backend
             },
             error: function(xhr) {
-                console.error('Error loading users (Page ' + page + '):', xhr);
+                console.error('Error loading users:', xhr);
+                // Remove loader on error
+                $('#' + loaderId).remove();
             },
             complete: function() {
                 isLoadingUsers = false;
-                $('#userListLoader').hide(); // Hide loader
-                // Reinitialize SimpleBar
-                const userListSimpleBar = new SimpleBar(document.getElementById('userList'));
-                userListSimpleBar.recalculate();
-            }
-        });
-    }
-
-    function loadMessages(recipientId, recipientType, list_ref) {
-        $('#chatConversationLoader').show(); // Show loader before AJAX
-        $('#noChatMessage').hide(); // Hide no chat message
-        
-        $.ajax({
-            url: "{{ route('getChatBoxMessages') }}",
-            method: 'POST',
-            data: {
-                recipient_id: recipientId,
-                recipient_type: recipientType,
-                list_ref: list_ref,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                const messages = response.messages;
-                const recipient = response.recipient;
-                let messagesHtml = '';
-                let recipientPhone = recipient.phone ?? '';
-
-                if (!messages || messages.length === 0) {
-                    // Show "No Chat Available" message if no messages
-                    $('#noChatMessage').show();
-                } else {
-                    messages.forEach(message => {
-                        const isSender = message.is_sender;
-                        const avatar = isSender ? '/images/users/avatar-1.jpg' : `/images/users/avatar-${recipient.id % 10 || 1}.jpg`;
-                        const sendStatusIcon = message.is_sent ? '<i class="ri-check-double-line fs-18 text-info"></i>' : '<i class="ri-check-line fs-18 text-muted"></i>';
-                        const receiveStatusIcon = message.is_read ? '<i class="ri-check-double-line fs-18 text-info"></i>' : '<i class="ri-check-line fs-18 text-muted"></i>';
-                    
-                        if (message.status == 'Sent') {
-                            messagesHtml += `
-                                <li class="d-flex gap-2 clearfix justify-content-end odd">
-                                    <div class="chat-conversation-text ms-0">
-                                        <div>
-                                            <p class="mb-2"><span class="text-dark fw-medium me-1">${isSender ? 'You' : message.user_name}</span> ${message.created_at}</p>
-                                        </div>
-                                        <div class="d-flex justify-content-end">
-                                            <div class="chat-ctext-wrap">
-                                                <p>${message.message}</p>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex justify-content-end align-items-center"><small class="text-muted">${message.phone_number || ''} | ${message.status}</small>&nbsp;&nbsp;<span>${sendStatusIcon}</span></div>
-                                    </div>
-                                    <div class="chat-avatar text-center">
-                                        <img src="${avatar}" alt="" class="avatar rounded-circle">
-                                    </div>
-                                </li>
-                            `;
-                        } else {
-                            messagesHtml += `
-                                <li class="d-flex gap-2 clearfix justify-content-start even">
-                                    <div class="chat-avatar text-center">
-                                        <img src="/images/users/avatar-${recipient.id % 10 || 1}.jpg" alt="avatar-${recipient.id % 10 || 1}" class="avatar rounded-circle">
-                                    </div>
-                                    <div class="chat-conversation-text ms-0">
-                                        <div>
-                                            <p class="mb-2"><span class="text-dark fw-medium me-1"><em class="text-muted">Replied</em> </span> ${message.created_at}</p>
-                                        </div>
-                                        <div class="d-flex align-items-start">
-                                            <div class="chat-ctext-wrap">
-                                                <p>${message.message}</p>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex justify-content-end align-items-center"><small class="text-muted">${message.phone_number || ''} | Seen </small>&nbsp;&nbsp;<span>${receiveStatusIcon}</span></div>
-                                    </div>
-                                </li>
-                            `;
-                        }
-                    });
-                }
-
-                $('#chatConversation').html(messagesHtml);
-                $('#recipientPhone').val(recipientPhone);
-                $('#chatHeader').html(`
-                    <img src="/images/users/avatar-${recipient.id % 10 || 1}.jpg" class="me-2 rounded" height="36" alt="avatar-${recipient.id % 10 || 1}" />
-                    <div class="d-none d-md-flex flex-column">
-                        <h5 class="my-0 fs-16 fw-semibold">
-                            <a data-bs-toggle="offcanvas" href="#user-profile" class="text-dark">${recipient.name}</a>
-                        </h5>
-                        <p class="mb-0 text-success fw-medium">Active <i class="ri-circle-fill fs-10"></i></p>
-                    </div>
-                `);
-                $('#chatConversation').scrollTop($('#chatConversation')[0].scrollHeight);
-            },
-            error: function(xhr) {
-                console.error('Error loading messages:', xhr);
+                $('#userListLoader').hide();
             }
         });
     }
@@ -461,17 +412,18 @@
         const scrollBtn = $('#scrollBottomBtn');
 
         // Load initial lists
-        loadApplicants(1);
-        loadUsers(1);
+        loadApplicants();
+        loadUsers();
 
         // Infinite scroll for applicants
         chatList.on('scroll', function () {
             const scrollTop = $(this).scrollTop();
             const scrollHeight = this.scrollHeight;
             const height = $(this).height();
+            const list_ref = $(this).data('ref-name');
 
             if (scrollTop + height >= scrollHeight - 10 && applicantAction === 'inactive') {
-                loadApplicants();
+                loadApplicants(currentSearchKeyword);
             }
         });
 
@@ -482,13 +434,28 @@
         });
 
         userList.on('scroll', function () {
-            const scrollTop = $(this).scrollTop();
-            const scrollHeight = this.scrollHeight;
-            const height = $(this).height();
+            const el = this;
+            const list_ref = $(this).data('ref-name');
 
-            if (scrollTop + height >= scrollHeight - 10 && userAction === 'inactive') {
-                loadUsers();
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
+                loadUsers(currentSearchKeyword);
             }
+        });
+
+        // Click handler for recipient selection
+        $(document).on('click', '.applicant-chat, .user-chat', function (e) {
+            e.preventDefault();
+            $('.applicant-chat, .user-chat').removeClass('active-chat');
+            $(this).addClass('active-chat');
+
+            currentRecipientId   = $(this).data('recipient-id');
+            currentRecipientType = $(this).data('recipient-type');
+            currentListRef       = $(this).data('ref-name');
+
+            $('#recipientId').val(currentRecipientId);
+            $('#recipientType').val(currentRecipientType);
+
+            loadMessages(currentRecipientId, currentRecipientType, currentListRef);
         });
 
         // Send message
@@ -548,37 +515,6 @@
             });
         });
 
-        // Click handler for recipient selection
-        $(document).on('click', '.applicant-chat, .user-chat', function(e) {
-            e.preventDefault();
-
-            // Determine clicked class
-            const list_ref = $(this).data('ref-name');
-            currentRecipientId = $(this).data('recipient-id');
-            currentRecipientType = $(this).data('recipient-type');
-
-            $('#recipientId').val(currentRecipientId);
-            $('#recipientType').val(currentRecipientType);
-
-            loadMessages(currentRecipientId, currentRecipientType, list_ref);
-        });
-
-        // Search functionality
-        $('#searchApplicants').on('input', function() {
-            const searchTerm = $(this).val().toLowerCase();
-            if (currentRecipientType === 'applicant' || !currentRecipientType) {
-                $('#chatList .applicant-chat').each(function() {
-                    const name = $(this).find('h5').text().toLowerCase();
-                    $(this).parent().toggle(name.includes(searchTerm));
-                });
-            } else if (currentRecipientType === 'user') {
-                $('#userList .user-chat').each(function() {
-                    const name = $(this).find('h5').text().toLowerCase();
-                    $(this).parent().toggle(name.includes(searchTerm));
-                });
-            }
-        });
-
         // Tab switch handler
         $('.nav-link').on('click', function() {
             currentRecipientType = $(this).attr('href').substring(1).split('-')[0]; // Extract 'chat' or 'contact'
@@ -587,13 +523,274 @@
             $('#recipientType').val('');
             $('#chatConversation').html('');
             $('#chatHeader').html('');
+
+            currentSearchKeyword = ''; // reset search
+            $('#searchApplicants').val('');
+
             if (currentRecipientType === 'chat') {
-                loadApplicants(1);
+                activeTab = 'all-chat';
+                applicantStart = 0;       // reset pagination
+                $('#chatList').html('');  // clear old list
+                hasMoreApplicants = true; // reset flag
+                loadApplicants('');        // ✅ pass empty string
             } else if (currentRecipientType === 'contact') {
-                loadUsers(1);
+                activeTab = 'user-chat';
+                userStart = 0;             // reset pagination
+                $('#userList').html('');   // clear old list
+                hasMoreUsers = true;       // reset flag
+                loadUsers('');             // ✅ pass empty string
             }
         });
+
+        // Search functionality
+        let searchTimeout;
+
+        $('#searchApplicants').on('keyup', function () {
+            clearTimeout(searchTimeout);
+
+            currentSearchKeyword = $(this).val().trim(); // ✅ store globally
+
+            searchTimeout = setTimeout(() => {
+
+                if (activeTab === 'user-chat') {
+                    userStart = 0;
+                    isLoadingUsers = false;
+                    hasMoreUsers = true;
+                    $('#userList').html('');
+                    loadUsers(currentSearchKeyword);
+                }
+
+                if (activeTab === 'all-chat') {
+                    applicantStart = 0;
+                    isLoadingApplicants = false;
+                    applicantAction = 'inactive';
+                    $('#chatList').html('');
+                    loadApplicants(currentSearchKeyword);
+                }
+
+            }, 300);
+        });
+
+
     });
+
+    function loadMessages(recipientId, recipientType, list_ref) {
+        loading = true;
+        hasMore = true;
+        oldestMessageId = null;
+
+        // Clear chat and show main loader
+        $('#chatConversation').html('');
+        $('#chatConversationLoader').show();
+
+        // Append temporary loader so it renders before AJAX
+        $('#chatConversation').prepend(`
+            <div id="tempMessageLoader" class="text-center py-2">
+                <div class="spinner-border text-primary spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+
+        // Use setTimeout to let the browser render the loader
+        setTimeout(() => {
+            $.post("{{ route('getChatBoxMessages') }}", {
+                recipient_id: recipientId,
+                recipient_type: recipientType,
+                list_ref: list_ref,
+                _token: '{{ csrf_token() }}'
+            }, function(response) {
+                const messages = response.messages || [];
+                const recipient = response.recipient;
+
+                // ✅ Always render header
+                $('#recipientPhone').val(recipient.phone);
+                $('#chatHeader').html(`
+                    <img src="/images/users/avatar-${recipientId % 10 || 1}.jpg"
+                        class="me-2 rounded"
+                        height="36" />
+                    <div class="d-none d-md-flex flex-column">
+                        <h5 class="my-0 fs-16 fw-semibold">
+                            <a data-bs-toggle="offcanvas"
+                            href="#user-profile"
+                            class="text-dark">${recipient.name}</a>
+                        </h5>
+                        <p class="mb-0 text-success fw-medium">
+                            ${recipient.phone}
+                        </p>
+                    </div>
+                `);
+
+                // ✅ If no messages → show empty state
+                if (!messages.length) {
+                    $('#chatConversation').html(`
+                        <li class="text-center text-muted py-4">
+                            No messages yet. Start the conversation 👋
+                        </li>
+                    `);
+                    return;
+                }
+
+
+                oldestMessageId = messages[0].id;
+
+                let html = '';
+                messages.forEach(msg => {
+                    html += renderMessage(msg, recipient);
+                });
+
+                $('#chatConversation').html(html); // Keep existing layout
+                // ✅ HEADER (UNCHANGED)
+                    $('#recipientPhone').val(recipient.phone);
+                    $('#chatHeader').html(`
+                        <img src="/images/users/avatar-${recipientId % 10 || 1}.jpg"
+                            class="me-2 rounded"
+                            height="36" />
+                        <div class="d-none d-md-flex flex-column">
+                            <h5 class="my-0 fs-16 fw-semibold">
+                                <a data-bs-toggle="offcanvas"
+                                href="#user-profile"
+                                class="text-dark">${recipient.name}</a>
+                            </h5>
+                            <p class="mb-0 text-success fw-medium">
+                                ${recipient.phone}
+                            </p>
+                        </div>
+                    `);
+
+                const el = $('#chatConversation')[0];
+                el.scrollTop = el.scrollHeight;
+
+            }).always(() => {
+                loading = false;
+                $('#chatConversationLoader').hide();
+                $('#tempMessageLoader').remove(); // remove temporary loader
+            });
+        }, 0);
+    }
+
+    $('#chatConversation').on('scroll', function () {
+        if ($(this).scrollTop() !== 0 || loading || !hasMore || !oldestMessageId) return;
+
+        loading = true;
+
+        const container = $('#chatConversation');
+
+        // Prepend a loader at the top
+        if ($('#scrollLoader').length === 0) {
+            container.prepend(`
+                <div id="scrollLoader" class="text-center py-2">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Use setTimeout to let the loader render before AJAX
+        setTimeout(() => {
+            $.post("{{ route('getChatBoxMessages') }}", {
+                recipient_id: currentRecipientId,
+                recipient_type: currentRecipientType,
+                list_ref: currentListRef,
+                before_id: oldestMessageId,
+                _token: '{{ csrf_token() }}'
+            }, function (response) {
+                const messages = response.messages || [];
+                if (!messages.length) {
+                    hasMore = false;
+                    return;
+                }
+
+                oldestMessageId = messages[0].id;
+
+                let html = '';
+                messages.forEach(msg => {
+                    html += renderMessage(msg, activeRecipient);
+                });
+
+                const prevHeight = container[0].scrollHeight;
+                container.prepend(html);
+                container[0].scrollTop = container[0].scrollHeight - prevHeight;
+
+            }).always(() => {
+                loading = false;
+                $('#scrollLoader').remove(); // remove loader after data is loaded
+            });
+        }, 0);
+    });
+
+    function renderMessage(message, recipient) {
+        const isSender = message.is_sender;
+
+        // Use recipient fallback if available
+        const recipientId = recipient?.id || 1;
+
+        // Avatar
+        const avatarIndex = (message.user_id || message.id || 1) % 10 || 1;
+        const avatar = isSender
+            ? '/images/users/avatar-1.jpg'
+            : `/images/users/avatar-${avatarIndex}.jpg`;
+
+        let sendStatusIcon = '';
+        if (message.is_sent === 1) {
+            sendStatusIcon = 'Sent <i class="ri-check-double-line fs-18 text-info"></i>'; // Sent
+        } else if (message.is_sent === 2) {
+            sendStatusIcon = 'Failed <i class="ri-close-circle-line fs-18 text-danger" title="Failed"></i>'; // Failed
+        } else {
+            sendStatusIcon = '<i class="ri-check-line fs-18 text-muted"></i>'; // Pending / Not sent
+        }
+
+
+        const receiveStatusIcon = message.is_read
+            ? '<i class="ri-check-double-line fs-18 text-info"></i>'
+            : '<i class="ri-check-line fs-18 text-muted"></i>';
+
+        if (message.status === 'Sent') {
+            return `
+                <li class="d-flex gap-2 clearfix justify-content-end odd">
+                    <div class="chat-conversation-text ms-0">
+                            <div>
+                                <p class="mb-2"><span class="text-dark fw-medium me-1">${isSender ? 'You' : message.user_name}</span> ${message.created_at}</p>
+                            </div>
+                        <div class="chat-ctext-wrap">
+                            <p>${message.message}</p>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">
+                                ${message.phone_number || ''} | 
+                            </small>
+                            ${sendStatusIcon}
+                        </div>
+                    </div>
+                    <img src="${avatar}" class="avatar rounded-circle">
+                </li>
+            `;
+        }
+
+        return `
+            <li class="d-flex gap-2 clearfix justify-content-start even">
+                <div class="chat-avatar text-center">
+                    <img src="/images/users/avatar-${recipientId % 10}.jpg" alt="avatar-${recipientId % 10}" class="avatar rounded-circle">
+                </div>
+                <div class="chat-conversation-text ms-0">
+                    <div>
+                        <p class="mb-2"><span class="text-dark fw-medium me-1"><em class="text-muted">Replied</em> </span> ${message.created_at}</p>
+                    </div>
+                    <div class="chat-ctext-wrap">
+                        <p>${message.message}</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">
+                            ${message.phone_number || ''} | Seen
+                        </small>
+                        ${receiveStatusIcon}
+                    </div>
+                </div>
+            </li>
+        `;
+    }
+
 </script>
 
 @endsection

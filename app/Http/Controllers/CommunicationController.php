@@ -492,94 +492,232 @@ class CommunicationController extends Controller
             return response()->json(['message' => 'Failed to save message: ' . $e->getMessage()], 500);
         }
     }
-    public function getChatBoxMessages(Request $request)
+    // public function getChatBoxMessages(Request $request)
+    // {
+    //     try {
+    //         // Validate input
+    //         $request->validate([
+    //             'recipient_id' => 'required',
+    //             'recipient_type' => 'required',
+    //         ]);
+
+    //         $recipientId = $request->input('recipient_id');
+    //         $recipientType = $request->input('recipient_type');
+    //         $moduleType = $recipientType == 'applicant' ? 'Horsefly\\Applicant' : 'Horsefly\\User';
+    //         $recipient_id = '';
+    //         $recipient_name = '';
+    //         $recipient_phone = '';
+    //         // Fetch recipient
+    //         if ($moduleType == Applicant::class) {
+    //             $recipient = Applicant::class::findOrFail($recipientId);
+    //             $recipient_id = $recipient->id ?? '';
+    //             $recipient_name = $recipient->applicant_name ?? '';
+    //             $recipient_phone = $recipient->applicant_phone;
+    //         } else {
+    //             $recipient = User::class::findOrFail($recipientId);
+    //             $recipient_id = $recipient->id ?? '';
+    //             $recipient_name = $recipient->name ?? '';
+    //         }
+
+    //         Message::where('module_id', $recipientId)
+    //             ->where('module_type', $moduleType)
+    //             ->where('status', 'incoming')
+    //             ->update(['is_read' => 1]);
+
+    //         // Fetch messages
+    //         $query = Message::where('module_id', $recipientId)
+    //             ->where('module_type', $moduleType)
+    //             ->with('user')
+    //             ->orderBy('created_at', 'desc');
+
+    //         if ($request->list_ref == 'user-chat') {
+    //             $query->where('user_id', Auth::id());
+    //         }
+
+    //         // Fetch messages WITH pagination (IMPORTANT)
+    //         $messages = Message::where('module_id', $recipientId)
+    //             ->where('module_type', $moduleType)
+    //             ->with('user')
+    //             ->orderBy('created_at', 'desc') // newest first for pagination
+    //             ->paginate(20);
+
+    //         // Transform messages
+    //         $formattedMessages = collect($messages->items())->map(function ($message) {
+    //             return [
+    //                 'id' => $message->id,
+    //                 'message' => $message->message,
+    //                 'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
+    //                 'is_sender' => $message->user_id == Auth::id(),
+    //                 'user_name' => $message->user ? $message->user->name : 'Unknown',
+    //                 'is_read' => $message->is_read ?? 0,
+    //                 'is_sent' => $message->is_sent ?? 0,
+    //                 'phone_number' => $message->phone_number,
+    //                 'status' => $message->status === 'outgoing' ? 'Sent' : 'Received',
+    //             ];
+    //         });
+
+    //         return response()->json([
+    //             'recipient' => [
+    //                 'id' => $recipient_id,
+    //                 'name' => $recipient_name,
+    //                 'phone' => $recipient_phone
+    //             ],
+    //             'messages' => $formattedMessages,
+    //             'has_more' => $messages->hasMorePages(),
+    //             'next_page' => $messages->currentPage() + 1,
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error in getChatBoxMessages: ' . $e->getMessage());
+    //         return response()->json(['error' => 'An error occurred while fetching messages'], 500);
+    //     }
+    // }
+    public function getUserChats(Request $request)
     {
         try {
-            // Validate input
-            $request->validate([
-                'recipient_id' => 'required',
-                'recipient_type' => 'required',
-            ]);
+            $currentUserId = Auth::id();
 
-            $recipientId = $request->input('recipient_id');
-            $recipientType = $request->input('recipient_type');
-            $moduleType = $recipientType === 'applicant' ? 'Horsefly\Applicant' : 'Horsefly\User';
-            $recipient_id = '';
-            $recipient_name = '';
-            $recipient_phone = '';
-            // Fetch recipient
-            if ($moduleType == Applicant::class) {
-                $recipient = Applicant::class::findOrFail($recipientId);
-                $recipient_id = $recipient->id ?? '';
-                $recipient_name = $recipient->applicant_name ?? '';
-                $recipient_phone = $recipient->applicant_phone;
-            } else {
-                $recipient = User::class::findOrFail($recipientId);
-                $recipient_id = $recipient->id ?? '';
-                $recipient_name = $recipient->name ?? '';
-            }
+            $limit = (int) $request->input('limit', 10);
+            $start = (int) $request->input('start', 0);
 
-            Message::where('module_id', $recipientId)
-                ->where('module_type', $moduleType)->update(['is_read' => 1]);
+            // Step 1: Get latest message ID per applicant sent by current user
+            $latestMessageIds = DB::table('messages')
+                ->select(DB::raw('MAX(id) as id'))
+                ->where('user_id', $currentUserId)
+                ->where('module_type', 'Horsefly\\Applicant')
+                ->groupBy('module_id');
 
-            // Fetch messages
-            $query = Message::where('module_id', $recipientId)
-                ->where('module_type', $moduleType)
-                ->with('user')
-                ->orderBy('created_at', 'asc');
+            // Step 2: Join to get full message and applicant
+            $raw_query = DB::table('messages')
+                ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
+                    $join->on('messages.id', '=', 'latest_messages.id');
+                })
+                ->join('applicants', 'messages.module_id', '=', 'applicants.id')
+                ->leftJoin(
+                    DB::raw('(SELECT module_id, COUNT(*) as unread_count 
+                            FROM messages 
+                            WHERE is_read = 0 AND status = "incoming"
+                            AND module_type = "Horsefly\\\\Applicant" 
+                            AND user_id = ' . $currentUserId . '
+                            GROUP BY module_id) as unread_msgs'),
+                    'messages.module_id',
+                    '=',
+                    'unread_msgs.module_id'
+                )
+                ->select(
+                    'applicants.id',
+                    'applicants.applicant_name as name',
+                    'messages.message',
+                    'messages.created_at',
+                    DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
+                );
 
-            if ($request->list_ref == 'user-chat') {
-                $query->where('user_id', Auth::id());
-            }
+                if ($request->search) {
+                    $raw_query->where('applicants.applicant_name', 'like', '%' . $request->search . '%');
+                }
+                
+                $applicants = $raw_query->orderByDesc('messages.created_at')
+                ->offset($start)
+                ->limit($limit)
+                ->get();
 
-            // $messages = $query->get()->map(function ($message) {
-            //         return [
-            //             'message' => $message->message,
-            //             'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
-            //             'is_sender' => $message->user_id == Auth::id(),
-            //             'user_name' => $message->user ? $message->user->name : 'Unknown',
-            //             'is_read' => $message->is_read ?? 0,
-            //             'is_sent' => $message->is_sent ?? 0,
-            //             'phone_number' => $message->phone_number,
-            //             'status' => $message->status == 'outgoing' ? 'Sent' : 'Received',
-            //         ];
-            //     });
-
-            // Fetch messages WITH pagination (IMPORTANT)
-            $messages = Message::where('module_id', $recipientId)
-                ->where('module_type', $moduleType)
-                ->with('user')
-                ->orderByDesc('id') // newest first for pagination
-                ->paginate(20);
-
-            // Transform messages
-            $formattedMessages = collect($messages->items())->map(function ($message) {
+            // Transform the collection to match frontend expectations
+            $applicants = $applicants->map(function ($applicant) {
                 return [
-                    'id' => $message->id,
-                    'message' => $message->message,
-                    'created_at' => Carbon::parse($message->created_at)->format('d M Y, h:i A'),
-                    'is_sender' => $message->user_id == Auth::id(),
-                    'user_name' => $message->user ? $message->user->name : 'Unknown',
-                    'is_read' => $message->is_read ?? 0,
-                    'is_sent' => $message->is_sent ?? 0,
-                    'phone_number' => $message->phone_number,
-                    'status' => $message->status === 'outgoing' ? 'Sent' : 'Received',
+                    'id' => $applicant->id,
+                    'name' => $applicant->name,
+                    'last_message' => [
+                        'message' => Str::limit($applicant->message, 50),
+                        'time' => Carbon::parse($applicant->created_at)->format('h:i A'),
+                        'unread_count' => $applicant->unread_count,
+                        'applicant_name' => $applicant->name,
+                    ],
                 ];
             });
 
             return response()->json([
-                'recipient' => [
-                    'id' => $recipient_id,
-                    'name' => $recipient_name,
-                    'phone' => $recipient_phone
-                ],
-                'messages' => $formattedMessages,
-                'has_more' => $messages->hasMorePages(),
-                'next_page' => $messages->currentPage() + 1,
+                'data' => $applicants,
+                'has_more' => $applicants->count() == $limit
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in getChatBoxMessages: ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred while fetching messages'], 500);
+            Log::error('Error fetching applicants for messages: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch applicants'], 500);
+        }
+    }
+    public function getChatBoxMessages(Request $request)
+    {
+        try {
+            $request->validate([
+                'recipient_id'   => 'required',
+                'recipient_type' => 'required',
+            ]);
+
+            $recipientId   = $request->recipient_id;
+            $recipientType = $request->recipient_type;
+            $beforeId      = $request->before_id; // 👈 important
+
+            // Fetch recipient
+            $moduleType = $recipientType === 'applicant' ? Applicant::class : User::class;
+            $recipient = $moduleType::findOrFail($recipientId);
+            $list_ref = $request->input('list_ref', '');
+
+            // Base query
+            $query = Message::where('module_id', $recipientId)
+                ->where('module_type', $moduleType)
+                ->with('user')
+                ->orderByDesc('id')
+                ->limit(10); // chunk size
+
+            // Filter by authenticated user if list_ref == 'user-chat'
+            if ($list_ref === 'user-chat') {
+                $query->where('user_id', Auth::id());
+            }
+
+            // Load older messages
+            if ($beforeId) {
+                $query->where('id', '<', $beforeId);
+            }
+
+            $messages = $query->get();
+
+            // Mark incoming as read (only latest batch)
+            Message::whereIn('id', $messages->pluck('id'))
+                ->where('status', 'incoming')
+                ->update(['is_read' => 1]);
+
+            // Reverse for UI (oldest → newest)
+            $formattedMessages = $messages->reverse()->values()->map(function ($message) {
+                return [
+                    'id'           => $message->id,
+                    'message'      => $message->message,
+                    'created_at'   => $message->created_at->format('d M Y, h:i A'),
+                    'is_sender'    => $message->user_id == Auth::id(),
+                    'user_name'    => $message->user?->name ?? 'Unknown',
+                    'is_read'      => $message->is_read ?? 0,
+                    'is_sent'      => $message->is_sent ?? 0,
+                    'phone_number' => $message->phone_number,
+                    'status'       => $message->status === 'outgoing' ? 'Sent' : 'Received',
+                ];
+            });
+
+            // determine recipient status: for applicants mark 'active' if they have any messages
+            $recipientStatus = true;
+            if ($messages->isEmpty()) {
+                $recipientStatus = false;
+            }
+
+            return response()->json([
+                'recipient' => [
+                    'id'    => $recipient->id,
+                    'name'  => $recipient->applicant_name,
+                    'phone' => $recipient->applicant_phone,
+                    'status' => $recipientStatus,
+                ],
+                'messages' => $formattedMessages,
+                'has_more' => $messages->count() == 10,
+            ]);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Failed to load messages'], 500);
         }
     }
     public function sendChatBoxMsg(Request $request)
@@ -630,7 +768,7 @@ class CommunicationController extends Controller
         $limit = (int) $request->input('limit', 10);
         $start = (int) $request->input('start', 0);
 
-        $applicants = Applicant::with([
+        $raw_query = Applicant::with([
             'messages' => function ($query) {
                 $query->latest()->limit(1);
             }
@@ -638,19 +776,25 @@ class CommunicationController extends Controller
         ->withCount([
             'messages as unread_count' => function ($query) {
                 $query->where('module_type', 'Horsefly\\Applicant')
+                    ->where('status', 'incoming')
                     ->where('is_read', 0);
             }
-        ])
-        ->orderByDesc('unread_count')                 // 🔥 unread first
-        ->orderBy('applicants.applicant_name', 'asc') // 🔤 then alphabetically
-        ->offset($start)
-        ->limit($limit)
-        ->get();
+        ]);
 
+        if (!empty($request->search)) {
+            $search = trim($request->search);
+            $raw_query->where('applicant_name', 'like', '%' . $search . '%'); // no table prefix needed
+        }
+
+        $applicants = $raw_query->orderByDesc('unread_count')                 // 🔥 unread first
+            ->orderBy('applicants.applicant_name', 'asc') // 🔤 then alphabetically
+            ->offset($start)
+            ->limit($limit)
+            ->get();
 
         $data = $applicants->map(function ($applicant) {
 
-            $lastMessage = $applicant->messages->first();
+        $lastMessage = $applicant->messages->first();
 
             return [
                 'id'   => $applicant->id,
@@ -669,74 +813,8 @@ class CommunicationController extends Controller
 
         return response()->json([
             'data'     => $data,
-            'has_more' => $data->count() === $limit // key logic
+            'has_more' => $data->count() == $limit // key logic
         ]);
     }
 
-    public function getUserChats(Request $request)
-    {
-        try {
-            $currentUserId = Auth::id();
-            $perPage = 20; // Fixed to 20 records per chunk
-            $page = $request->input('page', 1); // Current page for pagination
-
-            // Step 1: Get latest message ID per applicant sent by current user
-            $latestMessageIds = DB::table('messages')
-                ->select(DB::raw('MAX(id) as id'))
-                ->where('user_id', $currentUserId)
-                ->where('module_type', 'Horsefly\Applicant')
-                ->whereNotNull('message')
-                ->groupBy('module_id');
-
-            // Step 2: Join to get full message and applicant
-            $applicants = DB::table('messages')
-                ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
-                    $join->on('messages.id', '=', 'latest_messages.id');
-                })
-                ->join('applicants', 'messages.module_id', '=', 'applicants.id')
-                ->leftJoin(
-                    DB::raw('(SELECT module_id, COUNT(*) as unread_count 
-                                    FROM messages 
-                                    WHERE is_read = 0 
-                                    AND module_type = "Horsefly\Applicant" 
-                                    AND user_id = ' . $currentUserId . '
-                                    GROUP BY module_id) as unread_msgs'),
-                    'messages.module_id',
-                    '=',
-                    'unread_msgs.module_id'
-                )
-                ->select(
-                    'applicants.id',
-                    'applicants.applicant_name as name',
-                    'messages.message',
-                    'messages.created_at',
-                    DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
-                )
-                ->orderByDesc('messages.created_at')
-                ->paginate($perPage);
-
-            // Transform the collection to match frontend expectations
-            $applicants->getCollection()->transform(function ($applicant) {
-                return [
-                    'id' => $applicant->id,
-                    'name' => $applicant->name,
-                    'last_message' => [
-                        'message' => Str::limit($applicant->message, 50),
-                        'time' => Carbon::parse($applicant->created_at)->format('h:i A'),
-                        'unread_count' => $applicant->unread_count,
-                        'applicant_name' => $applicant->name,
-                    ],
-                ];
-            });
-
-            return response()->json([
-                'data' => $applicants->items(),
-                'has_more' => $applicants->hasMorePages(),
-                'next_page' => $applicants->currentPage() + 1,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error fetching applicants for messages: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to fetch applicants'], 500);
-        }
-    }
 }
