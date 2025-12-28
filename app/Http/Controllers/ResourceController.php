@@ -2601,10 +2601,10 @@ class ResourceController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-           ->leftJoinSub($latestCvNotesSub, 'latest_cv_notes', function ($join) {
-                $join->on('applicants.id', '=', 'latest_cv_notes.applicant_id');
+            ->leftJoinSub($latestCvNotesSub, 'cv_notes', function ($join) {
+                $join->on('applicants.id', '=', 'cv_notes.applicant_id');
             })
-            ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.cv_user_id')
+            ->leftJoin('users', 'users.id', '=', 'cv_notes.cv_user_id') // 👈 use the new alias
             ->leftJoin(DB::raw("(
                     SELECT mn.module_noteable_id, mn.created_at AS latest_note_created
                     FROM module_notes mn
