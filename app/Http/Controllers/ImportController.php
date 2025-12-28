@@ -2427,7 +2427,7 @@ class ImportController extends Controller
                         ],
                     ];
 
-                    if (empty($job_title_prof) || $job_title_prof == 'null') {
+                    if (empty($job_title_prof) || $job_title_prof == 'null' || $job_title_prof == '') {
                         if (!in_array($requested_job_title, ['nonnurse specialist', 'nurse specialist', 'non-nurse specialist'])) {
                             $normalizedTitle = preg_replace('/[^a-z0-9]/', '', $requested_job_title);
                             $job_title = JobTitle::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [$normalizedTitle])->first();
@@ -4391,81 +4391,81 @@ class ImportController extends Controller
     //     }
     // }
     public function auditsImport(Request $request)
-{
-    $request->validate([
-        'csv_file' => 'required|file|mimes:csv,txt|max:5242880'
-    ]);
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5242880'
+        ]);
 
-    if (!$request->hasFile('csv_file')) {
-        return response()->json(['error' => 'No file uploaded'], 422);
-    }
+        if (!$request->hasFile('csv_file')) {
+            return response()->json(['error' => 'No file uploaded'], 422);
+        }
 
-    $file = $request->file('csv_file');
-    $filePath = $file->getRealPath();
+        $file = $request->file('csv_file');
+        $filePath = $file->getRealPath();
 
-    // Parse CSV using League\Csv
-    $csv = Reader::createFromPath($filePath, 'r');
-    $csv->setHeaderOffset(0);
+        // Parse CSV using League\Csv
+        $csv = Reader::createFromPath($filePath, 'r');
+        $csv->setHeaderOffset(0);
 
-    $processedData = [];
-    $failedRows = [];
-    $rowIndex = 1;
+        $processedData = [];
+        $failedRows = [];
+        $rowIndex = 1;
 
-    foreach ($csv->getRecords() as $row) {
-        $rowIndex++;
+        foreach ($csv->getRecords() as $row) {
+            $rowIndex++;
 
-        try {
-            $userId = trim($row['user_id'] ?? '');
-            $auditableId = trim($row['auditable_id'] ?? '');
-            $auditableType = trim($row['auditable_type'] ?? '');
-            $data = trim($row['data'] ?? '');
-            $message = trim($row['message'] ?? '');
+            try {
+                $userId = trim($row['user_id'] ?? '');
+                $auditableId = trim($row['auditable_id'] ?? '');
+                $auditableType = trim($row['auditable_type'] ?? '');
+                $data = trim($row['data'] ?? '');
+                $message = trim($row['message'] ?? '');
 
-            if (!$userId || !$auditableId) {
-                $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing user_id or auditable_id'];
-                continue;
+                if (!$userId || !$auditableId) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => 'Missing user_id or auditable_id'];
+                    continue;
+                }
+
+                // Normalize dates
+                $normalizeDate = fn($value) => ($value && strtolower($value) != 'null') 
+                    ? Carbon::parse($value)->format('Y-m-d H:i:s') 
+                    : null;
+
+                $createdAt = $normalizeDate($row['created_at']);
+                $updatedAt = $normalizeDate($row['updated_at']);
+
+                $processedData[] = [
+                    'user_id'        => $userId,
+                    'auditable_id'   => $auditableId,
+                    'auditable_type' => $auditableType,
+                    'data'           => $data,
+                    'message'        => $message,
+                    'created_at'     => $createdAt,
+                    'updated_at'     => $updatedAt,
+                ];
+            } catch (\Throwable $e) {
+                $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
             }
-
-            // Normalize dates
-            $normalizeDate = fn($value) => ($value && strtolower($value) != 'null') 
-                ? Carbon::parse($value)->format('Y-m-d H:i:s') 
-                : null;
-
-            $createdAt = $normalizeDate($row['created_at']);
-            $updatedAt = $normalizeDate($row['updated_at']);
-
-            $processedData[] = [
-                'user_id'        => $userId,
-                'auditable_id'   => $auditableId,
-                'auditable_type' => $auditableType,
-                'data'           => $data,
-                'message'        => $message,
-                'created_at'     => $createdAt,
-                'updated_at'     => $updatedAt,
-            ];
-        } catch (\Throwable $e) {
-            $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
         }
-    }
 
-    // Insert in chunks
-    $successfulRows = 0;
-    foreach (array_chunk($processedData, 200) as $chunk) {
-        try {
-            Audit::insert($chunk);
-            $successfulRows += count($chunk);
-        } catch (\Throwable $e) {
-            $failedRows[] = ['row' => 'batch', 'error' => $e->getMessage()];
+        // Insert in chunks
+        $successfulRows = 0;
+        foreach (array_chunk($processedData, 200) as $chunk) {
+            try {
+                Audit::insert($chunk);
+                $successfulRows += count($chunk);
+            } catch (\Throwable $e) {
+                $failedRows[] = ['row' => 'batch', 'error' => $e->getMessage()];
+            }
         }
-    }
 
-    return response()->json([
-        'message' => 'Import completed.',
-        'successful_rows' => $successfulRows,
-        'failed_rows' => count($failedRows),
-        'failed_details' => $failedRows,
-    ]);
-}
+        return response()->json([
+            'message' => 'Import completed.',
+            'successful_rows' => $successfulRows,
+            'failed_rows' => count($failedRows),
+            'failed_details' => $failedRows,
+        ]);
+    }
 
     public function crmNotesImport(Request $request)
     {
@@ -5194,7 +5194,7 @@ class ImportController extends Controller
                     $statusVal = 2;
                 }elseif($status == 'open'){
                     $statusVal = 3;
-                }else{
+                }else if($status == 'disable'){
                     $statusVal = 0;
                 }
 
