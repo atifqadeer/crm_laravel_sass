@@ -2557,18 +2557,18 @@ class ResourceController extends Controller
         $latestCvNotesSub = DB::table('cv_notes as c1')
             ->select([
                 'c1.applicant_id',
-                'c1.sale_id',
                 'c1.user_id as cv_user_id',
                 'c1.status',
                 'c1.created_at',
             ])
             ->where('c1.status', 1)
-            ->whereRaw('c1.created_at = (
-                SELECT MAX(c2.created_at)
+            ->whereRaw('c1.id = (
+                SELECT c2.id
                 FROM cv_notes c2
                 WHERE c2.applicant_id = c1.applicant_id
-                AND c2.sale_id = c1.sale_id
                 AND c2.status = 1
+                ORDER BY c2.created_at DESC, c2.id DESC
+                LIMIT 1
             )');
 
 
@@ -2601,10 +2601,10 @@ class ResourceController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->leftJoinSub($latestCvNotesSub, 'cv_notes', function ($join) {
-                $join->on('applicants.id', '=', 'cv_notes.applicant_id');
+           ->leftJoinSub($latestCvNotesSub, 'latest_cv_notes', function ($join) {
+                $join->on('applicants.id', '=', 'latest_cv_notes.applicant_id');
             })
-            ->leftJoin('users', 'users.id', '=', 'cv_notes.cv_user_id') // 👈 use the new alias
+            ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.cv_user_id')
             ->leftJoin(DB::raw("(
                     SELECT mn.module_noteable_id, mn.created_at AS latest_note_created
                     FROM module_notes mn
