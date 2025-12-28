@@ -2558,16 +2558,19 @@ class ResourceController extends Controller
             ->select([
                 'c1.applicant_id',
                 'c1.sale_id',
-                'c1.user_id as cv_user_id', // 👈 explicit alias
+                'c1.user_id as cv_user_id',
                 'c1.status',
+                'c1.created_at',
             ])
-            ->whereRaw('c1.id = (
-                SELECT MAX(c2.id)
+            ->where('c1.status', 1)
+            ->whereRaw('c1.created_at = (
+                SELECT MAX(c2.created_at)
                 FROM cv_notes c2
                 WHERE c2.applicant_id = c1.applicant_id
                 AND c2.sale_id = c1.sale_id
-            )')
-            ->where('c1.status', 1);
+                AND c2.status = 1
+            )');
+
 
         $model = Applicant::query()
             ->select([
