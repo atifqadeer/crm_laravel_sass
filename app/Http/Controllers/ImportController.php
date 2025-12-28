@@ -5189,13 +5189,13 @@ class ImportController extends Controller
                 /** paid status */
                 $status = $row['status'];
                 if($status == 'active'){
-                    $statusVal = 1;
+                    $statusVal = '1';
                 }elseif($status == 'paid'){
-                    $statusVal = 2;
+                    $statusVal = '2';
                 }elseif($status == 'open'){
-                    $statusVal = 3;
+                    $statusVal = '3';
                 }else if($status == 'disable'){
-                    $statusVal = 0;
+                    $statusVal = '0';
                 }
 
                 // Prepare row for insertion
