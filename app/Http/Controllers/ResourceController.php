@@ -2630,15 +2630,23 @@ class ResourceController extends Controller
                     $query->where('applicants.is_temp_not_interested', 1)
                         ->orWhereNotNull('applicants_pivot_sales.applicant_id');
                 })
-                    ->where('applicants.is_blocked', 0)
-                    ->where('applicants.is_no_job', 0);
+                ->where('applicants.is_blocked', 0)
+                ->where('applicants.is_no_job', 0)
+                ->where(function ($q) {
+                    $q->where('applicants.have_nursing_home_experience', 0)
+                        ->orWhereNull('applicants.have_nursing_home_experience');
+                });
                 break;
 
             case 'blocked':
                 $model->whereNull('applicants_pivot_sales.applicant_id')
                     ->where('applicants.is_blocked', 1)
                     ->where('applicants.is_no_job', 0)
-                    ->where('applicants.is_temp_not_interested', 0);
+                    ->where('applicants.is_temp_not_interested', 0)
+                    ->where(function ($q) {
+                        $q->where('applicants.have_nursing_home_experience', 0)
+                            ->orWhereNull('applicants.have_nursing_home_experience');
+                    });
                 break;
 
             case 'have nursing home exp':
@@ -2652,6 +2660,7 @@ class ResourceController extends Controller
             default:
                 $model->whereNull('applicants_pivot_sales.applicant_id')
                     ->where('applicants.is_blocked', 0)
+                    ->where('applicants.is_no_job', 0)
                     ->where('applicants.is_temp_not_interested', 0)
                     ->where(function ($q) {
                         $q->where('applicants.have_nursing_home_experience', 0)
