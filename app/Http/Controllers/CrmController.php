@@ -676,7 +676,7 @@ class CrmController extends Controller
                     'latest_crm_notes.details as notes_detail',
                     'latest_crm_notes.created_at as notes_created_at',
                     // show created date
-                    'crm_last_notes.created_at as show_created_at',
+                    'latest_crm_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
