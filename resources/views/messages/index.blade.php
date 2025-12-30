@@ -508,7 +508,7 @@
                                             </span>
                                             ${
                                                 user.last_message?.unread_count > 0
-                                                    ? `<span class="badge bg-danger">${user.last_message.unread_count}</span>`
+                                                    ? `<span class="badge bg-danger" style="height: fit-content;">${user.last_message.unread_count}</span>`
                                                     : ''
                                             }
                                         </div>
