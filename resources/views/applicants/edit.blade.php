@@ -98,23 +98,31 @@
                                 <div class="invalid-feedback">Please provide a valid email secondary</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
-                                <label for="applicant_postcode" class="form-label">PostCode <small class="text-info">(If postcode is not available then use current or last workplace postcode)</small></label>
+                                <label for="applicant_postcode" class="form-label">PostCode <small class="text-info">(If unavailable, use the last workplace postcode.)</small></label>
                                 <input type="text" id="applicant_postcode" class="form-control" @cannot('applicant-edit-postcode') readonly @endcannot value="{{ old('applicant_postcode', $applicant->applicant_postcode) }}" 
                                 name="applicant_postcode" placeholder="Enter PostCode" required>
                                 <div class="invalid-feedback">Please provide a postcode</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
-                                <label for="applicant_phone" class="form-label">Phone</label>
+                                <label for="applicant_phone" class="form-label">Phone <small class="text-info">(Primary)</small></label>
                                 <input type="tel" id="applicant_phone" class="form-control" name="applicant_phone" 
                                 value="{{ old('applicant_phone', $applicant->applicant_phone) }}"  @cannot('applicant-edit-phone') readonly @endcannot placeholder="Enter Phone Number" required>
                                 <div class="invalid-feedback">Please provide a phone number</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
+                            <div class="mb-3">
+                                <label for="applicant_phone_secondary" class="form-label">Phone <small class="text-info">(Secondary)</small></label>
+                                <input type="tel" id="applicant_phone_secondary" class="form-control" name="applicant_phone_secondary" 
+                                value="{{ old('applicant_phone_secondary', $applicant->applicant_phone_secondary) }}"  @cannot('applicant-edit-phone') readonly @endcannot placeholder="Enter Phone Number" required>
+                                <div class="invalid-feedback">Please provide a phone number Secondary</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
                                 <label for="applicant_landline" class="form-label">Landline</label>
                                 <input type="tel" id="applicant_landline" class="form-control" @cannot('applicant-edit-landline') readonly @endcannot value="{{ old('applicant_landline', $applicant->applicant_landline) }}" name="applicant_landline" placeholder="Enter Landline Number">
@@ -348,7 +356,7 @@
             e.preventDefault();
 
             // Remove all spaces from phone fields before submission
-            ['applicant_phone', 'applicant_landline'].forEach(id => {
+            ['applicant_phone', 'applicant_phone_secondary', 'applicant_landline'].forEach(id => {
                 const input = form.querySelector(`[name="${id}"]`);
                 if (input) {
                     input.value = input.value.replace(/\s+/g, '');

@@ -974,108 +974,74 @@ class ImportController extends Controller
                     // Normalize ID
                     $id = $normalizeId($row['id'], $rowIndex);
 
+                    // Normalize paid_timestamp
                     $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
-
-                    // Initialize as null
                     $paid_timestamp = null;
 
-                    // Only parse valid dates
                     if ($rawPaid !== '' && !preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
                         try {
                             $ts = strtotime($rawPaid);
-
                             if ($ts !== false && $ts > 0) {
                                 $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
                             }
                         } catch (\Throwable $e) {
-                            // If parsing fails, remain null
                             Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
                     }
 
                     // Date preprocessing
-                    $preprocessDate = function ($dateString, $field, $rowIndex) {
-                        if (empty($dateString) || !is_string($dateString)) {
-                            return null;
-                        }
+                    // $preprocessDate = function ($dateString, $field, $rowIndex) {
+                    //     if (empty($dateString) || !is_string($dateString)) {
+                    //         return null;
+                    //     }
 
-                        // Fix malformed numeric formats (e.g., 1122024 1230)
-                        if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                            $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                            return $fixedDate;
-                        }
+                    //     // Fix malformed numeric formats (e.g., 1122024 1230)
+                    //     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
+                    //         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
+                    //         Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                    //         return $fixedDate;
+                    //     }
 
-                        return $dateString;
-                    };
+                    //     return $dateString;
+                    // };
 
-                    // Parse dates (corrected format order)
-                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                        if (empty($dateString)) {
-                            return null;
-                        }
+                    // // Parse dates (corrected format order)
+                    // $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                    //     if (empty($dateString)) {
+                    //         return null;
+                    //     }
 
-                        $formats = [
-                            'Y-m-d H:i:s',
-                            'Y-m-d H:i',
-                            'Y-m-d',
-                            'm/d/Y H:i',  // US format first
-                            'm/d/Y H:i:s',
-                            'm/d/Y',
-                            'd/m/Y H:i',
-                            'd/m/Y H:i:s',
-                            'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
-                            'j F Y g:i A',
-                            'd F Y', 
-                            'd F Y g:i A'
-                        ];
+                    //     $formats = [
+                    //         'Y-m-d H:i:s',
+                    //         'Y-m-d H:i',
+                    //         'Y-m-d',
+                    //         'm/d/Y H:i',  // US format first
+                    //         'm/d/Y H:i:s',
+                    //         'm/d/Y',
+                    //         'd/m/Y H:i',
+                    //         'd/m/Y H:i:s',
+                    //         'd/m/Y',
+                    //         'j F Y', 
+                    //         'j F Y H:i', 
+                    //         'j F Y g:i A',
+                    //         'd F Y', 
+                    //         'd F Y g:i A'
+                    //     ];
 
-                        foreach ($formats as $format) {
-                            try {
-                                $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
-                                return $dt->format('Y-m-d H:i:s');
-                            } catch (\Exception $e) {
-                                // continue
-                            }
-                        }
+                    //     foreach ($formats as $format) {
+                    //         try {
+                    //             $dt = Carbon::createFromFormat($format, $dateString);
+                    //             // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
+                    //             return $dt->format('Y-m-d H:i:s');
+                    //         } catch (\Exception $e) {
+                    //             // continue
+                    //         }
+                    //     }
 
 
-                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
-                        return null;
-                    };
-
-                    // Normalizer (keeps created_at & updated_at null if invalid)
-                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
-                        $value = trim((string)($value ?? ''));
-
-                        // Skip invalid placeholders
-                        if (
-                            $value == '' ||
-                            in_array(strtolower($value), ['null', 'pending', 'active', 'n/a', 'na', '-'])
-                        ) {
-                            return null;
-                        }
-
-                        try {
-                            $value = $preprocessDate($value, $field, $rowIndex);
-                            $parsed = $parseDate($value, $rowIndex, $field);
-
-                            if (!$parsed || strtotime($parsed) == false) {
-                                throw new \Exception("Invalid date format: '{$value}'");
-                            }
-
-                            return $parsed;
-                        } catch (\Exception $e) {
-                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
-                            return null;
-                        }
-                    };
-
-                    $createdAt = $normalizeDate($row['created_at'], 'created_at', $rowIndex);
-                    $updatedAt = $normalizeDate($row['updated_at'], 'updated_at', $rowIndex);
+                    //     Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                    //     return null;
+                    // };
 
                     // Handle postcode and geolocation
                     $cleanPostcode = '0';
@@ -2461,52 +2427,58 @@ class ImportController extends Controller
                         }
                     }
 
-                    // --- Normalize phone number to UK format ---
+                    // Normalize phone number to UK format
                     $normalizePhone = function($number) {
                         $number = trim((string)$number);
 
+                        // If the number starts with +44, change it to start with 0
                         if (str_starts_with($number, '+44')) {
                             $number = '0' . substr($number, 3);
                         }
 
+                        // Remove all non-digit characters
                         $digits = preg_replace('/\D+/', '', $number);
 
-                        if ($digits !== '' && $digits[0] !== '0') {
-                            $digits = '0' . $digits;
+                        if(strlen($number) < 11 || strlen($number) > 10){
+                            $digits = '0' . $number;
                         }
 
+                        // If no digits or invalid length (UK numbers should be 11 digits long), return null
+                        if (empty($digits) || strlen($digits) != 11) {
+                            return '0'; // Return null if the number is not valid
+                        }
+                       
                         if (strlen($digits) > 11) {
-                            $digits = substr($digits, -11);
-                        } elseif (strlen($digits) < 11) {
-                            $digits = str_pad($digits, 11, '0', STR_PAD_LEFT);
+                            $digits = substr($digits, 0, 11);
+                        }
+
+                        // Ensure the number starts with '0' (this step is redundant if the above check passes)
+                        if ($digits[0] !== '0') {
+                            $digits = '0' . $digits;
                         }
 
                         return $digits;
                     };
 
                     // --- Process phone numbers ---
-                    $rawPhone = $row['applicant_phone'] ?? '';
-                    $rawHomePhone = $row['applicant_homephone'] ?? '';
+                    $rawPhone = $row['applicant_phone'];
 
-                    $phone = null;
+                    $phone = '0';
 
+                    // Check if the phone number contains a '/' (in case it's a range or multiple numbers)
                     if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
                         $parts = array_map('trim', explode('/', $rawPhone));
-                        $phone = $normalizePhone($parts[0] ?? '');
+                        $phone = $normalizePhone($parts[0] ?? ''); // Only process the first part
                     } else {
-                        $phone = $normalizePhone($rawPhone);
+                        $phone = $normalizePhone($rawPhone); // Normalize the whole phone number
                     }
 
-                    if (empty($phone)) {
-                        $phone = str_repeat('0', 11);
-                    }
+                    $homePhone = $normalizePhone($row['applicant_homephone']);
 
+                    // Default landline to null
+                    $applicantLandline = null;
 
-                    $homePhone = $normalizePhone($rawHomePhone);
-
-                    $applicantLandline = null; // default to null
-
-                    // Only assign if number has 10 or more digits
+                    // Only assign if home phone is valid and has 10 or more digits (after removing non-digits)
                     if (!empty($homePhone) && strlen(preg_replace('/\D/', '', $homePhone)) >= 10) {
                         $applicantLandline = $homePhone;
                     }
@@ -2557,16 +2529,86 @@ class ImportController extends Controller
                     $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
                     $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
 
+                    // Normalize the status field based on the CSV value
+                    $rawStatus = strtolower(trim((string)($row['status'] ?? '')));
+
+                    // Explicitly map status values to tinyint (1 = active, 0 = inactive)
+                    $status = match ($rawStatus) {
+                        'active', '1', 'yes', 'enabled' => 1,  // 'active' mapped to 1
+                        'inactive', 'no', '0', 'disabled' => 0, // 'inactive' mapped to 0
+                        default => 1,  // Default to 'active' (1) if status is not recognized
+                    };
+
+                    $applicant_email = isset($row['applicant_email']) &&
+                                            !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
+                                                ? strtolower($row['applicant_email'])
+                                                : null;
+
+                    // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
+                    $normalizeDate = function($dateString, $field, $rowIndex) {
+                        if (empty($dateString)) {
+                            return null;
+                        }
+
+                        // If the time does not include seconds (H:m), append ":00" for seconds
+                        if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+                            $dateString .= ":00";  // Append ":00" for seconds
+                        }
+
+                        // Define potential date formats (including H:m:s)
+                        $formats = [
+                            'Y-m-d H:i:s',
+                            'Y-m-d H:i',
+                            'Y-m-d',
+                            'm/d/Y H:i',
+                            'm/d/Y H:i:s',
+                            'm/d/Y',
+                            'd/m/Y H:i',
+                            'd/m/Y H:i:s',
+                            'd/m/Y',
+                            'j F Y',
+                            'j F Y H:i',
+                            'j F Y g:i A',
+                            'd F Y',
+                            'd F Y g:i A'
+                        ];
+
+                        foreach ($formats as $format) {
+                            try {
+                                $dt = Carbon::createFromFormat($format, $dateString);
+                                return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
+                            } catch (\Exception $e) {
+                                // Continue to next format if it fails
+                            }
+                        }
+
+                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
+                        return null; // Return null if no valid format found
+                    };
+
+                    // Normalize created_at (take from CSV if available, else set to null)
+                    $createdAt = null;
+                    if (!empty($row['created_at'])) {
+                        $createdAt = $normalizeDate($row['created_at'], 'created_at', $rowIndex);
+                    } else {
+                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid created_at data, skipping.");
+                    }
+
+                    // Normalize updated_at (take from CSV if available, else set to null)
+                    $updatedAt = null;
+                    if (!empty($row['updated_at'])) {
+                        $updatedAt = $normalizeDate($row['updated_at'], 'updated_at', $rowIndex);
+                    } else {
+                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid updated_at data, skipping.");
+                    }
+
                     // Build processed row
                     $processedRow = [
                         'id' => $id,
-                        'applicant_uid' => $id ? md5($id) : null,
-                        'user_id' => is_numeric($row['applicant_user_id'] ?? null) ? (int)$row['applicant_user_id'] : null,
+                        'applicant_uid' => md5($id),
+                        'user_id' => (int)$row['applicant_user_id'],
                         'applicant_name' => $row['applicant_name'],
-                        'applicant_email' =>isset($row['applicant_email']) &&
-                                            !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
-                                                ? strtolower($row['applicant_email'])
-                                                : null,
+                        'applicant_email' => $applicant_email,
                         'applicant_notes' => $row['applicant_notes'] ?? null,
                         'lat' => $lat,
                         'lng' => $lng,
@@ -2609,11 +2651,7 @@ class ImportController extends Controller
                         'have_nursing_home_experience' => $have_nursing_home_experience,
                         'paid_status' => $paid_status,
                         'paid_timestamp' => $paid_timestamp,
-                        'status' => match (strtolower(trim($row['status'] ?? false))) {
-                            'active', '1', 'yes', 'enabled' => 1,
-                            'inactive', 'no', '0', 'disabled' => 0,
-                            default => 1, // MOST CSVs probably mean enabled unless stated otherwise
-                        },
+                        'status' => $status,
                         'created_at' => $createdAt,
                         'updated_at' => $updatedAt,
                     ];
@@ -4226,170 +4264,6 @@ class ImportController extends Controller
             return response()->json(['error' => 'An error occurred while processing the CSV: ' . $e->getMessage()], 500);
         }
     }
-    // public function auditsImport(Request $request)
-    // {
-    //     $request->validate([
-    //         'csv_file' => [
-    //             'required',
-    //             'file',
-    //             'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
-    //             'mimes:csv,txt',
-    //             'max:5242880'
-    //         ],
-    //     ]);
-
-    //     if ($request->hasFile('csv_file')) {
-    //         $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
-    //         if ($ext !== 'csv') {
-    //             return response()->json([
-    //                 'error' => 'Invalid file type. Please upload a CSV file only.',
-    //                 'success' => false
-    //             ], 422);
-    //         }
-    //     }
-
-    //     ini_set('max_execution_time', 10000);
-    //     ini_set('memory_limit', '-1');
-
-    //     try {
-    //         $startTime = microtime(true);
-    //         Log::channel('import')->info('🔹 [Audits Import] Starting CSV import process...');
-
-    //         // 🗂 Store the uploaded file
-    //         $file = $request->file('csv_file');
-    //         $filename = time() . '_' . $file->getClientOriginalName();
-    //         $path = $file->storeAs('uploads/import_files', $filename);
-    //         $filePath = storage_path("app/{$path}");
-    //         Log::channel('import')->info("📂 File stored at: {$filePath}");
-
-    //         // 🧠 Ensure UTF-8
-    //         $content = file_get_contents($filePath);
-    //         $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-    //         if ($encoding !== 'UTF-8') {
-    //             $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-    //             file_put_contents($filePath, $content);
-    //             Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
-    //         }
-
-    //         // 📊 Parse CSV
-    //         $csv = Reader::createFromPath($filePath, 'r');
-    //         $csv->setHeaderOffset(0);
-    //         $headers = $csv->getHeader();
-    //         $records = $csv->getRecords();
-
-    //         $processedData = [];
-    //         $failedRows = [];
-    //         $rowIndex = 1;
-    //         $successfulRows = 0;
-
-    //         // 🔧 Helper: Clean invalid characters
-    //         $cleanString = fn($v) => is_string($v)
-    //             ? preg_replace('/[^\x20-\x7E]/', '', trim($v))
-    //             : $v;
-
-    //         // 🔧 Helper: Normalize & parse date correctly
-    //         $normalizeDate = function ($value, $field, $rowIndex) {
-    //             $value = trim((string)($value ?? ''));
-
-    //             if ($value === '' || in_array(strtolower($value), ['null', 'na', 'n/a', '-', 'pending'])) {
-    //                 return null;
-    //             }
-
-    //             // Remove ordinal suffixes like "st", "nd", "rd", "th"
-    //             $value = preg_replace('/(\d+)(st|nd|rd|th)/i', '$1', $value);
-
-    //             // Supported date formats
-    //             $formats = [
-    //                 'Y-m-d H:i:s',
-    //                 'Y-m-d H:i',
-    //                 'Y-m-d',
-    //                 'm/d/Y H:i',  // US format first
-    //                 'm/d/Y H:i:s',
-    //                 'm/d/Y',
-    //                 'd/m/Y H:i',
-    //                 'd/m/Y H:i:s',
-    //                 'd/m/Y',
-    //                 'j F Y', 
-    //                 'j F Y H:i', 
-    //                 'j F Y g:i A',
-    //                 'd F Y', 
-    //                 'd F Y g:i A'
-    //             ];
-
-    //             foreach ($formats as $format) {
-    //                 try {
-    //                     return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
-    //                 } catch (\Exception $e) {
-    //                     continue;
-    //                 }
-    //             }
-
-    //             // Fallback parser
-    //             try {
-    //                 return Carbon::parse($value)->format('Y-m-d H:i:s');
-    //             } catch (\Exception $e) {
-    //                 Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}'");
-    //                 return null;
-    //             }
-    //         };
-
-    //         // 🚀 Process each row
-    //         foreach ($records as $row) {
-    //             $rowIndex++;
-    //             try {
-    //                 $row = array_map($cleanString, $row);
-
-    //                 if (empty($row['user_id']) || empty($row['auditable_id'])) {
-    //                     Log::channel('import')->warning("Row {$rowIndex}: Missing key fields");
-    //                     continue;
-    //                 }
-
-    //                 $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-    //                 $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
-
-    //                 $processedData[] = [
-    //                     // 💡 Let MySQL handle ID auto-increment
-    //                     'user_id'        => $row['user_id'] ?? null,
-    //                     'auditable_id'   => $row['auditable_id'] ?? null,
-    //                     'auditable_type' => $row['auditable_type'] ?? null,
-    //                     'data'           => $row['data'] ?? '',
-    //                     'message'        => $row['message'] ?? '',
-    //                     'created_at'     => $createdAt,
-    //                     'updated_at'     => $updatedAt,
-    //                 ];
-    //             } catch (\Throwable $e) {
-    //                 $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-    //                 Log::channel('import')->error("Row {$rowIndex} failed: {$e->getMessage()}");
-    //             }
-    //         }
-
-    //        Log::channel('import')->info("✅ Parsed " . count($processedData) . " valid rows.");
-
-    //         // 💾 Save in batches
-    //         foreach (array_chunk($processedData, 200) as $chunk) {
-    //             try {
-    //                 DB::transaction(fn() => Audit::insert($chunk));
-    //                 $successfulRows += count($chunk);
-    //             } catch (\Exception $e) {
-    //                Log::channel('import')->error("Batch insert failed: " . $e->getMessage());
-    //             }
-    //         }
-
-    //         // 🧹 Clean up
-    //         if (file_exists($filePath)) unlink($filePath);
-
-    //         return response()->json([
-    //             'message' => 'Audits CSV import completed successfully.',
-    //             'successful_rows' => $successfulRows,
-    //             'failed_rows' => count($failedRows),
-    //             'failed_details' => $failedRows,
-    //             'execution_time' => round(microtime(true) - $startTime, 2) . 's'
-    //         ]);
-    //     } catch (\Throwable $e) {
-    //         Log::channel('import')->error("Audits import failed: " . $e->getMessage());
-    //         return response()->json(['error' => $e->getMessage()], 500);
-    //     }
-    // }
     public function auditsImport(Request $request)
     {
         $request->validate([

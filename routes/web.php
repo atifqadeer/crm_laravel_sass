@@ -198,6 +198,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('/sendChatBoxMsg', [CommunicationController::class, 'sendChatBoxMsg'])->name('sendChatBoxMsg');
     Route::get('getUserChats', [CommunicationController::class, 'getUserChats'])->name('getUserChats');
     Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
+    Route::get('getUnknownMessage', [CommunicationController::class, 'getUnknownMessage'])->name('getUnknownMessage');
 
     Route::group(['prefix' => 'users'], function () {
         Route::get('', [UserController::class, 'index'])->name('users.list');

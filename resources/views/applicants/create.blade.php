@@ -100,23 +100,31 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                             </div>
                         </div>
                         
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
-                                <label for="applicant_postcode" class="form-label">PostCode <small class="text-info">(If postcode is not available then use current or last workplace postcode)</small></label>
+                                <label for="applicant_postcode" class="form-label">PostCode <small class="text-info">(If unavailable, use the last workplace postcode.)</small></label>
                                 <input type="text" id="applicant_postcode" class="form-control" value="{{ old('applicant_postcode') }}" 
                                 name="applicant_postcode" placeholder="Enter PostCode" required>
                                 <div class="invalid-feedback">Please provide a postcode</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
-                                <label for="applicant_phone" class="form-label">Phone</label>
+                                <label for="applicant_phone" class="form-label">Phone <small class="text-info">(Primary)</small></label>
                                 <input type="tel" id="applicant_phone" class="form-control" name="applicant_phone" 
                                 value="{{ old('applicant_phone') }}" placeholder="Enter Phone Number" required>
                                 <div class="invalid-feedback">Please provide a phone number</div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3 col-md-4">
+                            <div class="mb-3">
+                                <label for="applicant_phone_secondary" class="form-label">Phone <small class="text-info">(Secondary)</small></label>
+                                <input type="tel" id="applicant_phone_secondary" class="form-control" name="applicant_phone_secondary" 
+                                value="{{ old('applicant_phone_secondary') }}" placeholder="Enter Phone Number" required>
+                                <div class="invalid-feedback">Please provide a phone number</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
                             <div class="mb-3">
                                 <label for="applicant_landline" class="form-label">Landline</label>
                                 <input type="tel" id="applicant_landline" class="form-control" name="applicant_landline" placeholder="Enter Landline Number"
@@ -422,7 +430,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
         });
 
         // Phone number formatting
-        ['applicant_phone', 'applicant_landline'].forEach(id => {
+        ['applicant_phone', 'applicant_landline', 'applicant_phone_secondary'].forEach(id => {
             const input = document.getElementById(id);
             if (!input) return;
 

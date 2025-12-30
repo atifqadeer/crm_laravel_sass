@@ -11,6 +11,7 @@ use Horsefly\ApplicantNote;
 use Horsefly\ModuleNote;
 use Horsefly\EmailTemplate;
 use Horsefly\SmsTemplate;
+use Horsefly\Message;
 use Horsefly\Setting;
 use Horsefly\JobTitle;
 use Horsefly\JobSource;
@@ -81,7 +82,20 @@ class ApplicantController extends Controller
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
             'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary',
             'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone',
+            'applicant_phone' => [
+                'required',
+                'string',
+                'max:11',
+                Rule::unique('applicants', 'applicant_phone'),
+                Rule::unique('applicants', 'applicant_phone_secondary'),
+            ],
+            'applicant_phone_secondary' => [
+                'nullable',
+                'string',
+                'max:11',
+                Rule::unique('applicants', 'applicant_phone'),
+                Rule::unique('applicants', 'applicant_phone_secondary'),
+            ],
             'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline',
             'applicant_experience' => 'nullable|string',
             'applicant_notes' => 'required|string|max:255',
@@ -114,6 +128,7 @@ class ApplicantController extends Controller
                 'applicant_email_secondary',
                 'applicant_postcode',
                 'applicant_phone',
+                'applicant_phone_secondary',
                 'applicant_landline',
                 'applicant_experience',
                 'applicant_notes',
@@ -122,6 +137,9 @@ class ApplicantController extends Controller
             ]);
 
             $applicantData['applicant_phone'] = preg_replace('/[^0-9]/', '', $applicantData['applicant_phone']);
+            $applicantData['applicant_phone_secondary'] = $applicantData['applicant_phone_secondary'] 
+                ? preg_replace('/[^0-9]/', '', $applicantData['applicant_phone_secondary'])
+                : null;
             $applicantData['applicant_landline'] = $applicantData['applicant_landline']
                 ? preg_replace('/[^0-9]/', '', $applicantData['applicant_landline'])
                 : null;
@@ -201,6 +219,23 @@ class ApplicantController extends Controller
 
             $applicant = Applicant::create($applicantData);
             $applicant->update(['applicant_uid' => md5($applicant->id)]);
+
+            $phones = array_filter([
+                $applicant->applicant_phone,
+                $applicant->applicant_phone_secondary,
+            ]);
+
+            if (!empty($phones)) {
+                Message::where(function ($q) use ($phones) {
+                        foreach ($phones as $phone) {
+                            $q->orWhere('phone_number', $phone); // exact match preferred
+                        }
+                    })
+                    ->update([
+                        'module_id'   => $applicant->id,
+                        'module_type' => Applicant::class,
+                    ]);
+            }
 
             // Create new module note
             $moduleNote = ModuleNote::create([
@@ -560,6 +595,9 @@ class ApplicantController extends Controller
                     } else {
                         $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
 
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
                         if ($applicant->applicant_landline) {
                             $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
                         }
@@ -961,9 +999,23 @@ class ApplicantController extends Controller
             'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email,' . $request->input('applicant_id'), // Exclude current applicant's email
             'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary,' . $request->input('applicant_id'),
             'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => 'required|string|max:11|unique:applicants,applicant_phone,' . $request->input('applicant_id'),
             // 'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
-            // Custom validation for landline
+            'applicant_phone' => [
+                'required',
+                'string',
+                'max:11',
+                Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
+                Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
+                Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+            ],
+            'applicant_phone_secondary' => [
+                'nullable',
+                'string',
+                'max:11',
+                Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
+                Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
+                Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+            ],
             'applicant_landline' => [
                 'nullable',
                 'string',
@@ -975,7 +1027,6 @@ class ApplicantController extends Controller
                                 $q->where('id', '!=', $request->input('applicant_id'));
                             })
                             ->exists();
-
                         if ($exists) {
                             $fail('This landline already exists.');
                         }
@@ -1015,6 +1066,7 @@ class ApplicantController extends Controller
                 'applicant_email_secondary',
                 'applicant_postcode',
                 'applicant_phone',
+                'applicant_phone_secondary',
                 'applicant_landline',
                 'applicant_experience',
                 'applicant_notes',
@@ -1073,6 +1125,23 @@ class ApplicantController extends Controller
             // If the applicant doesn't exist, throw an exception
             if (!$applicant) {
                 throw new Exception("Applicant not found with ID: " . $id);
+            }
+
+            $phones = array_filter([
+                $applicant->applicant_phone,
+                $applicant->applicant_phone_secondary,
+            ]);
+
+            if (!empty($phones)) {
+                Message::where(function ($q) use ($phones) {
+                        foreach ($phones as $phone) {
+                            $q->orWhere('phone_number', $phone); // exact match preferred
+                        }
+                    })
+                    ->update([
+                        'module_id'   => $applicant->id,
+                        'module_type' => Applicant::class,
+                    ]);
             }
 
             $landline = trim((string) $request->input('applicant_landline'));

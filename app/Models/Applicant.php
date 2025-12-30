@@ -24,6 +24,7 @@ class Applicant extends Model
         'applicant_email_secondary',
         'applicant_postcode',
         'applicant_phone',
+        'applicant_phone_secondary',
         'applicant_landline',
         'applicant_cv',
         'updated_cv',
@@ -66,6 +67,7 @@ class Applicant extends Model
         'status',
         'paid_status',
         'paid_timestamp',
+        'deleted_at',
         'created_at',
         'updated_at'
     ];

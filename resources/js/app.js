@@ -726,8 +726,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Only run if route is available
     if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
+        fetchUnreadMessages();
+        setInterval(fetchUnreadMessages, 20000);
+    }
+    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
         fetchNotifications();
-        setInterval(fetchNotifications, 30000);
+        setInterval(fetchNotifications, 20000);
     }
 });
 
@@ -766,6 +770,50 @@ function fetchNotifications() {
                 }
             } else {
                 console.log('Error fetching notifications:', response.error);
+            }
+        },
+        error: function (xhr) {
+            console.log('AJAX error:', xhr.responseText);
+        }
+    });
+}
+
+function fetchUnreadMessages() {
+    $.ajax({
+        url: window.laravelRoutes.unreadMessages,
+        method: 'GET',
+        success: function (response) {
+            if (response.success) {
+                $('#unread-count').text(response.unread_count || 0);
+                $('#message-items').empty();
+
+                if (response.messages.length === 0) {
+                    $('#message-items').append(
+                        '<div class="text-center py-3 text-muted">No new messages</div>'
+                    );
+                } else {
+                    response.messages.forEach(function (message) {
+                        const messagesIndexUrl = "/messages";
+                        const html = `
+                            <a href="${messagesIndexUrl}" class="dropdown-item py-3 border-bottom text-wrap">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <img src="${message.avatar}" class="img-fluid me-2 avatar-sm rounded-circle" alt="user-avatar" />
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0">
+                                            <span class="fw-medium">${message.user_name}</span><br>
+                                            <span>${message.message}</span>
+                                        </p>
+                                        <small class="text-muted">${message.created_at}</small>
+                                    </div>
+                                </div>
+                            </a>`;
+                        $('#message-items').append(html);
+                    });
+                }
+            } else {
+                console.log('Error fetching messages:', response.error);
             }
         },
         error: function (xhr) {
