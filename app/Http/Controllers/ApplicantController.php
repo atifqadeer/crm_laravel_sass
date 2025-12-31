@@ -382,9 +382,10 @@ class ApplicantController extends Controller
         if ($request->filled('search.value')) {
             $search = trim($request->search['value']);
 
-            // If search is short, use LIKE with index-friendly pattern
+            // If search is long enough (3 or more characters), search across multiple fields
             if (strlen($search) >= 3) {
                 $model->where(function ($q) use ($search) {
+                    // Search across multiple applicant-related fields with '%keyword%' to check for the keyword in any position
                     $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
@@ -393,14 +394,15 @@ class ApplicantController extends Controller
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
 
-                    // For related tables, only search if the keyword is long enough
+                    // Search across related tables as well (job titles, categories, and sources)
                     $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
                         ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
                         ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
                 });
             } else {
-                // For very short searches (1-2 chars), limit to phone/postcode or skip
+                // For very short searches (1-2 chars), limit to phone, postcode, or skip if necessary
                 $model->where(function ($q) use ($search) {
+                    // Limiting to phone numbers and postcode for short searches
                     $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
