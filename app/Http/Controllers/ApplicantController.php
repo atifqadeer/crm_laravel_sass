@@ -389,6 +389,7 @@ class ApplicantController extends Controller
                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
 
@@ -401,6 +402,7 @@ class ApplicantController extends Controller
                 // For very short searches (1-2 chars), limit to phone/postcode or skip
                 $model->where(function ($q) use ($search) {
                     $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
                 });

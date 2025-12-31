@@ -561,6 +561,11 @@ class CommunicationController extends Controller
 
             // Handle the 'unknown-chat' case differently
             if ($list_ref === 'unknown-chat') {
+                Message::where('phone_number', 'like', '%' . $recipientId . '%')
+                    ->where('module_type', $moduleType)
+                    ->where('status', 'incoming')
+                    ->update(['is_read' => 1]);  // Ensure it's an integer value (0 or 1)
+
                 // Special handling for unknown-chat (i.e., by phone number)
                 $messages = Message::where('phone_number', 'like', '%' . $recipientId . '%')
                     ->where('module_type', $moduleType)
@@ -577,6 +582,11 @@ class CommunicationController extends Controller
             } else {
                 // Fetch the recipient details when the list_ref is not 'unknown-chat'
                 $recipient = $moduleType::findOrFail($recipientId);
+
+                Message::where('module_id', $recipientId)
+                    ->where('module_type', ($recipientType === 'applicant' || $recipientType === 'unknown') ? Applicant::class : User::class)
+                    ->where('status', 'incoming')
+                    ->update(['is_read' => 1]);  // Ensure it's an integer value (0 or 1)
             
 
                 // Base query for fetching messages for both normal and 'unknown-chat' cases
@@ -599,11 +609,6 @@ class CommunicationController extends Controller
                 // Fetch the messages
                 $messages = $query->get();
             }
-
-            // Mark incoming messages as read (only latest batch)
-            Message::whereIn('id', $messages->pluck('id'))
-                ->where('status', 'incoming')
-                ->update(['is_read' => 1]);
 
             // Reverse the messages for UI (oldest → newest)
             $formattedMessages = $messages->reverse()->values()->map(function ($message) {

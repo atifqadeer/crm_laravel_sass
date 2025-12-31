@@ -198,6 +198,7 @@
                                 <div class="input-group">
                                     <a href="javascript: void(0);" class="btn btn-sm btn-primary rounded-start d-flex align-items-center input-group-text"><i class="ri-text fs-24"></i></a>
                                     <input type="text" class="form-control border-0" placeholder="Enter your message" name="message" id="messageInput" required>
+                                    <div class="invalid-feedback">Please type your message</div>
                                 </div>
                             </div>
                             <div class="col-sm-auto">
@@ -381,8 +382,6 @@
             data: { limit: l, start: s, search: search },
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {
-                if (start === 0) $('#unknownList').html(''); // clear first page
-
                 let unknownListHtml = '';
                 let unreadCount = 0;
 
@@ -426,7 +425,12 @@
                     `;
                 });
 
-                $('#unknownListScrollLoader').before(unknownListHtml);
+                // ✅ Clear the list only for refresh, otherwise append
+                if (refresh) {
+                    $('#unknownList').html(unknownListHtml);
+                } else {
+                    $('#unknownListScrollLoader').before(unknownListHtml);
+                }
                 $('#unreadUnknownCount').text(unreadCount);
 
                 if (response.data.length === 0) {
@@ -469,10 +473,7 @@
             method: 'GET',
             data: { limit: l, start: s, search: search },
             success: function(response) {
-                if (start === 0) {
-                    $('#userList').html('');
-                    hasMoreUsers = true; // reset flag for first page
-                }
+                hasMoreUsers = true; // reset flag for first page
 
                 if (!response.data || response.data.length === 0) {
                     hasMoreUsers = false;
@@ -510,7 +511,11 @@
                     `;
                 });
 
-                $('#userListScrollLoader').before(userListHtml);
+                if (refresh) {
+                    $('#userList').html(userListHtml);
+                } else {
+                    $('#userListScrollLoader').before(userListHtml);
+                }
                 $('#unreadUserChatCount').text(unreadCount);
 
                 if (start === null) userStart += userLimit;
