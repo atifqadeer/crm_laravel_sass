@@ -67,7 +67,18 @@
         padding: 6px 12px;
         font-size: 14px;
     }
-
+    #chat-form .input-group {
+        border: 2px solid var(--bs-primary);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    #chat-form .form-control {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .dropdown-toggle::after {
+        display: none !important;
+    }
 </style>
 
 @endsection
@@ -85,16 +96,22 @@
                         </div>
                     </form>
                 </div>
-                <h4 class="card-title m-3">Messages <span class="badge bg-danger badge-pill" id="unreadCount">0</span></h4>
+                {{-- <h4 class="card-title m-3">Messages </h4> --}}
                 <ul class="nav nav-pills chat-tab-pills nav-justified p-1 rounded mx-1">
                     <li class="nav-item">
-                        <a href="#chat-list" data-bs-toggle="tab" aria-expanded="false" class="nav-link active">All Chats</a>
+                        <a href="#chat-list" data-bs-toggle="tab" aria-expanded="false" class="nav-link active">All Chats 
+                            <span class="badge bg-danger badge-pill" id="unreadAllChatCount">0</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#unknown-list" data-bs-toggle="tab" aria-expanded="false" class="nav-link">Unknown</a>
+                        <a href="#unknown-list" data-bs-toggle="tab" aria-expanded="false" class="nav-link">Unknown 
+                            <span class="badge bg-danger badge-pill" id="unreadUnknownCount">0</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#contact-list" data-bs-toggle="tab" aria-expanded="true" class="nav-link">My Chats</a>
+                        <a href="#contact-list" data-bs-toggle="tab" aria-expanded="true" class="nav-link">My Chats 
+                            <span class="badge bg-danger badge-pill" id="unreadUserChatCount">0</span>
+                        </a>
                     </li>
                 </ul>
                 <div class="tab-content">
@@ -172,7 +189,10 @@
                     <form class="needs-validation" name="chat-form" id="chat-form">
                         <input type="hidden" id="recipientId" name="recipient_id">
                         <input type="hidden" id="recipientType" name="recipient_type">
+                        <input type="hidden" id="recipientPhonePrimary" name="recipient_phone_primary">
+                        <input type="hidden" id="recipientPhoneSecondary" name="recipient_phone_secondary">
                         <input type="hidden" id="recipientPhone" name="recipient_phone">
+
                         <div class="row align-items-center">
                             <div class="col mb-2 mb-sm-0 d-flex">
                                 <div class="input-group">
@@ -181,9 +201,19 @@
                                 </div>
                             </div>
                             <div class="col-sm-auto">
-                                <div class="d-flex gap-2">
+                                {{-- <div class="d-flex gap-2">
                                     <button type="submit" class="btn btn-primary btn-sm chat-send"><i class="ri-send-plane-2-line fs-18"></i></button>
+                                </div> --}}
+                                <div class="btn-group dropup">
+                                    <button type="button" class="btn btn-primary btn-sm chat-send dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="ri-send-plane-2-line fs-18"></i>
+                                    </button>
+
+                                    <ul class="dropdown-menu dropdown-menu-end" id="phoneDropdown">
+                                        <!-- filled dynamically -->
+                                    </ul>
                                 </div>
+
                             </div>
                         </div>
                     </form>
@@ -207,30 +237,38 @@
         };
     }
 
+    let isLoadingApplicants = false;
+    let isLoadingUnknown = false;
+    let isLoadingUsers = false;
+
     let currentRecipientId = null;
     let currentRecipientType = null; // applicant | user
     let currentListRef = null;       // all-chat | user-chat
-    
-    let applicantLimit = 10;
-    let applicantStart = 0;
-    let isLoadingApplicants = false;
-    let applicantAction = 'inactive';
-   
-    let unknownLimit = 10;
-    let unknownStart = 0;
-    let isLoadingUnknown = false;
-    let unknownAction = 'inactive';
 
     let activeTab = 'all-chat'; // default
+
+    let hasMoreUsers = true;
+
+    let applicantLimit = 10;
+    let applicantStart = 0;
+
+    let unknownLimit = 10;
+    let unknownStart = 0;
+
+    let userLimit = 10;
+    let userStart = 0;
+
     let currentSearchKeyword = '';
 
-    function loadApplicants(search = '') {
+    function loadApplicants(search = '', start = null, limit = null, refresh = false) {
         if (isLoadingApplicants) return;
 
         isLoadingApplicants = true;
         applicantAction = 'active';
 
-        // Append a loader at the bottom of the chat list
+        const s = start !== null ? start : applicantStart; // page start
+        const l = limit !== null ? limit : applicantLimit; // page limit
+
         const loaderId = 'chatListScrollLoader';
         if ($('#' + loaderId).length === 0) {
             $('#chatList').append(`
@@ -245,24 +283,16 @@
         $.ajax({
             url: '{{ route("getApplicantsForMessage") }}',
             method: 'GET',
-            data: {
-                limit: applicantLimit,
-                start: applicantStart,
-                search: search
-            },
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
+            data: { limit: l, start: s, search: search },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {
                 let chatListHtml = '';
-                let unreadCount = parseInt($('#unreadCount').text()) || 0;
+                let unreadCount = 0;
 
                 response.data.forEach(applicant => {
                     const lastMessage = applicant.last_message?.message ?? 'No messages';
                     const time = applicant.last_message?.time ?? '';
                     const unread = applicant.last_message?.unread_count ?? 0;
-                    const hasMessage = applicant.last_message !== null;
-
                     unreadCount += unread;
 
                     chatListHtml += `
@@ -274,16 +304,14 @@
                                     <div class="position-relative">
                                         <img src="/images/users/avatar-${applicant.id % 10 || 1}.jpg"
                                             class="avatar rounded-circle">
-
-                                        ${hasMessage ? `
+                                        ${lastMessage !== 'No messages' ? `
                                             <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
                                                 <span class="visually-hidden">Active</span>
-                                            </span>
-                                        ` : `<span class="position-absolute bottom-0 end-0 p-1 bg-danger border border-light border-2 rounded-circle">
+                                            </span>` : `
+                                            <span class="position-absolute bottom-0 end-0 p-1 bg-danger border border-light border-2 rounded-circle">
                                                 <span class="visually-hidden">Inactive</span>
                                             </span>`}
                                     </div>
-
                                     <div class="ms-3 flex-grow-1">
                                         <div class="d-flex justify-content-between">
                                             <h5 class="mb-0 user_name">${applicant.name}</h5>
@@ -300,43 +328,42 @@
                     `;
                 });
 
-                // Append new applicants **above the loader**
-                $('#' + loaderId).before(chatListHtml);
-                $('#unreadCount').text(unreadCount);
-
-                if (!response.data || response.data.length == 0) {
-                    $('#' + loaderId).html('<p class="text-center fw-bold">End</p>');
-                    applicantAction = 'active';
-                    return;
+                // ✅ Clear the list only for refresh, otherwise append
+                if (refresh) {
+                    $('#chatList').html(chatListHtml);
+                } else {
+                    $('#chatListScrollLoader').before(chatListHtml);
                 }
 
-                applicantStart += applicantLimit; // 🔥 Increment start
+                $('#unreadAllChatCount').text(unreadCount);
+
+                // Handle end of list
+                if (!refresh && response.data.length > 0) {
+                    applicantStart += applicantLimit; // increment only for scroll
+                }
+
+                if (response.data.length === 0 && refresh) {
+                    $('#' + loaderId).html('<p class="text-center fw-bold">No messages</p>');
+                }
+
                 applicantAction = 'inactive';
-            },
-            error: function(xhr) {
-                console.error(xhr);
             },
             complete: function() {
                 isLoadingApplicants = false;
-
-                // Remove loader if there are more records
-                if ($('#chatListScrollLoader').length && applicantAction === 'inactive') {
-                    $('#chatListScrollLoader').remove();
-                }
-
-                // Recalculate SimpleBar
                 SimpleBar.instances.get(document.getElementById('chatList'))?.recalculate();
             }
         });
     }
 
-    function loadUnknownMessages(search = '') {
+    function loadUnknownMessages(search = '', start = null, limit = null, refresh = false) {
         if (isLoadingUnknown) return;
 
         isLoadingUnknown = true;
         unknownAction = 'active';
 
-        // Append a loader at the bottom of the chat list
+        const s = start !== null ? start : unknownStart;
+        const l = limit !== null ? limit : unknownLimit;
+
         const loaderId = 'unknownListScrollLoader';
         if ($('#' + loaderId).length === 0) {
             $('#unknownList').append(`
@@ -351,26 +378,20 @@
         $.ajax({
             url: '{{ route("getUnknownMessage") }}',
             method: 'GET',
-            data: {
-                limit: unknownLimit,
-                start: unknownStart,
-                search: search
-            },
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
+            data: { limit: l, start: s, search: search },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {
-                console.log(response);
+                if (start === 0) $('#unknownList').html(''); // clear first page
+
                 let unknownListHtml = '';
-                let unreadCount = parseInt($('#unreadCount').text()) || 0;
+                let unreadCount = 0;
 
                 response.data.forEach(message => {
                     const lastMessage = message.last_message?.message ?? 'No messages';
                     const time = message.last_message?.time ?? '';
-                    const unread = message.last_message?.unread_count ?? 0;
-                    const hasMessage = message.last_message !== null;
-
+                    const unread = parseInt(message.unread_count) || 0;
                     unreadCount += unread;
+                    const hasMessage = message.last_message !== null;
 
                     unknownListHtml += `
                         <div class="d-flex flex-column h-100 border-bottom">
@@ -381,16 +402,14 @@
                                     <div class="position-relative">
                                         <img src="/images/users/avatar-${message.id % 10 || 1}.jpg"
                                             class="avatar rounded-circle">
-
                                         ${hasMessage ? `
                                             <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light border-2 rounded-circle">
                                                 <span class="visually-hidden">Active</span>
-                                            </span>
-                                        ` : `<span class="position-absolute bottom-0 end-0 p-1 bg-danger border border-light border-2 rounded-circle">
+                                            </span>` : `
+                                            <span class="position-absolute bottom-0 end-0 p-1 bg-danger border border-light border-2 rounded-circle">
                                                 <span class="visually-hidden">Inactive</span>
                                             </span>`}
                                     </div>
-
                                     <div class="ms-3 flex-grow-1">
                                         <div class="d-flex justify-content-between">
                                             <h5 class="mb-0 user_name">${message.name}</h5>
@@ -407,52 +426,34 @@
                     `;
                 });
 
-                // Append new applicants **above the loader**
-                $('#' + loaderId).before(unknownListHtml);
-                $('#unreadCount').text(unreadCount);
+                $('#unknownListScrollLoader').before(unknownListHtml);
+                $('#unreadUnknownCount').text(unreadCount);
 
-                if (!response.data || response.data.length == 0) {
+                if (response.data.length === 0) {
                     $('#' + loaderId).html('<p class="text-center fw-bold">End</p>');
-                    unknownAction = 'active';
-                    return;
+                    unknownAction = 'inactive';
+                } else if (start === null) {
+                    unknownStart += unknownLimit; // only increment for scroll
                 }
 
-                unknownStart += unknownLimit; // 🔥 Increment start
                 unknownAction = 'inactive';
-            },
-            error: function(xhr) {
-                console.error(xhr);
             },
             complete: function() {
                 isLoadingUnknown = false;
-
-                // Remove loader if there are more records
-                if ($('#unknownListScrollLoader').length && unknownAction === 'inactive') {
-                    $('#unknownListScrollLoader').remove();
-                }
-
-                // Recalculate SimpleBar
                 SimpleBar.instances.get(document.getElementById('unknownList'))?.recalculate();
             }
         });
     }
 
-    let loading = false;
-    let oldestMessageId = null;
-    let activeRecipient = null;
-    
-    let userLimit = 10;
-    let userStart = 0;
-    let isLoadingUsers = false;
-    let hasMoreUsers = true;
-
-    function loadUsers(search = '') {
+    function loadUsers(search = '', start = null, limit = null, refresh = false) {
         if (isLoadingUsers || !hasMoreUsers) return;
 
         isLoadingUsers = true;
 
+        const s = start !== null ? start : userStart;
+        const l = limit !== null ? limit : userLimit;
+
         const loaderId = 'userListScrollLoader';
-        // Append loader if it doesn't exist
         if ($('#' + loaderId).length === 0) {
             $('#userList').append(`
                 <div class="text-center py-2" id="${loaderId}">
@@ -466,51 +467,41 @@
         $.ajax({
             url: "{{ route('getUserChats') }}",
             method: 'GET',
-            data: {
-                limit: userLimit,
-                start: userStart,
-                search: search
-            },
+            data: { limit: l, start: s, search: search },
             success: function(response) {
-                // Remove loader first
-                $('#' + loaderId).remove();
+                if (start === 0) {
+                    $('#userList').html('');
+                    hasMoreUsers = true; // reset flag for first page
+                }
 
-                if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+                if (!response.data || response.data.length === 0) {
                     hasMoreUsers = false;
-                    // Optional: show "End of List"
                     $('#userList').append('<p class="text-center fw-bold">End of users</p>');
                     return;
                 }
 
+                let unreadCount = 0;
                 let userListHtml = '';
 
                 response.data.forEach(user => {
+                    const unread = user.last_message?.unread_count ?? 0;
+                    unreadCount += unread;
+
                     userListHtml += `
                         <div class="border-bottom">
-                            <a href="#!"
-                            class="d-block user-chat"
-                            data-ref-name="user-chat"
-                            data-recipient-id="${user.id}"
-                            data-recipient-type="applicant">
+                            <a href="#!" class="d-block user-chat" data-ref-name="user-chat"
+                            data-recipient-id="${user.id}" data-recipient-type="applicant">
                                 <div class="d-flex align-items-center p-2">
                                     <img src="/images/users/avatar-${user.id % 10 || 1}.jpg"
                                         class="avatar rounded-circle">
                                     <div class="ms-3 flex-grow-1">
                                         <div class="d-flex justify-content-between">
                                             <h6 class="mb-0 user_name">${user.name}</h6>
-                                            <small class="text-muted">
-                                                ${user.last_message?.time ?? ''}
-                                            </small>
+                                            <small class="text-muted">${user.last_message?.time ?? ''}</small>
                                         </div>
                                         <div class="d-flex justify-content-between">
-                                            <span class="text-muted">
-                                                ${user.last_message?.message ?? ''}
-                                            </span>
-                                            ${
-                                                user.last_message?.unread_count > 0
-                                                    ? `<span class="badge bg-danger" style="height: fit-content;">${user.last_message.unread_count}</span>`
-                                                    : ''
-                                            }
+                                            <span class="text-muted">${user.last_message?.message ?? ''}</span>
+                                            ${unread > 0 ? `<span class="badge bg-danger" style="height: fit-content;">${unread}</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -519,20 +510,15 @@
                     `;
                 });
 
-                $('#userList').append(userListHtml);
+                $('#userListScrollLoader').before(userListHtml);
+                $('#unreadUserChatCount').text(unreadCount);
 
-                // ✅ Update pagination
-                userStart += userLimit;
-                hasMoreUsers = response.has_more === true; // must come from backend
-            },
-            error: function(xhr) {
-                console.error('Error loading users:', xhr);
-                // Remove loader on error
-                $('#' + loaderId).remove();
+                if (start === null) userStart += userLimit;
+                hasMoreUsers = response.has_more === true;
             },
             complete: function() {
                 isLoadingUsers = false;
-                $('#userListLoader').hide();
+                SimpleBar.instances.get(document.getElementById('userList'))?.recalculate();
             }
         });
     }
@@ -549,29 +535,43 @@
         loadUnknownMessages();
         loadUsers();
 
-        // Infinite scroll for applicants
-        chatList.on('scroll', function () {
-            const scrollTop = $(this).scrollTop();
-            const scrollHeight = this.scrollHeight;
-            const height = $(this).height();
-            const list_ref = $(this).data('ref-name');
+        let isUserScrollingApplicants = false;
+        let isUserScrollingUnknown = false;
+        let isUserScrollingUsers = false;
+        let isUserSearching = false;
 
-            if (scrollTop + height >= scrollHeight - 10 && applicantAction === 'inactive') {
-                loadApplicants(currentSearchKeyword);
-            }
-        });
-       
-        // Infinite scroll for applicants
-        unknownList.on('scroll', function () {
-            const scrollTop = $(this).scrollTop();
-            const scrollHeight = this.scrollHeight;
-            const height = $(this).height();
-            const list_ref = $(this).data('ref-name');
+        // Scroll detection with 1-minute timeout
+        function setupScrollStopDetection(listSelector, flagVar) {
+            $(listSelector).on('scroll', function () {
+                window[flagVar] = true;
+                clearTimeout(this.scrollTimeout);
+                this.scrollTimeout = setTimeout(() => {
+                    window[flagVar] = false; // user stopped scrolling after 1 minute
+                }, 60000); // 1 minute
+            });
+        }
 
-            if (scrollTop + height >= scrollHeight - 10 && unknownAction === 'inactive') {
-                loadUnknownMessages(currentSearchKeyword);
+        setupScrollStopDetection('#chatList', 'isUserScrollingApplicants');
+        setupScrollStopDetection('#unknownList', 'isUserScrollingUnknown');
+        setupScrollStopDetection('#userList', 'isUserScrollingUsers');
+
+        function reloadAllFirstPage() {
+            if (!isUserScrollingApplicants && !isUserSearching) {
+                loadApplicants('', 0, applicantLimit, true); // refresh = true
             }
-        });
+            if (!isUserScrollingUnknown && !isUserSearching) {
+                loadUnknownMessages('', 0, unknownLimit, true);
+            }
+            if (!isUserScrollingUsers && !isUserSearching) {
+                loadUsers('', 0, userLimit, true);
+            }
+        }
+
+        // Run immediately
+        reloadAllFirstPage();
+
+        // Set interval every 2 minutes
+        const refreshInterval = setInterval(reloadAllFirstPage, 20000); // 2 minutes
 
         // Scroll to bottom when button is clicked
         scrollBtn.on('click', function() {
@@ -579,14 +579,6 @@
             scrollBtn.hide();
         });
 
-        userList.on('scroll', function () {
-            const el = this;
-            const list_ref = $(this).data('ref-name');
-
-            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
-                loadUsers(currentSearchKeyword);
-            }
-        });
 
         // Click handler for recipient selection
         $(document).on('click', '.applicant-chat, .unknown-chat, .user-chat', function (e) {
@@ -608,7 +600,7 @@
         $('#chat-form').submit(function(e) {
             e.preventDefault();
             if (!currentRecipientId || !currentRecipientType) {
-                alert('Please select a recipient to send a message.');
+                toastr.warning('Please select a recipient to send a message.');
                 return;
             }
 
@@ -709,42 +701,34 @@
             }
         });
 
-        // Search functionality
         let searchTimeout;
 
         $('#searchApplicants').on('keyup', function () {
             clearTimeout(searchTimeout);
-
-            currentSearchKeyword = $(this).val().trim(); // ✅ store globally
+            currentSearchKeyword = $(this).val().trim();
+            isUserSearching = true;
 
             searchTimeout = setTimeout(() => {
+                // Reset pagination
+                applicantStart = 0;
+                unknownStart = 0;
+                userStart = 0;
+                hasMoreUsers = true;
 
-                if (activeTab === 'user-chat') {
-                    userStart = 0;
-                    isLoadingUsers = false;
-                    hasMoreUsers = true;
-                    $('#userList').html('');
-                    loadUsers(currentSearchKeyword);
-                }
+                // Clear existing lists
+                $('#chatList').html('');
+                $('#unknownList').html('');
+                $('#userList').html('');
 
-                if (activeTab === 'all-chat') {
-                    applicantStart = 0;
-                    isLoadingApplicants = false;
-                    applicantAction = 'inactive';
-                    $('#chatList').html('');
-                    loadApplicants(currentSearchKeyword);
-                }
-               
-                if (activeTab === 'unknown-chat') {
-                    unknownStart = 0;
-                    isLoadingUnknown = false;
-                    unknownAction = 'inactive';
-                    $('#unknownList').html('');
-                    loadUnknownMessages(currentSearchKeyword);
-                }
+                // Reload first page with search
+                loadApplicants(currentSearchKeyword, 0, applicantLimit);
+                loadUnknownMessages(currentSearchKeyword, 0, unknownLimit);
+                loadUsers(currentSearchKeyword, 0, userLimit);
 
-            }, 300);
+                isUserSearching = false;
+            }, 500); // debounce search by 500ms
         });
+
     });
 
     function loadMessages(recipientId, recipientType, list_ref) {
@@ -777,7 +761,8 @@
                 const recipient = response.recipient;
 
                 // ✅ Always render header
-                $('#recipientPhone').val(recipient.phone);
+                $('#recipientPhonePrimary').val(recipient.phone_primary);
+                $('#recipientPhoneSecondary').val(recipient.phone_secondary);
                 $('#chatHeader').html(`
                     <img src="/images/users/avatar-${recipientId % 10 || 1}.jpg"
                         class="me-2 rounded"
@@ -789,7 +774,7 @@
                             class="text-dark">${recipient.name}</a>
                         </h5>
                         <p class="mb-0 text-success fw-medium">
-                            ${recipient.phone}
+                            ${recipient.phone_primary} / ${recipient.phone_secondary}
                         </p>
                     </div>
                 `);
@@ -803,10 +788,7 @@
                     `);
                     return;
                 }
-
-
                 oldestMessageId = messages[0].id;
-
                 let html = '';
                 messages.forEach(msg => {
                     html += renderMessage(msg, recipient);
@@ -814,22 +796,25 @@
 
                 $('#chatConversation').html(html); // Keep existing layout
                 // ✅ HEADER (UNCHANGED)
-                    $('#recipientPhone').val(recipient.phone);
-                    $('#chatHeader').html(`
-                        <img src="/images/users/avatar-${recipientId % 10 || 1}.jpg"
-                            class="me-2 rounded"
-                            height="36" />
-                        <div class="d-none d-md-flex flex-column">
-                            <h5 class="my-0 fs-16 fw-semibold">
-                                <a data-bs-toggle="offcanvas"
-                                href="#user-profile"
-                                class="text-dark">${recipient.name}</a>
-                            </h5>
-                            <p class="mb-0 text-success fw-medium">
-                                ${recipient.phone}
-                            </p>
-                        </div>
-                    `);
+                $('#recipientPhonePrimary').val(recipient.phone_primary);
+                $('#recipientPhoneSecondary').val(recipient.phone_secondary);
+                $('#chatHeader').html(`
+                    <img src="/images/users/avatar-${recipientId % 10 || 1}.jpg"
+                        class="me-2 rounded"
+                        height="36" />
+                    <div class="d-none d-md-flex flex-column">
+                        <h5 class="my-0 fs-16 fw-semibold">
+                            <a data-bs-toggle="offcanvas"
+                            href="#user-profile"
+                            class="text-dark">${recipient.name}</a>
+                        </h5>
+                        <p class="mb-0 text-success fw-medium">
+                            ${recipient.phone_primary} / ${recipient.phone_secondary}
+                        </p>
+                    </div>
+                `);
+
+                setPhoneNumber(recipient.phone_primary, recipient.phone_secondary)
 
                 const el = $('#chatConversation')[0];
                 el.scrollTop = el.scrollHeight;
@@ -964,6 +949,59 @@
         `;
     }
 
+    function setPhoneNumber(phone_primary, phone_secondary) {
+    const dropdown = document.getElementById("phoneDropdown");
+    const btn = document.querySelector(".chat-send.dropdown-toggle");
+
+    // Clear previous dropdown content to avoid stacking items
+    dropdown.innerHTML = '';
+
+    // Build dropdown items
+    if (phone_primary || phone_secondary) {
+        if (phone_primary) {
+            dropdown.innerHTML += `
+                <li>
+                    <a class="dropdown-item select-number" href="#" data-number="${phone_primary}">
+                    Phone Primary — <strong>${phone_primary}</strong>
+                    </a>
+                </li>`;
+        }
+        if (phone_secondary) {
+            dropdown.innerHTML += `
+                <li>
+                    <a class="dropdown-item select-number" href="#" data-number="${phone_secondary}">
+                    Phone Secondary — <strong>${phone_secondary}</strong>
+                    </a>
+                </li>`;
+        }
+    }
+
+    // Default behavior if a phone number exists, set the button text
+    if (phone_primary) {
+        btn.innerHTML = `${phone_primary} <i class="ri-send-plane-2-line fs-18"></i>`;
+        document.getElementById("recipientPhone").value = phone_primary; // Set initial phone number to primary
+    } else if (phone_secondary) {
+        btn.innerHTML = `${phone_secondary} <i class="ri-send-plane-2-line fs-18"></i>`;
+        document.getElementById("recipientPhone").value = phone_secondary; // Set initial phone number to secondary
+    }
+
+    // Add event listener only once
+    $(dropdown).off('click').on('click', '.select-number', function (e) {
+        e.preventDefault();
+
+        const number = $(this).data('number');
+
+        // Set the selected phone number into the hidden input field
+        $('#recipientPhone').val(number);
+
+        // Update the send button text to reflect the selected phone number
+        btn.innerHTML = `${number} <i class="ri-send-plane-2-line fs-18"></i>`;
+
+        // Optionally: Submit the form right away after selection, if necessary
+        $('#chat-form').submit();
+    });
+}
 </script>
+
 
 @endsection
