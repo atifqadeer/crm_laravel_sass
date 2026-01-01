@@ -570,7 +570,7 @@ class CrmController extends Controller
                     'crm_notes.created_at as notes_created_at',
 
                     // show created date
-                    'crm_last_notes.created_at as show_created_at',
+                    'crm_notes.created_at as show_created_at',
 
                     // interviews
                     'interviews.schedule_time',
@@ -668,7 +668,7 @@ class CrmController extends Controller
                     'crm_notes.created_at as notes_created_at',
 
                     // show created date
-                    'crm_last_notes.created_at as show_created_at',
+                    'crm_notes.created_at as show_created_at',
 
                     // interviews
                     'interviews.schedule_time',
