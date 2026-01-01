@@ -512,11 +512,11 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ['cv_sent_no_response_request', 'request_no_response_save'])
+                        ->whereIn('moved_tab_to', ['request_no_response'])
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
-                                ->whereIn('moved_tab_to', ['cv_sent_no_response_request', 'request_no_response_save'])
+                                ->whereIn('moved_tab_to', ['request_no_response'])
                                 ->groupBy('applicant_id', 'sale_id');
                         }),
                     'crm_notes',
@@ -541,7 +541,7 @@ class CrmController extends Controller
                         ->from('history')
                         ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
                         ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_no_response_request', 'crm_request_no_response_save'])
+                        ->whereIn('history.sub_stage', ['crm_request_no_response'])
                         ->where('history.status', 1);
                 })
                 ->leftJoin('interviews', function ($join) {
