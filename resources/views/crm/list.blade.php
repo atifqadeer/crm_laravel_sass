@@ -2771,112 +2771,117 @@
         
         /** Move to confirmation */
         function crmMoveRequestToNoResponseModal(applicantID, saleID) {
-            const formId = `#crmMoveRequestToNoResponseForm${applicantID}-${saleID}`;
-            const modalId = `#crmMoveRequestToNoResponseModal${applicantID}-${saleID}`;
-            const detailsId = `#crmMoveRequestToNoResponseDetails${applicantID}-${saleID}`;
-            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
-            console.log('Initializing crmMoveRequestToNoResponseModal with applicantID:', applicantID, 'saleID:', saleID);
-            
-            const initModal = () => {
-                resetValidation();
-                attachEventHandlers();
-            };
+    const formId = `#crmMoveRequestToNoResponseForm${applicantID}-${saleID}`;
+    const modalId = `#crmMoveRequestToNoResponseModal${applicantID}-${saleID}`;
+    const detailsId = `#crmMoveRequestToNoResponseDetails${applicantID}-${saleID}`;
+    const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
 
-            const resetValidation = () => {
-                $(detailsId).removeClass('is-invalid is-valid')
-                    .next('.invalid-feedback').remove();
-                $(notificationAlert).html('').hide();
-            };
+    console.log('Initializing crmMoveRequestToNoResponseModal with applicantID:', applicantID, 'saleID:', saleID);
 
-            const validateNotes = () => {
-                const notes = $(detailsId).val().trim();
-                console.log('Validating notes:', notes);
-                if (!notes) {
-                    $(detailsId).addClass('is-invalid')
-                        .after('<div class="invalid-feedback">Please provide details.</div>');
-                    return false;
-                }
-                return true;
-            };
+    const initModal = () => {
+        resetValidation();
+        attachEventHandlers();
+    };
 
-            const handleSubmit = (actionType) => {
-                if (!validateNotes()) return false;
+    const resetValidation = () => {
+        $(detailsId).removeClass('is-invalid is-valid')
+            .next('.invalid-feedback').remove();
+        $(notificationAlert).html('').hide();
+    };
 
-                const btn = $(`${formId} .savecrmRequestToNoResponseSaveButton`);
-                const originalText = btn.html();
-                
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-                const formData = {
-                    applicant_id: applicantID,
-                    sale_id: saleID,
-                    details: $(detailsId).val().trim(),
-                    _token: '{{ csrf_token() }}'
-                };
-
-                console.log('Submitting form data for action:', actionType, formData);
-
-                $.ajax({
-                    url: "{{ route('crmRequestNoResponse') }}",
-                    method: 'POST',
-                    data: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        showSuccess(response.message);
-                        setTimeout(() => {
-                            $(modalId).modal('hide');
-                            $(formId)[0].reset();
-                            $('#applicants_table').DataTable().ajax.reload();
-                        }, 2000);
-                    },
-                    error: function(xhr) {
-                        console.error('Form submission error:', xhr.status, xhr.responseJSON);
-                        showError(xhr.responseJSON?.message || `Failed to process ${actionType} (Status: ${xhr.status})`);
-                    },
-                    complete: function() {
-                        btn.prop('disabled', false).html(originalText);
-                    }
-                });
-            };
-
-            const showSuccess = (message) => {
-                $(notificationAlert).html(`
-                    <div class="alert alert-success alert-dismissible fade show">
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `).show();
-            };
-
-            const showError = (message) => {
-                $(notificationAlert).html(`
-                    <div class="alert alert-danger alert-dismissible fade show">
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `).show();
-            };
-
-            const attachEventHandlers = () => {
-                const rejectButtonSelector = `${formId} .savecrmMoveToconfirmationRejectButton`;
-                const button = $(rejectButtonSelector);
-                const reject_template = button.data('request-reject-template');
-                console.log('Attaching event handler to reject button:', rejectButtonSelector);
-
-                $(`${formId} .savecrmMoveToconfirmationRequestButton`).off('click').on('click', () => handleSubmit('confirm'));
-                $(`${formId} .savecrmConfirmationSaveButton`).off('click').on('click', () => handleSubmit('save'));
-
-                $(modalId).off('hidden.bs.modal').on('hidden.bs.modal', () => {
-                    $(formId)[0].reset();
-                    resetValidation();
-                });
-            };
-
-            initModal();
+    const validateNotes = () => {
+        const notes = $(detailsId).val().trim();
+        console.log('Validating notes:', notes);
+        if (!notes) {
+            $(detailsId).addClass('is-invalid')
+                .after('<div class="invalid-feedback">Please provide details.</div>');
+            return false;
         }
+        return true;
+    };
+
+    const handleSubmit = (actionType) => {
+        if (!validateNotes()) return false;
+
+        const btn = $(`${formId} .savecrmRequestToNoResponseSaveButton`);
+        const originalText = btn.html();
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+        const formData = {
+            applicant_id: applicantID,
+            sale_id: saleID,
+            details: $(detailsId).val().trim(),
+            _token: '{{ csrf_token() }}' // Ensure this token is correctly set in your template engine
+        };
+
+        console.log('Submitting form data for action:', actionType, formData);
+
+        $.ajax({
+            url: "{{ route('crmRequestNoResponse') }}", // Ensure this route is properly set in your routing
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}' // This is CSRF protection for your request
+            },
+            success: function(response) {
+                showSuccess(response.message);
+                setTimeout(() => {
+                    $(modalId).modal('hide');
+                    $(formId)[0].reset(); // Reset form fields
+                    $('#applicants_table').DataTable().ajax.reload(); // Reload DataTable
+                }, 2000);
+            },
+            error: function(xhr) {
+                console.error('Form submission error:', xhr.status, xhr.responseJSON);
+                showError(xhr.responseJSON?.message || `Failed to process ${actionType} (Status: ${xhr.status})`);
+            },
+            complete: function() {
+                btn.prop('disabled', false).html(originalText); // Restore button state
+            }
+        });
+    };
+
+    const showSuccess = (message) => {
+        $(notificationAlert).html(`
+            <div class="alert alert-success alert-dismissible fade show">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `).show();
+    };
+
+    const showError = (message) => {
+        $(notificationAlert).html(`
+            <div class="alert alert-danger alert-dismissible fade show">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `).show();
+    };
+
+    const attachEventHandlers = () => {
+        // Ensure buttons are properly selected and event handlers are attached
+        const rejectButtonSelector = `${formId} .savecrmMoveToconfirmationRejectButton`;
+        const button = $(rejectButtonSelector);
+        const reject_template = button.data('request-reject-template'); // This is not used in the code, but can be useful if needed later
+
+        console.log('Attaching event handler to reject button:', rejectButtonSelector);
+
+        // Reset previously bound click event handlers before attaching new ones
+        $(`${formId} .savecrmMoveToconfirmationRequestButton`).off('click').on('click', () => handleSubmit('confirm'));
+        $(`${formId} .savecrmConfirmationSaveButton`).off('click').on('click', () => handleSubmit('save'));
+
+        // Reset modal and form when it is closed
+        $(modalId).off('hidden.bs.modal').on('hidden.bs.modal', () => {
+            $(formId)[0].reset(); // Reset form fields
+            resetValidation(); // Clear validation feedback
+        });
+    };
+
+    initModal();
+}
+
 
         /** Send Email to applicant on request reject */
         function crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID, notes) {
