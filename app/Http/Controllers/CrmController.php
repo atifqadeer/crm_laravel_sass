@@ -508,6 +508,104 @@ class CrmController extends Controller
                 ]);
 
                 break;
+            case 'request (no response)':
+                $model->joinSub(
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to', ['cv_sent_no_response_request', 'request_no_response_save'])
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->whereIn('moved_tab_to', ['cv_sent_no_response_request', 'request_no_response_save'])
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'crm_notes',
+                    function ($join) {
+                        $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                    }
+                )
+                ->join('sales', function ($join) {
+                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                })
+                ->join('offices', function ($join) {
+                    $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                })
+                ->join('units', function ($join) {
+                    $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('history')
+                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                        ->whereIn('history.sub_stage', ['crm_no_response_request', 'crm_request_no_response_save'])
+                        ->where('history.status', 1);
+                })
+                ->leftJoin('interviews', function ($join) {
+                    $join->on('applicants.id', '=', 'interviews.applicant_id')
+                        ->on('sales.id', '=', 'interviews.sale_id')
+                        ->where('interviews.status', 1);
+                })
+                ->leftJoinSub(
+                    DB::table('cv_notes')
+                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('cv_notes')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'cv_notes',
+                    function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    }
+                )
+                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect([
+                    // Crm Notes
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+
+                    // show created date
+                    'crm_last_notes.created_at as show_created_at',
+
+                    // interviews
+                    'interviews.schedule_time',
+                    'interviews.schedule_date',
+                    'interviews.status as interview_status',
+
+                    // offices
+                    'offices.office_name as office_name',
+
+                    // sales
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
+                    'sales.created_at as sale_posted_date',
+
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
+
+                    // users
+                    'users.name as user_name',
+                ]);
+                break;
             case 'request (no job)':
                 $model->joinSub(
                     DB::table('crm_notes')
@@ -2257,6 +2355,15 @@ class CrmController extends Controller
                                         Move to Confirmation
                                     </a></li>';
                             }
+                            $actionButtons .= '
+                                <li><a class="dropdown-item" href="#" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                    data-applicant-id="' . (int)$applicant->id . '"
+                                    data-sale-id="' . (int)$applicant->sale_id . '"
+                                    onclick="crmMoveRequestToNoResponseModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                    Mark No Response
+                                </a></li>';
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
@@ -3368,6 +3475,32 @@ class CrmController extends Controller
                                                         $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton disabled" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" title="Please schedule an interview first.">Request Confirm</button>';
                                                     }   
                                                     $html .= '<button type="button" class="btn btn-success savecrmConfirmationSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    /** CRM Move Request To No Response Modal */
+                    $html .= '<div id="crmMoveRequestToNoResponseModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmMoveRequestToNoResponseModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmMoveRequestToNoResponseModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Move To No Response Notes</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="" method="" id="crmMoveRequestToNoResponseForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmMoveRequestToNoResponseDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">'; 
+                                                    $html .= '<button type="button" class="btn btn-success savecrmRequestToNoResponseSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -4928,6 +5061,46 @@ class CrmController extends Controller
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'CRM Request Rejected Successfully']);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /** CRM Request NO Response */
+    public function crmRequestNoResponse(Request $request)
+    {
+        try {
+            $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required|string',
+            ]);
+
+            DB::beginTransaction();
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Request No Responsed By: ' . $user->name;
+
+            // Transition: move applicant to request_reject
+            $this->crmRequestNoResponseAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'CRM Request No Response Successfully']);
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -8692,6 +8865,54 @@ class CrmController extends Controller
         } catch (\Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectAction: " . $e->getMessage());
+
+            // Re-throw the exception to be caught by the calling method
+            throw $e;
+        }   
+    }
+    /** CRM Request No Response*/
+    private function crmRequestNoResponseAction($applicant_id, $user_id, $sale_id, $details)
+    {
+        try{
+            CrmNote::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id
+            ])->update(["status" => 0]);
+
+            $crm_notes = new CrmNote();
+            $crm_notes->applicant_id = $applicant_id;
+            $crm_notes->user_id = $user_id;
+            $crm_notes->sale_id = $sale_id;
+            $crm_notes->details = $details;
+            $crm_notes->moved_tab_to = "request_";
+            $crm_notes->save();
+
+            //update uid
+            $crm_notes->crm_notes_uid = md5((string) $crm_notes->id);
+            $crm_notes->save();
+
+            History::where([
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id
+            ])->update(["status" => 0]);
+
+            $history = new History();
+            $history->applicant_id = $applicant_id;
+            $history->user_id = $user_id;
+            $history->sale_id = $sale_id;
+            $history->stage = 'crm';
+            $history->sub_stage = 'crm_request_no_response';
+            $history->save();
+
+            //update uid
+            $history->history_uid = md5((string) $history->id);
+            $history->save();
+
+            return true; // Indicate success
+
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error("Error in crmRequestNoResponseAction: " . $e->getMessage());
 
             // Re-throw the exception to be caught by the calling method
             throw $e;

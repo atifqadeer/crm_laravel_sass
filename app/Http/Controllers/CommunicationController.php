@@ -482,6 +482,8 @@ class CommunicationController extends Controller
                 $applicant_msg->phone_number = $phoneNumber;
                 $applicant_msg->date = $date;
                 $applicant_msg->time = $time;
+                $applicant_msg->created_at = Carbon::parse($date . '' . $time)->toDateTimeString();
+                $applicant_msg->updated_at = Carbon::parse($date . '' . $time)->toDateTimeString();
                 $applicant_msg->status = 'incoming';
                 $applicant_msg->save();
 
