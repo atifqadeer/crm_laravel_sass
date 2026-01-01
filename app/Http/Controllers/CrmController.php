@@ -2358,7 +2358,7 @@ class CrmController extends Controller
                             $actionButtons .= '
                                 <li><a class="dropdown-item" href="#" 
                                     data-bs-toggle="modal" 
-                                    data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                    data-bs-target="#crmMoveRequestToNoResponseModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                     data-applicant-id="' . (int)$applicant->id . '"
                                     data-sale-id="' . (int)$applicant->sale_id . '"
                                     onclick="crmMoveRequestToNoResponseModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
