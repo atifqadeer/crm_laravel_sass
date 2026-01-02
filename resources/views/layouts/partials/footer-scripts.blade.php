@@ -70,14 +70,14 @@
                 
                 if (response.success) {
                     // Update unread count for notifications
-                    $('#notification-count').text(response.unread_count || 0);
+                    $('#unread-notification-count').text(response.unread_count || 0);
 
                     // Clear the notification list before populating new notifications
-                    $('#notification-items').empty();
+                    $('#unread-notification-items').empty();
 
                     // Check if there are unread notifications
                     if (response.notifications.length === 0) {
-                        $('#notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
+                        $('#unread-notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
                         // Remove the pulse animation if no unread notifications
                         // $('#page-header-notifications-dropdown').removeClass('unread-notifications');
                     } else {
@@ -98,7 +98,7 @@
                                         </div>
                                     </div>
                                 </a>`;
-                            $('#notification-items').append(html);
+                            $('#unread-notification-items').append(html);
                         });
 
                         // Add the class to trigger animation (pulse)

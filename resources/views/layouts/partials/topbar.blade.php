@@ -67,7 +67,7 @@
                          <div class="dropdown topbar-item">
                               <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                    <i class="ri-notification-3-line fs-24" title="Notifications"></i>
-                                   <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="notification-count">0<span class="visually-hidden">unread notifications</span></span>
+                                   <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="unread-notification-count">0<span class="visually-hidden">unread notifications</span></span>
                               </button>
                               <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
                                    <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
@@ -77,7 +77,7 @@
                                              </div>
                                         </div>
                                    </div>
-                                   <div data-simplebar style="max-height: 280px; overflow: scroll;" id="notification-items">
+                                   <div data-simplebar style="max-height: 280px; overflow: scroll;" id="unread-notification-items">
                                         <!-- Notifications will be dynamically populated here -->
                                    </div>
                                    <div class="text-center py-3">
