@@ -2772,7 +2772,7 @@
         /** Move to confirmation */
         function crmMarkRequestConfirmOrRejectModal(applicantID, saleID) {
 
-            const formId = `#crmMarkConfirmOrRejectForm${applicantID}-${saleID}`;
+            const formId = `#crmMarkRequestConfirmOrRejectForm${applicantID}-${saleID}`;
             const modalId = `#crmMarkRequestConfirmOrRejectModal${applicantID}-${saleID}`;
             const detailsId = `#crmMarkRequestConfirmOrRejectDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
@@ -2837,7 +2837,7 @@
                 if (!validateNotes()) return;
 
                 const endpoints = {
-                    confirm: "{{ route('crmRequestNoResponseToConfirm') }}",
+                    confirm: "{{ route('crmRequestNoResponseToConfirmedRequest') }}",
                     reject: "{{ route('crmRequestNoResponseToReject') }}"
                 };
 

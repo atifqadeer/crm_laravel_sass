@@ -326,7 +326,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     /** CRM Request */
     Route::post('/crm/request-reject', [CrmController::class, 'crmRequestReject'])->name('crmRequestReject');
     Route::post('crmRequestNoResponseToReject', [CrmController::class, 'crmRequestNoResponseToReject'])->name('crmRequestNoResponseToReject');
-    Route::post('crmRequestNoResponseToConfirm', [CrmController::class, 'crmRequestNoResponseToConfirm'])->name('crmRequestNoResponseToConfirm');
+    Route::post('crmRequestNoResponseToConfirmedRequest', [CrmController::class, 'crmRequestNoResponseToConfirmedRequest'])->name('crmRequestNoResponseToConfirmedRequest');
     Route::post('/crm/request-no-response', [CrmController::class, 'crmRequestNoResponse'])->name('crmRequestNoResponse');
     Route::post('crmRequestConfirm', [CrmController::class, 'crmRequestConfirm'])->name('crmRequestConfirm');
     Route::post('crmRequestSave', [CrmController::class, 'crmRequestSave'])->name('crmRequestSave');
