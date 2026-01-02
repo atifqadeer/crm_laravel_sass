@@ -50,7 +50,9 @@
                display: none;                 /* keep hidden initially */
                animation: background-color-change 5s ease-in-out infinite;
           }
-
+          #notification-banner p{
+               margin-bottom: 0px !important;
+          }
 
           @keyframes background-color-change {
                0% {
