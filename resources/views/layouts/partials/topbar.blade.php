@@ -128,8 +128,10 @@
      </div>
 </header>
 <script>
-     window.laravelRoutes = @json([
-          'unreadMessages' => route('unread-messages'),
-          'unreadNotifications' => route('unread-notifications'),
-     ]);
+     window.laravelRoutes = {
+          unreadMessages: "{{ route('unread-messages') }}"
+     };
+     window.laravelRoutes = {
+        unreadNotifications: "{{ route('unread-notifications') }}",
+     };
 </script>
