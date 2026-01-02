@@ -19,11 +19,18 @@
                100% { transform: rotate(0deg); }
           }
 
-          /* apply animation ONLY to the icon */
-          #page-header-notifications-dropdown .unread-notifications-alert {
-               animation: bell-tilt 1.2s ease-in-out infinite;
-               transform-origin: top center;
+          #page-header-notifications-dropdown .unread-notifications-alert iconify-icon {
+          animation: bell-tilt 1.2s ease-in-out infinite;
+          transform-origin: top center;
           }
+
+          #page-header-notifications-dropdown .unread-notifications-alert iconify-icon {
+          display: inline-block;
+          animation: bell-tilt 1.2s ease-in-out infinite;
+          transform-origin: top center;
+          }
+
+
 
      </style>
      <div class="topbar">
