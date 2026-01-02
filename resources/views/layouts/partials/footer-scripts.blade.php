@@ -116,8 +116,11 @@
                             icon.style.transform = `rotate(${Math.random() * 30 - 15}deg)`; // Quick random tilt
                         }, 1000);
 
+
                         // Show SweetAlert popup for each notification
-                        showSwalAlert(response.notifications[0]);
+                        if(response.unread_count > 0){
+                            showSwalAlert(response.notifications[0]);
+                        }
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
