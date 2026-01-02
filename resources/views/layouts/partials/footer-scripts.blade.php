@@ -79,7 +79,7 @@
                     if (response.notifications.length === 0) {
                         $('#unread-notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
                         // Remove the pulse animation if no unread notifications
-                        $('#page-header-notifications-dropdown').removeClass('unread-notifications-alert');
+                        $('#page-header-notifications-dropdown i').removeClass('unread-notifications-alert');
                     } else {
                         response.notifications.forEach(function (notification) {
                             const html = `
@@ -102,7 +102,7 @@
                         });
 
                         // Add the class to trigger animation (pulse)
-                        $('#page-header-notifications-dropdown').addClass('unread-notifications-alert');
+                        $('#page-header-notifications-dropdown i').addClass('unread-notifications-alert');
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
