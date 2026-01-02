@@ -80,6 +80,7 @@
                         // Remove the pulse animation if no unread notifications
                         $('#page-header-notifications-dropdown i').removeClass('unread-notifications-alert');
                     } else {
+                        showNotificationBanner();
                         response.notifications.forEach(function (notification) {
                             const html = `
                                 <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap" data-notification-id="${notification.id}">
@@ -110,6 +111,13 @@
                             'transform-origin': 'top center'
                         });
 
+                        setInterval(() => {
+                            const icon = $('#notification-icon')[0]; // Grab the iconify-icon element
+                            icon.style.transform = `rotate(${Math.random() * 30 - 15}deg)`; // Quick random tilt
+                        }, 1000);
+
+                        // Show SweetAlert popup for each notification
+                        showSwalAlert(notification);
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
@@ -120,7 +128,24 @@
             }
         });
     }
+    function showNotificationBanner() {
+        // Show the banner
+        $('#notification-banner').fadeIn();
 
+        // Hide the banner after 5 seconds
+        setTimeout(function() {
+            $('#notification-banner').fadeOut();
+        }, 5000);
+    }
+
+    function showSwalAlert(notification) {
+        Swal.fire({
+            title: 'New Notification!',
+            text: notification.message,
+            icon: 'info', // You can change this to 'success', 'error', etc.
+            confirmButtonText: 'Okay'
+        });
+    }
 
 </script>
 @yield('script-bottom')

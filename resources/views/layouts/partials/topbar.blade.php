@@ -30,6 +30,39 @@
                transform-origin: top center;
           }
 
+          #notification-banner {
+               position: fixed;
+               top: 0;
+               left: 0;
+               width: 100%;
+               padding: 10px;
+               background-color: #f44336;
+               color: white;
+               text-align: center;
+               font-size: 16px;
+               font-weight: bold;
+               z-index: 1000; /* Make sure it's above other content */
+               display: none; /* Initially hidden */
+               animation: background-color-change 5s ease-in-out infinite;
+          }
+
+          @keyframes background-color-change {
+               0% {
+                    background-color: #ff5733;
+               }
+               25% {
+                    background-color: #ff8d1a;
+               }
+               50% {
+                    background-color: #ffb300;
+               }
+               75% {
+                    background-color: #ff8d1a;
+               }
+               100% {
+                    background-color: #ff5733;
+               }
+          }
 
 
      </style>
@@ -51,6 +84,10 @@
                                    <i class="ri-search-line search-widget-icon"></i>
                               </div>
                          </form> --}}
+
+                         <div id="notification-banner" class="notification-banner">
+                              <p>You have a notification</p>
+                         </div>
                     </div>
 
                     <div class="d-flex align-items-center gap-1">
@@ -73,7 +110,7 @@
                          <!-- Notification Dropdown -->
                          <div class="dropdown topbar-item">
                               <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                   <i class="ri-notification-3-line fs-24" title="Notifications"></i>
+                                   <i class="ri-notification-3-line fs-24" title="Notifications" id="notification-icon"></i>
                                    <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="unread-notification-count">0<span class="visually-hidden">unread notifications</span></span>
                               </button>
                               <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
