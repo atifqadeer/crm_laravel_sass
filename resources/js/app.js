@@ -725,21 +725,21 @@ document.addEventListener('DOMContentLoaded', function () {
     new ToastNotification().init();
 
     // Only run if route is available
-    // if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
+    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
         fetchUnreadMessages();
         setInterval(fetchUnreadMessages, 20000);  // Every 20 seconds
-    // }
+    }
 
-    // if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
+    if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
         fetchUnreadNotifications();
         setInterval(fetchUnreadNotifications, 20000);  // Every 20 seconds
-    // }
+    }
 });
 
 // Function to fetch unread messages
 function fetchUnreadMessages() {
     $.ajax({
-        url: '/unread-messages',
+        url: window.laravelRoutes.unreadMessages,
         method: 'GET',
         success: function (response) {
             console.log(response);  // Log the full response to verify the structure
@@ -785,7 +785,7 @@ function fetchUnreadMessages() {
 
 function fetchUnreadNotifications() {
     $.ajax({
-        url: '/unread-notifications',
+        url: window.laravelRoutes.unreadNotifications,
         method: 'GET',
         success: function (response) {
             console.log(response);
