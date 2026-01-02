@@ -20,7 +20,7 @@
           }
 
           /* apply animation ONLY to the icon */
-          #page-header-notifications-dropdown .unread-notifications {
+          #page-header-notifications-dropdown .unread-notifications-alert {
                animation: bell-tilt 1.2s ease-in-out infinite;
                transform-origin: top center;
           }
