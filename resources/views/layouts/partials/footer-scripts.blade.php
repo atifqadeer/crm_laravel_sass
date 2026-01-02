@@ -83,7 +83,7 @@
                     } else {
                         response.notifications.forEach(function (notification) {
                             const html = `
-                                <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap" data-bs-toggle="modal" data-bs-target="#notificationModal" data-notification-id="${notification.id}">
+                                <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap" data-notification-id="${notification.id}">
                                     <div class="d-flex">
                                         <div class="flex-shrink-0">
                                             <!-- Use an Icon instead of an Image -->
