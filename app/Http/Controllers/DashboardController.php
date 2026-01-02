@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
+use Horsefly\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
@@ -561,6 +562,44 @@ class DashboardController extends Controller
             $unreadCount = Message::where('status', 'incoming')
                 ->where('module_type', 'Horsefly\Applicant')
                 ->where('is_read', 0)
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'messages' => $messages,
+                'unread_count' => $unreadCount,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch messages: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function unreadNotifications()
+    {
+        try {
+            $messages = Notification::query()
+                ->where('user_id', Auth::id())
+                ->with(['notify_by' => fn ($query) => $query->select('id', 'name')])
+                ->with(['applicant' => fn ($query) => $query->select('id', 'applicant_name')])
+                ->with(['sale' => fn ($query) => $query->select('id', 'sale_postcode')])
+                ->where('is_read', 0)
+                ->select('*')
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($message) {
+                    return [
+                        'id' => $message->id,
+                        'user_name' => $message->notify_by->name ?? 'Unknown',
+                        'avatar' => 'iconify-icon icon="ic:round-notifications" class="fs-24 text-primary align-middle"></iconify-icon>',
+                        'message' => Str::limit(strip_tags($message->message), 150),
+                        'created_at' => $message->created_at->diffForHumans(),
+                    ];
+                });
+
+            $unreadCount = Notification::where('is_read', 0)->where('user_id', Auth::id())
                 ->count();
 
             return response()->json([

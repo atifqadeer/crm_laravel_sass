@@ -17,7 +17,7 @@ return new class extends Migration
 
             $table->text('message')->nullable();
             $table->text('type')->nullable();
-            $table->string('is_read')->default('1'); // 0: unread, 1: read
+            $table->string('is_read')->default('0'); // 0: unread, 1: read
             $table->string('notify_by')->nullable();   // 👈 added here
 
             $table->timestamps();

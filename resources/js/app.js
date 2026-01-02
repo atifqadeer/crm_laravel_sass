@@ -729,15 +729,15 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchUnreadMessages();
         setInterval(fetchUnreadMessages, 20000);
     }
-    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
-        fetchNotifications();
-        setInterval(fetchNotifications, 20000);
+    if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
+        fetchUnreadNotifications();
+        setInterval(fetchUnreadNotifications, 20000);
     }
 });
 
-function fetchNotifications() {
+function fetchUnreadNotifications() {
     $.ajax({
-        url: window.laravelRoutes.unreadMessages,
+        url: window.laravelRoutes.unreadNotifications,
         method: 'GET',
         success: function (response) {
             if (response.success) {
