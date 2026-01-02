@@ -72,7 +72,7 @@
                               </div>
                          </div>
 
-                         <!-- Notification -->
+                         <!-- Messages -->
                          <div class="dropdown topbar-item">
                               <button type="button" class="topbar-button position-relative" id="page-header-messages-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                    <i class="ri-chat-3-line fs-24" title="Messages"></i>
