@@ -165,8 +165,8 @@
 
 </header>
 <script>
-    window.laravelRoutes = @json([
-     'unreadMessages' => route('unread-messages'),
-     'unreadNotifications' => route('unread-notifications'), // Ensure this uses HTTPS
-     ]);
+//     window.laravelRoutes = @json([
+//      'unreadMessages' => route('unread-messages'),
+//      'unreadNotifications' => route('unread-notifications'), // Ensure this uses HTTPS
+//      ]);
 </script>

@@ -739,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Function to fetch unread messages
 function fetchUnreadMessages() {
     $.ajax({
-        url: window.laravelRoutes.unreadMessages,
+        url: '/unread-messages',
         method: 'GET',
         success: function (response) {
             console.log(response);  // Log the full response to verify the structure
@@ -785,7 +785,7 @@ function fetchUnreadMessages() {
 
 function fetchUnreadNotifications() {
     $.ajax({
-        url: window.laravelRoutes.unreadNotifications,
+        url: '/unread-notifications',
         method: 'GET',
         success: function (response) {
             console.log(response);
