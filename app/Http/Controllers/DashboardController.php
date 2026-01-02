@@ -547,7 +547,7 @@ class DashboardController extends Controller
         try {
             $messages = Message::query()
                 ->where('status', 'incoming')
-                ->where('module_type', 'Horsefly\Applicant')
+                ->where('module_type', 'Horsefly\\Applicant')
                 ->where('is_read', 0)
                 ->with(['user' => fn ($query) => $query->select('id', 'name')])
                 ->select('id', 'user_id', 'message', 'created_at')
@@ -565,7 +565,7 @@ class DashboardController extends Controller
                 });
 
             $unreadCount = Message::where('status', 'incoming')
-                ->where('module_type', 'Horsefly\Applicant')
+                ->where('module_type', 'Horsefly\\Applicant')
                 ->where('is_read', 0)
                 ->count();
 
@@ -578,6 +578,75 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch messages: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /************************ Private Functions ***************/
+    private function generateJobDetailsModal($notification)
+    {
+        $modalId = 'jobDetailsModal_' . $notification->sale_id;  // Unique modal ID for each applicant's job details
+
+        return '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="' . $modalId . 'Label">Job Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body modal-body-text-left">
+                                <!-- Job details content will be dynamically inserted here -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>';
+    }
+    public function getUnreadNotifications()
+    {
+        try {
+            $notifications = Notification::query()
+                // Left join with the 'users' table to get the 'notify_by' user (sender)
+                ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id') 
+                // Eager load the other relationships
+                ->with([
+                    'user' => fn($query) => $query->select('id', 'name'),  // Eager load the 'user' relationship (recipient of the notification)
+                    'applicant' => fn($query) => $query->select('id', 'applicant_name'),  // Eager load the 'applicant' relationship
+                    'sale' => fn($query) => $query->select('id', 'sale_postcode')  // Eager load the 'sale' relationship
+                ])
+                // Filter unread notifications
+                ->where('notifications.is_read', 0)
+                ->select('notifications.*', 'notify_by_users.name as notify_by_name') // Select the 'name' of the notify_by user from the joined table
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($notification) {
+                    return [
+                        'id' => $notification->id,
+                        'user_name' => $notification->user->name ?? 'Unknown',  // Access the 'name' field of the 'user' relationship
+                        'notify_by' => $notification->notify_by_name ?? 'Unknown',  // Access the 'notify_by_name' (name of the user who triggered the notification)
+                        'applicant_name' => $notification->applicant->applicant_name ?? 'Unknown',  // Access the 'applicant_name'
+                        'sale_postcode' => $notification->sale->sale_postcode ?? 'Unknown',  // Access the 'sale_postcode'
+                        'message' => Str::limit(strip_tags($notification->message), 150),
+                        'created_at' => $notification->created_at->diffForHumans(),
+                    ];
+                });
+
+            $unreadCount = Notification::where('is_read', 0)
+            // ->where('user_id', Auth::id())
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'notifications' => $notifications,
+                'unread_count' => $unreadCount,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch notifications: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -765,75 +834,6 @@ class DashboardController extends Controller
                 })
                 ->rawColumns(['action', 'notify_by_name', 'applicant_name', 'notes_detail', 'job_details', 'unit_name', 'office_name', 'applicant_email', 'applicant_postcode', 'sale_postcode', 'job_category', 'job_title'])
                 ->make(true);
-        }
-    }
-
-    /************************ Private Functions ***************/
-    private function generateJobDetailsModal($notification)
-    {
-        $modalId = 'jobDetailsModal_' . $notification->sale_id;  // Unique modal ID for each applicant's job details
-
-        return '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="' . $modalId . 'Label">Job Details</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body modal-body-text-left">
-                                <!-- Job details content will be dynamically inserted here -->
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>';
-    }
-    public function getUnreadNotifications()
-    {
-        try {
-            $notifications = Notification::query()
-                // Left join with the 'users' table to get the 'notify_by' user (sender)
-                ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id') 
-                // Eager load the other relationships
-                ->with([
-                    'user' => fn($query) => $query->select('id', 'name'),  // Eager load the 'user' relationship (recipient of the notification)
-                    'applicant' => fn($query) => $query->select('id', 'applicant_name'),  // Eager load the 'applicant' relationship
-                    'sale' => fn($query) => $query->select('id', 'sale_postcode')  // Eager load the 'sale' relationship
-                ])
-                // Filter unread notifications
-                ->where('notifications.is_read', 0)
-                ->select('notifications.*', 'notify_by_users.name as notify_by_name') // Select the 'name' of the notify_by user from the joined table
-                ->latest()
-                ->take(5)
-                ->get()
-                ->map(function ($notification) {
-                    return [
-                        'id' => $notification->id,
-                        'user_name' => $notification->user->name ?? 'Unknown',  // Access the 'name' field of the 'user' relationship
-                        'notify_by' => $notification->notify_by_name ?? 'Unknown',  // Access the 'notify_by_name' (name of the user who triggered the notification)
-                        'applicant_name' => $notification->applicant->applicant_name ?? 'Unknown',  // Access the 'applicant_name'
-                        'sale_postcode' => $notification->sale->sale_postcode ?? 'Unknown',  // Access the 'sale_postcode'
-                        'message' => Str::limit(strip_tags($notification->message), 150),
-                        'created_at' => $notification->created_at->diffForHumans(),
-                    ];
-                });
-
-            $unreadCount = Notification::where('is_read', 0)
-            // ->where('user_id', Auth::id())
-                ->count();
-
-            return response()->json([
-                'success' => true,
-                'notifications' => $notifications,
-                'unread_count' => $unreadCount,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to fetch notifications: ' . $e->getMessage(),
-            ], 500);
         }
     }
     // public function getStats(Request $request)

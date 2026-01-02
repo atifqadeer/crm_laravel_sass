@@ -802,11 +802,11 @@ function fetchUnreadNotifications() {
                 if (response.notifications.length === 0) {
                     $('#notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
                     // Remove the pulse animation if no unread notifications
-                    $('#page-header-notifications-dropdown').removeClass('unread-notifications');
+                    // $('#page-header-notifications-dropdown').removeClass('unread-notifications');
                 } else {
                     response.notifications.forEach(function (notification) {
                         const html = `
-                            <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap" data-bs-toggle="modal" data-bs-target="#notificationModal" data-notification-id="${notification.id}">
+                            <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap" data-bs-toggle="modal" data-bs-target="#notificationModal" data-notification-id="${notification.id}">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
                                         <!-- Use an Icon instead of an Image -->
@@ -825,7 +825,7 @@ function fetchUnreadNotifications() {
                     });
 
                     // Add the class to trigger animation (pulse)
-                    $('#page-header-notifications-dropdown').addClass('unread-notifications');
+                    // $('#page-header-notifications-dropdown').addClass('unread-notifications');
                 }
             } else {
                 console.log('Error fetching notifications:', response.error);
