@@ -420,65 +420,78 @@
             }
         }
 
-        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
-            jobCategory, jobSource, status) {
-            const modalId = 'showDetailsModal-' + applicantId;
+        /** Function to show the job details modal */
+        function showDetailsModal(saleId, sale_posted_date, officeName, name, postcode, 
+            jobCategory, jobTitle, status, timing, experience, salary, 
+            position, qualification, benefits) 
+        {
+            // Find the modal for this particular saleId
+            var modalId = 'jobDetailsModal_' + saleId;
 
-            // Remove existing modal with same ID (if any)
-            $('#' + modalId).remove();
+            // Populate the modal body dynamically with job details
+            $('#' + modalId + ' .modal-body').html(
+                '<table class="table table-bordered">' +
+                    '<tr>' +
+                        '<th>Sale ID</th>' +
+                        '<td>' + saleId + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Posted Date</th>' +
+                        '<td>' + sale_posted_date + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Head Office Name</th>' +
+                        '<td>' + officeName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Unit Name</th>' +
+                        '<td>' + name + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Postcode</th>' +
+                        '<td>' + postcode + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Job Category</th>' +
+                        '<td>' + jobCategory + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Job Title</th>' +
+                        '<td>' + jobTitle + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Status</th>' +
+                        '<td>' + status + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Timing</th>' +
+                        '<td>' + timing + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Qualification</th>' +
+                        '<td>' + qualification + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Salary</th>' +
+                        '<td>' + salary + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Position</th>' +
+                        '<td>' + position + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Experience</th>' +
+                        '<td>' + experience + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                        '<th>Benefits</th>' +
+                        '<td>' + benefits + '</td>' +
+                    '</tr>' +
+                '</table>'
+            );
 
-            // Modal HTML with loader and placeholder body
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Applicant Details</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <div class="spinner-border text-primary my-3" role="status" id="${modalId}-loader">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div class="detail-content d-none text-start"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Append to body and show modal
-            $('body').append(modalHtml);
-            const modal = new bootstrap.Modal(document.getElementById(modalId));
-            modal.show();
-
-            // Simulate content load
-            setTimeout(() => {
-                $(`#${modalId}-loader`).hide();
-                $(`#${modalId} .detail-content`).removeClass('d-none').html(`
-                    <table class="table table-bordered mb-0">
-                        <tr><th>Applicant ID</th><td>${applicantId}</td></tr>
-                        <tr><th>Name</th><td>${name}</td></tr>
-                        <tr><th>Phone</th><td>${phone}</td></tr>
-                        <tr><th>Landline</th><td>${landline}</td></tr>
-                        <tr><th>Postcode</th><td>${postcode}</td></tr>
-                        <tr><th>Email (Primary)</th><td>${email}</td></tr>
-                        <tr><th>Email (Secondary)</th><td>${secondaryEmail}</td></tr>
-                        <tr><th>Job Category</th><td>${jobCategory}</td></tr>
-                        <tr><th>Job Title</th><td>${jobTitle}</td></tr>
-                        <tr><th>Job Source</th><td>${jobSource}</td></tr>
-                        <tr><th>Status</th><td>${status}</td></tr>
-                    </table>
-                `);
-            }, 300); // Adjust delay as needed
-
-            // Remove modal from DOM on close
-            $(`#${modalId}`).on('hidden.bs.modal', function() {
-                $(this).remove();
-            });
+            // Show the modal
+            $('#' + modalId).modal('show');
         }
 
         /** Move to confirmation */
