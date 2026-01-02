@@ -29,23 +29,28 @@
                animation: bell-tilt 1.2s ease-in-out infinite;
                transform-origin: top center;
           }
-
           #notification-banner {
-               position: fixed;
-               top: 0;
-               left: 0;
+               position: relative;
+               right: 0;
                width: 250px;
                padding: 10px;
+
+               display: flex;                 /* ✅ required */
+               align-items: center;           /* vertical center */
+               justify-content: center;       /* horizontal center */
+
                background-color: #f44336;
                border-radius: 20px;
                color: white;
                text-align: center;
                font-size: 16px;
                font-weight: bold;
-               z-index: 1000; /* Make sure it's above other content */
-               display: none; /* Initially hidden */
+               z-index: 1000;
+
+               display: none;                 /* keep hidden initially */
                animation: background-color-change 5s ease-in-out infinite;
           }
+
 
           @keyframes background-color-change {
                0% {
