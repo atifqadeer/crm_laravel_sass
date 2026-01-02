@@ -5167,6 +5167,198 @@ class CrmController extends Controller
             ], 500);
         }
     }
+    /*** CRM Mark Request Rejected */
+    public function crmRequestNoResponseToReject(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required|string',
+                'to' => 'required|email',
+                'subject' => 'required|string',
+                'body' => 'required|string',
+                '_token' => 'required'
+            ]);
+
+            DB::beginTransaction();
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Request Rejected By: ' . $user->name;
+
+            // Transition: move applicant to request_reject
+            $result = $this->crmRequestRejectAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            $sale_id = $request->input('sale_id');
+            $applicant_id = $request->input('applicant_id');
+            $sale = Sale::where('id', $sale_id)
+                ->select('unit_id', 'id')
+                ->first();
+
+            $applicantRecord = Applicant::where("id", $applicant_id)
+                ->select('applicant_name')
+                ->first();
+
+            if ($result && $sale && $applicantRecord) {
+                $email_body = $request->input('body');
+                $email_subject = $request->input('subject');
+                $email_to = $request->input('to');
+                
+
+                $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
+                if(isset($request->slug)){
+                    $email_template = EmailTemplate::where('slug', $request->slug)->where('is_active', 1)->first();
+
+                    $email_from = $email_template->from_email;
+                    $email_title = $email_template->title;
+                }else{
+                    $email_from = 'customerservice@kingsburypersonnel.com';
+                    $email_title = $applicant_name . ' - Request Rejected';
+                }
+
+                $emailNotification = Setting::where('key', 'email_notifications')->first();
+                
+                // Attempt to save email in DB
+                if($emailNotification && $emailNotification->value == '1'){
+                    try {
+                        $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
+                        if (!$is_save) {
+                            Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
+                            throw new \Exception('Email is not stored in DB');
+                        }
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to save email: ' . $e->getMessage()
+                        ], 500);
+                    }
+                }else{
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
+                    ], 500);
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'CRM Request Rejected Successfully']);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /*** CRM Mark Request Confirmed */
+    public function crmRequestNoResponseToConfirm(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'applicant_id' => 'required|integer',
+                'sale_id' => 'required|integer',
+                'details' => 'required|string',
+                'to' => 'required|email',
+                'subject' => 'required|string',
+                'body' => 'required|string',
+                '_token' => 'required'
+            ]);
+
+            DB::beginTransaction();
+
+            $user = Auth::user();
+            $details = $request->input('details') . ' --- Request Rejected By: ' . $user->name;
+
+            // Transition: move applicant to request_reject
+            $result = $this->crmRequestRejectAction(
+                $request->input('applicant_id'),
+                $user->id,
+                $request->input('sale_id'),
+                $details
+            );
+
+            $sale_id = $request->input('sale_id');
+            $applicant_id = $request->input('applicant_id');
+            $sale = Sale::where('id', $sale_id)
+                ->select('unit_id', 'id')
+                ->first();
+
+            $applicantRecord = Applicant::where("id", $applicant_id)
+                ->select('applicant_name')
+                ->first();
+
+            if ($result && $sale && $applicantRecord) {
+                $email_body = $request->input('body');
+                $email_subject = $request->input('subject');
+                $email_to = $request->input('to');
+                
+
+                $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
+                if(isset($request->slug)){
+                    $email_template = EmailTemplate::where('slug', $request->slug)->where('is_active', 1)->first();
+
+                    $email_from = $email_template->from_email;
+                    $email_title = $email_template->title;
+                }else{
+                    $email_from = 'customerservice@kingsburypersonnel.com';
+                    $email_title = $applicant_name . ' - Request Rejected';
+                }
+
+                $emailNotification = Setting::where('key', 'email_notifications')->first();
+                
+                // Attempt to save email in DB
+                if($emailNotification && $emailNotification->value == '1'){
+                    try {
+                        $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
+                        if (!$is_save) {
+                            Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
+                            throw new \Exception('Email is not stored in DB');
+                        }
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to save email: ' . $e->getMessage()
+                        ], 500);
+                    }
+                }else{
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
+                    ], 500);
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'CRM Request Rejected Successfully']);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     /** CRM Request NO Response */
     public function crmRequestNoResponse(Request $request)
     {
