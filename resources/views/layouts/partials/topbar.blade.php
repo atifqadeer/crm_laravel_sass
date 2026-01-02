@@ -34,9 +34,10 @@
                position: fixed;
                top: 0;
                left: 0;
-               width: 100%;
+               width: 250px;
                padding: 10px;
                background-color: #f44336;
+               border-radius: 20px;
                color: white;
                text-align: center;
                font-size: 16px;
@@ -84,13 +85,12 @@
                                    <i class="ri-search-line search-widget-icon"></i>
                               </div>
                          </form> --}}
-
-                         <div id="notification-banner" class="notification-banner">
-                              <p>You have a notification</p>
-                         </div>
                     </div>
 
                     <div class="d-flex align-items-center gap-1">
+                         <div id="notification-banner" class="notification-banner">
+                              <p>You have a notification</p>
+                         </div>
                          <!-- Theme Color (Light/Dark) -->
                          <div class="topbar-item">
                               <button type="button" class="topbar-button" id="light-dark-mode">
