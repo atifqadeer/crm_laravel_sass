@@ -53,7 +53,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::POST('getUserStatistics', [DashboardController::class, 'getUserStatistics'])->name('getUserStatistics');
     Route::get('/get-weekly-sales', [DashboardController::class, 'getWeeklySales']);
     Route::get('/get-sales-analytic', [DashboardController::class, 'getSalesAnalytic']);
-    Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
     Route::get('/dashboard/counts', [DashboardController::class, 'getCounts'])->name('dashboard.counts');
     Route::get('/dashboard/statistics-data', [DashboardController::class, 'getStats']);
     Route::get('/dashboard/statistics-details', [DashboardController::class, 'getStatisticsDetails']);
@@ -62,6 +61,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/notifications', [DashboardController::class, 'notificationsIndex'])->name('notifications.index');
     Route::get('/unread-notifications', [DashboardController::class, 'getUnreadNotifications'])->name('unread-notifications');
     Route::get('getUserNotifications', [DashboardController::class, 'getUserNotifications'])->name('getUserNotifications');
+    
+    Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
 
     Route::group(['prefix' => 'applicants'], function () {
         Route::get('', [ApplicantController::class, 'index'])->name('applicants.list');

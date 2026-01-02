@@ -20,9 +20,9 @@
           }
 
           /* apply animation ONLY to the icon */
-          #page-header-notifications-dropdown.unread-notifications {
-          animation: bell-tilt 1.2s ease-in-out infinite;
-          transform-origin: top center;
+          #page-header-notifications-dropdown .unread-notifications {
+               animation: bell-tilt 1.2s ease-in-out infinite;
+               transform-origin: top center;
           }
 
      </style>
@@ -88,25 +88,24 @@
 
                          <!-- Modal for showing notification details -->
                          <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-                         <div class="modal-dialog">
-                              <div class="modal-content">
-                                   <div class="modal-header">
-                                        <h5 class="modal-title" id="notificationModalLabel">Notification Details</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                   </div>
-                                   <div class="modal-body">
-                                        <p id="notification-message"></p>
-                                        <p><strong>From: </strong><span id="notification-sender"></span></p>
-                                        <p><strong>Created At: </strong><span id="notification-created-at"></span></p>
-                                   </div>
-                                   <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        <button type="button" class="btn btn-primary" id="resolve-notification-btn">Mark as Resolved</button>
+                              <div class="modal-dialog">
+                                   <div class="modal-content">
+                                        <div class="modal-header">
+                                             <h5 class="modal-title" id="notificationModalLabel">Notification Details</h5>
+                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                             <p id="notification-message"></p>
+                                             <p><strong>From: </strong><span id="notification-sender"></span></p>
+                                             <p><strong>Created At: </strong><span id="notification-created-at"></span></p>
+                                        </div>
+                                        <div class="modal-footer">
+                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                             <button type="button" class="btn btn-primary" id="resolve-notification-btn">Mark as Resolved</button>
+                                        </div>
                                    </div>
                               </div>
                          </div>
-                         </div>
-
 
                          <!-- Messages -->
                          <div class="dropdown topbar-item">
@@ -169,6 +168,5 @@
         'unreadMessages' => route('unread-messages'),
         'unreadNotifications' => route('unread-notifications'),
     ]);
-    console.log(window.laravelRoutes); // Debug the generated URLs
 </script>
 

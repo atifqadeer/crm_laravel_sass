@@ -725,10 +725,12 @@ document.addEventListener('DOMContentLoaded', function () {
     new ToastNotification().init();
 
     // Only run if route is available
-    if (window.laravelRoutes) {
+    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
         fetchUnreadMessages();
         setInterval(fetchUnreadMessages, 20000);  // Every 20 seconds
+    }
 
+    if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
         fetchUnreadNotifications();
         setInterval(fetchUnreadNotifications, 20000);  // Every 20 seconds
     }
@@ -781,26 +783,33 @@ function fetchUnreadMessages() {
     });
 }
 
+// Function to fetch unread notifications
 function fetchUnreadNotifications() {
     $.ajax({
         url: window.laravelRoutes.unreadNotifications,
         method: 'GET',
         success: function (response) {
-            console.log(response);
-
+            console.log(response);  // Log the full response to verify the structure
+            
             if (response.success) {
+                // Update unread count for notifications
                 $('#notification-count').text(response.unread_count || 0);
+
+                // Clear the notification list before populating new notifications
                 $('#notification-items').empty();
 
+                // Check if there are unread notifications
                 if (response.notifications.length === 0) {
                     $('#notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
-                    $('#page-header-notifications-dropdown i').removeClass('unread-notifications');
+                    // Remove the pulse animation if no unread notifications
+                    $('#page-header-notifications-dropdown').removeClass('unread-notifications');
                 } else {
                     response.notifications.forEach(function (notification) {
                         const html = `
                             <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap" data-bs-toggle="modal" data-bs-target="#notificationModal" data-notification-id="${notification.id}">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
+                                        <!-- Use an Icon instead of an Image -->
                                         <iconify-icon icon="ic:round-notifications" class="fs-24 text-primary"></iconify-icon>
                                     </div>
                                     <div class="flex-grow-1">
@@ -814,7 +823,9 @@ function fetchUnreadNotifications() {
                             </a>`;
                         $('#notification-items').append(html);
                     });
-                    $('#page-header-notifications-dropdown i').addClass('unread-notifications');
+
+                    // Add the class to trigger animation (pulse)
+                    $('#page-header-notifications-dropdown').addClass('unread-notifications');
                 }
             } else {
                 console.log('Error fetching notifications:', response.error);
@@ -827,22 +838,25 @@ function fetchUnreadNotifications() {
 }
 
 $('#notification-items').on('click', 'a', function() {
+    // Get notification details from the data attributes
     var notificationId = $(this).data('notification-id');
-    var notificationMessage = $(this).find('span').text();
-    var notificationSender = $(this).find('.fw-medium').text();
+    var notificationMessage = $(this).find('span').text(); // Message
+    var notificationSender = $(this).find('.fw-medium').text(); // Sender name
 
+    // Populate modal with notification details
     $('#notification-message').text(notificationMessage);
     $('#notification-sender').text(notificationSender);
-    $('#notification-created-at').text($(this).find('small').text());
+    $('#notification-created-at').text($(this).find('small').text());  // Created at
 
+    // Mark as resolved if user clicks "Mark as Resolved"
     $('#resolve-notification-btn').on('click', function() {
         $.ajax({
-            url: '/notifications/resolve/' + notificationId,
+            url: '/notifications/resolve/' + notificationId,  // Assuming you have an endpoint to mark notifications as resolved
             method: 'POST',
             success: function(response) {
                 if (response.success) {
-                    $('#notificationModal').modal('hide');
-                    fetchUnreadNotifications();
+                    $('#notificationModal').modal('hide');  // Close the modal
+                    fetchUnreadNotifications();  // Refresh notifications to update unread count
                 }
             },
             error: function(xhr) {
@@ -851,6 +865,8 @@ $('#notification-items').on('click', 'a', function() {
         });
     });
 });
+
+
 
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize offcanvas
