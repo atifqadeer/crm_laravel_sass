@@ -13,6 +13,7 @@ use Horsefly\History;
 use Horsefly\QualityNotes;
 use Horsefly\Applicant;
 use Horsefly\EmailTemplate;
+use Horsefly\Notification;
 use Horsefly\Setting;
 use Horsefly\Message;
 use Horsefly\User;
@@ -5181,13 +5182,21 @@ class CrmController extends Controller
             $details = $request->input('details') . ' --- Mark Request No Response To Rejected By: ' . $user->name;
 
             // Private function might throw exceptions
-            $this->crmSentCVToRejectCvAction(
+            $result = $this->crmSentCVToRejectCvAction(
                 $request->input('applicant_id'),
                 $user->id,
                 $request->input('sale_id'),
                 $details,
                 ''
             );
+
+            if($result){
+                Notification::where('applicant_id', $request->input('applicant_id'))
+                    ->where('sale_id', $request->input('sale_id'))
+                    ->where('user_id', $user->id)
+                    ->where('type', 'request_no_response')
+                    ->delete();
+            }
 
             return response()->json(['success' => true, 'message' => 'CRM Sent Rejected Successfully']);
         } catch (ValidationException $e) {
@@ -5217,12 +5226,20 @@ class CrmController extends Controller
             $details = $request->input('details') . ' --- Mark No Responsed Request To Confirm Request By: ' . $user->name;
 
             // Private function might throw exceptions
-            $this->crmSentRequestAction(
+            $result = $this->crmSentRequestAction(
                 $request->input('applicant_id'),
                 $user->id,
                 $request->input('sale_id'),
                 $details
             );
+
+             if($result){
+                Notification::where('applicant_id', $request->input('applicant_id'))
+                    ->where('sale_id', $request->input('sale_id'))
+                    ->where('user_id', $user->id)
+                    ->where('type', 'request_no_response')
+                    ->delete();
+            }
 
             return response()->json(['success' => true, 'message' => 'CRM Request Confirmed Successfully']);
         } catch (ValidationException $e) {
@@ -5254,12 +5271,32 @@ class CrmController extends Controller
             $details = $request->input('details') . ' --- Request No Responsed By: ' . $user->name;
 
             // Transition: move applicant to request_reject
-            $this->crmRequestNoResponseAction(
+            $result = $this->crmRequestNoResponseAction(
                 $request->input('applicant_id'),
                 $user->id,
                 $request->input('sale_id'),
                 $details
             );
+
+            if($result){
+                $cvNote = DB::table('cv_notes')
+                    ->select('user_id')
+                    ->whereIn('id', function ($subQuery) {
+                        $subQuery->select(DB::raw('MAX(id)'))
+                            ->from('cv_notes')
+                            ->groupBy('applicant_id', 'sale_id');
+                    })->where('sale_id', $request->input('sale_id'))
+                    ->where('applicant_id', $request->input('applicant_id'));
+
+                $notification = new Notification();
+                $notification->user_id = $cvNote->exists() ? $cvNote->first()->user_id : null;
+                $notification->notify_by = $user->id;
+                $notification->sale_id = $request->input('sale_id');
+                $notification->applicant_id = $request->input('applicant_id');
+                $notification->type = 'request_no_response';
+                $notification->message = 'Applicant has not responded to the request.';
+                $notification->save();
+            }
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'CRM Request No Response Successfully']);
