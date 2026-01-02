@@ -69,7 +69,7 @@
                 
                 if (response.success) {
                     // Update unread count for notifications
-                    $('#unread-notification-count').text(response.unread_count || 0);
+                    $('#unread-notification-count').text(response.notifications.length || 0);
 
                     // Clear the notification list before populating new notifications
                     $('#unread-notification-items').empty();
