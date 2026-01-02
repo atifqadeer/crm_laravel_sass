@@ -117,7 +117,7 @@
                         }, 1000);
 
                         // Show SweetAlert popup for each notification
-                        showSwalAlert(notification);
+                        showSwalAlert(response.notifications[0]);
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
