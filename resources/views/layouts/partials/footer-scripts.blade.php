@@ -1,7 +1,6 @@
 @yield('script')
 @vite(['resources/js/app.js','resources/js/layout.js'])
 <script>
-    console.log('Setting up periodic fetch for unread messages and notifications');
     document.addEventListener('DOMContentLoaded', function () {
         // Only run if route is available
             if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
@@ -101,8 +100,16 @@
                             $('#unread-notification-items').append(html);
                         });
 
-                        // Add the class to trigger animation (pulse)
-                        $('#page-header-notifications-dropdown i').addClass('unread-notifications-alert');
+                        // Directly apply animation to the icon
+                        const icon = $('#page-header-notifications-dropdown i');
+                        icon.addClass('unread-notifications-alert');
+
+                        // Apply style directly to iconify-icon component
+                        $('#notification-icon').css({
+                            'animation': 'bell-tilt 1.2s ease-in-out infinite',
+                            'transform-origin': 'top center'
+                        });
+
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
@@ -113,6 +120,7 @@
             }
         });
     }
+
 
 </script>
 @yield('script-bottom')
