@@ -636,7 +636,7 @@ class DashboardController extends Controller
                 });
 
             $unreadCount = Notification::where('is_read', 0)
-            // ->where('user_id', Auth::id())
+                ->where('user_id', Auth::id())
                 ->count();
 
             return response()->json([
