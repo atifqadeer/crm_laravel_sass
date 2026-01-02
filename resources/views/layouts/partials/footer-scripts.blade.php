@@ -142,9 +142,15 @@
         Swal.fire({
             title: 'New Notification!',
             text: notification.message,
-            icon: 'info', // You can change this to 'success', 'error', etc.
+            icon: 'info',
+            showCancelButton: true,
+            customClass: {
+                confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                cancelButton: 'btn btn-secondary mt-2'
+            },
+            cancelButtonColor: '#d33',
             confirmButtonText: 'Okay'
-        });
+        })
     }
 
 </script>

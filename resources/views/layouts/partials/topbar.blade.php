@@ -190,5 +190,8 @@
         'unreadMessages' => route('unread-messages'),
         'unreadNotifications' => route('unread-notifications'),
     ]);
+
+     <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 </script>
 
