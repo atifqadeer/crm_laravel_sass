@@ -1056,9 +1056,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     $('#emailOffcanvas').on('shown.bs.offcanvas', function () {
-    $('.summernote').summernote({
-        height: 250
+        $('.summernote').summernote({
+            height: 250
+        });
     });
-});
 
 });

@@ -576,7 +576,7 @@ class DashboardController extends Controller
             ], 500);
         }
     }
-    public function unreadNotifications()
+    public function getUnreadNotifications()
     {
         try {
             $messages = Notification::query()
