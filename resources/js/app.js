@@ -725,12 +725,10 @@ document.addEventListener('DOMContentLoaded', function () {
     new ToastNotification().init();
 
     // Only run if route is available
-    if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
+    if (window.laravelRoutes) {
         fetchUnreadMessages();
         setInterval(fetchUnreadMessages, 20000);  // Every 20 seconds
-    }
 
-    if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
         fetchUnreadNotifications();
         setInterval(fetchUnreadNotifications, 20000);  // Every 20 seconds
     }
@@ -853,9 +851,6 @@ $('#notification-items').on('click', 'a', function() {
         });
     });
 });
-
-
-
 
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize offcanvas
