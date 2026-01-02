@@ -608,6 +608,7 @@ class DashboardController extends Controller
     {
         try {
             $notifications = Notification::query()
+                ->where('user_id', Auth::id())
                 // Left join with the 'users' table to get the 'notify_by' user (sender)
                 ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id') 
                 // Eager load the other relationships
