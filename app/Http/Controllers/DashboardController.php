@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
+use Horsefly\JobTitle;
 use Horsefly\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -49,6 +50,10 @@ class DashboardController extends Controller
         // } else {
         //     return view('dashboards.agents');
         // }
+    }
+    public function notificationsIndex()
+    {
+        return view('dashboards.notifications');
     }
     public function getCounts()
     {
@@ -576,30 +581,247 @@ class DashboardController extends Controller
             ], 500);
         }
     }
+    public function getUserNotifications(Request $request)
+    {
+        $notifications = Notification::query()
+            // Left join with the 'users' table to get the 'notify_by' user (sender)
+            ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id')
+            // Eager load the other relationships for applicants and sales
+            ->with([
+                'user' => fn($query) => $query->select('id', 'name'), // Eager load the 'user' relationship
+                'applicant' => fn($query) => $query->select(
+                    'id', 'applicant_name', 'applicant_email', 'applicant_email_secondary', 'applicant_phone', 'applicant_phone_secondary', 'applicant_postcode'
+                ), // Eager load the 'applicant' relationship
+                'sale' => fn($query) => $query->with('jobCategory', 'jobTitle', 'office', 'unit') // Eager load sale with related jobCategory, jobTitle, office, and unit
+            ])
+            ->select('notifications.*', 'notify_by_users.name as notify_by_name') // Select 'name' of the notify_by user from the joined table
+            ->latest();
+
+        // Applying the search functionality if necessary
+        if ($request->has('search.value')) {
+            $searchTerm = strtolower($request->input('search.value'));
+            if (!empty($searchTerm)) {
+                $notifications->where(function ($query) use ($searchTerm) {
+                    $query->whereRaw('LOWER(notifications.message) LIKE ?', ["%{$searchTerm}%"])
+                        ->orWhereHas('applicant', function ($q) use ($searchTerm) {
+                            $q->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$searchTerm}%"]);
+                        })
+                        ->orWhereHas('sale', function ($q) use ($searchTerm) {
+                            $q->whereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$searchTerm}%"]);
+                        });
+                });
+            }
+        }
+
+        // Sorting logic
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $notifications->orderBy($orderColumn, $orderDirection);
+            }
+        } else {
+            $notifications->orderBy('notifications.created_at', 'desc');
+        }
+
+        if ($request->ajax()) {
+            return DataTables::eloquent($notifications)
+                ->addIndexColumn() // Automatically adds a serial number to the rows
+                ->addColumn('applicant_name', function ($notification) {
+                    return $notification->applicant ? $notification->applicant->applicant_name : '-';
+                })
+                ->addColumn('applicant_email', function ($notification) {
+                    return $notification->applicant ? $notification->applicant->applicant_email : '-';
+                })
+                ->addColumn('applicant_postcode', function ($notification) {
+                    return $notification->applicant ? $notification->applicant->applicant_postcode : '-';
+                })
+                ->addColumn('sale_postcode', function ($notification) {
+                    return $notification->sale ? $notification->sale->sale_postcode : '-';
+                })
+                ->addColumn('office_name', function ($notification) {
+                    return $notification->sale->office ? $notification->sale->office->office_name : '-';
+                })
+                ->addColumn('unit_name', function ($notification) {
+                    return $notification->sale->unit ? $notification->sale->unit->unit_name : '-';
+                })
+                ->addColumn('job_category', function ($notification) {
+                    return $notification->sale && $notification->sale->jobCategory ? $notification->sale->jobCategory->name : '-';
+                })
+                ->addColumn('job_title', function ($notification) {
+                    return $notification->sale && $notification->sale->jobTitle ? $notification->sale->jobTitle->name : '-';
+                })
+                ->addColumn('notify_by_name', function ($notification) {
+                    return ucwords($notification->notify_by_name);
+                })
+                ->addColumn('notes_detail', function ($notification) {
+                    return ucwords($notification->message);
+                })
+                ->addColumn('created_at', function ($notification) {
+                    return Carbon::parse($notification->created_at)->format('d M Y, h:i A');
+                })
+                ->addColumn('job_details', function ($notification) {
+                    $position_type = strtoupper(str_replace('-', ' ', $notification->sale->position_type));
+                    $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
+
+                    if ($notification->sale->status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($notification->sale->status == 0 && $notification->sale->is_on_hold == 0) {
+                        $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($notification->sale->status == 2) {
+                        $status = '<span class="badge bg-warning">Pending</span>';
+                    } elseif ($notification->sale->status == 3) {
+                        $status = '<span class="badge bg-danger">Rejected</span>';
+                    }
+
+                    // Escape HTML in $status for JavaScript (to prevent XSS)
+                    $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
+
+                    // Prepare modal HTML for the "Job Details"
+                    $modalHtml = $this->generateJobDetailsModal($notification);
+
+                    // Return the action link with a modal trigger and the modal HTML
+                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
+                        . (int)$notification->sale_id . ','
+                        . '\'' . htmlspecialchars(Carbon::parse($notification->sale->created_at)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->office_name, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->unit_name, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->sale_postcode, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->jobCategory, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->jobTitle, ENT_QUOTES) . '\','
+                        . '\'' . $escapedStatus . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->timing, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->experience, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->salary, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$position, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->qualification, ENT_QUOTES) . '\','
+                        . '\'' . htmlspecialchars((string)$notification->sale->benefits, ENT_QUOTES) . '\')">
+                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>' . $modalHtml;
+                })
+                ->addColumn('action', function ($notification) {
+                    $html = '<div class="btn-group dropstart">
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmMarkRequestConfirmOrRejectModal' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '"
+                                        data-applicant-id="' . (int)$notification->applicant_id . '"
+                                        data-sale-id="' . (int)$notification->sale_id . '"
+                                        onclick="crmMarkRequestConfirmOrRejectModal(' . (int)$notification->applicant_id . ', ' . (int)$notification->sale_id . ')">
+                                        Mark Confirm / Reject CV
+                                    </a></li>
+                                </ul>
+                            </div>';
+
+                    // Modal for notification details
+                    $html .= '<div class="modal fade" id="notificationDetailsModal' . $notification->id . '" tabindex="-1" aria-labelledby="notificationDetailsModalLabel' . $notification->id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="notificationDetailsModalLabel' . $notification->id . '">Notification Details</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p><strong>Notification:</strong> ' . $notification->message . '</p>
+                                            <p><strong>Applicant Name:</strong> ' . ($notification->applicant ? $notification->applicant->applicant_name : '-') . '</p>
+                                            <p><strong>Sale Postcode:</strong> ' . ($notification->sale ? $notification->sale->sale_postcode : '-') . '</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                            /** CRM Mark Confirm Or Reject Modal */
+                        $html .= '<div id="crmMarkRequestConfirmOrRejectModal' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmMarkRequestConfirmOrRejectModalLabel' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg modal-dialog-top">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="crmMarkRequestConfirmOrRejectModalLabel' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '">CRM Mark Request Confirm Or Reject</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body modal-body-text-left">
+                                                <div class="notificationAlert' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . ' notification-alert"></div>
+                                                <form action="" method="" id="crmMarkRequestConfirmOrRejectForm' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '" class="form-horizontal">
+                                                    <input type="hidden" name="applicant_id" value="' . (int)$notification->applicant_id . '">
+                                                    <input type="hidden" name="sale_id" value="' . (int)$notification->sale_id . '">
+                                                    <div class="mb-3">
+                                                        <label for="details' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '" class="form-label">Notes</label>
+                                                        <textarea class="form-control" name="details" id="crmMarkRequestConfirmOrRejectDetails' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '" rows="4" required></textarea>
+                                                        <div class="invalid-feedback">Please provide details.</div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-primary savecrmMarkRequestButtonConfirm" data-applicant-id="' . (int)$notification->applicant_id . '" data-sale-id="' . (int)$notification->sale_id . '">Confirm</button>
+                                                        <button type="button" class="btn btn-primary savecrmMarkRequestButtonReject" data-applicant-id="' . (int)$notification->applicant_id . '" data-sale-id="' . (int)$notification->sale_id . '">Reject</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>';
+
+                    return $html;
+                })
+                ->rawColumns(['action', 'notify_by_name', 'applicant_name', 'notes_detail', 'job_details', 'unit_name', 'office_name', 'applicant_email', 'applicant_postcode', 'sale_postcode', 'job_category', 'job_title'])
+                ->make(true);
+        }
+    }
+
+    /************************ Private Functions ***************/
+    private function generateJobDetailsModal($notification)
+    {
+        $modalId = 'jobDetailsModal_' . $notification->sale_id;  // Unique modal ID for each applicant's job details
+
+        return '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="' . $modalId . 'Label">Job Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body modal-body-text-left">
+                                <!-- Job details content will be dynamically inserted here -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>';
+    }
     public function getUnreadNotifications()
     {
         try {
             $notifications = Notification::query()
-                ->where('user_id', Auth::id())
-                ->with(['notify_by' => fn ($query) => $query->select('id', 'name')])
-                ->with(['applicant' => fn ($query) => $query->select('id', 'applicant_name')])
-                ->with(['sale' => fn ($query) => $query->select('id', 'sale_postcode')])
-                ->where('is_read', 0)
-                ->select('*')
+                // Left join with the 'users' table to get the 'notify_by' user (sender)
+                ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id') 
+                // Eager load the other relationships
+                ->with([
+                    'user' => fn($query) => $query->select('id', 'name'),  // Eager load the 'user' relationship (recipient of the notification)
+                    'applicant' => fn($query) => $query->select('id', 'applicant_name'),  // Eager load the 'applicant' relationship
+                    'sale' => fn($query) => $query->select('id', 'sale_postcode')  // Eager load the 'sale' relationship
+                ])
+                // Filter unread notifications
+                ->where('notifications.is_read', 0)
+                ->select('notifications.*', 'notify_by_users.name as notify_by_name') // Select the 'name' of the notify_by user from the joined table
                 ->latest()
                 ->take(5)
                 ->get()
-                ->map(function ($message) {
+                ->map(function ($notification) {
                     return [
-                        'id' => $message->id,
-                        'user_name' => $message->notify_by->name ?? 'Unknown',
-                        'avatar' => 'iconify-icon icon="ic:round-notifications" class="fs-24 text-primary align-middle"></iconify-icon>',
-                        'message' => Str::limit(strip_tags($message->message), 150),
-                        'created_at' => $message->created_at->diffForHumans(),
+                        'id' => $notification->id,
+                        'user_name' => $notification->user->name ?? 'Unknown',  // Access the 'name' field of the 'user' relationship
+                        'notify_by' => $notification->notify_by_name ?? 'Unknown',  // Access the 'notify_by_name' (name of the user who triggered the notification)
+                        'applicant_name' => $notification->applicant->applicant_name ?? 'Unknown',  // Access the 'applicant_name'
+                        'sale_postcode' => $notification->sale->sale_postcode ?? 'Unknown',  // Access the 'sale_postcode'
+                        'message' => Str::limit(strip_tags($notification->message), 150),
+                        'created_at' => $notification->created_at->diffForHumans(),
                     ];
                 });
 
-            $unreadCount = Notification::where('is_read', 0)->where('user_id', Auth::id())
+            $unreadCount = Notification::where('is_read', 0)
+            // ->where('user_id', Auth::id())
                 ->count();
 
             return response()->json([

@@ -6,6 +6,25 @@
                color: #6c757d;
                cursor: not-allowed;
           }
+          @keyframes bell-tilt {
+               0%   { transform: rotate(0deg); }
+               10%  { transform: rotate(15deg); }
+               20%  { transform: rotate(-15deg); }
+               30%  { transform: rotate(12deg); }
+               40%  { transform: rotate(-12deg); }
+               50%  { transform: rotate(8deg); }
+               60%  { transform: rotate(-8deg); }
+               70%  { transform: rotate(4deg); }
+               80%  { transform: rotate(-4deg); }
+               100% { transform: rotate(0deg); }
+          }
+
+          /* apply animation ONLY to the icon */
+          #page-header-notifications-dropdown.unread-notifications {
+          animation: bell-tilt 1.2s ease-in-out infinite;
+          transform-origin: top center;
+          }
+
      </style>
      <div class="topbar">
           <div class="container-fluid">
@@ -44,40 +63,57 @@
                               </button>
                          </div>
 
-                         <!-- Notification -->
+                         <!-- Notification Dropdown -->
                          <div class="dropdown topbar-item">
-                              <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                   <i class="ri-notification-3-line fs-24" title="Notifications"></i>
-                                   <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="notification-count">0<span class="visually-hidden">unread notifications</span></span>
-                              </button>
-                              <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
-                                   <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
-                                        <div class="row align-items-center">
-                                             <div class="col">
-                                                  <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
-                                             </div>
-                                             <div class="col-auto">
-                                                  {{-- <a href="javascript:void(0);" class="text-dark text-decoration-underline" id="clear-notifications">
-                                                  <small>Clear All</small>
-                                                  </a> --}}
-                                             </div>
+                         <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                              <i class="ri-notification-3-line fs-24" title="Notifications"></i>
+                              <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="notification-count">0<span class="visually-hidden">unread notifications</span></span>
+                         </button>
+                         <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
+                              <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
+                                   <div class="row align-items-center">
+                                        <div class="col">
+                                             <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
                                         </div>
                                    </div>
-                                   <div data-simplebar style="max-height: 280px;overflow:scroll;" id="notification-items">
-                                        <!-- Notifications will be dynamically populated here -->
+                              </div>
+                              <div data-simplebar style="max-height: 280px; overflow: scroll;" id="notification-items">
+                                   <!-- Notifications will be dynamically populated here -->
+                              </div>
+                              <div class="text-center py-3">
+                                   <a href="{{ route('notifications.index') }}" class="btn btn-primary btn-sm">View All Notifications <i class="ri-arrow-right-line ms-1"></i></a>
+                              </div>
+                         </div>
+                         </div>
+
+                         <!-- Modal for showing notification details -->
+                         <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+                         <div class="modal-dialog">
+                              <div class="modal-content">
+                                   <div class="modal-header">
+                                        <h5 class="modal-title" id="notificationModalLabel">Notification Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                    </div>
-                                   <div class="text-center py-3">
-                                        <a href="#" class="btn btn-primary btn-sm">View All Notifications <i class="ri-arrow-right-line ms-1"></i></a>
+                                   <div class="modal-body">
+                                        <p id="notification-message"></p>
+                                        <p><strong>From: </strong><span id="notification-sender"></span></p>
+                                        <p><strong>Created At: </strong><span id="notification-created-at"></span></p>
+                                   </div>
+                                   <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary" id="resolve-notification-btn">Mark as Resolved</button>
                                    </div>
                               </div>
                          </div>
+                         </div>
+
 
                          <!-- Messages -->
                          <div class="dropdown topbar-item">
                               <button type="button" class="topbar-button position-relative" id="page-header-messages-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                    <i class="ri-chat-3-line fs-24" title="Messages"></i>
 
-                                   <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="unread-count">0<span class="visually-hidden">unread messages</span></span>
+                                   <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="unread-message-count">0<span class="visually-hidden">unread messages</span></span>
                               </button>
                               <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-messages-dropdown">
                                    <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
@@ -126,11 +162,11 @@
                </div>
           </div>
      </div>
+
 </header>
 <script>
     window.laravelRoutes = @json([
-    'unreadMessages' => route('unread-messages'),
-    'unreadNotifications' => route('unread-notifications'), // Ensure this uses HTTPS
-]);
-
+     'unreadMessages' => route('unread-messages'),
+     'unreadNotifications' => route('unread-notifications'), // Ensure this uses HTTPS
+     ]);
 </script>

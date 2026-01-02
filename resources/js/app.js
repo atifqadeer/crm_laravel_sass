@@ -745,7 +745,7 @@ function fetchUnreadMessages() {
             console.log(response);  // Log the full response to verify the structure
             if (response.success) {
                 // Update unread count for messages
-                $('#unread-count').text(response.unread_count || 0);
+                $('#unread-message-count').text(response.unread_count || 0);
 
                 // Clear the message list before populating new messages
                 $('#message-items').empty();
@@ -783,29 +783,27 @@ function fetchUnreadMessages() {
     });
 }
 
-// Function to fetch unread notifications
 function fetchUnreadNotifications() {
     $.ajax({
         url: window.laravelRoutes.unreadNotifications,
         method: 'GET',
         success: function (response) {
-            console.log(response);  // Log the full response to verify the structure
-            if (response.success) {
-                // Update unread count for notifications
-                $('#unread-count').text(response.unread_count || 0);
+            console.log(response);
 
-                // Clear the notification list before populating new notifications
+            if (response.success) {
+                $('#notification-count').text(response.unread_count || 0);
                 $('#notification-items').empty();
 
                 if (response.notifications.length === 0) {
                     $('#notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
+                    $('#page-header-notifications-dropdown i').removeClass('unread-notifications');
                 } else {
                     response.notifications.forEach(function (notification) {
                         const html = `
-                            <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
+                            <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap" data-bs-toggle="modal" data-bs-target="#notificationModal" data-notification-id="${notification.id}">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
-                                        <img src="${notification.avatar}" class="img-fluid me-2 avatar-sm rounded-circle" alt="user-avatar" />
+                                        <iconify-icon icon="ic:round-notifications" class="fs-24 text-primary"></iconify-icon>
                                     </div>
                                     <div class="flex-grow-1">
                                         <p class="mb-0">
@@ -818,6 +816,7 @@ function fetchUnreadNotifications() {
                             </a>`;
                         $('#notification-items').append(html);
                     });
+                    $('#page-header-notifications-dropdown i').addClass('unread-notifications');
                 }
             } else {
                 console.log('Error fetching notifications:', response.error);
@@ -828,6 +827,35 @@ function fetchUnreadNotifications() {
         }
     });
 }
+
+$('#notification-items').on('click', 'a', function() {
+    var notificationId = $(this).data('notification-id');
+    var notificationMessage = $(this).find('span').text();
+    var notificationSender = $(this).find('.fw-medium').text();
+
+    $('#notification-message').text(notificationMessage);
+    $('#notification-sender').text(notificationSender);
+    $('#notification-created-at').text($(this).find('small').text());
+
+    $('#resolve-notification-btn').on('click', function() {
+        $.ajax({
+            url: '/notifications/resolve/' + notificationId,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    $('#notificationModal').modal('hide');
+                    fetchUnreadNotifications();
+                }
+            },
+            error: function(xhr) {
+                console.log('Error resolving notification:', xhr.responseText);
+            }
+        });
+    });
+});
+
+
+
 
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize offcanvas

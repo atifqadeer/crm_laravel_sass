@@ -15,10 +15,6 @@ class Notification extends Model
         'status',
         'notify_by',   // 👈 added here
     ];
-    public function notify_by()
-    {
-        return $this->belongsTo(User::class, 'notify_by');
-    }
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
