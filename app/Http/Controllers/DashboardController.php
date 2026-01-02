@@ -652,7 +652,12 @@ class DashboardController extends Controller
     }
     public function getUserNotifications(Request $request)
     {
+        Notification::where('is_read', 0)
+            ->where('user_id', Auth::id())
+            ->update(['is_read' => 1]);
+
         $notifications = Notification::query()
+            ->where('user_id', Auth::id())
             // Left join with the 'users' table to get the 'notify_by' user (sender)
             ->leftJoin('users as notify_by_users', 'notifications.notify_by', '=', 'notify_by_users.id')
             // Eager load the other relationships for applicants and sales

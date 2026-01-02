@@ -144,7 +144,7 @@
             text: notification.message,
             icon: 'info',
             showCancelButton: false,
-            confirmButtonText: 'Okay',
+            confirmButtonText: 'Read Notifications',
             customClass: {
                 confirmButton: 'btn bg-danger text-white mt-2'
             }
@@ -153,7 +153,6 @@
                 window.location.href = '/notifications';
             }
         });
-
     }
 
 </script>
