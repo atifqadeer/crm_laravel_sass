@@ -143,14 +143,17 @@
             title: 'New Notification!',
             text: notification.message,
             icon: 'info',
-            showCancelButton: true,
+            showCancelButton: false,
+            confirmButtonText: 'Okay',
             customClass: {
-                confirmButton: 'btn bg-danger text-white me-2 mt-2',
-                cancelButton: 'btn btn-secondary mt-2'
-            },
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Okay'
-        })
+                confirmButton: 'btn bg-danger text-white mt-2'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/notifications';
+            }
+        });
+
     }
 
 </script>
