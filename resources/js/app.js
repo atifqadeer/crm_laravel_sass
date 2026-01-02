@@ -744,24 +744,24 @@ function fetchUnreadNotifications() {
                 $('#unread-count').text(response.unread_count || 0);
                 $('#notification-items').empty();
 
-                if (response.messages.length === 0) {
+                if (response.notifications.length === 0) {
                     $('#notification-items').append(
                         '<div class="text-center py-3 text-muted">No new notifications</div>'
                     );
                 } else {
-                    response.messages.forEach(function (message) {
+                    response.notifications.forEach(function (notification) {
                         const html = `
                             <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
-                                        <img src="${message.avatar}" class="img-fluid me-2 avatar-sm rounded-circle" alt="user-avatar" />
+                                        <img src="${notification.avatar}" class="img-fluid me-2 avatar-sm rounded-circle" alt="user-avatar" />
                                     </div>
                                     <div class="flex-grow-1">
                                         <p class="mb-0">
-                                            <span class="fw-medium">${message.user_name}</span><br>
-                                            <span>${message.message}</span>
+                                            <span class="fw-medium">${notification.user_name}</span><br>
+                                            <span>${notification.message}</span>
                                         </p>
-                                        <small class="text-muted">${message.created_at}</small>
+                                        <small class="text-muted">${notification.created_at}</small>
                                     </div>
                                 </div>
                             </a>`;
@@ -783,6 +783,7 @@ function fetchUnreadMessages() {
         url: window.laravelRoutes.unreadMessages,
         method: 'GET',
         success: function (response) {
+            console.log(response);  // Log the full response to verify the structure
             if (response.success) {
                 $('#unread-count').text(response.unread_count || 0);
                 $('#message-items').empty();

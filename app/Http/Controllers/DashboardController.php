@@ -579,7 +579,7 @@ class DashboardController extends Controller
     public function getUnreadNotifications()
     {
         try {
-            $messages = Notification::query()
+            $notifications = Notification::query()
                 ->where('user_id', Auth::id())
                 ->with(['notify_by' => fn ($query) => $query->select('id', 'name')])
                 ->with(['applicant' => fn ($query) => $query->select('id', 'applicant_name')])
@@ -604,13 +604,13 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'messages' => $messages,
+                'notifications' => $notifications,
                 'unread_count' => $unreadCount,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to fetch messages: ' . $e->getMessage(),
+                'error' => 'Failed to fetch notifications: ' . $e->getMessage(),
             ], 500);
         }
     }
