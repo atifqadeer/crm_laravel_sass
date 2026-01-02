@@ -837,37 +837,6 @@ function fetchUnreadNotifications() {
     });
 }
 
-$('#notification-items').on('click', 'a', function() {
-    // Get notification details from the data attributes
-    var notificationId = $(this).data('notification-id');
-    var notificationMessage = $(this).find('span').text(); // Message
-    var notificationSender = $(this).find('.fw-medium').text(); // Sender name
-
-    // Populate modal with notification details
-    $('#notification-message').text(notificationMessage);
-    $('#notification-sender').text(notificationSender);
-    $('#notification-created-at').text($(this).find('small').text());  // Created at
-
-    // Mark as resolved if user clicks "Mark as Resolved"
-    $('#resolve-notification-btn').on('click', function() {
-        $.ajax({
-            url: '/notifications/resolve/' + notificationId,  // Assuming you have an endpoint to mark notifications as resolved
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    $('#notificationModal').modal('hide');  // Close the modal
-                    fetchUnreadNotifications();  // Refresh notifications to update unread count
-                }
-            },
-            error: function(xhr) {
-                console.log('Error resolving notification:', xhr.responseText);
-            }
-        });
-    });
-});
-
-
-
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize offcanvas
     const chatOffcanvas = new bootstrap.Offcanvas(document.getElementById('chatOffcanvas'));
