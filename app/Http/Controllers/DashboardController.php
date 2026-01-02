@@ -618,7 +618,7 @@ class DashboardController extends Controller
                     'sale' => fn($query) => $query->select('id', 'sale_postcode')  // Eager load the 'sale' relationship
                 ])
                 // Filter unread notifications
-                ->where('notifications.is_read', 0)
+                // ->where('notifications.is_read', 0)
                 ->select('notifications.*', 'notify_by_users.name as notify_by_name') // Select the 'name' of the notify_by user from the joined table
                 ->latest()
                 ->take(5)
@@ -635,8 +635,7 @@ class DashboardController extends Controller
                     ];
                 });
 
-            $unreadCount = Notification::where('is_read', 0)
-                ->where('user_id', Auth::id())
+            $unreadCount = Notification::where('user_id', Auth::id())
                 ->count();
 
             return response()->json([
