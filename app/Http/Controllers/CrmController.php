@@ -2304,12 +2304,15 @@ class CrmController extends Controller
                                 $emailText = '<span class="badge bg-info"><i class="ri-inbox-line text-white" title="Sent"></i> Email Pending</span>';
                             }
 
-                            $applicant_msgs = Message::where([
-                                    'phone_number' => $applicant->applicant_phone,
-                                    'module_type' => 'Horsefly\Applicant',
-                                    'status' => 'incoming'
-                                ])
-                                ->orderBy('created_at', 'desc')->first();
+                            $applicant_msgs = Message::whereIn('phone_number', [
+                                                        $applicant->applicant_phone,
+                                                        $applicant->applicant_phone_secondary
+                                                    ])
+                                                    ->where('status', 'incoming')
+                                                    ->where('module_type', 'Horsefly\\Applicant')
+                                                    ->orderBy('created_at', 'desc')
+                                                    ->first();
+
 
                             $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >'. $emailText .'</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
@@ -2419,12 +2422,15 @@ class CrmController extends Controller
                                 $emailText = '<span class="badge bg-info"><i class="ri-inbox-line text-white" title="Sent"></i> Email Pending</span>';
                             }
 
-                            $applicant_msgs = Message::where([
-                                    'phone_number' => $applicant->applicant_phone, 
-                                    'status' => 'incoming',
-                                    'module_type' => 'Horsefly\Applicant'
-                                ])
-                                ->orderBy('created_at', 'desc')->first();
+                            $applicant_msgs = Message::whereIn('phone_number', [
+                                                            $applicant->applicant_phone,
+                                                            $applicant->applicant_phone_secondary
+                                                        ])
+                                                        ->where('status', 'incoming')
+                                                        ->where('module_type', 'Horsefly\\Applicant')
+                                                        ->orderBy('created_at', 'desc')
+                                                        ->first();
+
 
                             $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >Email '. $emailText .'</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
@@ -2468,6 +2474,62 @@ class CrmController extends Controller
                                             Move to Confirmation
                                         </a></li>';
                             }
+                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmRevertRequestedCvToSentCvModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Sent CV
+                                    </a></li>';
+                                $actionButtons .= '<li><a class="dropdown-item" 
+                                        href="#" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                        data-applicant-id="' . (int)$applicant->id . '"
+                                        data-sale-id="' . (int)$applicant->sale_id . '"
+                                        onclick="crmRevertRequestedCvToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                        Revert In Quality
+                                    </a></li>';
+                            }
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                data-phone="' . $applicant->applicant_phone . '"
+                                data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
+                            </li>';
+
+                            if (!empty($applicant_msgs)) {
+                                if ($applicant_msgs['is_read'] == 0) {
+                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                }
+                            }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                            data-email="' . $applicant->applicant_email . '"
+                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        ';
+                            break;
+                        case 'request (no response)':
+                            $applicant_msgs = Message::whereIn('phone_number', [
+                                                    $applicant->applicant_phone,
+                                                    $applicant->applicant_phone_secondary
+                                                ])
+                                                ->where('status', 'incoming')
+                                                ->where('module_type', 'Horsefly\\Applicant')
+                                                ->orderBy('created_at', 'desc')
+                                                ->first();
+
+
+                            $actionButtons .= '<li><a class="dropdown-item" 
+                                    href="#" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#crmMarkRequestConfirmOrRejectModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                    data-applicant-id="' . (int)$applicant->id . '"
+                                    data-sale-id="' . (int)$applicant->sale_id . '"
+                                    onclick="crmMarkRequestConfirmOrRejectModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                    Mark Confirm / Reject CV
+                                </a></li>';
+
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="#" 
@@ -3481,6 +3543,33 @@ class CrmController extends Controller
                                     </div>
                                 </div>
                             </div>';
+                    /** CRM Mark Confirm Or Reject Modal */
+                    $html .= '<div id="crmMarkRequestConfirmOrRejectModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmMarkRequestConfirmOrRejectModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crmMarkRequestConfirmOrRejectModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM Mark Request Confirm Or Reject</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . ' notification-alert"></div>
+                                            <form action="" method="" id="crmMarkRequestConfirmOrRejectForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                                <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
+                                                <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
+                                                <div class="mb-3">
+                                                    <label for="details' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Notes</label>
+                                                    <textarea class="form-control" name="details" id="crmMarkRequestConfirmOrRejectDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
+                                                    <div class="invalid-feedback">Please provide details.</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-primary savecrmMarkRequestButtonConfirm" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Confirm</button>
+                                                    <button type="button" class="btn btn-primary savecrmMarkRequestButtonReject" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Reject</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
                     /** CRM Move Request To No Response Modal */
                     $html .= '<div id="crmMoveRequestToNoResponseModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmMoveRequestToNoResponseModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
@@ -3500,7 +3589,9 @@ class CrmController extends Controller
                                                     <div class="invalid-feedback">Please provide details.</div>
                                                 </div>
                                                 <div class="modal-footer">'; 
-                                                    $html .= '<button type="button" class="btn btn-success savecrmRequestToNoResponseSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                                                    $html .= '
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-success savecrmRequestToNoResponseSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
