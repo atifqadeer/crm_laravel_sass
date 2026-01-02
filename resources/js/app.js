@@ -785,7 +785,7 @@ function fetchUnreadMessages() {
 
 function fetchUnreadNotifications() {
     $.ajax({
-        url: '/unread-notifications',
+        url: window.laravelRoutes.unreadNotifications,
         method: 'GET',
         success: function (response) {
             console.log(response);
