@@ -118,9 +118,13 @@
 
 
                         // Show SweetAlert popup for each notification
-                        if(response.unread_count > 0){
-                            showSwalAlert(response.notifications[0]);
-                        }
+                        setInterval(() => {
+                            // wherever you currently fetch/build `response`
+                            if (response.unread_count > 0) {
+                                showSwalAlert(response.notifications[0]);
+                            }
+                        }, 2 * 60 * 1000); // 2 minutes
+
                     }
                 } else {
                     console.log('Error fetching notifications:', response.error);
@@ -131,6 +135,7 @@
             }
         });
     }
+
     function showNotificationBanner() {
         // Show the banner
         $('#notification-banner').fadeIn();
