@@ -116,16 +116,14 @@
                             icon.style.transform = `rotate(${Math.random() * 30 - 15}deg)`; // Quick random tilt
                         }, 1000);
 
-                        function checkNotifications() {
+
+                        // Show SweetAlert popup for each notification
+                        setInterval(() => {
+                            // wherever you currently fetch/build `response`
                             if (response.unread_count > 0) {
                                 showSwalAlert(response.notifications[0]);
                             }
-                        }
-
-                        checkNotifications();
-                        setInterval(checkNotifications, 2 * 60 * 1000);
-
-
+                        }, 2 * 60 * 1000); // 2 minutes
 
                     }
                 } else {
