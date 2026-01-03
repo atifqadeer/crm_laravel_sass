@@ -60,74 +60,69 @@
     }
 
     // Function to fetch unread notifications
+    let alertInterval = null;
+    let notificationInterval = null; // (only if you plan to use it)
+
     function fetchUnreadNotifications() {
         $.ajax({
             url: window.laravelRoutes.unreadNotifications,
             method: 'GET',
             success: function (response) {
-                console.log(response);  // Log the full response to verify the structure
-                
-                if (response.success) {
-                    // Update unread count for notifications
-                    $('#unread-notification-count').text(response.notifications.length || 0);
+                console.log(response);
 
-                    // Clear the notification list before populating new notifications
-                    $('#unread-notification-items').empty();
-
-                    // Check if there are unread notifications
-                    if (response.notifications.length === 0) {
-                        $('#unread-notification-items').append('<div class="text-center py-3 text-muted">No new notifications</div>');
-                        // Remove the pulse animation if no unread notifications
-                        $('#page-header-notifications-dropdown i').removeClass('unread-notifications-alert');
-                    } else {
-                        showNotificationBanner();
-                        response.notifications.forEach(function (notification) {
-                            const html = `
-                                <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap" data-notification-id="${notification.id}">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <!-- Use an Icon instead of an Image -->
-                                            <iconify-icon icon="ic:round-notifications" class="fs-24 text-primary"></iconify-icon>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <p class="mb-0">
-                                                <span class="fw-medium">${notification.user_name}</span><br>
-                                                <span>${notification.message}</span>
-                                            </p>
-                                            <small class="text-muted">${notification.created_at}</small>
-                                        </div>
-                                    </div>
-                                </a>`;
-                            $('#unread-notification-items').append(html);
-                        });
-
-                        // Directly apply animation to the icon
-                        const icon = $('#page-header-notifications-dropdown i');
-                        icon.addClass('unread-notifications-alert');
-
-                        // Apply style directly to iconify-icon component
-                        $('#notification-icon').css({
-                            'animation': 'bell-tilt 1.2s ease-in-out infinite',
-                            'transform-origin': 'top center'
-                        });
-
-                        setInterval(() => {
-                            const icon = $('#notification-icon')[0]; // Grab the iconify-icon element
-                            icon.style.transform = `rotate(${Math.random() * 30 - 15}deg)`; // Quick random tilt
-                        }, 1000);
-
-
-                        // Show SweetAlert popup for each notification
-                        setInterval(() => {
-                            // wherever you currently fetch/build `response`
-                            if (response.unread_count > 0) {
-                                showSwalAlert(response.notifications[0]);
-                            }
-                        }, 2 * 60 * 1000); // 2 minutes
-
-                    }
-                } else {
+                if (!response.success) {
                     console.log('Error fetching notifications:', response.error);
+                    return;
+                }
+
+                $('#unread-notification-count').text(response.notifications.length || 0);
+                $('#unread-notification-items').empty();
+
+                if (response.notifications.length === 0) {
+                    $('#unread-notification-items')
+                        .append('<div class="text-center py-3 text-muted">No new notifications</div>');
+
+                    $('#page-header-notifications-dropdown i')
+                        .removeClass('unread-notifications-alert');
+
+                    return;
+                }
+
+                showNotificationBanner();
+
+                response.notifications.forEach(notification => {
+                    const html = `
+                        <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap"
+                        data-notification-id="${notification.id}">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <iconify-icon icon="ic:round-notifications" class="fs-24 text-primary"></iconify-icon>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <p class="mb-0">
+                                        <span class="fw-medium">${notification.user_name}</span><br>
+                                        <span>${notification.message}</span>
+                                    </p>
+                                    <small class="text-muted">${notification.created_at}</small>
+                                </div>
+                            </div>
+                        </a>`;
+                    $('#unread-notification-items').append(html);
+                });
+
+                $('#page-header-notifications-dropdown i')
+                    .addClass('unread-notifications-alert');
+
+                // run this only once
+                if (!alertInterval) {
+                    const checkNotifications = () => {
+                        if (response.unread_count > 0) {
+                            showSwalAlert(response.notifications[0]);
+                        }
+                    };
+
+                    alertInterval = setInterval(checkNotifications, 2 * 60 * 1000);
+                    checkNotifications();
                 }
             },
             error: function (xhr) {
@@ -135,6 +130,7 @@
             }
         });
     }
+
 
     function showNotificationBanner() {
         // Show the banner
