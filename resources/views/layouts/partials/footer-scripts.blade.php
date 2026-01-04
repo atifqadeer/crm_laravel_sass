@@ -114,17 +114,27 @@ function fetchUnreadNotifications() {
             // ----------------------------
             // 🔔 SWEETALERT LOGIC
             // ----------------------------
+            let firstNotificationChecked = false; // Track if the first notification has been checked
+
             if (response.unread_count > 0) {
-                // Show once immediately
-                showSwalAlert(response.notifications[0]);
+                // Delay the alert for the first time only
+                if (!firstNotificationChecked) {
+                    firstNotificationChecked = true;
+                    setTimeout(() => {
+                        showSwalAlert(response.notifications[0]);
+                    }, 2000); // Delay for 2 seconds (adjust as needed)
+                } else {
+                    showSwalAlert(response.notifications[0]);
+                }
 
                 // Start interval ONLY ONCE
                 if (!unreadCheckInterval) {
                     unreadCheckInterval = setInterval(() => {
                         fetchUnreadNotifications();
-                    }, 2 * 60 * 1000);
+                    }, 2 * 60 * 1000); // Check every 2 minutes
                 }
             }
+
         },
         error: function (xhr) {
             console.log('AJAX error:', xhr.responseText);
