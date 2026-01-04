@@ -176,10 +176,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -288,8 +288,8 @@ class ImportController extends Controller
                                 'postcode'   => $cleanPostcode,
                                 'lat'        => $lat,
                                 'lng'        => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'created_at' => null,
+                                'updated_at' => null,
                             ]);
                         }
                     } elseif (strlen($cleanPostcode) < 6) {
@@ -300,8 +300,8 @@ class ImportController extends Controller
                                 'outcode'    => $cleanPostcode,
                                 'lat'        => $lat,
                                 'lng'        => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'created_at' => null,
+                                'updated_at' => null,
                             ]);
                         }
                     }
@@ -362,8 +362,8 @@ class ImportController extends Controller
                                     foreach ($contacts as $contactData) {
                                         $contactData['contactable_id'] = $row['id'];
                                         $contactData['contactable_type'] = 'Horsefly\Office';
-                                        $contactData['created_at'] = $contactData['created_at'] ?? now();
-                                        $contactData['updated_at'] = $contactData['updated_at'] ?? now();
+                                        $contactData['created_at'] = $contactData['created_at'] ?? null;
+                                        $contactData['updated_at'] = $contactData['updated_at'] ?? null;
                                         $contactRows[] = $contactData;
                                     }
 
@@ -430,7 +430,7 @@ class ImportController extends Controller
     }
     public function unitsImport(Request $request)
     {
-       $request->validate([
+        $request->validate([
             'csv_file' => [
                 'required',
                 'file',
@@ -558,10 +558,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -671,8 +671,8 @@ class ImportController extends Controller
                                 'postcode'   => $cleanPostcode,
                                 'lat'        => $lat,
                                 'lng'        => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'created_at' => null,
+                                'updated_at' => null,
                             ]);
                         }
                     } elseif (strlen($cleanPostcode) < 6) {
@@ -683,8 +683,8 @@ class ImportController extends Controller
                                 'outcode'    => $cleanPostcode,
                                 'lat'        => $lat,
                                 'lng'        => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'created_at' => null,
+                                'updated_at' => null,
                             ]);
                         }
                     }
@@ -747,8 +747,8 @@ class ImportController extends Controller
                                     foreach ($contacts as $contactData) {
                                         $contactData['contactable_id'] = $row['id'];
                                         $contactData['contactable_type'] = 'Horsefly\Unit';
-                                        $contactData['created_at'] = $contactData['created_at'] ?? now();
-                                        $contactData['updated_at'] = $contactData['updated_at'] ?? now();
+                                        $contactData['created_at'] = $contactData['created_at'] ?? null;
+                                        $contactData['updated_at'] = $contactData['updated_at'] ?? null;
                                         $contactRows[] = $contactData;
                                     }
 
@@ -759,7 +759,6 @@ class ImportController extends Controller
                                 }
 
                                 $successfulRows++;
-
                             } catch (\Throwable $e) {
                                 $failedRows[] = [
                                     'row' => $rowIndex,
@@ -774,7 +773,6 @@ class ImportController extends Controller
                     });
 
                     Log::channel('import')->info("Processed chunk #{$chunkIndex}");
-
                 } catch (\Throwable $e) {
                     $failedRows[] = [
                         'chunk' => $chunkIndex,
@@ -803,7 +801,7 @@ class ImportController extends Controller
             Log::channel('import')->info("• Failed rows: " . count($failedRows));
             Log::channel('import')->info("• Time taken: {$duration} seconds");
 
-             return response()->json([
+            return response()->json([
                 'message' => 'CSV import completed successfully!',
                 'summary' => [
                     'total_rows' => $totalRows,
@@ -886,19 +884,58 @@ class ImportController extends Controller
 
             // Normalize required headers
             $requiredHeaders = [
-                'id','applicant_u_id','applicant_user_id','job_category','applicant_job_title',
-                'job_title_prof','applicant_name','applicant_email','applicant_postcode',
-                'applicant_phone','applicant_homePhone','applicant_source','applicant_cv',
-                'updated_cv','applicant_notes','applicant_experience','applicant_added_date',
-                'applicant_added_time','lat','lng','is_blocked','is_no_job','temp_not_interested',
-                'no_response','is_circuit_busy','is_callback_enable','is_in_nurse_home',
-                'is_cv_in_quality','is_cv_in_quality_clear','is_CV_sent','is_CV_reject',
-                'is_interview_confirm','is_interview_attend','is_in_crm_request','is_in_crm_reject',
-                'is_in_crm_request_reject','is_crm_request_confirm','is_crm_interview_attended',
-                'is_in_crm_start_date','is_in_crm_invoice','is_in_crm_invoice_sent',
-                'is_in_crm_start_date_hold','is_in_crm_paid','is_in_crm_dispute','is_follow_up',
-                'is_job_within_radius','have_nursing_home_experience','status','paid_status',
-                'paid_timestamp','created_at','updated_at'
+                'id',
+                'applicant_u_id',
+                'applicant_user_id',
+                'job_category',
+                'applicant_job_title',
+                'job_title_prof',
+                'applicant_name',
+                'applicant_email',
+                'applicant_postcode',
+                'applicant_phone',
+                'applicant_homePhone',
+                'applicant_source',
+                'applicant_cv',
+                'updated_cv',
+                'applicant_notes',
+                'applicant_experience',
+                'applicant_added_date',
+                'applicant_added_time',
+                'lat',
+                'lng',
+                'is_blocked',
+                'is_no_job',
+                'temp_not_interested',
+                'no_response',
+                'is_circuit_busy',
+                'is_callback_enable',
+                'is_in_nurse_home',
+                'is_cv_in_quality',
+                'is_cv_in_quality_clear',
+                'is_CV_sent',
+                'is_CV_reject',
+                'is_interview_confirm',
+                'is_interview_attend',
+                'is_in_crm_request',
+                'is_in_crm_reject',
+                'is_in_crm_request_reject',
+                'is_crm_request_confirm',
+                'is_crm_interview_attended',
+                'is_in_crm_start_date',
+                'is_in_crm_invoice',
+                'is_in_crm_invoice_sent',
+                'is_in_crm_start_date_hold',
+                'is_in_crm_paid',
+                'is_in_crm_dispute',
+                'is_follow_up',
+                'is_job_within_radius',
+                'have_nursing_home_experience',
+                'status',
+                'paid_status',
+                'paid_timestamp',
+                'created_at',
+                'updated_at'
             ];
 
             $normalizedRequired = array_map(function ($h) {
@@ -911,7 +948,7 @@ class ImportController extends Controller
             if (!empty($missingHeaders)) {
                 throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
             }
-            
+
             // Count total rows
             $records = $csv->getRecords();
             $totalRows = iterator_count($records);
@@ -932,6 +969,49 @@ class ImportController extends Controller
 
             Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
+            // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
+            $normalizeDate = function ($dateString) {
+                if (empty($dateString)) {
+                    return null; // Handle empty or missing date strings gracefully
+                }
+
+                // If the time does not include seconds (H:m), append ":00" for seconds
+                if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+                    $dateString .= ":00";  // Append ":00" for seconds
+                }
+
+                // Define potential date formats (including m/d/Y H:i and others)
+                $formats = [
+                    'Y-m-d H:i:s',    // Full date with time and seconds
+                    'Y-m-d H:i',      // Date with hours and minutes
+                    'Y-m-d',          // Date only
+                    'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
+                    'm/d/Y H:i:s',    // m/d/Y with seconds
+                    'm/d/Y',          // Date only in m/d/Y
+                    'd/m/Y H:i',      // d/m/Y with time
+                    'd/m/Y H:i:s',    // d/m/Y with seconds
+                    'd/m/Y',          // Date only in d/m/Y
+                    'j F Y',          // Full date with month name
+                    'j F Y H:i',      // Full date with month and time
+                    'j F Y g:i A',    // Full date with month and 12-hour time
+                    'd F Y',          // Full date with day and month
+                    'd F Y g:i A'     // Full date with day, month, and 12-hour time
+                ];
+
+                foreach ($formats as $format) {
+                    try {
+                        // Attempt to create a Carbon date object from the string
+                        $dt = Carbon::createFromFormat($format, $dateString);
+                        return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
+                    } catch (\Exception $e) {
+                        // Continue to next format if it fails
+                    }
+                }
+
+                Log::channel('import')->debug("Row : All formats failed for => '{$dateString}'");
+                return null; // Return null if no valid format found
+            };
+
             foreach ($records as $row) {
                 $rowIndex++;
                 try {
@@ -942,7 +1022,7 @@ class ImportController extends Controller
                     }
 
                     // Normalize keys to lowercase to match headers
-                   $row = collect($row)->mapWithKeys(function ($value, $key) {
+                    $row = collect($row)->mapWithKeys(function ($value, $key) {
                         $key = strtolower(trim($key));
                         $key = preg_replace('/\s+/', '_', $key);
                         return [$key => $value];
@@ -973,75 +1053,6 @@ class ImportController extends Controller
 
                     // Normalize ID
                     $id = $normalizeId($row['id'], $rowIndex);
-
-                    // Normalize paid_timestamp
-                    $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
-                    $paid_timestamp = null;
-
-                    if ($rawPaid !== '' && !preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
-                        try {
-                            $ts = strtotime($rawPaid);
-                            if ($ts !== false && $ts > 0) {
-                                $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
-                            }
-                        } catch (\Throwable $e) {
-                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
-                        }
-                    }
-
-                    // Date preprocessing
-                    // $preprocessDate = function ($dateString, $field, $rowIndex) {
-                    //     if (empty($dateString) || !is_string($dateString)) {
-                    //         return null;
-                    //     }
-
-                    //     // Fix malformed numeric formats (e.g., 1122024 1230)
-                    //     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
-                    //         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                    //         Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
-                    //         return $fixedDate;
-                    //     }
-
-                    //     return $dateString;
-                    // };
-
-                    // // Parse dates (corrected format order)
-                    // $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
-                    //     if (empty($dateString)) {
-                    //         return null;
-                    //     }
-
-                    //     $formats = [
-                    //         'Y-m-d H:i:s',
-                    //         'Y-m-d H:i',
-                    //         'Y-m-d',
-                    //         'm/d/Y H:i',  // US format first
-                    //         'm/d/Y H:i:s',
-                    //         'm/d/Y',
-                    //         'd/m/Y H:i',
-                    //         'd/m/Y H:i:s',
-                    //         'd/m/Y',
-                    //         'j F Y', 
-                    //         'j F Y H:i', 
-                    //         'j F Y g:i A',
-                    //         'd F Y', 
-                    //         'd F Y g:i A'
-                    //     ];
-
-                    //     foreach ($formats as $format) {
-                    //         try {
-                    //             $dt = Carbon::createFromFormat($format, $dateString);
-                    //             // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
-                    //             return $dt->format('Y-m-d H:i:s');
-                    //         } catch (\Exception $e) {
-                    //             // continue
-                    //         }
-                    //     }
-
-
-                    //     Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
-                    //     return null;
-                    // };
 
                     // Handle postcode and geolocation
                     $cleanPostcode = '0';
@@ -1074,9 +1085,7 @@ class ImportController extends Controller
                             DB::table('postcodes')->insert([
                                 'postcode' => $cleanPostcode,
                                 'lat' => $lat,
-                                'lng' => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'lng' => $lng
                             ]);
                         }
                     } elseif (strlen($cleanPostcode) < 6 && $cleanPostcode != '0') {
@@ -1085,15 +1094,13 @@ class ImportController extends Controller
                             DB::table('outcodepostcodes')->insert([
                                 'outcode' => $cleanPostcode,
                                 'lat' => $lat,
-                                'lng' => $lng,
-                                'created_at' => now(),
-                                'updated_at' => now(),
+                                'lng' => $lng
                             ]);
                         }
                     }
 
                     // Handle job title and category
-                    $job_category_id = null;                  
+                    $job_category_id = null;
                     $job_title_id = null;
                     $job_type = '';
                     $requested_job_title = strtolower(trim($row['applicant_job_title'] ?? ''));
@@ -2428,7 +2435,7 @@ class ImportController extends Controller
                     }
 
                     // Normalize phone number to UK format
-                    $normalizePhone = function($number) {
+                    $normalizePhone = function ($number) {
                         $number = trim((string)$number);
 
                         // If the number starts with +44, change it to start with 0
@@ -2439,7 +2446,7 @@ class ImportController extends Controller
                         // Remove all non-digit characters
                         $digits = preg_replace('/\D+/', '', $number);
 
-                        if(strlen($number) < 11 || strlen($number) > 10){
+                        if (strlen($number) < 11 || strlen($number) > 10) {
                             $digits = '0' . $number;
                         }
 
@@ -2447,7 +2454,7 @@ class ImportController extends Controller
                         if (empty($digits) || strlen($digits) != 11) {
                             return '0'; // Return null if the number is not valid
                         }
-                       
+
                         if (strlen($digits) > 11) {
                             $digits = substr($digits, 0, 11);
                         }
@@ -2520,89 +2527,69 @@ class ImportController extends Controller
                     $sourceRaw = $row['applicant_source'] ?? '';
                     $cleanedSource = is_string($sourceRaw) ? strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))) : '';
                     $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
-                    if($firstTwoWordsSource == 'total jobs'){
+                    if ($firstTwoWordsSource == 'total jobs') {
                         $firstTwoWordsSource = 'total job';
-                    }elseif($firstTwoWordsSource == 'c.v library'){
+                    } elseif ($firstTwoWordsSource == 'c.v library') {
                         $firstTwoWordsSource = 'cv library';
                     }
 
                     $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
                     $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
 
-                    // Normalize the status field based on the CSV value
-                    $rawStatus = strtolower(trim((string)($row['status'] ?? '')));
+                    // Normalize and handle active status
+                    $rawStatus = trim((string)($row['status'] ?? ''));
+                    $normalizedStatus = strtolower($rawStatus);
 
-                    // Explicitly map status values to tinyint (1 = active, 0 = inactive)
-                    $status = match ($rawStatus) {
-                        'active', '1', 'yes', 'enabled' => 1,  // 'active' mapped to 1
+                    // Allowed statuses
+                    $allowedStatuses = ['active', 'inactive', 'pending'];
+
+                    // Normalize the status field
+                    $status = match ($normalizedStatus) {
+                        'active', '1', 'yes', 'enabled' => 1, // 'active' mapped to 1
                         'inactive', 'no', '0', 'disabled' => 0, // 'inactive' mapped to 0
-                        default => 1,  // Default to 'active' (1) if status is not recognized
+                        default => 1, // Default to 'active' (1) if status is not recognized
                     };
 
                     $applicant_email = isset($row['applicant_email']) &&
-                                            !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
-                                                ? strtolower($row['applicant_email'])
-                                                : null;
+                        !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
+                        ? strtolower($row['applicant_email'])
+                        : null;
 
-                    // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-                    $normalizeDate = function($dateString, $field, $rowIndex) {
-                        if (empty($dateString)) {
-                            return null;
-                        }
+                    // Normalize paid_timestamp
+                    $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
+                    $paid_timestamp = null;
 
-                        // If the time does not include seconds (H:m), append ":00" for seconds
-                        if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
-                            $dateString .= ":00";  // Append ":00" for seconds
-                        }
-
-                        // Define potential date formats (including H:m:s)
-                        $formats = [
-                            'Y-m-d H:i:s',
-                            'Y-m-d H:i',
-                            'Y-m-d',
-                            'm/d/Y H:i',
-                            'm/d/Y H:i:s',
-                            'm/d/Y',
-                            'd/m/Y H:i',
-                            'd/m/Y H:i:s',
-                            'd/m/Y',
-                            'j F Y',
-                            'j F Y H:i',
-                            'j F Y g:i A',
-                            'd F Y',
-                            'd F Y g:i A'
-                        ];
-
-                        foreach ($formats as $format) {
-                            try {
-                                $dt = Carbon::createFromFormat($format, $dateString);
-                                return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
-                            } catch (\Exception $e) {
-                                // Continue to next format if it fails
+                    if ($rawPaid !== '' && !preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
+                        try {
+                            $ts = strtotime($rawPaid);
+                            if ($ts !== false && $ts > 0) {
+                                $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
                             }
+                        } catch (\Throwable $e) {
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
+                    }
 
-                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
-                        return null; // Return null if no valid format found
-                    };
+                    Log::channel('import')->debug("Raw created_at: {$row['created_at']}");
+                    Log::channel('import')->debug("Raw updated_at: {$row['updated_at']}");
 
-                    // Normalize created_at (take from CSV if available, else set to null)
+                    // Normalize created_at
                     $createdAt = null;
                     if (!empty($row['created_at'])) {
-                        $createdAt = $normalizeDate($row['created_at'], 'created_at', $rowIndex);
+                        $createdAt = $normalizeDate($row['created_at']);
                     } else {
                         Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid created_at data, skipping.");
                     }
 
-                    // Normalize updated_at (take from CSV if available, else set to null)
+                    // Normalize updated_at
                     $updatedAt = null;
                     if (!empty($row['updated_at'])) {
-                        $updatedAt = $normalizeDate($row['updated_at'], 'updated_at', $rowIndex);
+                        $updatedAt = $normalizeDate($row['updated_at']);
                     } else {
                         Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid updated_at data, skipping.");
                     }
 
-                    // Build processed row
+                    // Build processed row with corrected logic for timestamps
                     $processedRow = [
                         'id' => $id,
                         'applicant_uid' => md5($id),
@@ -2652,8 +2639,8 @@ class ImportController extends Controller
                         'paid_status' => $paid_status,
                         'paid_timestamp' => $paid_timestamp,
                         'status' => $status,
-                        'created_at' => $createdAt,
-                        'updated_at' => $updatedAt,
+                        'created_at' => $createdAt, // Only set if valid
+                        'updated_at' => $updatedAt, // Only set if valid
                     ];
 
                     $processedData[] = $processedRow;
@@ -2677,8 +2664,8 @@ class ImportController extends Controller
                                 $filtered = $row; // trust your parsed values
                                 if ($id) {
                                     Applicant::where('id', $id)->exists()
-                                    ? Applicant::where('id', $id)->update($filtered)
-                                    : Applicant::create(array_merge(['id' => $id], $filtered));
+                                        ? Applicant::where('id', $id)->update($filtered)
+                                        : Applicant::create(array_merge(['id' => $id], $filtered));
 
                                     Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
                                 } else {
@@ -2860,10 +2847,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -2938,16 +2925,16 @@ class ImportController extends Controller
                             'postcode' => $cleanPostcode,
                             'lat' => $lat,
                             'lng' => $lng,
-                            'created_at' => now(),
-                            'updated_at' => now(),
+                            'created_at' => null,
+                            'updated_at' => null,
                         ];
                     } elseif (strlen($cleanPostcode) < 6 && !DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists()) {
                         $outcodesToInsert[] = [
                             'outcode' => $cleanPostcode,
                             'lat' => $lat,
                             'lng' => $lng,
-                            'created_at' => now(),
-                            'updated_at' => now(),
+                            'created_at' => null,
+                            'updated_at' => null,
                         ];
                     }
 
@@ -3127,18 +3114,44 @@ class ImportController extends Controller
                     continue; // Skip incomplete row
                 }
 
-                try {
-                    $createdAt = !empty($row['created_at'])
-                        ? Carbon::createFromFormat('m/d/Y H:i', $row['created_at'])->format('Y-m-d H:i:s')
-                        : now();
+                // Robust date parsing: try multiple formats, fallback to parse, then to now()
+                $parseFlexibleDate = function ($value) {
+                    $value = trim((string)($value ?? ''));
+                    if ($value === '') return null;
 
-                    $updatedAt = !empty($row['updated_at'])
-                        ? Carbon::createFromFormat('m/d/Y H:i', $row['updated_at'])->format('Y-m-d H:i:s')
-                        : now();
-                } catch (\Exception $e) {
-                    Log::channel('import')->error('Date format error: ' . $e->getMessage());
-                    continue; // Skip row with bad date
-                }
+                    $formats = [
+                        'm/d/Y H:i',
+                        'd/m/Y H:i',
+                        'Y-m-d H:i:s',
+                        'Y-m-d H:i',
+                        'd-m-Y H:i',
+                        'm-d-Y H:i',
+                        'd/m/Y',
+                        'm/d/Y',
+                        'Y-m-d'
+                    ];
+
+                    foreach ($formats as $fmt) {
+                        try {
+                            $dt = Carbon::createFromFormat($fmt, $value);
+                            if ($dt) return $dt->format('Y-m-d H:i:s');
+                        } catch (\Exception $e) {
+                            // try next
+                        }
+                    }
+
+                    // Last resort, try Carbon::parse
+                    try {
+                        $dt = Carbon::parse($value);
+                        return $dt->format('Y-m-d H:i:s');
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                };
+
+                // Do NOT default to current date; allow null if parsing fails
+                $createdAt = $parseFlexibleDate($row['created_at'] ?? null);
+                $updatedAt = $parseFlexibleDate($row['updated_at'] ?? null);
 
                 try {
                     DB::table('users')->updateOrInsert(
@@ -3254,8 +3267,8 @@ class ImportController extends Controller
                     try {
                         $date = !empty($row['date'])
                             ? Carbon::parse($row['date'])->format('Y-m-d')
-                            : now()->format('Y-m-d');
-                        $time = !empty($row['time']) ? Carbon::createFromFormat('H:i:s', $row['time'])->format('H:i:s') : now()->format('H:i:s');
+                            : null;
+                        $time = !empty($row['time']) ? Carbon::createFromFormat('H:i:s', $row['time'])->format('H:i:s') : null;
                     } catch (\Exception $e) {
                         Log::channel('import')->warning("Row {$rowIndex}: Invalid date format - {$e->getMessage()}");
                     }
@@ -3292,10 +3305,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -3361,7 +3374,6 @@ class ImportController extends Controller
                         'updated_at' => $updatedAt,
                     ];
                     $processedData[] = $processedRow;
-
                 } catch (\Throwable $e) {
                     $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
                     Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
@@ -3397,14 +3409,14 @@ class ImportController extends Controller
                         }
                     });
 
-                  Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
                     Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
-             // Cleanup
+            // Cleanup
             if (file_exists($filePath)) {
                 unlink($filePath);
                 Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
@@ -3584,10 +3596,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -3680,7 +3692,6 @@ class ImportController extends Controller
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
-
                             } catch (\Exception $e) {
 
                                 Log::channel('import')->error("Failed to save row " . ($index + 2) . ": " . $e->getMessage());
@@ -3692,7 +3703,6 @@ class ImportController extends Controller
                             }
                         }
                     });
-
                 } catch (\Exception $e) {
                     Log::channel('import')->error("Transaction failed for chunk: " . $e->getMessage());
                 }
@@ -3867,10 +3877,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -4137,10 +4147,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -4301,8 +4311,8 @@ class ImportController extends Controller
                 }
 
                 // Normalize dates
-                $normalizeDate = fn($value) => ($value && strtolower($value) != 'null') 
-                    ? Carbon::parse($value)->format('Y-m-d H:i:s') 
+                $normalizeDate = fn($value) => ($value && strtolower($value) != 'null')
+                    ? Carbon::parse($value)->format('Y-m-d H:i:s')
                     : null;
 
                 $createdAt = $normalizeDate($row['created_at']);
@@ -4340,7 +4350,6 @@ class ImportController extends Controller
             'failed_details' => $failedRows,
         ]);
     }
-
     public function crmNotesImport(Request $request)
     {
         $request->validate([
@@ -4365,9 +4374,9 @@ class ImportController extends Controller
 
         ini_set('max_execution_time', 10000);
         ini_set('memory_limit', '-1');
-        
+
         try {
-             $startTime = microtime(true);
+            $startTime = microtime(true);
             Log::channel('import')->info('🔹 [crm notes Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
@@ -4411,8 +4420,8 @@ class ImportController extends Controller
             foreach ($records as $row) {
                 $rowIndex++;
 
-                try{
-                     // Skip empty rows
+                try {
+                    // Skip empty rows
                     if (empty(array_filter($row))) {
                         Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
                         continue;
@@ -4464,10 +4473,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -4540,7 +4549,7 @@ class ImportController extends Controller
             Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
 
             // Insert rows in batches
-             foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
+            foreach (array_chunk($processedData, 100) as $chunkIndex => $chunk) {
                 try {
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
@@ -4554,14 +4563,14 @@ class ImportController extends Controller
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
                                 }
                             } catch (\Exception $e) {
-                               Log::channel('import')->error("Row : DB insert/update failed for {$row['id']} - {$e->getMessage()}");
+                                Log::channel('import')->error("Row : DB insert/update failed for {$row['id']} - {$e->getMessage()}");
                                 $failedRows[] = ['row' => $index + 2, 'error' => $e->getMessage()];
                             }
                         }
                     });
                     Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Exception $e) {
-                     Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
 
@@ -4591,7 +4600,7 @@ class ImportController extends Controller
                     'duration_seconds' => $duration,
                 ],
             ], 200);
-         } catch (\Exception $e) {
+        } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
                 Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
@@ -4745,10 +4754,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -5007,10 +5016,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -5062,13 +5071,13 @@ class ImportController extends Controller
 
                 /** paid status */
                 $status = $row['status'];
-                if($status == 'active'){
+                if ($status == 'active') {
                     $statusVal = '1';
-                }elseif($status == 'paid'){
+                } elseif ($status == 'paid') {
                     $statusVal = '2';
-                }elseif($status == 'open'){
+                } elseif ($status == 'open') {
                     $statusVal = '3';
-                }else if($status == 'disable'){
+                } else if ($status == 'disable') {
                     $statusVal = '0';
                 }
 
@@ -5280,10 +5289,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -5454,7 +5463,7 @@ class ImportController extends Controller
             $headers = $csv->getHeader();
             $records = $csv->getRecords();
             $expectedColumnCount = count($headers);
-            
+
             // Count total rows
             $totalRows = iterator_count($records);
             Log::channel('import')->info("📊 Total interview records in CSV: {$totalRows}");
@@ -5510,10 +5519,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
                         foreach ($formats as $fmt) {
@@ -5727,10 +5736,10 @@ class ImportController extends Controller
                             'd/m/Y H:i',
                             'd/m/Y H:i:s',
                             'd/m/Y',
-                            'j F Y', 
-                            'j F Y H:i', 
+                            'j F Y',
+                            'j F Y H:i',
                             'j F Y g:i A',
-                            'd F Y', 
+                            'd F Y',
                             'd F Y g:i A'
                         ];
 
@@ -6016,10 +6025,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -6278,10 +6287,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -6517,7 +6526,7 @@ class ImportController extends Controller
                     return $value;
                 }, $row);
 
-                 // Date preprocessing
+                // Date preprocessing
                 $preprocessDate = function ($dateString, $field, $rowIndex) {
                     if (empty($dateString) || !is_string($dateString)) {
                         return null;
@@ -6545,10 +6554,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -6951,7 +6960,7 @@ class ImportController extends Controller
                     return $value;
                 }, $row);
 
-                 // Date preprocessing
+                // Date preprocessing
                 $preprocessDate = function ($dateString, $field, $rowIndex) {
                     if (empty($dateString) || !is_string($dateString)) {
                         return null;
@@ -6979,10 +6988,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
@@ -7240,10 +7249,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -7495,10 +7504,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
                     foreach ($formats as $format) {
@@ -7766,10 +7775,10 @@ class ImportController extends Controller
                         'd/m/Y H:i',
                         'd/m/Y H:i:s',
                         'd/m/Y',
-                        'j F Y', 
-                        'j F Y H:i', 
+                        'j F Y',
+                        'j F Y H:i',
                         'j F Y g:i A',
-                        'd F Y', 
+                        'd F Y',
                         'd F Y g:i A'
                     ];
 
