@@ -2555,11 +2555,11 @@ class ImportController extends Controller
                         ? strtolower($row['applicant_email'])
                         : null;
 
-                    // Normalize paid_timestamp
+                    // Normalize paid_timestamp — only consider it when paid_status is not 'pending'
                     $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
                     $paid_timestamp = null;
 
-                    if ($rawPaid !== '' && !preg_match('/^(null|n\/a|na|pending|active|none|-|\s*)$/i', $rawPaid)) {
+                    if ($paid_status !== 'pending' && $rawPaid !== '' && !preg_match('/^(null|n\/a|na|none|-|\s*)$/i', $rawPaid)) {
                         try {
                             $ts = strtotime($rawPaid);
                             if ($ts !== false && $ts > 0) {
@@ -2568,6 +2568,9 @@ class ImportController extends Controller
                         } catch (\Throwable $e) {
                             Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
                         }
+                    } else {
+                        // Ensure pending status does not carry a timestamp
+                        $paid_timestamp = null;
                     }
 
                     Log::channel('import')->debug("Raw created_at: {$row['created_at']}");
@@ -2663,15 +2666,37 @@ class ImportController extends Controller
                                 unset($row['id']);
                                 $filtered = $row; // trust your parsed values
                                 if ($id) {
-                                    Applicant::where('id', $id)->exists()
-                                        ? Applicant::where('id', $id)->update($filtered)
-                                        : Applicant::create(array_merge(['id' => $id], $filtered));
+                                    // Try to find existing applicant
+                                    $app = Applicant::find($id);
+                                    if ($app) {
+                                        // Preserve provided timestamps: disable automatic timestamps
+                                        $app->timestamps = false;
+                                        $app->fill($filtered);
+                                        $app->save();
+                                    } else {
+                                        // Create new with explicit id and provided timestamps
+                                        $app = new Applicant(array_merge(['id' => $id], $filtered));
+                                        $app->timestamps = false;
+                                        $app->save();
+                                    }
 
-                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})");
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})", [
+                                        'created_at' => $filtered['created_at'] ?? ($app->created_at ?? null),
+                                        'updated_at' => $filtered['updated_at'] ?? ($app->updated_at ?? null),
+                                    ]);
                                 } else {
-                                    $newId = Applicant::create($filtered)->id;
-                                    Applicant::where('id', $newId)->update(['applicant_uid' => md5($newId)]);
-                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})");
+                                    // Create new applicant without auto timestamps so created_at/updated_at from CSV are preserved
+                                    $app = new Applicant($filtered);
+                                    $app->timestamps = false;
+                                    $app->save();
+                                    $newId = $app->id;
+                                    $app->timestamps = false;
+                                    $app->applicant_uid = md5($newId);
+                                    $app->save();
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})", [
+                                        'created_at' => $filtered['created_at'] ?? ($app->created_at ?? null),
+                                        'updated_at' => $filtered['updated_at'] ?? ($app->updated_at ?? null),
+                                    ]);
                                 }
                                 $successfulRows++;
                             } catch (\Throwable $e) {
