@@ -59,8 +59,9 @@
         });
     }
 
-    // Function to fetch unread notifications
-    let unreadCheckInterval = null;
+    // Track if the first notification has been checked
+let firstNotificationChecked = false;
+let unreadCheckInterval = null;
 
 function fetchUnreadNotifications() {
     $.ajax({
@@ -114,8 +115,6 @@ function fetchUnreadNotifications() {
             // ----------------------------
             // 🔔 SWEETALERT LOGIC
             // ----------------------------
-            let firstNotificationChecked = false; // Track if the first notification has been checked
-
             if (response.unread_count > 0) {
                 // Delay the alert for the first time only
                 if (!firstNotificationChecked) {
@@ -141,6 +140,7 @@ function fetchUnreadNotifications() {
         }
     });
 }
+
 
 
     function showNotificationBanner() {
