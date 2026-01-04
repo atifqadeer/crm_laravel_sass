@@ -163,11 +163,24 @@ function showSwalAlert(notification) {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = '/notifications';
+            // Mark notifications as read via AJAX call
+            $.ajax({
+                url: '/notifications/mark-as-read',
+                method: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content')  // Add CSRF token for security
+                },
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = '/notifications';
+                    } else {
+                        console.log('Error marking notifications as read');
+                    }
+                }
+            });
         }
     });
 }
-
 
 </script>
 @yield('script-bottom')

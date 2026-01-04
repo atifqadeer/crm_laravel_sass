@@ -841,6 +841,16 @@ class DashboardController extends Controller
                 ->make(true);
         }
     }
+    public function markNotificationsAsRead(Request $request)
+    {
+        // Mark notifications as read
+        Notification::where('is_read', 0)
+            ->where('user_id', Auth::id())
+            ->update(['is_read' => 1]);
+
+        return response()->json(['success' => true]);
+    }
+
     // public function getStats(Request $request)
     // {
     //     // Example: You can replace with your actual queries
