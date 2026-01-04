@@ -59,7 +59,7 @@
         });
     }
 
-    // Track if the first notification has been checked
+   // Global variable to track if the first notification has been checked
 let firstNotificationChecked = false;
 let unreadCheckInterval = null;
 
@@ -88,6 +88,7 @@ function fetchUnreadNotifications() {
             } else {
                 showNotificationBanner();
 
+                // Loop through notifications and display them
                 response.notifications.forEach(notification => {
                     const html = `
                         <a href="/notifications" class="dropdown-item py-3 border-bottom text-wrap"
@@ -116,7 +117,7 @@ function fetchUnreadNotifications() {
             // 🔔 SWEETALERT LOGIC
             // ----------------------------
             if (response.unread_count > 0) {
-                // Delay the alert for the first time only
+                // Show alert with delay only the first time
                 if (!firstNotificationChecked) {
                     firstNotificationChecked = true;
                     setTimeout(() => {
@@ -126,14 +127,13 @@ function fetchUnreadNotifications() {
                     showSwalAlert(response.notifications[0]);
                 }
 
-                // Start interval ONLY ONCE
+                // Start interval ONLY ONCE for fetching unread notifications
                 if (!unreadCheckInterval) {
                     unreadCheckInterval = setInterval(() => {
                         fetchUnreadNotifications();
                     }, 2 * 60 * 1000); // Check every 2 minutes
                 }
             }
-
         },
         error: function (xhr) {
             console.log('AJAX error:', xhr.responseText);
@@ -141,34 +141,33 @@ function fetchUnreadNotifications() {
     });
 }
 
+function showNotificationBanner() {
+    // Show the notification banner
+    $('#notification-banner').fadeIn();
 
+    // Hide the banner after 5 seconds
+    setTimeout(function () {
+        $('#notification-banner').fadeOut();
+    }, 5000);
+}
 
-    function showNotificationBanner() {
-        // Show the banner
-        $('#notification-banner').fadeIn();
+function showSwalAlert(notification) {
+    Swal.fire({
+        title: 'New Notification!',
+        text: notification.message,
+        icon: 'info',
+        showCancelButton: false,
+        confirmButtonText: 'Read Notifications',
+        customClass: {
+            confirmButton: 'btn bg-danger text-white mt-2'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/notifications';
+        }
+    });
+}
 
-        // Hide the banner after 5 seconds
-        setTimeout(function() {
-            $('#notification-banner').fadeOut();
-        }, 5000);
-    }
-
-    function showSwalAlert(notification) {
-        Swal.fire({
-            title: 'New Notification!',
-            text: notification.message,
-            icon: 'info',
-            showCancelButton: false,
-            confirmButtonText: 'Read Notifications',
-            customClass: {
-                confirmButton: 'btn bg-danger text-white mt-2'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = '/notifications';
-            }
-        });
-    }
 
 </script>
 @yield('script-bottom')
