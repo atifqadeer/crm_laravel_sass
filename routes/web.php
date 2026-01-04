@@ -59,6 +59,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/statistics/chart-data', [DashboardController::class, 'getChartData']);
     
     Route::get('/notifications', [DashboardController::class, 'notificationsIndex'])->name('notifications.index');
+    Route::post('/notifications/mark-as-read', [DashboardController::class, 'markNotificationsAsRead']);
     Route::get('getUserNotifications', [DashboardController::class, 'getUserNotifications'])->name('getUserNotifications');
     
     Route::get('/unread-notifications', [DashboardController::class, 'getUnreadNotifications'])->name('unread-notifications');
