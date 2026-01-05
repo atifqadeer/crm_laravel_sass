@@ -431,7 +431,6 @@ class ApplicantController extends Controller
             }
         }
 
-
         // Filter by status if it's not empty
         switch ($statusFilter) {
             // case 'active':

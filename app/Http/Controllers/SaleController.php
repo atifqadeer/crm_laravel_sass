@@ -4610,6 +4610,7 @@ class SaleController extends Controller
                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%");
 
@@ -4708,18 +4709,22 @@ class SaleController extends Controller
                     ';
                 })
                 ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if($applicant->applicant_landline){
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+                    $str = '';
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
-                    }else{
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    return $strng;
+                    return $str;
                 })
                 ->addColumn('created_at', function ($applicant) {
                     return $applicant->formatted_created_at; // Using accessor

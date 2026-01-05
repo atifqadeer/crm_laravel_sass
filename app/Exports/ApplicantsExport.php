@@ -100,6 +100,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     'applicants.applicant_email_secondary',
                     'applicants.applicant_postcode',
                     'applicants.applicant_phone',
+                    'applicants.applicant_phone_secondary',
                     'applicants.applicant_landline',
                     'job_categories.name as job_category',
                     'applicants.job_type',
@@ -117,6 +118,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'applicant_email_secondary' => $item->applicant_email_secondary,
                             'applicant_postcode' => strtoupper($item->applicant_postcode),
                             'applicant_phone' => $item->applicant_phone,
+                            'applicant_phone_secondary' => $item->applicant_phone_secondary,
                             'applicant_landline' => $item->applicant_landline,
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
@@ -195,6 +197,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_email_secondary' => $item->applicant_email_secondary,
                         'applicant_postcode' => strtoupper($item->applicant_postcode),
                         'applicant_phone' => $item->applicant_phone,
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
                         'applicant_landline' => $item->applicant_landline,
                         'job_category' => strtoupper($item->job_category_name), // Correct field
                         'job_type' => strtoupper($item->job_type),
@@ -234,6 +237,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.applicant_email_secondary',
                         'applicants.applicant_postcode',
                         'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
                         'applicants.applicant_landline',
                         'job_categories.name as job_category',
                         'applicants.job_type as job_type',
@@ -316,6 +320,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_email_secondary' => $item->applicant_email_secondary,
                         'applicant_postcode' => strtoupper($item->applicant_postcode),
                         'applicant_phone' => $item->applicant_phone,
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
                         'applicant_landline' => $item->applicant_landline,
                         'job_category' => ucwords($item->job_category),
                         'job_type' => ucwords($item->job_type),
@@ -340,6 +345,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.applicant_email_secondary',
                         'applicants.applicant_postcode',
                         'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
                         'applicants.applicant_landline',
                         'job_categories.name as job_category',
                         'applicants.job_type as job_type',
@@ -369,6 +375,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'applicant_email_secondary' => $item->applicant_email_secondary,
                             'applicant_postcode' => strtoupper($item->applicant_postcode),
                             'applicant_phone' => $item->applicant_phone,
+                            'applicant_phone_secondary' => $item->applicant_phone,
                             'applicant_landline' => $item->applicant_landline,
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
@@ -391,6 +398,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.applicant_email_secondary',
                         'applicants.applicant_postcode',
                         'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
                         'applicants.applicant_landline',
                         'job_categories.name as job_category',
                         'applicants.job_type as job_type',
@@ -426,6 +434,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'applicant_email_secondary' => $item->applicant_email_secondary,
                             'applicant_postcode' => strtoupper($item->applicant_postcode),
                             'applicant_phone' => $item->applicant_phone,
+                            'applicant_phone_secondary' => $item->applicant_phone_secondary,
                             'applicant_landline' => $item->applicant_landline,
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
@@ -471,6 +480,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.applicant_email_secondary',
                         'applicants.applicant_postcode',
                         'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
                         'applicants.applicant_landline',
                         'applicants.job_type',
                         'applicants.applicant_experience',
@@ -503,6 +513,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'applicant_email_secondary' => $item->applicant_email_secondary ?: '-',
                             'applicant_postcode' => strtoupper($item->applicant_postcode ?? '-'),
                             'applicant_phone' => $item->applicant_phone ?: '-',
+                            'applicant_phone_secondary' => $item->applicant_phone_secondary ?: '-',
                             'applicant_landline' => $item->applicant_landline ?: '-',
                             'job_category' => strtoupper($item->job_category_name ?? '-'),
                             'job_type' => strtoupper($item->job_type ?? '-'),
@@ -528,17 +539,17 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'noLatLong':
                 return ['Created At', 'Applicant Name', 'Postcode', 'Latitude', 'Longitude', 'Job Category', 'Job Type', 'Job Title'];
             case 'all':
-                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'allRejected':
-                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
-                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
             case 'allPaid':
-                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience', 'Notes'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience', 'Notes'];
             case 'allNoJob':
-                return ['Date', 'Agent', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Experience', 'Notes'];
+                return ['Date', 'Agent', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Experience', 'Notes'];
             default:
                 return [];
         }
