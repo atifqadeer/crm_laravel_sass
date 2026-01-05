@@ -970,50 +970,119 @@ class ImportController extends Controller
             Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
             // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-            $normalizeDate = function ($dateString) use (&$rowIndex) {
-                if (empty($dateString)) {
-                    return null; // Handle empty or missing date strings gracefully
-                }
+           $normalizeDate = function ($dateString) use ($rowIndex) {
+    if ($dateString === null) {
+        return null;
+    }
 
-                // If the time does not include seconds (H:i), append ":00" for seconds.
-                // But only when the string does NOT already contain seconds (HH:MM:SS).
-                if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
-                    // already has seconds — do nothing
-                } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
-                    $dateString .= ":00";  // Append ":00" for seconds
-                }
+    $dateString = trim((string)$dateString);
 
-                // Define potential date formats (including m/d/Y H:i and others)
-                $formats = [
-                    'Y-m-d H:i:s',    // Full date with time and seconds
-                    'Y-m-d H:i',      // Date with hours and minutes
-                    'Y-m-d',          // Date only
-                    'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
-                    'm/d/Y H:i:s',    // m/d/Y with seconds
-                    'm/d/Y',          // Date only in m/d/Y
-                    'd/m/Y H:i',      // d/m/Y with time
-                    'd/m/Y H:i:s',    // d/m/Y with seconds
-                    'd/m/Y',          // Date only in d/m/Y
-                    'j F Y',          // Full date with month name
-                    'j F Y H:i',      // Full date with month and time
-                    'j F Y g:i A',    // Full date with month and 12-hour time
-                    'd F Y',          // Full date with day and month
-                    'd F Y g:i A'     // Full date with day, month, and 12-hour time
-                ];
+    if ($dateString === '' || strtolower($dateString) === 'null') {
+        return null;
+    }
 
-                foreach ($formats as $format) {
-                    try {
-                        // Attempt to create a Carbon date object from the string
-                        $dt = Carbon::createFromFormat($format, $dateString);
-                        return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
-                    } catch (\Exception $e) {
-                        // Continue to next format if it fails
-                    }
-                }
+    // ---------------------------
+    // 1️⃣ Excel numeric dates
+    // ---------------------------
+    // Excel stores dates as days since 1899-12-30
+    if (is_numeric($dateString) && strlen($dateString) <= 5) {
+        try {
+            return Carbon::createFromTimestamp(
+                ((int)$dateString - 25569) * 86400
+            )->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {}
+    }
 
-                Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
-                return null; // Return null if no valid format found
-            };
+    // ---------------------------
+    // 2️⃣ Unix timestamps
+    // ---------------------------
+    if (is_numeric($dateString)) {
+        try {
+            // milliseconds
+            if (strlen($dateString) === 13) {
+                return Carbon::createFromTimestampMs((int)$dateString)
+                    ->format('Y-m-d H:i:s');
+            }
+
+            // seconds
+            if (strlen($dateString) === 10) {
+                return Carbon::createFromTimestamp((int)$dateString)
+                    ->format('Y-m-d H:i:s');
+            }
+        } catch (\Throwable $e) {}
+    }
+
+    // ---------------------------
+    // 3️⃣ Normalize separators
+    // ---------------------------
+    $dateString = str_replace(['.', '-'], '/', $dateString);
+
+    // ---------------------------
+    // 4️⃣ Append seconds if missing
+    // ---------------------------
+    if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+        $dateString .= ':00';
+    }
+
+    // ---------------------------
+    // 5️⃣ Supported formats
+    // ---------------------------
+    $formats = [
+
+        // ISO / DB
+        'Y-m-d H:i:s',
+        'Y-m-d H:i',
+        'Y-m-d',
+
+        // Slash formats
+        'm/d/Y H:i:s',
+        'm/d/Y H:i',
+        'm/d/Y',
+
+        'd/m/Y H:i:s',
+        'd/m/Y H:i',
+        'd/m/Y',
+
+        // 12-hour clock
+        'm/d/Y g:i A',
+        'd/m/Y g:i A',
+        'Y-m-d g:i A',
+
+        // Month names
+        'd M Y',
+        'd M Y H:i',
+        'd M Y H:i:s',
+        'd F Y',
+        'd F Y H:i',
+        'd F Y H:i:s',
+
+        // Text-heavy exports
+        'j F Y',
+        'j F Y H:i',
+        'j F Y g:i A',
+    ];
+
+    foreach ($formats as $format) {
+        try {
+            return Carbon::createFromFormat($format, $dateString)
+                ->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {}
+    }
+
+    // ---------------------------
+    // 6️⃣ Last-resort parser
+    // ---------------------------
+    try {
+        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
+    } catch (\Throwable $e) {
+        Log::channel('import')->warning(
+            "Row {$rowIndex}: Failed to normalize datetime '{$dateString}'"
+        );
+    }
+
+    return null;
+};
+
 
             foreach ($records as $row) {
                 $rowIndex++;
@@ -1110,7 +1179,7 @@ class ImportController extends Controller
                     $requested_job_category = strtolower(trim($row['job_category'] ?? ''));
                     $job_title_prof = strtolower(trim($row['job_title_prof'] ?? ''));
 
-                    $specialists = [
+                $specialists = [
                         [
                             'id' => 1,
                             'specialist_title' => 'nurse specialist',
@@ -2439,32 +2508,27 @@ class ImportController extends Controller
 
                     // Normalize phone number to UK format
                     $normalizePhone = function ($number) {
+                        if ($number === null) {
+                            return null;
+                        }
+
                         $number = trim((string)$number);
 
-                        // If the number starts with +44, change it to start with 0
+                        if ($number === '' || strtolower($number) === 'null') {
+                            return null;
+                        }
+
+                        // Replace +44 with leading 0
                         if (str_starts_with($number, '+44')) {
                             $number = '0' . substr($number, 3);
                         }
 
-                        // Remove all non-digit characters
+                        // Remove non-digits
                         $digits = preg_replace('/\D+/', '', $number);
 
-                        if (strlen($number) < 11 || strlen($number) > 10) {
-                            $digits = '0' . $number;
-                        }
-
-                        // If no digits or invalid length (UK numbers should be 11 digits long), return null
-                        if (empty($digits) || strlen($digits) != 11) {
-                            return '0'; // Return null if the number is not valid
-                        }
-
-                        if (strlen($digits) > 11) {
-                            $digits = substr($digits, 0, 11);
-                        }
-
-                        // Ensure the number starts with '0' (this step is redundant if the above check passes)
-                        if ($digits[0] !== '0') {
-                            $digits = '0' . $digits;
+                        // UK numbers must be exactly 11 digits
+                        if (strlen($digits) !== 11 || $digits[0] !== '0') {
+                            return null;
                         }
 
                         return $digits;
