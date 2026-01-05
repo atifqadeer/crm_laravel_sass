@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use Horsefly\Applicant;
+use Horsefly\JobTitle;
 use Horsefly\Sale;
 use App\Traits\HasDistanceCalculation;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -124,50 +125,86 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     });
 
             case 'withinRadius':
-                $model = $this->model_type::find($this->model_id);
-                $lat = $model->lat ?? 0;
-                $lon = $model->lng ?? 0;
-                $radius = $this->radius ?? 15; // Default radius of 10 km if not provided
+                $sale = $this->model_type::find($this->model_id);
+                $lat = $sale->lat;
+                $lon = $sale->lng;
+                $sale_id = $this->model_id;
+                $radius = $this->radius; // Default radius if not provided
 
-                $query = Applicant::query()
+                // Start building the query for Applicants
+                $model = Applicant::query()
+                    ->with('cv_notes', 'pivotSales', 'history_request_nojob') // Eager load related data
                     ->select([
-                        'applicants.id',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_landline',
-                        'job_categories.name as job_category',
-                        'applicants.job_type',
-                        'job_titles.name as job_title',
-                        'applicants.created_at',
+                        'applicants.*',
+                        'job_titles.name as job_title_name',
+                        'job_categories.name as job_category_name',
+                        'job_sources.name as job_source_name',
                         DB::raw("(ACOS(SIN($lat * PI() / 180) * SIN(lat * PI() / 180) + 
-                                COS($lat * PI() / 180) * COS(lat * PI() / 180) * 
-                                COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance")
+                                    COS($lat * PI() / 180) * COS(lat * PI() / 180) * 
+                                    COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance")
                     ])
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                    ->where('applicants.status', 1)
+                    ->where('is_in_nurse_home', false)
+                    ->having('distance', '<', $radius) // Filter by distance
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->where('applicants.status', '1')
-                    ->where('applicants.job_title_id', $model->job_title_id)
-                    ->having('distance', '<', $radius)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email,
-                            'applicant_email_secondary' => $item->applicant_email_secondary,
-                            'applicant_postcode' => strtoupper($item->applicant_postcode),
-                            'applicant_phone' => $item->applicant_phone,
-                            'applicant_landline' => $item->applicant_landline,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title)
-                        ];
-                    });
+                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
+                    ->selectRaw("
+                        CASE
+                            WHEN applicants.paid_status = 'close' THEN 1
+                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 1) THEN 2
+                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0 AND cv_notes.sale_id = ?) THEN 3
+                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0) THEN 4
+                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 2 AND cv_notes.sale_id = ? AND applicants.paid_status = 'open') THEN 5
+                            ELSE 6
+                        END AS paid_status_order
+                    ", [$sale_id, $sale_id]);
 
-                return $query;
+                // Fetch the job title based on the sale's job title ID
+                $jobTitle = JobTitle::find($sale->job_title_id);
+
+                // Decode related titles safely, ensure it is an array and normalize
+                $relatedTitles = is_array($jobTitle->related_titles) 
+                    ? $jobTitle->related_titles 
+                    : (empty($jobTitle->related_titles) ? [] : json_decode($jobTitle->related_titles, true));
+
+                // Normalize the titles (lowercase all) and add main title
+                $titles = collect($relatedTitles)
+                    ->map(fn($item) => strtolower(trim($item)))
+                    ->push(strtolower(trim($jobTitle->name))) // Add the main job title as well
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                // Fetch job title IDs from the normalized titles
+                $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
+
+                // Filter applicants by the job title IDs
+                $model->whereIn('applicants.job_title_id', $jobTitleIds);
+
+                // Fetch all applicants without pagination
+                $applicants = $model->get(); // No pagination here, we are getting all the results
+
+                // Map the results into the desired format
+                $finalResults = $applicants->map(function ($item) {
+                    return [
+                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email,
+                        'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'applicant_postcode' => strtoupper($item->applicant_postcode),
+                        'applicant_phone' => $item->applicant_phone,
+                        'applicant_landline' => $item->applicant_landline,
+                        'job_category' => strtoupper($item->job_category_name), // Correct field
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title_name), // Correct field
+                    ];
+                });
+
+                // Return the final result without pagination
+                return $finalResults;
+
             case 'allRejected':
                 $radius = 15; // Default radius of 10 km if not provided
 
