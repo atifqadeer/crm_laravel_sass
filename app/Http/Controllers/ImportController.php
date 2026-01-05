@@ -2849,59 +2849,61 @@ class ImportController extends Controller
 
         // Date normalizer (stopped timestamp conversion)
         $normalizeDate = function ($value) {
-            $value = trim((string)$value);
-            if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
+    $value = trim((string)$value);
+    if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
 
-            // Add seconds if missing (HH:MM -> HH:MM:00)
-            if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
-                $value .= ':00';
+    // Add seconds if missing (HH:MM -> HH:MM:00)
+    if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
+        $value .= ':00';
+    }
+
+    // Try different formats without converting to timestamp
+    $formats = [
+        'Y-m-d H:i:s',
+        'Y-m-d H:i',
+        'Y-m-d',
+        'm/d/Y H:i:s',
+        'm/d/Y H:i',
+        'm/d/Y',
+        'd/m/Y H:i:s',
+        'd/m/Y H:i',
+        'd/m/Y',
+        'd-m-Y H:i:s',
+        'd-m-Y H:i',
+        'd-m-Y',
+        'Y/m/d H:i:s',
+        'Y/m/d H:i',
+        'Y/m/d',
+        'm-d-Y H:i:s',
+        'm-d-Y H:i',
+        'm-d-Y',
+        'Y.m.d H:i:s',
+        'Y.m.d H:i',
+        'Y.m.d',
+        'd.m.Y H:i:s',
+        'd.m.Y H:i',
+        'd.m.Y',
+        'Y-m-d',
+        'm/d/Y',
+        'd/m/Y'
+    ];
+
+    // Attempt to parse the value without converting to a timestamp
+    foreach ($formats as $fmt) {
+        try {
+            // Instead of formatting to timestamp, just return the original value
+            if ($parsed = Carbon::createFromFormat($fmt, $value)) {
+                return $parsed->format('Y-m-d H:i:s'); // Ensure the format is MySQL-compatible
             }
+        } catch (\Throwable $e) {
+            // Catch any exception and continue trying other formats
+        }
+    }
 
-            // Try different formats without converting to timestamp
-            $formats = [
-                'Y-m-d H:i:s',
-                'Y-m-d H:i',
-                'Y-m-d',
-                'm/d/Y H:i:s',
-                'm/d/Y H:i',
-                'm/d/Y',
-                'd/m/Y H:i:s',
-                'd/m/Y H:i',
-                'd/m/Y',
-                'd-m-Y H:i:s',
-                'd-m-Y H:i',
-                'd-m-Y',
-                'Y/m/d H:i:s',
-                'Y/m/d H:i',
-                'Y/m/d',
-                'm-d-Y H:i:s',
-                'm-d-Y H:i',
-                'm-d-Y',
-                'Y.m.d H:i:s',
-                'Y.m.d H:i',
-                'Y.m.d',
-                'd.m.Y H:i:s',
-                'd.m.Y H:i',
-                'd.m.Y',
-                'Y-m-d',
-                'm/d/Y',
-                'd/m/Y'
-            ];
+    // Fallback: Return the value as-is if it can't be parsed (consider handling this case)
+    return $value;
+};
 
-            // Attempt to parse the value without converting to a timestamp
-            foreach ($formats as $fmt) {
-                try {
-                    // Instead of formatting to timestamp, just return the original value
-                    if ($parsed = Carbon::createFromFormat($fmt, $value)) {
-                        return $parsed->format($fmt); // Return the parsed value in original format
-                    }
-                } catch (\Throwable $e) {
-                }
-            }
-
-            // Fallback: Return the value as-is if it can't be parsed
-            return $value;
-        };
 
         $success = 0;
         $failed = [];
