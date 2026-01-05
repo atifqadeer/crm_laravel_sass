@@ -970,13 +970,16 @@ class ImportController extends Controller
             Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
             // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-            $normalizeDate = function ($dateString) {
+            $normalizeDate = function ($dateString) use (&$rowIndex) {
                 if (empty($dateString)) {
                     return null; // Handle empty or missing date strings gracefully
                 }
 
-                // If the time does not include seconds (H:m), append ":00" for seconds
-                if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+                // If the time does not include seconds (H:i), append ":00" for seconds.
+                // But only when the string does NOT already contain seconds (HH:MM:SS).
+                if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
+                    // already has seconds — do nothing
+                } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
                     $dateString .= ":00";  // Append ":00" for seconds
                 }
 
@@ -1008,7 +1011,7 @@ class ImportController extends Controller
                     }
                 }
 
-                Log::channel('import')->debug("Row : All formats failed for => '{$dateString}'");
+                Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
                 return null; // Return null if no valid format found
             };
 
@@ -4479,7 +4482,7 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
@@ -4516,7 +4519,7 @@ class ImportController extends Controller
                         try {
                             return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                         } catch (\Exception $e) {
-                            Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -4543,7 +4546,7 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
@@ -4760,7 +4763,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -4797,7 +4800,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -4824,7 +4827,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -5022,7 +5025,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -5059,7 +5062,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -5086,7 +5089,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -5295,7 +5298,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -5332,7 +5335,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -5359,7 +5362,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6293,7 +6296,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -6330,7 +6333,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6357,7 +6360,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6560,7 +6563,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -6597,7 +6600,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6624,7 +6627,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -6994,7 +6997,7 @@ class ImportController extends Controller
                     // Fix malformed numeric formats (e.g., 1122024 1230)
                     if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                         $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                        Log::debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
+                        Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                         return $fixedDate;
                     }
 
@@ -7031,7 +7034,7 @@ class ImportController extends Controller
                     try {
                         return Carbon::parse($dateString)->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Final fallback failed for {$field}: {$e->getMessage()}");
                         return null;
                     }
                 };
@@ -7058,7 +7061,7 @@ class ImportController extends Controller
 
                         return $parsed;
                     } catch (\Exception $e) {
-                        Log::debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
+                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                         return null;
                     }
                 };
