@@ -2402,311 +2402,340 @@ class ImportController extends Controller
                         ],
                     ];
 
-                if (empty($job_title_prof) || $job_title_prof == 'null' || $job_title_prof == '') {
-                    if (!in_array($requested_job_title, ['nonnurse specialist', 'nurse specialist', 'non-nurse specialist'])) {
-                        $normalizedTitle = preg_replace('/[^a-z0-9]/', '', $requested_job_title);
-                        $job_title = JobTitle::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [$normalizedTitle])->first();
-                        $job_category = JobCategory::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [preg_replace('/[^a-z0-9]/', '', $requested_job_category)])->first();
+                    if (empty($job_title_prof) || $job_title_prof == 'null' || $job_title_prof == '') {
+                        if (!in_array($requested_job_title, ['nonnurse specialist', 'nurse specialist', 'non-nurse specialist'])) {
+                            $normalizedTitle = preg_replace('/[^a-z0-9]/', '', $requested_job_title);
+                            $job_title = JobTitle::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [$normalizedTitle])->first();
+                            $job_category = JobCategory::whereRaw("LOWER(REGEXP_REPLACE(name, '[^a-z0-9]', '')) = ?", [preg_replace('/[^a-z0-9]/', '', $requested_job_category)])->first();
 
-                        if ($job_title) {
-                            $job_category_id = $job_title->job_category_id;
-                            $job_title_id = $job_title->id;
-                            $job_type = $job_title->type ?? '';
-                        } elseif ($job_category) {
-                            $job_category_id = $job_category->id;
-                            Log::channel('import')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
-                        } else {
-                            Log::channel('import')->warning("Row {$rowIndex}: Job title and category not found: {$requested_job_title} / {$requested_job_category}");
-                        }
-                    }
-                } else {
-                    foreach ($specialists as $spec) {
-                        if ($spec['id'] == $job_title_prof) {
-                            $normalizedSpec = strtolower(trim($spec['specialist_prof']));
-                            $job_title = JobTitle::whereRaw('LOWER(name) = ?', [$normalizedSpec])->first();
                             if ($job_title) {
                                 $job_category_id = $job_title->job_category_id;
                                 $job_title_id = $job_title->id;
                                 $job_type = $job_title->type ?? '';
+                            } elseif ($job_category) {
+                                $job_category_id = $job_category->id;
+                                Log::channel('import')->warning("Row {$rowIndex}: Job title not found: {$requested_job_title}");
                             } else {
-                                Log::channel('import')->warning("Row {$rowIndex}: Job title not found for specialist id: {$job_title_prof}");
+                                Log::channel('import')->warning("Row {$rowIndex}: Job title and category not found: {$requested_job_title} / {$requested_job_category}");
                             }
-                            break;
                         }
-                    }
-                }
-
-                // Normalize phone number to UK format
-                $normalizePhone = function ($number) {
-                    if ($number === null) {
-                        return null;
-                    }
-
-                    $number = trim((string)$number);
-
-                    if ($number === '' || strtolower($number) === 'null') {
-                        return null;
-                    }
-
-                    // Replace +44 with leading 0
-                    if (str_starts_with($number, '+44')) {
-                        $number = '0' . substr($number, 3);
-                    }
-
-                    // Remove non-digits
-                    $digits = preg_replace('/\D+/', '', $number);
-
-                    // UK numbers must be exactly 11 digits
-                    if (strlen($digits) !== 11 || $digits[0] !== '0') {
-                        return null;
-                    }
-
-                    return $digits;
-                };
-
-                // --- Process phone numbers ---
-                $rawPhone = $row['applicant_phone'];
-
-                $phone = '0';
-
-                // Check if the phone number contains a '/' (in case it's a range or multiple numbers)
-                if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
-                    $parts = array_map('trim', explode('/', $rawPhone));
-                    $phone = $normalizePhone($parts[0] ?? ''); // Only process the first part
-                } else {
-                    $phone = $normalizePhone($rawPhone); // Normalize the whole phone number
-                }
-
-                $homePhone = $normalizePhone($row['applicant_homephone']);
-
-                // Default landline to null
-                $applicantLandline = null;
-
-                // Only assign if home phone is valid and has 10 or more digits (after removing non-digits)
-                if (!empty($homePhone) && strlen(preg_replace('/\D/', '', $homePhone)) >= 10) {
-                    $applicantLandline = $homePhone;
-                }
-
-                // Normalize boolean/enum fields
-                $normalizeBoolean = function ($value) {
-                    $value = strtolower(trim((string)($value ?? '')));
-                    return in_array($value, ['yes', '1', 'true'], true) ? 1 : 0;
-                };
-
-                $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'] ?? '')));
-
-                $is_crm_interview_attended = match ($crmInterviewInput) {
-                    'yes', '1', 'true'  => 1,
-                    'pending', '2'      => 2,
-                    'no', '0', 'false', '', 'null' => 0,
-                    default             => 0, // REQUIRED for safety
-                };
-
-                $rawStatus = trim((string)($row['paid_status'] ?? ''));
-
-                // Convert to lowercase for normalization
-                $normalizedStatus = strtolower($rawStatus);
-
-                // Allowed statuses
-                $allowedStatuses = ['pending', 'close', 'open'];
-
-                // Default to 'pending' if not valid
-                $paid_status = in_array($normalizedStatus, $allowedStatuses) ? $normalizedStatus : 'pending';
-
-                $have_nursing_home_experience = null;
-                $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
-
-                if ($input != '' && $input != 'null' && $input != null) {
-                    $have_nursing_home_experience = in_array($input, ['0', 'inactive', 'disabled', 'disable', 'no', 'false'], true) ? 0 : 1;
-                }
-
-                // Handle job source
-                $sourceRaw = $row['applicant_source'] ?? '';
-                $cleanedSource = is_string($sourceRaw) ? strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))) : '';
-                $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
-                if ($firstTwoWordsSource == 'total jobs') {
-                    $firstTwoWordsSource = 'total job';
-                } elseif ($firstTwoWordsSource == 'c.v library') {
-                    $firstTwoWordsSource = 'cv library';
-                }
-
-                $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
-                $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
-
-                // Normalize and handle active status
-                $rawStatus = trim((string)($row['status'] ?? ''));
-                $normalizedStatus = strtolower($rawStatus);
-
-                // Allowed statuses
-                $allowedStatuses = ['active', 'inactive', 'pending'];
-
-                // Normalize the status field
-                $status = match ($normalizedStatus) {
-                    'active', '1', 'yes', 'enabled' => 1, // 'active' mapped to 1
-                    'inactive', 'no', '0', 'disabled' => 0, // 'inactive' mapped to 0
-                    default => 1, // Default to 'active' (1) if status is not recognized
-                };
-
-                $applicant_email = isset($row['applicant_email']) &&
-                    !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
-                    ? strtolower($row['applicant_email'])
-                    : null;
-
-                // Normalize paid_timestamp — only consider it when paid_status is not 'pending'
-                $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
-                $paid_timestamp = null;
-
-                if ($paid_status !== 'pending' && $rawPaid !== '' && !preg_match('/^(null|n\/a|na|none|-|\s*)$/i', $rawPaid)) {
-                    try {
-                        $ts = strtotime($rawPaid);
-                        if ($ts !== false && $ts > 0) {
-                            $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
-                        }
-                    } catch (\Throwable $e) {
-                        Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
-                    }
-                } else {
-                    // Ensure pending status does not carry a timestamp
-                    $paid_timestamp = null;
-                }
-
-                Log::channel('import')->debug("Raw created_at: {$row['created_at']}");
-                Log::channel('import')->debug("Raw updated_at: {$row['updated_at']}");
-
-                // Normalize created_at
-                $createdAt = null;
-                if (!empty($row['created_at'])) {
-                    $createdAt = $normalizeDate($row['created_at']);
-                } else {
-                    Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid created_at data, skipping.");
-                }
-
-                // Normalize updated_at
-                $updatedAt = null;
-                if (!empty($row['updated_at'])) {
-                    $updatedAt = $normalizeDate($row['updated_at']);
-                } else {
-                    Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid updated_at data, skipping.");
-                }
-
-                // Build processed row with corrected logic for timestamps
-                $processedRow = [
-                    'id' => $id,
-                    'applicant_uid' => $id ? md5($id) : null,
-                    'user_id' => (int)$row['applicant_user_id'],
-                    'applicant_name' => $row['applicant_name'],
-                    'applicant_email' => $applicant_email,
-                    'applicant_notes' => $row['applicant_notes'] ?? null,
-                    'lat' => $lat,
-                    'lng' => $lng,
-                    'gender' => $row['gender'] ?? 'u',
-                    'applicant_cv' => $row['applicant_cv'] ?? null,
-                    'updated_cv' => $row['updated_cv'] ?? null,
-                    'applicant_postcode' => $cleanPostcode,
-                    'applicant_experience' => $row['applicant_experience'] ?? null,
-                    'job_category_id' => $job_category_id,
-                    'job_source_id' => (int)$jobSourceId,
-                    'job_title_id' => $job_title_id,
-                    'job_type' => $job_type,
-                    'applicant_phone' => $phone,
-                    'applicant_landline' => $applicantLandline,
-                    'is_blocked' => $normalizeBoolean($row['is_blocked'] ?? false),
-                    'is_no_job' => $normalizeBoolean($row['is_no_job'] ?? false),
-                    'is_temp_not_interested' => $normalizeBoolean($row['temp_not_interested'] ?? false),
-                    'is_no_response' => $normalizeBoolean($row['no_response'] ?? false),
-                    'is_circuit_busy' => $normalizeBoolean($row['is_circuit_busy'] ?? false),
-                    'is_callback_enable' => $normalizeBoolean($row['is_callback_enable'] ?? false),
-                    'is_in_nurse_home' => $normalizeBoolean($row['is_in_nurse_home'] ?? false),
-                    'is_cv_in_quality' => $normalizeBoolean($row['is_cv_in_quality'] ?? false),
-                    'is_cv_in_quality_clear' => $normalizeBoolean($row['is_cv_in_quality_clear'] ?? false),
-                    'is_cv_sent' => $normalizeBoolean($row['is_cv_sent'] ?? false),
-                    'is_cv_in_quality_reject' => $normalizeBoolean($row['is_cv_reject'] ?? false),
-                    'is_interview_confirm' => $normalizeBoolean($row['is_interview_confirm'] ?? false),
-                    'is_interview_attend' => $normalizeBoolean($row['is_interview_attend'] ?? false),
-                    'is_in_crm_request' => $normalizeBoolean($row['is_in_crm_request'] ?? false),
-                    'is_in_crm_reject' => $normalizeBoolean($row['is_in_crm_reject'] ?? false),
-                    'is_in_crm_request_reject' => $normalizeBoolean($row['is_in_crm_request_reject'] ?? false),
-                    'is_crm_request_confirm' => $normalizeBoolean($row['is_crm_request_confirm'] ?? false),
-                    'is_crm_interview_attended' => $is_crm_interview_attended,
-                    'is_in_crm_start_date' => $normalizeBoolean($row['is_in_crm_start_date'] ?? false),
-                    'is_in_crm_invoice' => $normalizeBoolean($row['is_in_crm_invoice'] ?? false),
-                    'is_in_crm_invoice_sent' => $normalizeBoolean($row['is_in_crm_invoice_sent'] ?? false),
-                    'is_in_crm_start_date_hold' => $normalizeBoolean($row['is_in_crm_start_date_hold'] ?? false),
-                    'is_in_crm_paid' => $normalizeBoolean($row['is_in_crm_paid'] ?? false),
-                    'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? false),
-                    'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? false),
-                    'have_nursing_home_experience' => $have_nursing_home_experience,
-                    'paid_status' => $paid_status,
-                    'paid_timestamp' => $paid_timestamp,
-                    'status' => $status,
-                    // Keep raw normalized timestamp strings (or null)
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ];
-
-                $processedData[] = $processedRow;
-            } catch (\Throwable $e) {
-                $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
-            }
-        }
-
-        Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
-
-        // Insert/Update in chunks
-        foreach (array_chunk($processedData, 50) as $chunkIndex => $chunk) {
-            try {
-                DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
-                    foreach ($chunk as $index => $row) {
-                        $rowIndex = ($chunkIndex * 50) + $index + 2;
-                        try {
-                            $id = $row['id'];
-                            unset($row['id']);
-                            $filtered = $row; // trust your parsed values
-
-                            // Normalize timestamps for assignment: convert to Carbon if present
-                            $createdAtRaw = $filtered['created_at'] ?? null;
-                            $updatedAtRaw = $filtered['updated_at'] ?? null;
-
-                            // Remove from filtered so forceFill doesn't try assigning string to date fields twice
-                            // We'll assign them explicitly below
-                            unset($filtered['created_at'], $filtered['updated_at']);
-
-                            if ($id) {
-                                // Try to find existing applicant
-                                $app = Applicant::find($id);
-                                if ($app) {
-                                    // Preserve provided timestamps: disable automatic timestamps and force-fill attributes
-                                    $app->timestamps = false;
-                                    $app->forceFill($filtered);
-
-                                    // Explicitly set created_at/updated_at only if provided and valid
-                                    if (!empty($createdAtRaw)) {
-                                        try {
-                                            $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
-                                        } catch (\Throwable $e) {
-                                            // fallback to raw string if parse fails
-                                            $app->created_at = $createdAtRaw;
-                                        }
-                                    }
-                                    if (!empty($updatedAtRaw)) {
-                                        try {
-                                            $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
-                                        } catch (\Throwable $e) {
-                                            $app->updated_at = $updatedAtRaw;
-                                        }
-                                    }
-
-                                    $app->save();
+                    } else {
+                        foreach ($specialists as $spec) {
+                            if ($spec['id'] == $job_title_prof) {
+                                $normalizedSpec = strtolower(trim($spec['specialist_prof']));
+                                $job_title = JobTitle::whereRaw('LOWER(name) = ?', [$normalizedSpec])->first();
+                                if ($job_title) {
+                                    $job_category_id = $job_title->job_category_id;
+                                    $job_title_id = $job_title->id;
+                                    $job_type = $job_title->type ?? '';
                                 } else {
-                                    // Create new with explicit id and provided timestamps
+                                    Log::channel('import')->warning("Row {$rowIndex}: Job title not found for specialist id: {$job_title_prof}");
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    // Normalize phone number to UK format
+                    $normalizePhone = function ($number) {
+                        if ($number === null) {
+                            return null;
+                        }
+
+                        $number = trim((string)$number);
+
+                        if ($number === '' || strtolower($number) === 'null') {
+                            return null;
+                        }
+
+                        // Replace +44 with leading 0
+                        if (str_starts_with($number, '+44')) {
+                            $number = '0' . substr($number, 3);
+                        }
+
+                        // Remove non-digits
+                        $digits = preg_replace('/\D+/', '', $number);
+
+                        // UK numbers must be exactly 11 digits
+                        if (strlen($digits) !== 11 || $digits[0] !== '0') {
+                            return null;
+                        }
+
+                        return $digits;
+                    };
+
+                    // --- Process phone numbers ---
+                    $rawPhone = $row['applicant_phone'];
+
+                    $phone = '0';
+
+                    // Check if the phone number contains a '/' (in case it's a range or multiple numbers)
+                    if (is_string($rawPhone) && str_contains($rawPhone, '/')) {
+                        $parts = array_map('trim', explode('/', $rawPhone));
+                        $phone = $normalizePhone($parts[0] ?? ''); // Only process the first part
+                    } else {
+                        $phone = $normalizePhone($rawPhone); // Normalize the whole phone number
+                    }
+
+                    $homePhone = $normalizePhone($row['applicant_homephone']);
+
+                    // Default landline to null
+                    $applicantLandline = null;
+
+                    // Only assign if home phone is valid and has 10 or more digits (after removing non-digits)
+                    if (!empty($homePhone) && strlen(preg_replace('/\D/', '', $homePhone)) >= 10) {
+                        $applicantLandline = $homePhone;
+                    }
+
+                    // Normalize boolean/enum fields
+                    $normalizeBoolean = function ($value) {
+                        $value = strtolower(trim((string)($value ?? '')));
+                        return in_array($value, ['yes', '1', 'true'], true) ? 1 : 0;
+                    };
+
+                    $crmInterviewInput = strtolower(trim((string)($row['is_crm_interview_attended'] ?? '')));
+
+                    $is_crm_interview_attended = match ($crmInterviewInput) {
+                        'yes', '1', 'true'  => 1,
+                        'pending', '2'      => 2,
+                        'no', '0', 'false', '', 'null' => 0,
+                        default             => 0, // REQUIRED for safety
+                    };
+
+                    $rawStatus = trim((string)($row['paid_status'] ?? ''));
+
+                    // Convert to lowercase for normalization
+                    $normalizedStatus = strtolower($rawStatus);
+
+                    // Allowed statuses
+                    $allowedStatuses = ['pending', 'close', 'open'];
+
+                    // Default to 'pending' if not valid
+                    $paid_status = in_array($normalizedStatus, $allowedStatuses) ? $normalizedStatus : 'pending';
+
+                    $have_nursing_home_experience = null;
+                    $input = strtolower(trim((string)($row['have_nursing_home_experience'] ?? '')));
+
+                    if ($input != '' && $input != 'null' && $input != null) {
+                        $have_nursing_home_experience = in_array($input, ['0', 'inactive', 'disabled', 'disable', 'no', 'false'], true) ? 0 : 1;
+                    }
+
+                    // Handle job source
+                    $sourceRaw = $row['applicant_source'] ?? '';
+                    $cleanedSource = is_string($sourceRaw) ? strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $sourceRaw))) : '';
+                    $firstTwoWordsSource = implode(' ', array_slice(explode(' ', $cleanedSource), 0, 2));
+                    if ($firstTwoWordsSource == 'total jobs') {
+                        $firstTwoWordsSource = 'total job';
+                    } elseif ($firstTwoWordsSource == 'c.v library') {
+                        $firstTwoWordsSource = 'cv library';
+                    }
+
+                    $jobSource = JobSource::whereRaw('LOWER(name) = ?', [$firstTwoWordsSource])->first();
+                    $jobSourceId = $jobSource ? $jobSource->id : 2; // Default to Reed
+
+                    // Normalize and handle active status
+                    $rawStatus = trim((string)($row['status'] ?? ''));
+                    $normalizedStatus = strtolower($rawStatus);
+
+                    // Allowed statuses
+                    $allowedStatuses = ['active', 'inactive', 'pending'];
+
+                    // Normalize the status field
+                    $status = match ($normalizedStatus) {
+                        'active', '1', 'yes', 'enabled' => 1, // 'active' mapped to 1
+                        'inactive', 'no', '0', 'disabled' => 0, // 'inactive' mapped to 0
+                        default => 1, // Default to 'active' (1) if status is not recognized
+                    };
+
+                    $applicant_email = isset($row['applicant_email']) &&
+                        !in_array(strtolower($row['applicant_email']), ['null', 'NULL', '-'])
+                        ? strtolower($row['applicant_email'])
+                        : null;
+
+                    // Normalize paid_timestamp — only consider it when paid_status is not 'pending'
+                    $rawPaid = trim((string)($row['paid_timestamp'] ?? ''));
+                    $paid_timestamp = null;
+
+                    if ($paid_status !== 'pending' && $rawPaid !== '' && !preg_match('/^(null|n\/a|na|none|-|\s*)$/i', $rawPaid)) {
+                        try {
+                            $ts = strtotime($rawPaid);
+                            if ($ts !== false && $ts > 0) {
+                                $paid_timestamp = Carbon::createFromTimestamp($ts)->toDateTimeString();
+                            }
+                        } catch (\Throwable $e) {
+                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse paid_timestamp '{$rawPaid}' — {$e->getMessage()}");
+                        }
+                    } else {
+                        // Ensure pending status does not carry a timestamp
+                        $paid_timestamp = null;
+                    }
+
+                    Log::channel('import')->debug("Raw created_at: {$row['created_at']}");
+                    Log::channel('import')->debug("Raw updated_at: {$row['updated_at']}");
+
+                    // Normalize created_at
+                    $createdAt = null;
+                    if (!empty($row['created_at'])) {
+                        $createdAt = $normalizeDate($row['created_at']);
+                    } else {
+                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid created_at data, skipping.");
+                    }
+
+                    // Normalize updated_at
+                    $updatedAt = null;
+                    if (!empty($row['updated_at'])) {
+                        $updatedAt = $normalizeDate($row['updated_at']);
+                    } else {
+                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid updated_at data, skipping.");
+                    }
+
+                    // Build processed row with corrected logic for timestamps
+                    $processedRow = [
+                        'id' => $id,
+                        'applicant_uid' => $id ? md5($id) : null,
+                        'user_id' => (int)$row['applicant_user_id'],
+                        'applicant_name' => $row['applicant_name'],
+                        'applicant_email' => $applicant_email,
+                        'applicant_notes' => $row['applicant_notes'] ?? null,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'gender' => $row['gender'] ?? 'u',
+                        'applicant_cv' => $row['applicant_cv'] ?? null,
+                        'updated_cv' => $row['updated_cv'] ?? null,
+                        'applicant_postcode' => $cleanPostcode,
+                        'applicant_experience' => $row['applicant_experience'] ?? null,
+                        'job_category_id' => $job_category_id,
+                        'job_source_id' => (int)$jobSourceId,
+                        'job_title_id' => $job_title_id,
+                        'job_type' => $job_type,
+                        'applicant_phone' => $phone,
+                        'applicant_landline' => $applicantLandline,
+                        'is_blocked' => $normalizeBoolean($row['is_blocked'] ?? false),
+                        'is_no_job' => $normalizeBoolean($row['is_no_job'] ?? false),
+                        'is_temp_not_interested' => $normalizeBoolean($row['temp_not_interested'] ?? false),
+                        'is_no_response' => $normalizeBoolean($row['no_response'] ?? false),
+                        'is_circuit_busy' => $normalizeBoolean($row['is_circuit_busy'] ?? false),
+                        'is_callback_enable' => $normalizeBoolean($row['is_callback_enable'] ?? false),
+                        'is_in_nurse_home' => $normalizeBoolean($row['is_in_nurse_home'] ?? false),
+                        'is_cv_in_quality' => $normalizeBoolean($row['is_cv_in_quality'] ?? false),
+                        'is_cv_in_quality_clear' => $normalizeBoolean($row['is_cv_in_quality_clear'] ?? false),
+                        'is_cv_sent' => $normalizeBoolean($row['is_cv_sent'] ?? false),
+                        'is_cv_in_quality_reject' => $normalizeBoolean($row['is_cv_reject'] ?? false),
+                        'is_interview_confirm' => $normalizeBoolean($row['is_interview_confirm'] ?? false),
+                        'is_interview_attend' => $normalizeBoolean($row['is_interview_attend'] ?? false),
+                        'is_in_crm_request' => $normalizeBoolean($row['is_in_crm_request'] ?? false),
+                        'is_in_crm_reject' => $normalizeBoolean($row['is_in_crm_reject'] ?? false),
+                        'is_in_crm_request_reject' => $normalizeBoolean($row['is_in_crm_request_reject'] ?? false),
+                        'is_crm_request_confirm' => $normalizeBoolean($row['is_crm_request_confirm'] ?? false),
+                        'is_crm_interview_attended' => $is_crm_interview_attended,
+                        'is_in_crm_start_date' => $normalizeBoolean($row['is_in_crm_start_date'] ?? false),
+                        'is_in_crm_invoice' => $normalizeBoolean($row['is_in_crm_invoice'] ?? false),
+                        'is_in_crm_invoice_sent' => $normalizeBoolean($row['is_in_crm_invoice_sent'] ?? false),
+                        'is_in_crm_start_date_hold' => $normalizeBoolean($row['is_in_crm_start_date_hold'] ?? false),
+                        'is_in_crm_paid' => $normalizeBoolean($row['is_in_crm_paid'] ?? false),
+                        'is_in_crm_dispute' => $normalizeBoolean($row['is_in_crm_dispute'] ?? false),
+                        'is_job_within_radius' => $normalizeBoolean($row['is_job_within_radius'] ?? false),
+                        'have_nursing_home_experience' => $have_nursing_home_experience,
+                        'paid_status' => $paid_status,
+                        'paid_timestamp' => $paid_timestamp,
+                        'status' => $status,
+                        // Keep raw normalized timestamp strings (or null)
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ];
+
+                    $processedData[] = $processedRow;
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    Log::channel('import')->error("Row {$rowIndex}: Failed processing - {$e->getMessage()}");
+                }
+            }
+
+            Log::channel('import')->info("✅ Processed {$rowIndex} rows. Total valid: " . count($processedData) . ", Failed: " . count($failedRows));
+
+            // Insert/Update in chunks
+            foreach (array_chunk($processedData, 50) as $chunkIndex => $chunk) {
+                try {
+                    DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
+                        foreach ($chunk as $index => $row) {
+                            $rowIndex = ($chunkIndex * 50) + $index + 2;
+                            try {
+                                $id = $row['id'];
+                                unset($row['id']);
+                                $filtered = $row; // trust your parsed values
+
+                                // Normalize timestamps for assignment: convert to Carbon if present
+                                $createdAtRaw = $filtered['created_at'] ?? null;
+                                $updatedAtRaw = $filtered['updated_at'] ?? null;
+
+                                // Remove from filtered so forceFill doesn't try assigning string to date fields twice
+                                // We'll assign them explicitly below
+                                unset($filtered['created_at'], $filtered['updated_at']);
+
+                                if ($id) {
+                                    // Try to find existing applicant
+                                    $app = Applicant::find($id);
+                                    if ($app) {
+                                        // Preserve provided timestamps: disable automatic timestamps and force-fill attributes
+                                        $app->timestamps = false;
+                                        $app->forceFill($filtered);
+
+                                        // Explicitly set created_at/updated_at only if provided and valid
+                                        if (!empty($createdAtRaw)) {
+                                            try {
+                                                $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
+                                            } catch (\Throwable $e) {
+                                                // fallback to raw string if parse fails
+                                                $app->created_at = $createdAtRaw;
+                                            }
+                                        }
+                                        if (!empty($updatedAtRaw)) {
+                                            try {
+                                                $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
+                                            } catch (\Throwable $e) {
+                                                $app->updated_at = $updatedAtRaw;
+                                            }
+                                        }
+
+                                        $app->save();
+                                    } else {
+                                        // Create new with explicit id and provided timestamps
+                                        $app = new Applicant();
+                                        $app->timestamps = false;
+                                        // include applicant_uid if provided (md5 of id)
+                                        if (!isset($filtered['applicant_uid']) || empty($filtered['applicant_uid'])) {
+                                            $filtered['applicant_uid'] = md5($id);
+                                        }
+                                        $filtered['id'] = $id;
+                                        $app->forceFill($filtered);
+
+                                        // Assign timestamps explicitly if present
+                                        if (!empty($createdAtRaw)) {
+                                            try {
+                                                $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
+                                            } catch (\Throwable $e) {
+                                                $app->created_at = $createdAtRaw;
+                                            }
+                                        }
+                                        if (!empty($updatedAtRaw)) {
+                                            try {
+                                                $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
+                                            } catch (\Throwable $e) {
+                                                $app->updated_at = $updatedAtRaw;
+                                            }
+                                        }
+
+                                        $app->save();
+                                    }
+
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})", [
+                                        'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
+                                        'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
+                                    ]);
+                                } else {
+                                    // Create new applicant without CSV id
                                     $app = new Applicant();
                                     $app->timestamps = false;
-                                    // include applicant_uid if provided (md5 of id)
-                                    if (!isset($filtered['applicant_uid']) || empty($filtered['applicant_uid'])) {
-                                        $filtered['applicant_uid'] = md5($id);
-                                    }
-                                    $filtered['id'] = $id;
                                     $app->forceFill($filtered);
 
                                     // Assign timestamps explicitly if present
@@ -2726,92 +2755,63 @@ class ImportController extends Controller
                                     }
 
                                     $app->save();
-                                }
 
-                                Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})", [
-                                    'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
-                                    'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
-                                ]);
-                            } else {
-                                // Create new applicant without CSV id
-                                $app = new Applicant();
-                                $app->timestamps = false;
-                                $app->forceFill($filtered);
-
-                                // Assign timestamps explicitly if present
-                                if (!empty($createdAtRaw)) {
-                                    try {
-                                        $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
-                                    } catch (\Throwable $e) {
-                                        $app->created_at = $createdAtRaw;
+                                    // set applicant_uid after primary key generated
+                                    $newId = $app->id;
+                                    if (empty($app->applicant_uid)) {
+                                        $app->timestamps = false;
+                                        $app->applicant_uid = md5($newId);
+                                        $app->save();
                                     }
-                                }
-                                if (!empty($updatedAtRaw)) {
-                                    try {
-                                        $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
-                                    } catch (\Throwable $e) {
-                                        $app->updated_at = $updatedAtRaw;
-                                    }
-                                }
 
-                                $app->save();
-
-                                // set applicant_uid after primary key generated
-                                $newId = $app->id;
-                                if (empty($app->applicant_uid)) {
-                                    $app->timestamps = false;
-                                    $app->applicant_uid = md5($newId);
-                                    $app->save();
+                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})", [
+                                        'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
+                                        'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
+                                    ]);
                                 }
-
-                                Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})", [
-                                    'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
-                                    'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
-                                ]);
+                                $successfulRows++;
+                            } catch (\Throwable $e) {
+                                $failedRows[] = [
+                                    'row' => $rowIndex,
+                                    'error' => $e->getMessage(),
+                                    'email' => $row['applicant_email'] ?? 'unknown',
+                                ];
+                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['applicant_email']} - {$e->getMessage()}");
                             }
-                            $successfulRows++;
-                        } catch (\Throwable $e) {
-                            $failedRows[] = [
-                                'row' => $rowIndex,
-                                'error' => $e->getMessage(),
-                                'email' => $row['applicant_email'] ?? 'unknown',
-                            ];
-                            Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['applicant_email']} - {$e->getMessage()}");
                         }
-                    }
-                });
-                Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
-            } catch (\Throwable $e) {
-                $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                    });
+                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
+                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
+                }
             }
-        }
 
-        // Cleanup
-        if (file_exists($filePath)) {
-            unlink($filePath);
-            Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
-        }
+            // Cleanup
+            if (file_exists($filePath)) {
+                unlink($filePath);
+                Log::channel('import')->info("🗑️ Deleted temporary file: {$filePath}");
+            }
 
-        $endTime = microtime(true);
-        $duration = round($endTime - $startTime, 2);
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
 
-        Log::channel('import')->info("🏁 [Applicant Import Summary]");
-        Log::channel('import')->info("• Total rows read: {$totalRows}");
-        Log::channel('import')->info("• Successfully imported: {$successfulRows}");
-        Log::channel('import')->info("• Failed rows: " . count($failedRows));
-        Log::channel('import')->info("• Time taken: {$duration} seconds");
+            Log::channel('import')->info("🏁 [Applicant Import Summary]");
+            Log::channel('import')->info("• Total rows read: {$totalRows}");
+            Log::channel('import')->info("• Successfully imported: {$successfulRows}");
+            Log::channel('import')->info("• Failed rows: " . count($failedRows));
+            Log::channel('import')->info("• Time taken: {$duration} seconds");
 
-        return response()->json([
-            'message' => 'CSV import completed successfully!',
-            'summary' => [
-                'total_rows' => $totalRows,
-                'successful_rows' => $successfulRows,
-                'failed_rows' => count($failedRows),
-                'failed_details' => $failedRows,
-                'duration_seconds' => $duration,
-            ],
-        ], 200);
+            return response()->json([
+                'message' => 'CSV import completed successfully!',
+                'summary' => [
+                    'total_rows' => $totalRows,
+                    'successful_rows' => $successfulRows,
+                    'failed_rows' => count($failedRows),
+                    'failed_details' => $failedRows,
+                    'duration_seconds' => $duration,
+                ],
+            ], 200);
         } catch (\Exception $e) {
             if (file_exists($filePath ?? '')) {
                 unlink($filePath);
@@ -2831,7 +2831,7 @@ class ImportController extends Controller
         ]);
 
         $file = $request->file('csv_file');
-        $path = $file->storeAs('uploads/import_files', time().'_'.$file->getClientOriginalName());
+        $path = $file->storeAs('uploads/import_files', time() . '_' . $file->getClientOriginalName());
         $filePath = storage_path("app/{$path}");
 
         // CSV reader
@@ -2847,27 +2847,60 @@ class ImportController extends Controller
             }
         }
 
-        // Date normalizer (kept short)
+        // Date normalizer (stopped timestamp conversion)
         $normalizeDate = function ($value) {
             $value = trim((string)$value);
             if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
 
-            // add seconds if missing (HH:MM -> HH:MM:00)
+            // Add seconds if missing (HH:MM -> HH:MM:00)
             if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
                 $value .= ':00';
             }
 
-            foreach (['Y-m-d H:i:s','Y-m-d H:i','Y-m-d','m/d/Y H:i:s','m/d/Y H:i','m/d/Y','d/m/Y H:i:s','d/m/Y H:i','d/m/Y'] as $fmt) {
-                try { return Carbon::createFromFormat($fmt, $value)->format('Y-m-d H:i:s'); } catch (\Throwable $e) {}
+            // Try different formats without converting to timestamp
+            $formats = [
+                'Y-m-d H:i:s',
+                'Y-m-d H:i',
+                'Y-m-d',
+                'm/d/Y H:i:s',
+                'm/d/Y H:i',
+                'm/d/Y',
+                'd/m/Y H:i:s',
+                'd/m/Y H:i',
+                'd/m/Y',
+                'd-m-Y H:i:s',
+                'd-m-Y H:i',
+                'd-m-Y',
+                'Y/m/d H:i:s',
+                'Y/m/d H:i',
+                'Y/m/d',
+                'm-d-Y H:i:s',
+                'm-d-Y H:i',
+                'm-d-Y',
+                'Y.m.d H:i:s',
+                'Y.m.d H:i',
+                'Y.m.d',
+                'd.m.Y H:i:s',
+                'd.m.Y H:i',
+                'd.m.Y',
+                'Y-m-d',
+                'm/d/Y',
+                'd/m/Y'
+            ];
+
+            // Attempt to parse the value without converting to a timestamp
+            foreach ($formats as $fmt) {
+                try {
+                    // Instead of formatting to timestamp, just return the original value
+                    if ($parsed = Carbon::createFromFormat($fmt, $value)) {
+                        return $parsed->format($fmt); // Return the parsed value in original format
+                    }
+                } catch (\Throwable $e) {
+                }
             }
 
-            // final fallback (handles many valid inputs)
-            try {
-                $ts = strtotime($value);
-                return $ts ? Carbon::createFromTimestamp($ts)->format('Y-m-d H:i:s') : null;
-            } catch (\Throwable $e) {
-                return null;
-            }
+            // Fallback: Return the value as-is if it can't be parsed
+            return $value;
         };
 
         $success = 0;
@@ -2877,9 +2910,9 @@ class ImportController extends Controller
         foreach ($csv->getRecords() as $row) {
             $rowNo++;
 
-            $id = (int)($row['id'] ?? 0);
-            $created = $normalizeDate($row['created_at'] ?? null);
-            $updated = $normalizeDate($row['updated_at'] ?? null);
+            $id = (int)$row['id'];
+            $created = $normalizeDate($row['created_at']);
+            $updated = $normalizeDate($row['updated_at']);
 
             if (!$id || !$created || !$updated) {
                 $failed[] = ['row' => $rowNo, 'id' => $id ?: null, 'error' => 'Invalid id/created_at/updated_at'];
