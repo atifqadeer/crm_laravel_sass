@@ -970,119 +970,50 @@ class ImportController extends Controller
             Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
             // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-           $normalizeDate = function ($dateString) use ($rowIndex) {
-    if ($dateString === null) {
-        return null;
-    }
+            $normalizeDate = function ($dateString) use (&$rowIndex) {
+                if (empty($dateString)) {
+                    return null; // Handle empty or missing date strings gracefully
+                }
 
-    $dateString = trim((string)$dateString);
+                // If the time does not include seconds (H:i), append ":00" for seconds.
+                // But only when the string does NOT already contain seconds (HH:MM:SS).
+                if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
+                    // already has seconds — do nothing
+                } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+                    $dateString .= ":00";  // Append ":00" for seconds
+                }
 
-    if ($dateString === '' || strtolower($dateString) === 'null') {
-        return null;
-    }
+                // Define potential date formats (including m/d/Y H:i and others)
+                $formats = [
+                    'Y-m-d H:i:s',    // Full date with time and seconds
+                    'Y-m-d H:i',      // Date with hours and minutes
+                    'Y-m-d',          // Date only
+                    'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
+                    'm/d/Y H:i:s',    // m/d/Y with seconds
+                    'm/d/Y',          // Date only in m/d/Y
+                    'd/m/Y H:i',      // d/m/Y with time
+                    'd/m/Y H:i:s',    // d/m/Y with seconds
+                    'd/m/Y',          // Date only in d/m/Y
+                    'j F Y',          // Full date with month name
+                    'j F Y H:i',      // Full date with month and time
+                    'j F Y g:i A',    // Full date with month and 12-hour time
+                    'd F Y',          // Full date with day and month
+                    'd F Y g:i A'     // Full date with day, month, and 12-hour time
+                ];
 
-    // ---------------------------
-    // 1️⃣ Excel numeric dates
-    // ---------------------------
-    // Excel stores dates as days since 1899-12-30
-    if (is_numeric($dateString) && strlen($dateString) <= 5) {
-        try {
-            return Carbon::createFromTimestamp(
-                ((int)$dateString - 25569) * 86400
-            )->format('Y-m-d H:i:s');
-        } catch (\Throwable $e) {}
-    }
+                foreach ($formats as $format) {
+                    try {
+                        // Attempt to create a Carbon date object from the string
+                        $dt = Carbon::createFromFormat($format, $dateString);
+                        return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
+                    } catch (\Exception $e) {
+                        // Continue to next format if it fails
+                    }
+                }
 
-    // ---------------------------
-    // 2️⃣ Unix timestamps
-    // ---------------------------
-    if (is_numeric($dateString)) {
-        try {
-            // milliseconds
-            if (strlen($dateString) === 13) {
-                return Carbon::createFromTimestampMs((int)$dateString)
-                    ->format('Y-m-d H:i:s');
-            }
-
-            // seconds
-            if (strlen($dateString) === 10) {
-                return Carbon::createFromTimestamp((int)$dateString)
-                    ->format('Y-m-d H:i:s');
-            }
-        } catch (\Throwable $e) {}
-    }
-
-    // ---------------------------
-    // 3️⃣ Normalize separators
-    // ---------------------------
-    $dateString = str_replace(['.', '-'], '/', $dateString);
-
-    // ---------------------------
-    // 4️⃣ Append seconds if missing
-    // ---------------------------
-    if (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
-        $dateString .= ':00';
-    }
-
-    // ---------------------------
-    // 5️⃣ Supported formats
-    // ---------------------------
-    $formats = [
-
-        // ISO / DB
-        'Y-m-d H:i:s',
-        'Y-m-d H:i',
-        'Y-m-d',
-
-        // Slash formats
-        'm/d/Y H:i:s',
-        'm/d/Y H:i',
-        'm/d/Y',
-
-        'd/m/Y H:i:s',
-        'd/m/Y H:i',
-        'd/m/Y',
-
-        // 12-hour clock
-        'm/d/Y g:i A',
-        'd/m/Y g:i A',
-        'Y-m-d g:i A',
-
-        // Month names
-        'd M Y',
-        'd M Y H:i',
-        'd M Y H:i:s',
-        'd F Y',
-        'd F Y H:i',
-        'd F Y H:i:s',
-
-        // Text-heavy exports
-        'j F Y',
-        'j F Y H:i',
-        'j F Y g:i A',
-    ];
-
-    foreach ($formats as $format) {
-        try {
-            return Carbon::createFromFormat($format, $dateString)
-                ->format('Y-m-d H:i:s');
-        } catch (\Throwable $e) {}
-    }
-
-    // ---------------------------
-    // 6️⃣ Last-resort parser
-    // ---------------------------
-    try {
-        return Carbon::parse($dateString)->format('Y-m-d H:i:s');
-    } catch (\Throwable $e) {
-        Log::channel('import')->warning(
-            "Row {$rowIndex}: Failed to normalize datetime '{$dateString}'"
-        );
-    }
-
-    return null;
-};
-
+                Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
+                return null; // Return null if no valid format found
+            };
 
             foreach ($records as $row) {
                 $rowIndex++;
@@ -1179,7 +1110,7 @@ class ImportController extends Controller
                     $requested_job_category = strtolower(trim($row['job_category'] ?? ''));
                     $job_title_prof = strtolower(trim($row['job_title_prof'] ?? ''));
 
-                $specialists = [
+                    $specialists = [
                         [
                             'id' => 1,
                             'specialist_title' => 'nurse specialist',
@@ -2819,6 +2750,88 @@ class ImportController extends Controller
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ], 500);
         }
+    }
+    public function applicantsTimestampsImport(Request $request)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
+        ]);
+
+        $file = $request->file('csv_file');
+        $path = $file->storeAs('uploads/import_files', time().'_'.$file->getClientOriginalName());
+        $filePath = storage_path("app/{$path}");
+
+        // CSV reader
+        $csv = Reader::createFromPath($filePath, 'r');
+        $csv->setHeaderOffset(0);
+
+        // Normalize headers
+        $headers = array_map(fn($h) => strtolower(trim($h)), $csv->getHeader());
+        foreach (['id', 'created_at', 'updated_at'] as $req) {
+            if (!in_array($req, $headers, true)) {
+                @unlink($filePath);
+                return response()->json(['error' => "Missing required header: {$req}"], 422);
+            }
+        }
+
+        // Date normalizer (kept short)
+        $normalizeDate = function ($value) {
+            $value = trim((string)$value);
+            if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
+
+            // add seconds if missing (HH:MM -> HH:MM:00)
+            if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
+                $value .= ':00';
+            }
+
+            foreach (['Y-m-d H:i:s','Y-m-d H:i','Y-m-d','m/d/Y H:i:s','m/d/Y H:i','m/d/Y','d/m/Y H:i:s','d/m/Y H:i','d/m/Y'] as $fmt) {
+                try { return Carbon::createFromFormat($fmt, $value)->format('Y-m-d H:i:s'); } catch (\Throwable $e) {}
+            }
+
+            // final fallback (handles many valid inputs)
+            try {
+                $ts = strtotime($value);
+                return $ts ? Carbon::createFromTimestamp($ts)->format('Y-m-d H:i:s') : null;
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        $success = 0;
+        $failed = [];
+        $rowNo = 1;
+
+        foreach ($csv->getRecords() as $row) {
+            $rowNo++;
+
+            $id = (int)($row['id'] ?? 0);
+            $created = $normalizeDate($row['created_at'] ?? null);
+            $updated = $normalizeDate($row['updated_at'] ?? null);
+
+            if (!$id || !$created || !$updated) {
+                $failed[] = ['row' => $rowNo, 'id' => $id ?: null, 'error' => 'Invalid id/created_at/updated_at'];
+                continue;
+            }
+
+            // Update ONLY if exists
+            $affected = DB::table('applicants')
+                ->where('id', $id)
+                ->update(['created_at' => $created, 'updated_at' => $updated]);
+
+            if ($affected) $success++;
+            else $failed[] = ['row' => $rowNo, 'id' => $id, 'error' => 'ID not found'];
+        }
+
+        @unlink($filePath);
+
+        return response()->json([
+            'message' => 'Timestamp import finished.',
+            'summary' => [
+                'successful_updates' => $success,
+                'failed_rows' => count($failed),
+                'failed_details' => $failed,
+            ],
+        ]);
     }
     public function salesImport(Request $request)
     {
