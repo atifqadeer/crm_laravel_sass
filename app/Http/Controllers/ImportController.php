@@ -823,293 +823,293 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImport(Request $request)
-{
-    $request->validate([
-        'csv_file' => [
-            'required',
-            'file',
-            'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
-            'mimes:csv,txt',
-            'max:5242880'
-        ],
-    ]);
+    public function applicantsImportOld(Request $request)
+    {
+        $request->validate([
+            'csv_file' => [
+                'required',
+                'file',
+                'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel',
+                'mimes:csv,txt',
+                'max:5242880'
+            ],
+        ]);
 
-    if ($request->hasFile('csv_file')) {
-        $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
-        if ($ext !== 'csv') {
-            return response()->json([
-                'error' => 'Invalid file type. Please upload a CSV file only.',
-                'success' => false
-            ], 422);
-        }
-    }
-
-    ini_set('max_execution_time', 10000);
-    ini_set('memory_limit', '-1');
-
-    try {
-        $startTime = microtime(true);
-        Log::channel('import')->info('🔹 [Applicant Import] Starting CSV import process...');
-
-        // Store file
-        $file = $request->file('csv_file');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $path = $file->storeAs('uploads/import_files', $filename);
-        $filePath = storage_path("app/{$path}");
-        Log::channel('import')->info('📂 File stored at: ' . $filePath);
-
-        // Ensure UTF-8 encoding
-        $content = file_get_contents($filePath);
-        $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-        if ($encoding != 'UTF-8') {
-            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-            file_put_contents($filePath, $content);
-            Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
+        if ($request->hasFile('csv_file')) {
+            $ext = strtolower($request->file('csv_file')->getClientOriginalExtension());
+            if ($ext !== 'csv') {
+                return response()->json([
+                    'error' => 'Invalid file type. Please upload a CSV file only.',
+                    'success' => false
+                ], 422);
+            }
         }
 
-        // Load CSV
-        $csv = Reader::createFromPath($filePath, 'r');
-        $csv->setHeaderOffset(0);
-        $csv->setDelimiter(',');
-        $csv->setEnclosure('"');
-        $csv->setEscape('\\');
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
 
-        // // Validate headers
-        $headers = array_map(function ($h) {
-            $h = strtolower(trim($h));
-            $h = preg_replace('/\s+/', '_', $h); // remove ALL spaces inside
-            return $h;
-        }, $csv->getHeader());
+        try {
+            $startTime = microtime(true);
+            Log::channel('import')->info('🔹 [Applicant Import] Starting CSV import process...');
 
-        // Normalize required headers
-        $requiredHeaders = [
-            'id',
-            'applicant_u_id',
-            'applicant_user_id',
-            'job_category',
-            'applicant_job_title',
-            'job_title_prof',
-            'applicant_name',
-            'applicant_email',
-            'applicant_postcode',
-            'applicant_phone',
-            'applicant_homePhone',
-            'applicant_source',
-            'applicant_cv',
-            'updated_cv',
-            'applicant_notes',
-            'applicant_experience',
-            'applicant_added_date',
-            'applicant_added_time',
-            'lat',
-            'lng',
-            'is_blocked',
-            'is_no_job',
-            'temp_not_interested',
-            'no_response',
-            'is_circuit_busy',
-            'is_callback_enable',
-            'is_in_nurse_home',
-            'is_cv_in_quality',
-            'is_cv_in_quality_clear',
-            'is_CV_sent',
-            'is_CV_reject',
-            'is_interview_confirm',
-            'is_interview_attend',
-            'is_in_crm_request',
-            'is_in_crm_reject',
-            'is_in_crm_request_reject',
-            'is_crm_request_confirm',
-            'is_crm_interview_attended',
-            'is_in_crm_start_date',
-            'is_in_crm_invoice',
-            'is_in_crm_invoice_sent',
-            'is_in_crm_start_date_hold',
-            'is_in_crm_paid',
-            'is_in_crm_dispute',
-            'is_follow_up',
-            'is_job_within_radius',
-            'have_nursing_home_experience',
-            'status',
-            'paid_status',
-            'paid_timestamp',
-            'created_at',
-            'updated_at'
-        ];
+            // Store file
+            $file = $request->file('csv_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('uploads/import_files', $filename);
+            $filePath = storage_path("app/{$path}");
+            Log::channel('import')->info('📂 File stored at: ' . $filePath);
 
-        $normalizedRequired = array_map(function ($h) {
-            return preg_replace('/\s+/', '', strtolower($h));
-        }, $requiredHeaders);
-
-        // Compare
-        $missingHeaders = array_diff($normalizedRequired, $headers);
-
-        if (!empty($missingHeaders)) {
-            throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
-        }
-
-        // Count total rows
-        $records = $csv->getRecords();
-        $totalRows = iterator_count($records);
-        Log::channel('import')->info("📊 Total applicant records in CSV: {$totalRows}");
-
-        // Recreate iterator
-        $csv = Reader::createFromPath($filePath, 'r');
-        $csv->setHeaderOffset(0);
-        $csv->setDelimiter(',');
-        $csv->setEnclosure('"');
-        $csv->setEscape('\\');
-        $records = $csv->getRecords();
-
-        $processedData = [];
-        $failedRows = [];
-        $successfulRows = 0;
-        $rowIndex = 1;
-
-        Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
-
-        // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-        $normalizeDate = function ($dateString) use (&$rowIndex) {
-            if (empty($dateString)) {
-                return null; // Handle empty or missing date strings gracefully
+            // Ensure UTF-8 encoding
+            $content = file_get_contents($filePath);
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding != 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+                file_put_contents($filePath, $content);
+                Log::channel('import')->info("✅ Converted file to UTF-8 from {$encoding}");
             }
 
-            // If the time does not include seconds (H:i), append ":00" for seconds.
-            // But only when the string does NOT already contain seconds (HH:MM:SS).
-            if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
-                // already has seconds — do nothing
-            } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
-                $dateString .= ":00";  // Append ":00" for seconds
-            }
+            // Load CSV
+            $csv = Reader::createFromPath($filePath, 'r');
+            $csv->setHeaderOffset(0);
+            $csv->setDelimiter(',');
+            $csv->setEnclosure('"');
+            $csv->setEscape('\\');
 
-            // Define potential date formats (including m/d/Y H:i and others)
-            $formats = [
-                'Y-m-d H:i:s',    // Full date with time and seconds
-                'Y-m-d H:i',      // Date with hours and minutes
-                'Y-m-d',          // Date only
-                'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
-                'm/d/Y H:i:s',    // m/d/Y with seconds
-                'm/d/Y',          // Date only in m/d/Y
-                'd/m/Y H:i',      // d/m/Y with time
-                'd/m/Y H:i:s',    // d/m/Y with seconds
-                'd/m/Y',          // Date only in d/m/Y
-                'j F Y',          // Full date with month name
-                'j F Y H:i',      // Full date with month and time
-                'j F Y g:i A',    // Full date with month and 12-hour time
-                'd F Y',          // Full date with day and month
-                'd F Y g:i A'     // Full date with day, month, and 12-hour time
+            // // Validate headers
+            $headers = array_map(function ($h) {
+                $h = strtolower(trim($h));
+                $h = preg_replace('/\s+/', '_', $h); // remove ALL spaces inside
+                return $h;
+            }, $csv->getHeader());
+
+            // Normalize required headers
+            $requiredHeaders = [
+                'id',
+                'applicant_u_id',
+                'applicant_user_id',
+                'job_category',
+                'applicant_job_title',
+                'job_title_prof',
+                'applicant_name',
+                'applicant_email',
+                'applicant_postcode',
+                'applicant_phone',
+                'applicant_homePhone',
+                'applicant_source',
+                'applicant_cv',
+                'updated_cv',
+                'applicant_notes',
+                'applicant_experience',
+                'applicant_added_date',
+                'applicant_added_time',
+                'lat',
+                'lng',
+                'is_blocked',
+                'is_no_job',
+                'temp_not_interested',
+                'no_response',
+                'is_circuit_busy',
+                'is_callback_enable',
+                'is_in_nurse_home',
+                'is_cv_in_quality',
+                'is_cv_in_quality_clear',
+                'is_CV_sent',
+                'is_CV_reject',
+                'is_interview_confirm',
+                'is_interview_attend',
+                'is_in_crm_request',
+                'is_in_crm_reject',
+                'is_in_crm_request_reject',
+                'is_crm_request_confirm',
+                'is_crm_interview_attended',
+                'is_in_crm_start_date',
+                'is_in_crm_invoice',
+                'is_in_crm_invoice_sent',
+                'is_in_crm_start_date_hold',
+                'is_in_crm_paid',
+                'is_in_crm_dispute',
+                'is_follow_up',
+                'is_job_within_radius',
+                'have_nursing_home_experience',
+                'status',
+                'paid_status',
+                'paid_timestamp',
+                'created_at',
+                'updated_at'
             ];
 
-            foreach ($formats as $format) {
-                try {
-                    // Attempt to create a Carbon date object from the string
-                    $dt = Carbon::createFromFormat($format, $dateString);
-                    return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
-                } catch (\Exception $e) {
-                    // Continue to next format if it fails
-                }
+            $normalizedRequired = array_map(function ($h) {
+                return preg_replace('/\s+/', '', strtolower($h));
+            }, $requiredHeaders);
+
+            // Compare
+            $missingHeaders = array_diff($normalizedRequired, $headers);
+
+            if (!empty($missingHeaders)) {
+                throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
             }
 
-            Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
-            return null; // Return null if no valid format found
-        };
+            // Count total rows
+            $records = $csv->getRecords();
+            $totalRows = iterator_count($records);
+            Log::channel('import')->info("📊 Total applicant records in CSV: {$totalRows}");
 
-        foreach ($records as $row) {
-            $rowIndex++;
-            try {
-                // Skip empty rows
-                if (empty(array_filter($row))) {
-                    Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
-                    continue;
+            // Recreate iterator
+            $csv = Reader::createFromPath($filePath, 'r');
+            $csv->setHeaderOffset(0);
+            $csv->setDelimiter(',');
+            $csv->setEnclosure('"');
+            $csv->setEscape('\\');
+            $records = $csv->getRecords();
+
+            $processedData = [];
+            $failedRows = [];
+            $successfulRows = 0;
+            $rowIndex = 1;
+
+            Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
+
+            // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
+            $normalizeDate = function ($dateString) use (&$rowIndex) {
+                if (empty($dateString)) {
+                    return null; // Handle empty or missing date strings gracefully
                 }
 
-                // Normalize keys to lowercase to match headers
-                $row = collect($row)->mapWithKeys(function ($value, $key) {
-                    $key = strtolower(trim($key));
-                    $key = preg_replace('/\s+/', '_', $key);
-                    return [$key => $value];
-                })->toArray();
+                // If the time does not include seconds (H:i), append ":00" for seconds.
+                // But only when the string does NOT already contain seconds (HH:MM:SS).
+                if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
+                    // already has seconds — do nothing
+                } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
+                    $dateString .= ":00";  // Append ":00" for seconds
+                }
 
-                // Clean data
-                $row = array_map(function ($value) {
-                    return is_string($value) ? trim(preg_replace('/[^\x20-\x7E]/', '', $value)) : $value;
-                }, $row);
+                // Define potential date formats (including m/d/Y H:i and others)
+                $formats = [
+                    'Y-m-d H:i:s',    // Full date with time and seconds
+                    'Y-m-d H:i',      // Date with hours and minutes
+                    'Y-m-d',          // Date only
+                    'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
+                    'm/d/Y H:i:s',    // m/d/Y with seconds
+                    'm/d/Y',          // Date only in m/d/Y
+                    'd/m/Y H:i',      // d/m/Y with time
+                    'd/m/Y H:i:s',    // d/m/Y with seconds
+                    'd/m/Y',          // Date only in d/m/Y
+                    'j F Y',          // Full date with month name
+                    'j F Y H:i',      // Full date with month and time
+                    'j F Y g:i A',    // Full date with month and 12-hour time
+                    'd F Y',          // Full date with day and month
+                    'd F Y g:i A'     // Full date with day, month, and 12-hour time
+                ];
 
-                // Helper functions
-                $normalizeId = function ($input, $rowIndex) {
-                    if (empty($input) && $input != '0' && $input != 0) {
-                        Log::channel('import')->debug("Row {$rowIndex}: Empty id input, will generate new ID");
-                        return null;
+                foreach ($formats as $format) {
+                    try {
+                        // Attempt to create a Carbon date object from the string
+                        $dt = Carbon::createFromFormat($format, $dateString);
+                        return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
+                    } catch (\Exception $e) {
+                        // Continue to next format if it fails
                     }
-                    if (is_numeric($input)) {
-                        $id = sprintf('%.0f', (float)$input);
-                        if ($id == '0') {
-                            Log::channel('import')->debug("Row {$rowIndex}: Invalid id (0), will generate new ID");
+                }
+
+                Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
+                return null; // Return null if no valid format found
+            };
+
+            foreach ($records as $row) {
+                $rowIndex++;
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        Log::channel('import')->warning("Row {$rowIndex}: Empty row , skipping");
+                        continue;
+                    }
+
+                    // Normalize keys to lowercase to match headers
+                    $row = collect($row)->mapWithKeys(function ($value, $key) {
+                        $key = strtolower(trim($key));
+                        $key = preg_replace('/\s+/', '_', $key);
+                        return [$key => $value];
+                    })->toArray();
+
+                    // Clean data
+                    $row = array_map(function ($value) {
+                        return is_string($value) ? trim(preg_replace('/[^\x20-\x7E]/', '', $value)) : $value;
+                    }, $row);
+
+                    // Helper functions
+                    $normalizeId = function ($input, $rowIndex) {
+                        if (empty($input) && $input != '0' && $input != 0) {
+                            Log::channel('import')->debug("Row {$rowIndex}: Empty id input, will generate new ID");
                             return null;
                         }
-                        return $id;
+                        if (is_numeric($input)) {
+                            $id = sprintf('%.0f', (float)$input);
+                            if ($id == '0') {
+                                Log::channel('import')->debug("Row {$rowIndex}: Invalid id (0), will generate new ID");
+                                return null;
+                            }
+                            return $id;
+                        }
+                        Log::channel('import')->debug("Row {$rowIndex}: Invalid id format: {$input}, will generate new ID");
+                        return null;
+                    };
+
+                    // Normalize ID
+                    $id = $normalizeId($row['id'], $rowIndex);
+
+                    // Handle postcode and geolocation
+                    $cleanPostcode = '0';
+                    if (!empty($row['applicant_postcode']) && is_string($row['applicant_postcode'])) {
+                        preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
+                        $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
                     }
-                    Log::channel('import')->debug("Row {$rowIndex}: Invalid id format: {$input}, will generate new ID");
-                    return null;
-                };
 
-                // Normalize ID
-                $id = $normalizeId($row['id'], $rowIndex);
+                    $lat = (isset($row['lat']) && is_numeric($row['lat'])) ? (float)$row['lat'] : null;
+                    $lng = (isset($row['lng']) && is_numeric($row['lng'])) ? (float)$row['lng'] : null;
 
-                // Handle postcode and geolocation
-                $cleanPostcode = '0';
-                if (!empty($row['applicant_postcode']) && is_string($row['applicant_postcode'])) {
-                    preg_match('/[A-Z]{1,2}[0-9]{1,2}\s*[0-9][A-Z]{2}/i', $row['applicant_postcode'], $matches);
-                    $cleanPostcode = $matches[0] ?? substr(trim($row['applicant_postcode']), 0, 8);
-                }
+                    if (!$lat || !$lng) {
+                        $postcode_query = strlen($cleanPostcode) < 6
+                            ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
+                            : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
 
-                $lat = (isset($row['lat']) && is_numeric($row['lat'])) ? (float)$row['lat'] : null;
-                $lng = (isset($row['lng']) && is_numeric($row['lng'])) ? (float)$row['lng'] : null;
-
-                if (!$lat || !$lng) {
-                    $postcode_query = strlen($cleanPostcode) < 6
-                        ? DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->first()
-                        : DB::table('postcodes')->where('postcode', $cleanPostcode)->first();
-
-                    if ($postcode_query) {
-                        $lat = (float)$postcode_query->lat;
-                        $lng = (float)$postcode_query->lng;
+                        if ($postcode_query) {
+                            $lat = (float)$postcode_query->lat;
+                            $lng = (float)$postcode_query->lng;
+                        }
                     }
-                }
 
-                // Ensure numeric fallback
-                $lat = $lat ?? 0.0000;
-                $lng = $lng ?? 0.0000;
+                    // Ensure numeric fallback
+                    $lat = $lat ?? 0.0000;
+                    $lng = $lng ?? 0.0000;
 
-                if (strlen($cleanPostcode) == 8) {
-                    $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
-                    if (!$exists) {
-                        DB::table('postcodes')->insert([
-                            'postcode' => $cleanPostcode,
-                            'lat' => $lat,
-                            'lng' => $lng
-                        ]);
+                    if (strlen($cleanPostcode) == 8) {
+                        $exists = DB::table('postcodes')->where('postcode', $cleanPostcode)->exists();
+                        if (!$exists) {
+                            DB::table('postcodes')->insert([
+                                'postcode' => $cleanPostcode,
+                                'lat' => $lat,
+                                'lng' => $lng
+                            ]);
+                        }
+                    } elseif (strlen($cleanPostcode) < 6 && $cleanPostcode != '0') {
+                        $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
+                        if (!$exists) {
+                            DB::table('outcodepostcodes')->insert([
+                                'outcode' => $cleanPostcode,
+                                'lat' => $lat,
+                                'lng' => $lng
+                            ]);
+                        }
                     }
-                } elseif (strlen($cleanPostcode) < 6 && $cleanPostcode != '0') {
-                    $exists = DB::table('outcodepostcodes')->where('outcode', $cleanPostcode)->exists();
-                    if (!$exists) {
-                        DB::table('outcodepostcodes')->insert([
-                            'outcode' => $cleanPostcode,
-                            'lat' => $lat,
-                            'lng' => $lng
-                        ]);
-                    }
-                }
 
-                // Handle job title and category
-                $job_category_id = null;
-                $job_title_id = null;
-                $job_type = '';
-                $requested_job_title = strtolower(trim($row['applicant_job_title'] ?? ''));
-                $requested_job_category = strtolower(trim($row['job_category'] ?? ''));
-                $job_title_prof = strtolower(trim($row['job_title_prof'] ?? ''));
-$specialists = [
+                    // Handle job title and category
+                    $job_category_id = null;
+                    $job_title_id = null;
+                    $job_type = '';
+                    $requested_job_title = strtolower(trim($row['applicant_job_title'] ?? ''));
+                    $requested_job_category = strtolower(trim($row['job_category'] ?? ''));
+                    $job_title_prof = strtolower(trim($row['job_title_prof'] ?? ''));
+                    $specialists = [
                         [
                             'id' => 1,
                             'specialist_title' => 'nurse specialist',
@@ -2812,19 +2812,19 @@ $specialists = [
                 'duration_seconds' => $duration,
             ],
         ], 200);
-    } catch (\Exception $e) {
-        if (file_exists($filePath ?? '')) {
-            unlink($filePath);
-            Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
+        } catch (\Exception $e) {
+            if (file_exists($filePath ?? '')) {
+                unlink($filePath);
+                Log::channel('import')->info("🗑️ Deleted temporary file after error: {$filePath}");
+            }
+            Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
+            return response()->json([
+                'error' => 'CSV import failed: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
-        Log::channel('import')->error("💥 Import failed: {$e->getMessage()}\nStack trace: {$e->getTraceAsString()}");
-        return response()->json([
-            'error' => 'CSV import failed: ' . $e->getMessage(),
-            'trace' => config('app.debug') ? $e->getTraceAsString() : null,
-        ], 500);
     }
-}
-    public function applicantsTimestampsImport(Request $request)
+    public function applicantsImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
