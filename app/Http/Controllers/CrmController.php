@@ -9083,7 +9083,7 @@ class CrmController extends Controller
             $crm_notes->user_id = $user_id;
             $crm_notes->sale_id = $sale_id;
             $crm_notes->details = $details;
-            $crm_notes->moved_tab_to = "request_";
+            $crm_notes->moved_tab_to = "request_no_response";
             $crm_notes->save();
 
             //update uid
