@@ -42,6 +42,7 @@ use PhpOffice\PhpWord\IOFactory;
 
 class ImportController extends Controller
 {
+
     public function importIndex()
     {
         return view('settings.import');
@@ -823,7 +824,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImportOld(Request $request)
+    public function applicantsImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -969,50 +970,61 @@ class ImportController extends Controller
 
             Log::channel('import')->info('🚀 Starting applicant row-by-row processing...');
 
-            // Normalize and ensure the time is in H:m:s format (adding seconds if missing)
-            $normalizeDate = function ($dateString) use (&$rowIndex) {
-                if (empty($dateString)) {
-                    return null; // Handle empty or missing date strings gracefully
+            // Date normalizer (stopped timestamp conversion)
+            $normalizeDate = function ($value) {
+                $value = trim((string)$value);
+                if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
+
+                // Add seconds if missing (HH:MM -> HH:MM:00)
+                if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
+                    $value .= ':00';
                 }
 
-                // If the time does not include seconds (H:i), append ":00" for seconds.
-                // But only when the string does NOT already contain seconds (HH:MM:SS).
-                if (preg_match('/\d{1,2}:\d{2}:\d{2}$/', $dateString)) {
-                    // already has seconds — do nothing
-                } elseif (preg_match('/\d{1,2}:\d{2}$/', $dateString)) {
-                    $dateString .= ":00";  // Append ":00" for seconds
-                }
-
-                // Define potential date formats (including m/d/Y H:i and others)
+                // Try different formats without converting to timestamp
                 $formats = [
-                    'Y-m-d H:i:s',    // Full date with time and seconds
-                    'Y-m-d H:i',      // Date with hours and minutes
-                    'Y-m-d',          // Date only
-                    'm/d/Y H:i',      // m/d/Y format with time (commonly used in the input)
-                    'm/d/Y H:i:s',    // m/d/Y with seconds
-                    'm/d/Y',          // Date only in m/d/Y
-                    'd/m/Y H:i',      // d/m/Y with time
-                    'd/m/Y H:i:s',    // d/m/Y with seconds
-                    'd/m/Y',          // Date only in d/m/Y
-                    'j F Y',          // Full date with month name
-                    'j F Y H:i',      // Full date with month and time
-                    'j F Y g:i A',    // Full date with month and 12-hour time
-                    'd F Y',          // Full date with day and month
-                    'd F Y g:i A'     // Full date with day, month, and 12-hour time
+                    'Y-m-d H:i:s',
+                    'Y-m-d H:i',
+                    'Y-m-d',
+                    'm/d/Y H:i:s',
+                    'm/d/Y H:i',
+                    'm/d/Y',
+                    'd/m/Y H:i:s',
+                    'd/m/Y H:i',
+                    'd/m/Y',
+                    'd-m-Y H:i:s',
+                    'd-m-Y H:i',
+                    'd-m-Y',
+                    'Y/m/d H:i:s',
+                    'Y/m/d H:i',
+                    'Y/m/d',
+                    'm-d-Y H:i:s',
+                    'm-d-Y H:i',
+                    'm-d-Y',
+                    'Y.m.d H:i:s',
+                    'Y.m.d H:i',
+                    'Y.m.d',
+                    'd.m.Y H:i:s',
+                    'd.m.Y H:i',
+                    'd.m.Y',
+                    'Y-m-d',
+                    'm/d/Y',
+                    'd/m/Y'
                 ];
 
-                foreach ($formats as $format) {
+                // Attempt to parse the value without converting to a timestamp
+                foreach ($formats as $fmt) {
                     try {
-                        // Attempt to create a Carbon date object from the string
-                        $dt = Carbon::createFromFormat($format, $dateString);
-                        return $dt->format('Y-m-d H:i:s'); // Standardize to Y-m-d H:i:s
-                    } catch (\Exception $e) {
-                        // Continue to next format if it fails
+                        // Instead of formatting to timestamp, just return the original value
+                        if ($parsed = Carbon::createFromFormat($fmt, $value)) {
+                            return $parsed->format('Y-m-d H:i:s'); // Ensure the format is MySQL-compatible
+                        }
+                    } catch (\Throwable $e) {
+                        // Catch any exception and continue trying other formats
                     }
                 }
 
-                Log::channel('import')->debug("Row {$rowIndex}: All formats failed for => '{$dateString}'");
-                return null; // Return null if no valid format found
+                // Fallback: Return the value as-is if it can't be parsed (consider handling this case)
+                return $value;
             };
 
             foreach ($records as $row) {
@@ -2570,24 +2582,9 @@ class ImportController extends Controller
                         $paid_timestamp = null;
                     }
 
-                    Log::channel('import')->debug("Raw created_at: {$row['created_at']}");
-                    Log::channel('import')->debug("Raw updated_at: {$row['updated_at']}");
-
                     // Normalize created_at
-                    $createdAt = null;
-                    if (!empty($row['created_at'])) {
-                        $createdAt = $normalizeDate($row['created_at']);
-                    } else {
-                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid created_at data, skipping.");
-                    }
-
-                    // Normalize updated_at
-                    $updatedAt = null;
-                    if (!empty($row['updated_at'])) {
-                        $updatedAt = $normalizeDate($row['updated_at']);
-                    } else {
-                        Log::channel('import')->warning("Row {$rowIndex}: Missing or invalid updated_at data, skipping.");
-                    }
+                    $createdAt = $normalizeDate($row['created_at']);
+                    $updatedAt = $normalizeDate($row['updated_at']);
 
                     // Build processed row with corrected logic for timestamps
                     $processedRow = [
@@ -2659,116 +2656,52 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
                             $rowIndex = ($chunkIndex * 50) + $index + 2;
+
                             try {
                                 $id = $row['id'];
                                 unset($row['id']);
-                                $filtered = $row; // trust your parsed values
 
-                                // Normalize timestamps for assignment: convert to Carbon if present
-                                $createdAtRaw = $filtered['created_at'] ?? null;
-                                $updatedAtRaw = $filtered['updated_at'] ?? null;
+                                // remove timestamps fully
+                                unset($row['created_at'], $row['updated_at']);
 
-                                // Remove from filtered so forceFill doesn't try assigning string to date fields twice
-                                // We'll assign them explicitly below
-                                unset($filtered['created_at'], $filtered['updated_at']);
+                                $filtered = $row;
 
                                 if ($id) {
-                                    // Try to find existing applicant
                                     $app = Applicant::find($id);
+
                                     if ($app) {
-                                        // Preserve provided timestamps: disable automatic timestamps and force-fill attributes
                                         $app->timestamps = false;
                                         $app->forceFill($filtered);
-
-                                        // Explicitly set created_at/updated_at only if provided and valid
-                                        if (!empty($createdAtRaw)) {
-                                            try {
-                                                $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
-                                            } catch (\Throwable $e) {
-                                                // fallback to raw string if parse fails
-                                                $app->created_at = $createdAtRaw;
-                                            }
-                                        }
-                                        if (!empty($updatedAtRaw)) {
-                                            try {
-                                                $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
-                                            } catch (\Throwable $e) {
-                                                $app->updated_at = $updatedAtRaw;
-                                            }
-                                        }
-
                                         $app->save();
                                     } else {
-                                        // Create new with explicit id and provided timestamps
                                         $app = new Applicant();
                                         $app->timestamps = false;
-                                        // include applicant_uid if provided (md5 of id)
-                                        if (!isset($filtered['applicant_uid']) || empty($filtered['applicant_uid'])) {
+
+                                        if (empty($filtered['applicant_uid'])) {
                                             $filtered['applicant_uid'] = md5($id);
                                         }
+
                                         $filtered['id'] = $id;
+
                                         $app->forceFill($filtered);
-
-                                        // Assign timestamps explicitly if present
-                                        if (!empty($createdAtRaw)) {
-                                            try {
-                                                $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
-                                            } catch (\Throwable $e) {
-                                                $app->created_at = $createdAtRaw;
-                                            }
-                                        }
-                                        if (!empty($updatedAtRaw)) {
-                                            try {
-                                                $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
-                                            } catch (\Throwable $e) {
-                                                $app->updated_at = $updatedAtRaw;
-                                            }
-                                        }
-
                                         $app->save();
                                     }
-
-                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted/updated (ID={$id})", [
-                                        'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
-                                        'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
-                                    ]);
                                 } else {
-                                    // Create new applicant without CSV id
                                     $app = new Applicant();
                                     $app->timestamps = false;
+
                                     $app->forceFill($filtered);
-
-                                    // Assign timestamps explicitly if present
-                                    if (!empty($createdAtRaw)) {
-                                        try {
-                                            $app->created_at = Carbon::createFromFormat('Y-m-d H:i:s', $createdAtRaw);
-                                        } catch (\Throwable $e) {
-                                            $app->created_at = $createdAtRaw;
-                                        }
-                                    }
-                                    if (!empty($updatedAtRaw)) {
-                                        try {
-                                            $app->updated_at = Carbon::createFromFormat('Y-m-d H:i:s', $updatedAtRaw);
-                                        } catch (\Throwable $e) {
-                                            $app->updated_at = $updatedAtRaw;
-                                        }
-                                    }
-
                                     $app->save();
 
-                                    // set applicant_uid after primary key generated
                                     $newId = $app->id;
+
                                     if (empty($app->applicant_uid)) {
                                         $app->timestamps = false;
                                         $app->applicant_uid = md5($newId);
                                         $app->save();
                                     }
-
-                                    Log::channel('import')->info("Row {$rowIndex}: Applicant inserted (new ID={$newId})", [
-                                        'created_at' => $app->created_at ? $app->created_at->toDateTimeString() : null,
-                                        'updated_at' => $app->updated_at ? $app->updated_at->toDateTimeString() : null,
-                                    ]);
                                 }
+
                                 $successfulRows++;
                             } catch (\Throwable $e) {
                                 $failedRows[] = [
@@ -2776,16 +2709,14 @@ class ImportController extends Controller
                                     'error' => $e->getMessage(),
                                     'email' => $row['applicant_email'] ?? 'unknown',
                                 ];
-                                Log::channel('import')->error("Row {$rowIndex}: DB insert/update failed for {$row['applicant_email']} - {$e->getMessage()}");
                             }
                         }
                     });
-                    Log::channel('import')->info("💾 Processed chunk #{$chunkIndex} ({$successfulRows} total)");
                 } catch (\Throwable $e) {
                     $failedRows[] = ['chunk' => $chunkIndex, 'error' => $e->getMessage()];
-                    Log::channel('import')->error("Chunk {$chunkIndex}: Transaction failed - {$e->getMessage()}");
                 }
             }
+
 
             // Cleanup
             if (file_exists($filePath)) {
@@ -2824,7 +2755,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImport(Request $request)
+    public function applicantsImportfresh(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
@@ -2849,60 +2780,60 @@ class ImportController extends Controller
 
         // Date normalizer (stopped timestamp conversion)
         $normalizeDate = function ($value) {
-    $value = trim((string)$value);
-    if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
+            $value = trim((string)$value);
+            if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) return null;
 
-    // Add seconds if missing (HH:MM -> HH:MM:00)
-    if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
-        $value .= ':00';
-    }
-
-    // Try different formats without converting to timestamp
-    $formats = [
-        'Y-m-d H:i:s',
-        'Y-m-d H:i',
-        'Y-m-d',
-        'm/d/Y H:i:s',
-        'm/d/Y H:i',
-        'm/d/Y',
-        'd/m/Y H:i:s',
-        'd/m/Y H:i',
-        'd/m/Y',
-        'd-m-Y H:i:s',
-        'd-m-Y H:i',
-        'd-m-Y',
-        'Y/m/d H:i:s',
-        'Y/m/d H:i',
-        'Y/m/d',
-        'm-d-Y H:i:s',
-        'm-d-Y H:i',
-        'm-d-Y',
-        'Y.m.d H:i:s',
-        'Y.m.d H:i',
-        'Y.m.d',
-        'd.m.Y H:i:s',
-        'd.m.Y H:i',
-        'd.m.Y',
-        'Y-m-d',
-        'm/d/Y',
-        'd/m/Y'
-    ];
-
-    // Attempt to parse the value without converting to a timestamp
-    foreach ($formats as $fmt) {
-        try {
-            // Instead of formatting to timestamp, just return the original value
-            if ($parsed = Carbon::createFromFormat($fmt, $value)) {
-                return $parsed->format('Y-m-d H:i:s'); // Ensure the format is MySQL-compatible
+            // Add seconds if missing (HH:MM -> HH:MM:00)
+            if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
+                $value .= ':00';
             }
-        } catch (\Throwable $e) {
-            // Catch any exception and continue trying other formats
-        }
-    }
 
-    // Fallback: Return the value as-is if it can't be parsed (consider handling this case)
-    return $value;
-};
+            // Try different formats without converting to timestamp
+            $formats = [
+                'Y-m-d H:i:s',
+                'Y-m-d H:i',
+                'Y-m-d',
+                'm/d/Y H:i:s',
+                'm/d/Y H:i',
+                'm/d/Y',
+                'd/m/Y H:i:s',
+                'd/m/Y H:i',
+                'd/m/Y',
+                'd-m-Y H:i:s',
+                'd-m-Y H:i',
+                'd-m-Y',
+                'Y/m/d H:i:s',
+                'Y/m/d H:i',
+                'Y/m/d',
+                'm-d-Y H:i:s',
+                'm-d-Y H:i',
+                'm-d-Y',
+                'Y.m.d H:i:s',
+                'Y.m.d H:i',
+                'Y.m.d',
+                'd.m.Y H:i:s',
+                'd.m.Y H:i',
+                'd.m.Y',
+                'Y-m-d',
+                'm/d/Y',
+                'd/m/Y'
+            ];
+
+            // Attempt to parse the value without converting to a timestamp
+            foreach ($formats as $fmt) {
+                try {
+                    // Instead of formatting to timestamp, just return the original value
+                    if ($parsed = Carbon::createFromFormat($fmt, $value)) {
+                        return $parsed->format('Y-m-d H:i:s'); // Ensure the format is MySQL-compatible
+                    }
+                } catch (\Throwable $e) {
+                    // Catch any exception and continue trying other formats
+                }
+            }
+
+            // Fallback: Return the value as-is if it can't be parsed (consider handling this case)
+            return $value;
+        };
 
 
         $success = 0;
