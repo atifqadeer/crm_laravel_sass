@@ -432,13 +432,49 @@ class ApplicantController extends Controller
         // }
 
         if ($request->filled('search.value')) {
-            $search = trim($request->search['value']);
+    $search = trim($request->search['value']);
+    
+    // Split the search string into individual words (assuming space-separated words)
+    $searchWords = explode(' ', $search);
+    
+    // If there are two or more words, prioritize exact matches first, then match first and last word for relevance
+    if (count($searchWords) > 1) {
+        $model->where(function ($q) use ($search) {
+            // Exact match first across relevant fields
+            $q->where('applicants.applicant_name', '=', $search)
+                ->orWhere('applicants.applicant_email', '=', $search)
+                ->orWhere('applicants.applicant_email_secondary', '=', $search)
+                ->orWhere('applicants.applicant_phone', '=', $search)
+                ->orWhere('applicants.applicant_phone_secondary', '=', $search)
+                ->orWhere('applicants.applicant_landline', '=', $search)
+                ->orWhere('applicants.applicant_experience', '=', $search)
+                ->orWhere('applicants.applicant_postcode', '=', $search);
+        });
 
-            // Perform search across multiple fields with partial matches (LIKE)
+        // Match first and last words from search, giving priority to applicant_name, applicant_email, and applicant_email_secondary
+        $firstWord = $searchWords[0];
+        $lastWord = $searchWords[count($searchWords) - 1];
+
+        $model->orWhere(function ($q) use ($firstWord, $lastWord) {
+            $q->where('applicants.applicant_name', 'LIKE', "%{$firstWord}%")
+                ->orWhere('applicants.applicant_name', 'LIKE', "%{$lastWord}%")
+                ->orWhere('applicants.applicant_email', 'LIKE', "%{$firstWord}%")
+                ->orWhere('applicants.applicant_email', 'LIKE', "%{$lastWord}%")
+                ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$firstWord}%")
+                ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$lastWord}%");
+        });
+
+        // Limit to 5 results based on first and last words in name or email
+        $model->limit(5);
+        
+    } else {
+        // If there's only one word, continue with the previous logic
+        if (strlen($search) >= 3) {
             $model->where(function ($q) use ($search) {
-                // Exact match first (if search term is exact)
+                // Exact match across multiple fields
                 $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
@@ -450,8 +486,17 @@ class ApplicantController extends Controller
                     ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
                     ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
             });
+        } else {
+            // Short search handling
+            $model->where(function ($q) use ($search) {
+                $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
+            });
         }
-
+    }
+}
 
 
         // Filter by status if it's not empty
