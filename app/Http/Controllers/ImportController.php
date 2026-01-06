@@ -42,7 +42,8 @@ use PhpOffice\PhpWord\IOFactory;
 
 class ImportController extends Controller
 {
-
+    public $timestamps = false;  // Disables automatic timestamps
+    
     public function importIndex()
     {
         return view('settings.import');
@@ -3800,8 +3801,8 @@ class ImportController extends Controller
                     }
                 };
 
-                $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+                $createdAt = $normalizeDate($row['created_at'], 'created_at', $rowIndex);
+                $updatedAt = $normalizeDate($row['updated_at'], 'updated_at', $rowIndex);
 
                 // Prepare row for insertion
                 $processedRow = [
