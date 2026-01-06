@@ -379,11 +379,66 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
+        // if ($request->filled('search.value')) {
+        //     $search = trim($request->search['value']);
+            
+        //     // Split the search string into individual words (assuming words are space-separated)
+        //     $searchWords = explode(' ', $search);
+
+        //     // If there are two or more words, we need to search for each word in any field
+        //     if (count($searchWords) > 1) {
+        //         $model->where(function ($q) use ($searchWords) {
+        //             // Ensure each word is searched for across relevant fields
+        //             foreach ($searchWords as $word) {
+        //                 $q->orWhere(function ($q) use ($word) {
+        //                     $q->where('applicants.applicant_name', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_phone', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$word}%")
+        //                         ->orWhere('applicants.applicant_experience', 'LIKE', "%{$word}%");
+        //                 });
+        //             }
+        //         });
+        //     } else {
+        //         // If there's only one word, continue with the previous logic
+        //         if (strlen($search) >= 3) {
+        //             $model->where(function ($q) use ($search) {
+        //                 // Search across multiple fields
+        //                 $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
+
+        //                 // Search related tables
+        //                 $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
+        //                     ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
+        //                     ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
+        //             });
+        //         } else {
+        //             // Short search handling
+        //             $model->where(function ($q) use ($search) {
+        //                 $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+        //                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
+        //             });
+        //         }
+        //     }
+        // }
+
         if ($request->filled('search.value')) {
             $search = trim($request->search['value']);
             
             // Split the search string into individual words (assuming words are space-separated)
             $searchWords = explode(' ', $search);
+            
+            // Limit the number of words to a maximum of 3
+            $searchWords = array_slice($searchWords, 0, 3);
 
             // If there are two or more words, we need to search for each word in any field
             if (count($searchWords) > 1) {
@@ -430,6 +485,7 @@ class ApplicantController extends Controller
                 }
             }
         }
+
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
