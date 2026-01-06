@@ -430,7 +430,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImportOld(Request $request)
+    public function unitsImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -2756,129 +2756,128 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImport(Request $request)
-{
-    $request->validate([
-        'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
-    ]);
-
-    $file = $request->file('csv_file');
-    $path = $file->storeAs('uploads/import_files', time() . '_' . $file->getClientOriginalName());
-    $filePath = storage_path("app/{$path}");
-
-    // CSV reader
-    $csv = Reader::createFromPath($filePath, 'r');
-    $csv->setHeaderOffset(0);
-
-    // Normalize headers
-    $headers = array_map(fn ($h) => strtolower(trim($h)), $csv->getHeader());
-    foreach (['id', 'created_at', 'updated_at'] as $req) {
-        if (!in_array($req, $headers, true)) {
-            @unlink($filePath);
-            return response()->json(['error' => "Missing required header: {$req}"], 422);
-        }
-    }
-
-    // Date normalizer
-    $normalizeDate = function ($value) {
-        $value = trim((string) $value);
-
-        if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) {
-            return null;
-        }
-
-        // Add seconds if missing (HH:MM → HH:MM:00)
-        if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
-            $value .= ':00';
-        }
-
-        $formats = [
-            'Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d',
-            'm/d/Y H:i:s', 'm/d/Y H:i', 'm/d/Y',
-            'd/m/Y H:i:s', 'd/m/Y H:i', 'd/m/Y',
-            'd-m-Y H:i:s', 'd-m-Y H:i', 'd-m-Y',
-            'Y/m/d H:i:s', 'Y/m/d H:i', 'Y/m/d',
-            'm-d-Y H:i:s', 'm-d-Y H:i', 'm-d-Y',
-            'Y.m.d H:i:s', 'Y.m.d H:i', 'Y.m.d',
-            'd.m.Y H:i:s', 'd.m.Y H:i', 'd.m.Y',
-        ];
-
-        foreach ($formats as $fmt) {
-            try {
-                return Carbon::createFromFormat($fmt, $value)->format('Y-m-d H:i:s');
-            } catch (\Throwable $e) {
-                // try next format
-            }
-        }
-
-        return null;
-    };
-
-    $success = 0;
-    $failed = [];
-    $rowNo = 1;
-
-    DB::beginTransaction();
-
-    try {
-        foreach ($csv->getRecords() as $row) {
-            $rowNo++;
-
-            // Normalize row keys
-            $row = array_change_key_case($row, CASE_LOWER);
-
-            $id = (int) ($row['id'] ?? 0);
-            $created = $normalizeDate($row['created_at'] ?? null);
-            $updated = $normalizeDate($row['updated_at'] ?? null);
-
-            if (!$id || !$created || !$updated) {
-                $failed[] = [
-                    'row' => $rowNo,
-                    'id' => $id ?: null,
-                    'error' => 'Invalid id / created_at / updated_at',
-                ];
-                continue;
-            }
-
-            // Update ONLY if record exists
-            $affected = DB::table('units')
-                ->where('id', $id)
-                ->update([
-                    'created_at' => $created,
-                    'updated_at' => $updated,
-                ]);
-
-            if ($affected) {
-                $success++;
-            } else {
-                $failed[] = [
-                    'row' => $rowNo,
-                    'id' => $id,
-                    'error' => 'ID not found',
-                ];
-            }
-        }
-
-        DB::commit();
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        @unlink($filePath);
-        throw $e;
-    }
-
-    @unlink($filePath);
-
-    return response()->json([
-        'message' => 'Timestamp import finished.',
-        'summary' => [
-            'successful_updates' => $success,
-            'failed_rows' => count($failed),
-            'failed_details' => $failed,
-        ],
-    ]);
-}
-
     public function salesImport(Request $request)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
+        ]);
+
+        $file = $request->file('csv_file');
+        $path = $file->storeAs('uploads/import_files', time() . '_' . $file->getClientOriginalName());
+        $filePath = storage_path("app/{$path}");
+
+        // CSV reader
+        $csv = Reader::createFromPath($filePath, 'r');
+        $csv->setHeaderOffset(0);
+
+        // Normalize headers
+        $headers = array_map(fn ($h) => strtolower(trim($h)), $csv->getHeader());
+        foreach (['id', 'created_at', 'updated_at'] as $req) {
+            if (!in_array($req, $headers, true)) {
+                @unlink($filePath);
+                return response()->json(['error' => "Missing required header: {$req}"], 422);
+            }
+        }
+
+        // Date normalizer
+        $normalizeDate = function ($value) {
+            $value = trim((string) $value);
+
+            if ($value === '' || preg_match('/^(null|n\/a|na|none|-)\s*$/i', $value)) {
+                return null;
+            }
+
+            // Add seconds if missing (HH:MM → HH:MM:00)
+            if (preg_match('/\d{1,2}:\d{2}$/', $value) && !preg_match('/\d{1,2}:\d{2}:\d{2}$/', $value)) {
+                $value .= ':00';
+            }
+
+            $formats = [
+                'Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d',
+                'm/d/Y H:i:s', 'm/d/Y H:i', 'm/d/Y',
+                'd/m/Y H:i:s', 'd/m/Y H:i', 'd/m/Y',
+                'd-m-Y H:i:s', 'd-m-Y H:i', 'd-m-Y',
+                'Y/m/d H:i:s', 'Y/m/d H:i', 'Y/m/d',
+                'm-d-Y H:i:s', 'm-d-Y H:i', 'm-d-Y',
+                'Y.m.d H:i:s', 'Y.m.d H:i', 'Y.m.d',
+                'd.m.Y H:i:s', 'd.m.Y H:i', 'd.m.Y',
+            ];
+
+            foreach ($formats as $fmt) {
+                try {
+                    return Carbon::createFromFormat($fmt, $value)->format('Y-m-d H:i:s');
+                } catch (\Throwable $e) {
+                    // try next format
+                }
+            }
+
+            return null;
+        };
+
+        $success = 0;
+        $failed = [];
+        $rowNo = 1;
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($csv->getRecords() as $row) {
+                $rowNo++;
+
+                // Normalize row keys
+                $row = array_change_key_case($row, CASE_LOWER);
+
+                $id = (int) ($row['id'] ?? 0);
+                $created = $normalizeDate($row['created_at'] ?? null);
+                $updated = $normalizeDate($row['updated_at'] ?? null);
+
+                if (!$id || !$created || !$updated) {
+                    $failed[] = [
+                        'row' => $rowNo,
+                        'id' => $id ?: null,
+                        'error' => 'Invalid id / created_at / updated_at',
+                    ];
+                    continue;
+                }
+
+                // Update ONLY if record exists
+                $affected = DB::table('sales')
+                    ->where('id', $id)
+                    ->update([
+                        'created_at' => $created,
+                        'updated_at' => $updated,
+                    ]);
+
+                if ($affected) {
+                    $success++;
+                } else {
+                    $failed[] = [
+                        'row' => $rowNo,
+                        'id' => $id,
+                        'error' => 'ID not found',
+                    ];
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            @unlink($filePath);
+            throw $e;
+        }
+
+        @unlink($filePath);
+
+        return response()->json([
+            'message' => 'Timestamp import finished.',
+            'summary' => [
+                'successful_updates' => $success,
+                'failed_rows' => count($failed),
+                'failed_details' => $failed,
+            ],
+        ]);
+    }
+    public function salesImportOld(Request $request)
     {
         $request->validate([
             'csv_file' => [
