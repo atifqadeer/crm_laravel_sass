@@ -3418,7 +3418,7 @@ class ImportController extends Controller
                     }
 
                     // Date preprocessing
-                    $preprocessDate = function ($dateString, $field, $rowIndex) {
+                    $preprocessDate = function ($dateString) {
                         if (empty($dateString) || !is_string($dateString)) {
                             return null;
                         }
@@ -3426,15 +3426,15 @@ class ImportController extends Controller
                         // Fix malformed numeric formats (e.g., 1122024 1230)
                         if (preg_match('/^(\d{1,2})(\d{2})(\d{4})\s?(\d{1,2})(\d{2})?$/', $dateString, $matches)) {
                             $fixedDate = "{$matches[1]}/{$matches[2]}/{$matches[3]} " . ($matches[4] ?? '00') . ":" . ($matches[5] ?? '00');
-                            Log::channel('import')->debug("Row {$rowIndex}: Fixed malformed {$field} from '{$dateString}' to '{$fixedDate}'");
                             return $fixedDate;
                         }
 
                         return $dateString;
                     };
 
+
                     // Parse dates (corrected format order)
-                    $parseDate = function ($dateString, $rowIndex, $field = 'created_at') {
+                    $parseDate = function ($dateString) {
                         if (empty($dateString)) {
                             return null;
                         }
@@ -3459,20 +3459,17 @@ class ImportController extends Controller
                         foreach ($formats as $format) {
                             try {
                                 $dt = Carbon::createFromFormat($format, $dateString);
-                                // Log::channel('import')->debug("Row {$rowIndex}: Parsed {$field} '{$dateString}' with format '{$format}'");
-                                return $dt->format('Y-m-d H:i:s');
+                                return $dt->format('Y-m-d H:i:s');  // Ensure the format is MySQL-compatible
                             } catch (\Exception $e) {
-                                // continue
+                                // continue trying other formats
                             }
                         }
-
-
-                        Log::channel('import')->debug("Row {$rowIndex}: All formats failed for {$field} '{$dateString}'");
                         return null;
                     };
 
+
                     // Normalizer (keeps created_at & updated_at null if invalid)
-                    $normalizeDate = function ($value, $field, $rowIndex) use ($preprocessDate, $parseDate) {
+                    $normalizeDate = function ($value) use ($preprocessDate, $parseDate) {
                         $value = trim((string)($value ?? ''));
 
                         // Skip invalid placeholders
@@ -3484,8 +3481,9 @@ class ImportController extends Controller
                         }
 
                         try {
-                            $value = $preprocessDate($value, $field, $rowIndex);
-                            $parsed = $parseDate($value, $rowIndex, $field);
+                            // Preprocess and parse the date
+                            $value = $preprocessDate($value);
+                            $parsed = $parseDate($value);
 
                             if (!$parsed || strtotime($parsed) == false) {
                                 throw new \Exception("Invalid date format: '{$value}'");
@@ -3493,13 +3491,13 @@ class ImportController extends Controller
 
                             return $parsed;
                         } catch (\Exception $e) {
-                            Log::channel('import')->debug("Row {$rowIndex}: Failed to parse {$field} '{$value}' — {$e->getMessage()}");
                             return null;
                         }
                     };
 
-                    $createdAt = $normalizeDate($row['created_at'] ?? null, 'created_at', $rowIndex);
-                    $updatedAt = $normalizeDate($row['updated_at'] ?? null, 'updated_at', $rowIndex);
+
+                    $createdAt = $normalizeDate($row['created_at']);
+                    $updatedAt = $normalizeDate($row['updated_at']);
 
                     $processedRow = [
                         'id' => $row['id'],
