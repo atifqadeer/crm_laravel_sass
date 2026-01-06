@@ -433,29 +433,10 @@ class ApplicantController extends Controller
 
         if ($request->filled('search.value')) {
             $search = trim($request->search['value']);
-            
-            // Split the search string into individual words (assuming words are space-separated)
-            $searchWords = explode(' ', $search);
-            
-            // Limit the number of words to a maximum of 3
-            $searchWords = array_slice($searchWords, 0, 3);
 
-            if ($request->filled('search.value')) {
-            $search = trim($request->search['value']);
-
-            // Exact match first
+            // Perform search across multiple fields with partial matches (LIKE)
             $model->where(function ($q) use ($search) {
-                $q->where('applicants.applicant_name', '=', $search)
-                    ->orWhere('applicants.applicant_email', '=', $search)
-                    ->orWhere('applicants.applicant_postcode', '=', $search)
-                    ->orWhere('applicants.applicant_phone', '=', $search)
-                    ->orWhere('applicants.applicant_phone_secondary', '=', $search)
-                    ->orWhere('applicants.applicant_landline', '=', $search)
-                    ->orWhere('applicants.applicant_experience', '=', $search);
-            });
-
-            // If no exact match is found, fall back to partial match (LIKE)
-            $model->orWhere(function ($q) use ($search) {
+                // Exact match first (if search term is exact)
                 $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
@@ -463,8 +444,15 @@ class ApplicantController extends Controller
                     ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
                     ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
+
+                // Search related tables
+                $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
+                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
+                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
             });
         }
+
+
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
