@@ -43,7 +43,7 @@ use PhpOffice\PhpWord\IOFactory;
 class ImportController extends Controller
 {
     public $timestamps = false;  // Disables automatic timestamps
-    
+
     public function importIndex()
     {
         return view('settings.import');
@@ -825,7 +825,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImport(Request $request)
+    public function applicantsImportOld(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -2756,7 +2756,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImportfresh(Request $request)
+    public function applicantsImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
