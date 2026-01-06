@@ -432,35 +432,59 @@ class ApplicantController extends Controller
         // }
 
         if ($request->filled('search.value')) {
-            $search = trim($request->search['value']);
-            
-            // If search length is greater than or equal to 3, search across multiple fields
-            if (strlen($search) >= 3) {
-                $model->where(function ($q) use ($search) {
-                    // Search across multiple fields in the applicants table
-                    $q->where('applicants.applicant_name', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$search}%");
+    $search = trim($request->search['value']);
+    
+    // Split the search string into individual words (assuming words are space-separated)
+    $searchWords = explode(' ', $search);
+    
+    // Limit the number of words to a maximum of 3
+    $searchWords = array_slice($searchWords, 0, 3);
 
-                    // Search related tables
-                    $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'LIKE', "%{$search}%"))
-                        ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'LIKE', "%{$search}%"))
-                        ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'LIKE', "%{$search}%"));
-                });
-            } else {
-                // If search is too short (less than 3 characters), search in phone and postcode fields only
-                $model->where(function ($q) use ($search) {
-                    $q->where('applicants.applicant_phone', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
-                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%");
+    // If there are two or more words, we need to search for each word in any field
+    if (count($searchWords) > 1) {
+        $model->where(function ($q) use ($searchWords) {
+            // Ensure each word is searched for across relevant fields using REGEXP for whole words
+            foreach ($searchWords as $word) {
+                $q->orWhere(function ($q) use ($word) {
+                    $q->where('applicants.applicant_name', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_email', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
+                        ->orWhere('applicants.applicant_experience', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b');
                 });
             }
+        });
+    } else {
+        // If there's only one word, continue with the previous logic
+        if (strlen($search) >= 3) {
+            $model->where(function ($q) use ($search) {
+                // Use REGEXP for whole word matching
+                $q->where('applicants.applicant_name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_email', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_experience', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b');
+
+                // Search related tables
+                $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'))
+                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'))
+                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'));
+            });
+        } else {
+            // Short search handling
+            $model->where(function ($q) use ($search) {
+                $q->where('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
+                    ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b');
+            });
         }
+    }
+}
 
 
 
