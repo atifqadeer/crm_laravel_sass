@@ -430,7 +430,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImport(Request $request)
+    public function unitsImportOld(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -825,7 +825,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImportOld(Request $request)
+    public function applicantsImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -2756,7 +2756,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImport(Request $request)
+    public function unitsImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
@@ -2854,7 +2854,7 @@ class ImportController extends Controller
             }
 
             // Update ONLY if exists
-            $affected = DB::table('applicants')
+            $affected = DB::table('units')
                 ->where('id', $id)
                 ->update(['created_at' => $created, 'updated_at' => $updated]);
 
@@ -4426,6 +4426,9 @@ class ImportController extends Controller
         if (!$request->hasFile('csv_file')) {
             return response()->json(['error' => 'No file uploaded'], 422);
         }
+
+        ini_set('max_execution_time', 10000);
+        ini_set('memory_limit', '-1');
 
         $file = $request->file('csv_file');
         $filePath = $file->getRealPath();
