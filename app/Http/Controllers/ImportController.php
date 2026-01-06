@@ -2756,7 +2756,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function salesImport(Request $request)
+    public function datesImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
@@ -2877,7 +2877,7 @@ class ImportController extends Controller
             ],
         ]);
     }
-    public function salesImportOld(Request $request)
+    public function salesImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
