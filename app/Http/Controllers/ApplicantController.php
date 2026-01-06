@@ -440,51 +440,70 @@ class ApplicantController extends Controller
     // Limit the number of words to a maximum of 3
     $searchWords = array_slice($searchWords, 0, 3);
 
-    // If there are two or more words, we need to search for each word in any field
-    if (count($searchWords) > 1) {
+    // First, attempt to find exact matches
+    $model->where(function ($q) use ($searchWords) {
+        foreach ($searchWords as $word) {
+            // Search for exact matches first (no partial matching)
+            $q->orWhere(function ($q) use ($word) {
+                $q->where('applicants.applicant_name', '=', $word)
+                    ->orWhere('applicants.applicant_email', '=', $word)
+                    ->orWhere('applicants.applicant_postcode', '=', $word)
+                    ->orWhere('applicants.applicant_phone', '=', $word)
+                    ->orWhere('applicants.applicant_phone_secondary', '=', $word)
+                    ->orWhere('applicants.applicant_landline', '=', $word)
+                    ->orWhere('applicants.applicant_experience', '=', $word);
+            });
+        }
+    });
+
+    // If no exact matches are found, fall back to partial matching
+    if ($model->count() === 0) {
         $model->where(function ($q) use ($searchWords) {
-            // Ensure each word is searched for across relevant fields using REGEXP for whole words
             foreach ($searchWords as $word) {
+                // Perform partial matching for nearest possibilities (using LIKE)
                 $q->orWhere(function ($q) use ($word) {
-                    $q->where('applicants.applicant_name', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_email', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b')
-                        ->orWhere('applicants.applicant_experience', 'REGEXP', '\\b' . preg_quote($word, '\\') . '\\b');
+                    $q->where('applicants.applicant_name', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$word}%")
+                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$word}%");
                 });
             }
         });
-    } else {
-        // If there's only one word, continue with the previous logic
+    }
+
+    // If there's only one word, continue with exact matching logic first, then partial match
+    if (count($searchWords) == 1) {
         if (strlen($search) >= 3) {
             $model->where(function ($q) use ($search) {
-                // Use REGEXP for whole word matching
-                $q->where('applicants.applicant_name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_email', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_experience', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b');
+                // Exact match first for one word
+                $q->where('applicants.applicant_name', '=', $search)
+                    ->orWhere('applicants.applicant_email', '=', $search)
+                    ->orWhere('applicants.applicant_postcode', '=', $search)
+                    ->orWhere('applicants.applicant_phone', '=', $search)
+                    ->orWhere('applicants.applicant_phone_secondary', '=', $search)
+                    ->orWhere('applicants.applicant_landline', '=', $search)
+                    ->orWhere('applicants.applicant_experience', '=', $search);
 
-                // Search related tables
-                $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'))
-                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'))
-                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b'));
+                // Fallback to partial matching if no exact matches
+                $q->orWhereHas('jobTitle', fn($x) => $x->where('job_titles.name', '=', $search))
+                    ->orWhereHas('jobCategory', fn($x) => $x->where('job_categories.name', '=', $search))
+                    ->orWhereHas('jobSource', fn($x) => $x->where('job_sources.name', '=', $search));
             });
         } else {
-            // Short search handling
+            // Short search handling (same as before, but with priority to exact matches)
             $model->where(function ($q) use ($search) {
-                $q->where('applicants.applicant_phone', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_phone_secondary', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_landline', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b')
-                    ->orWhere('applicants.applicant_postcode', 'REGEXP', '\\b' . preg_quote($search, '\\') . '\\b');
+                $q->where('applicants.applicant_phone', '=', $search)
+                    ->orWhere('applicants.applicant_phone_secondary', '=', $search)
+                    ->orWhere('applicants.applicant_landline', '=', $search)
+                    ->orWhere('applicants.applicant_postcode', '=', $search);
             });
         }
     }
 }
+
 
 
 
