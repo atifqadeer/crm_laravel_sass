@@ -169,6 +169,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
+                                    <th>Details</th>
                                     <th>Experience</th>
                                     <th>Qualification</th>
                                     <th>Salary</th>
@@ -276,6 +277,7 @@
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
+                    { data: 'job_details', name: 'job_details', orderable: false },
                     { data: 'experience', name: 'sales.experience' },
                     { data: 'qualification', name: 'sales.qualification' },
                     { data: 'salary', name: 'sales.salary' },

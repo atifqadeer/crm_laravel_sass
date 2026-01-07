@@ -1266,6 +1266,62 @@ class QualityController extends Controller
                             </div>
                         </div>';
                 })
+                ->addColumn('job_details', function ($sale) {
+                    $position_type = strtoupper(str_replace('-', ' ', $sale->position_type ?? ''));
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $status = '';
+                    if ($sale->status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
+                        $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($sale->status == 2) {
+                        $status = '<span class="badge bg-warning">Pending</span>';
+                    } elseif ($sale->status == 3) {
+                        $status = '<span class="badge bg-danger">Rejected</span>';
+                    }
+
+                    $postcode = $sale->formatted_postcode;
+                    $posted_date = $sale->formatted_created_at;
+                    $office_id = $sale->office_id;
+                    $office = Office::find($office_id);
+                    $office_name = $office ? ucwords($office->office_name) : '-';
+                    $unit_id = $sale->unit_id;
+                    $unit = Unit::find($unit_id);
+                    $unit_name = $unit ? ucwords($unit->unit_name) : '-';
+                    
+                    $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
+                    $type = $sale->job_type;
+                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
+
+                    $jobData = [
+                        'sale_id'       => (int)$sale->id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $jobCategory,
+                        'job_title'     => $jobTitle,
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $sale->timing,
+                        'experience'    => $sale->experience,
+                        'salary'        => $sale->salary,
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $sale->qualification,
+                        'benefits'      => $sale->benefits,
+                    ];
+
+                    if (Gate::allows('quality-assurance-sale-view')) {
+                        return '<a href="#"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                                                $jobData,
+                                                JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                            ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                            </a>';
+                    }
+                })
                 ->addColumn('status', function ($sale) {
                     $status = '';
                     if ($sale->status == 1 && $sale->is_re_open == 1) {
@@ -1395,7 +1451,7 @@ class QualityController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'sale_postcode', 'experience', 'salary', 'qualification', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'job_details', 'sale_postcode', 'experience', 'salary', 'qualification', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
