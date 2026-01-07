@@ -2662,49 +2662,9 @@ class ImportController extends Controller
                             $rowIndex = ($chunkIndex * 50) + $index + 2;
 
                             try {
-                                $id = $row['id'];
-                                unset($row['id']);
-
-                                // remove timestamps fully
-                                unset($row['created_at'], $row['updated_at']);
-
-                                $filtered = $row;
-
-                                if ($id) {
-                                    $app = Applicant::find($id);
-
-                                    if ($app) {
-                                        $app->timestamps = false;
-                                        $app->forceFill($filtered);
-                                        $app->save();
-                                    } else {
-                                        $app = new Applicant();
-                                        $app->timestamps = false;
-
-                                        if (empty($filtered['applicant_uid'])) {
-                                            $filtered['applicant_uid'] = md5($id);
-                                        }
-
-                                        $filtered['id'] = $id;
-
-                                        $app->forceFill($filtered);
-                                        $app->save();
-                                    }
-                                } else {
-                                    $app = new Applicant();
-                                    $app->timestamps = false;
-
-                                    $app->forceFill($filtered);
-                                    $app->save();
-
-                                    $newId = $app->id;
-
-                                    if (empty($app->applicant_uid)) {
-                                        $app->timestamps = false;
-                                        $app->applicant_uid = md5($newId);
-                                        $app->save();
-                                    }
-                                }
+                                Applicant::withoutTimestamps(function () use ($row) {
+                                    Applicant::updateOrCreate(['id' => $row['id']], $row);
+                                });
 
                                 $successfulRows++;
                             } catch (\Throwable $e) {
