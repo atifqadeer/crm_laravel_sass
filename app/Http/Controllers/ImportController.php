@@ -3166,7 +3166,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $rowIndex => $row) {
                             try {
-                                Sale::updateOrCreate(['id' => $row['id']], $row);
+                                Sale::withoutTimestamps(function () use ($row) {
+                                    Sale::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                             } catch (\Throwable $e) {
                                 $failedRows[] = [
