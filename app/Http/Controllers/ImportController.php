@@ -430,7 +430,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImportOld(Request $request)
+    public function unitsImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -731,10 +731,13 @@ class ImportController extends Controller
                                 unset($row['contacts']);
 
                                 // Create or update Unit
-                                Unit::updateOrCreate(
-                                    ['id' => $row['id']],   // Match on ID
-                                    $row                    // Update rest of the fields
-                                );
+                                Unit::withoutTimestamps(function () use ($row) {
+                                        Unit::updateOrCreate(
+                                            ['id' => $row['id']],   // Match on ID
+                                            $row                    // Update rest of the fields
+                                        );
+                                });
+                                
 
                                 // Optional: remove old contacts for this office to avoid duplicates
                                 DB::table('contacts')
@@ -2756,7 +2759,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImport(Request $request)
+    public function datesImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
@@ -2841,7 +2844,7 @@ class ImportController extends Controller
                 }
 
                 // Update ONLY if record exists
-                $affected = DB::table('sales')
+                $affected = DB::table('units')
                     ->where('id', $id)
                     ->update([
                         'created_at' => $created,
