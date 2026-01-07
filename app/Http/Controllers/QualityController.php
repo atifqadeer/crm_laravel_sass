@@ -778,20 +778,30 @@ class QualityController extends Controller
                             }
                             break;
                     }
-                    $html .= '<li>
-                                <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
-                                <!-- Hidden File Input -->
-                                <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
-                            </li>';
-                    $html .= '<li>
-                                <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
-                                <!-- Hidden File Input -->
-                                <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
-                            </li>';
+                    // if (Gate::allows('quality-assurance-resource-upload-resume')) {
+                    //     $html .= '<li>
+                    //                 <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+                    //                 <!-- Hidden File Input -->
+                    //                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
+                    //             </li>';
+                    // }
+                    if (Gate::allows('quality-assurance-resource-upload-resume')) {
+                        $html .= '<li>
+                                    <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <!-- Hidden File Input -->
+                                    <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                                </li>';
+                    }
                     // Common actions
-                    $html .= '<li><hr class="dropdown-divider"></li>';
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory('.(int)$applicant->id.', '. (int)$applicant->sale_id . ')">Notes History</a></li>';
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+                    if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
+                    if (Gate::allows('applicant-view-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory('.(int)$applicant->id.', '. (int)$applicant->sale_id . ')">Notes History</a></li>';
+                    }
+                    if (Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+                    }
 
                     $html .= '</ul></div>';
 

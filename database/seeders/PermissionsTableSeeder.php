@@ -274,6 +274,7 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-resource-open-cv',
             'quality-assurance-resource-clear-cv',
             'quality-assurance-resource-reject-cv',
+            'quality-assurance-resource-revert-cv',
             'quality-assurance-resource-upload-resume',
             'quality-assurance-resource-download-resume',
 
