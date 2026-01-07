@@ -606,7 +606,7 @@ class QualityController extends Controller
 
                             <!-- Copy button under short note -->
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
-                                <iconify-icon icon="solar:copy-bold" class="text-info fs-24"></iconify-icon>
+                                Copy Notes
                             </button>
                         </div>
 
@@ -1268,7 +1268,7 @@ class QualityController extends Controller
 
                             <!-- Copy button under short note -->
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-sales-notes-btn" data-copy-quality-sales-notes-target="#' . $copyId . '">
-                                <iconify-icon icon="solar:copy-bold" class="text-info fs-24"></iconify-icon>
+                                Copy Notes
                             </button>
                         </div>
 
