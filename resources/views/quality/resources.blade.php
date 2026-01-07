@@ -797,68 +797,47 @@
             });
         }
 
-        function showDetailsModal(
-            saleId, officeName, name, postcode, 
-            jobCategory, jobTitle, status, timing, experience, salary, 
-            position, qualification, benefits
-        ) {
-            const modalId = `showDetailsModal-${saleId}`;
+        function showDetailsModal(job) {
 
-            // Remove any existing modal with same ID to keep it unique
-            $('#' + modalId).remove();
+    const modalId = `job-modal-${job.sale_id}`;
+    document.getElementById(modalId)?.remove();
 
-            // Append modal structure with loader
-            $('body').append(`
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label">
-                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">Job Details</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <div class="spinner-border text-primary my-4" role="status" id="${modalId}-loader">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div id="${modalId}-content" class="d-none text-start"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
+    document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal fade" id="${modalId}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Job Details</h5>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                            <tr><th>Head Office</th><td>${job.office_name}</td></tr>
+                            <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
+                            <tr><th>Postcode</th><td>${job.postcode}</td></tr>
+                            <tr><th>Job Category</th><td>${job.job_category}</td></tr>
+                            <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                            <tr><th>Status</th><td>${job.status}</td></tr>
+                            <tr><th>Timing</th><td>${job.timing}</td></tr>
+                            <tr><th>Experience</th><td>${job.experience}</td></tr>
+                            <tr><th>Salary</th><td>${job.salary}</td></tr>
+                            <tr><th>Position</th><td>${job.position}</td></tr>
+                            <tr><th>Qualification</th><td>${job.qualification}</td></tr>
+                            <tr><th>Benefits</th><td>${job.benefits}</td></tr>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
-            `);
+            </div>
+        </div>
+    `);
 
-            // Show modal immediately
-            const modal = new bootstrap.Modal(document.getElementById(modalId));
-            modal.show();
+    new bootstrap.Modal(document.getElementById(modalId)).show();
+}
 
-            // Simulate content load delay (300ms)
-            setTimeout(() => {
-                const detailsHtml = `
-                    <table class="table table-bordered">
-                        <tr><th>Sale ID</th><td>${saleId}</td></tr>
-                        <tr><th>Head Office Name</th><td>${officeName}</td></tr>
-                        <tr><th>Unit Name</th><td>${name}</td></tr>
-                        <tr><th>Postcode</th><td>${postcode}</td></tr>
-                        <tr><th>Job Category</th><td>${jobCategory}</td></tr>
-                        <tr><th>Job Title</th><td>${jobTitle}</td></tr>
-                        <tr><th>Status</th><td>${status}</td></tr>
-                        <tr><th>Timing</th><td>${timing}</td></tr>
-                        <tr><th>Qualification</th><td>${qualification}</td></tr>
-                        <tr><th>Salary</th><td>${salary}</td></tr>
-                        <tr><th>Position</th><td>${position}</td></tr>
-                        <tr><th>Experience</th><td>${experience}</td></tr>
-                        <tr><th>Benefits</th><td>${benefits}</td></tr>
-                    </table>
-                `;
-
-                // Hide loader and show table
-                $(`#${modalId}-loader`).hide();
-                $(`#${modalId}-content`).removeClass('d-none').html(detailsHtml);
-            }, 300);
-        }
 
         let applicantId = null; // Store applicant ID
 
@@ -869,6 +848,25 @@
             // Trigger the file input click event
             document.getElementById('crmfileInput').click();
         }
+
+        document.addEventListener('click', function (e) {
+
+            const link = e.target.closest('.job-details');
+            if (!link) return;
+
+            e.preventDefault();
+
+            let job;
+            try {
+                job = JSON.parse(link.dataset.job);
+            } catch (err) {
+                console.error('Invalid job data', err);
+                return;
+            }
+
+            showDetailsModal(job);
+        });
+
 
         function crmuploadFile() {
             const fileInput = document.getElementById('crmfileInput');

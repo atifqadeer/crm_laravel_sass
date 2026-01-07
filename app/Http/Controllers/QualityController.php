@@ -42,17 +42,17 @@ class QualityController extends Controller
     }
     public function resourceIndex()
     {
-        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         return view('quality.resources', compact('jobCategories', 'jobTitles'));
     }
     public function saleIndex()
     {
-        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
-        $users = User::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
+        $users = User::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         return view('quality.sales', compact('jobCategories', 'jobTitles', 'offices', 'users'));
     }
@@ -65,8 +65,8 @@ class QualityController extends Controller
 
         $model = Applicant::query()
             ->with([
-                'jobTitle', 
-                'jobCategory', 
+                'jobTitle',
+                'jobCategory',
                 'jobSource',
                 'user'
             ])
@@ -91,14 +91,14 @@ class QualityController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id');
-        
+
         // Filter by status if it's not empty
-        switch ($statusFilter) {                
+        switch ($statusFilter) {
             case 'open cvs':
                 $model->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->where("cv_notes.status", 1);
-                    })
+                    $join->on('applicants.id', '=', 'cv_notes.applicant_id')
+                        ->where("cv_notes.status", 1);
+                })
                     ->join('sales', function ($join) {
                         $join->on('cv_notes.sale_id', '=', 'sales.id')
                             ->whereColumn('cv_notes.sale_id', 'sales.id');
@@ -130,15 +130,15 @@ class QualityController extends Controller
                         'offices.office_name as office_name',
 
                         // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
                         'sales.benefits',
                         'sales.office_id as sale_office_id',
                         'sales.unit_id as sale_unit_id',
@@ -146,19 +146,19 @@ class QualityController extends Controller
                         'sales.status as sale_status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
 
                         'users.name as user_name',
                     );
                 break;
-                
+
             case 'no job cvs':
                 $model->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->where("cv_notes.status", 1);
-                    })
+                    $join->on('applicants.id', '=', 'cv_notes.applicant_id')
+                        ->where("cv_notes.status", 1);
+                })
                     ->join('sales', function ($join) {
                         $join->on('cv_notes.sale_id', '=', 'sales.id')
                             ->whereColumn('cv_notes.sale_id', 'sales.id');
@@ -178,15 +178,15 @@ class QualityController extends Controller
                         'offices.office_name as office_name',
 
                         // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
                         'sales.benefits',
                         'sales.office_id as sale_office_id',
                         'sales.unit_id as sale_unit_id',
@@ -194,20 +194,20 @@ class QualityController extends Controller
                         'sales.status as sale_status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
 
                         'users.name as user_name'
                     ]);
                 break;
-                
+
             case 'rejected cvs':
                 $model->join('quality_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                            ->where("quality_notes.moved_tab_to", "rejected");
-                            // ->where("quality_notes.status", 1);
-                    })
+                    $join->on('applicants.id', '=', 'quality_notes.applicant_id')
+                        ->where("quality_notes.moved_tab_to", "rejected");
+                    // ->where("quality_notes.status", 1);
+                })
                     ->join('sales', function ($join) {
                         $join->on('quality_notes.sale_id', '=', 'sales.id')
                             ->whereColumn('quality_notes.sale_id', 'sales.id');
@@ -222,15 +222,15 @@ class QualityController extends Controller
                         'offices.office_name as office_name',
 
                         // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
                         'sales.benefits',
                         'sales.office_id as sale_office_id',
                         'sales.unit_id as sale_unit_id',
@@ -238,14 +238,14 @@ class QualityController extends Controller
                         'sales.status as sale_status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
                     )
                     ->groupBy(
-                        'quality_notes.created_at', 
-                        'quality_notes.applicant_id', 
-                        'quality_notes.sale_id', 
+                        'quality_notes.created_at',
+                        'quality_notes.applicant_id',
+                        'quality_notes.sale_id',
                         'quality_notes.id',
                         'quality_notes.details',
                         'users.name',
@@ -267,15 +267,15 @@ class QualityController extends Controller
                         'applicants.job_type',
 
                         // sale
-                        'sales.id', 
-                        'sales.job_category_id', 
-                        'sales.job_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience', 
-                        'sales.qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience',
+                        'sales.qualification',
                         'sales.benefits',
                         'sales.office_id',
                         'sales.unit_id',
@@ -283,8 +283,8 @@ class QualityController extends Controller
                         'sales.status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
 
                         'job_titles.name',
@@ -296,10 +296,10 @@ class QualityController extends Controller
 
             case 'cleared cvs':
                 $model->join('quality_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                            ->whereIn("quality_notes.moved_tab_to" , ["cleared", "cleared_no_job"]);
-                            // ->where("quality_notes.status", 1);
-                    })
+                    $join->on('applicants.id', '=', 'quality_notes.applicant_id')
+                        ->whereIn("quality_notes.moved_tab_to", ["cleared", "cleared_no_job"]);
+                    // ->where("quality_notes.status", 1);
+                })
                     ->join('sales', function ($join) {
                         $join->on('quality_notes.sale_id', '=', 'sales.id')
                             ->whereColumn('quality_notes.sale_id', 'sales.id');
@@ -314,15 +314,15 @@ class QualityController extends Controller
                         'offices.office_name as office_name',
 
                         // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
                         'sales.benefits',
                         'sales.office_id as sale_office_id',
                         'sales.unit_id as sale_unit_id',
@@ -330,67 +330,67 @@ class QualityController extends Controller
                         'sales.status as sale_status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
                     )
                     ->groupBy(
-                            'quality_notes.created_at', 
-                            'quality_notes.applicant_id', 
-                            'quality_notes.sale_id', 
-                            'quality_notes.id',
-                            'quality_notes.details',
-                            'users.name',
+                        'quality_notes.created_at',
+                        'quality_notes.applicant_id',
+                        'quality_notes.sale_id',
+                        'quality_notes.id',
+                        'quality_notes.details',
+                        'users.name',
 
-                            // applicant
-                            'applicants.id',
-                            'applicants.applicant_name',
-                            'applicants.applicant_email',
-                            'applicants.applicant_email_secondary',
-                            'applicants.applicant_phone',
-                            'applicants.applicant_postcode',
-                            'applicants.applicant_landline',
-                            'applicants.updated_at',
-                            'applicants.applicant_cv',
-                            'applicants.updated_cv',
-                            'applicants.applicant_notes',
-                            'applicants.job_category_id',
-                            'applicants.job_title_id',
-                            'applicants.job_type',
+                        // applicant
+                        'applicants.id',
+                        'applicants.applicant_name',
+                        'applicants.applicant_email',
+                        'applicants.applicant_email_secondary',
+                        'applicants.applicant_phone',
+                        'applicants.applicant_postcode',
+                        'applicants.applicant_landline',
+                        'applicants.updated_at',
+                        'applicants.applicant_cv',
+                        'applicants.updated_cv',
+                        'applicants.applicant_notes',
+                        'applicants.job_category_id',
+                        'applicants.job_title_id',
+                        'applicants.job_type',
 
-                            // sale
-                            'sales.id', 
-                            'sales.job_category_id', 
-                            'sales.job_title_id', 
-                            'sales.sale_postcode', 
-                            'sales.job_type',
-                            'sales.timing', 
-                            'sales.salary', 
-                            'sales.experience', 
-                            'sales.qualification', 
-                            'sales.benefits',
-                            'sales.office_id',
-                            'sales.unit_id',
-                            'sales.position_type',
-                            'sales.status',
+                        // sale
+                        'sales.id',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience',
+                        'sales.qualification',
+                        'sales.benefits',
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.position_type',
+                        'sales.status',
 
-                            // units
-                            'units.unit_name', 
-                            'units.unit_postcode', 
-                            'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                            'job_titles.name',
-                            'job_categories.name',
-                            'job_sources.name',
-                            'offices.office_name',
-                        );
+                        'job_titles.name',
+                        'job_categories.name',
+                        'job_sources.name',
+                        'offices.office_name',
+                    );
                 break;
             case 'requested cvs':
-                default:
+            default:
                 $model->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->where("cv_notes.status", 1);
-                    })
+                    $join->on('applicants.id', '=', 'cv_notes.applicant_id')
+                        ->where("cv_notes.status", 1);
+                })
                     ->join('sales', function ($join) {
                         $join->on('cv_notes.sale_id', '=', 'sales.id')
                             ->whereColumn('cv_notes.sale_id', 'sales.id');
@@ -410,15 +410,15 @@ class QualityController extends Controller
                         'offices.office_name as office_name',
 
                         // sale
-                        'sales.id as sale_id', 
-                        'sales.job_category_id as sale_category_id', 
-                        'sales.job_title_id as sale_title_id', 
-                        'sales.sale_postcode', 
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
                         'sales.job_type as sale_job_type',
-                        'sales.timing', 
-                        'sales.salary', 
-                        'sales.experience as sale_experience', 
-                        'sales.qualification as sale_qualification', 
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
                         'sales.benefits',
                         'sales.office_id as sale_office_id',
                         'sales.unit_id as sale_unit_id',
@@ -426,8 +426,8 @@ class QualityController extends Controller
                         'sales.status as sale_status',
 
                         // units
-                        'units.unit_name', 
-                        'units.unit_postcode', 
+                        'units.unit_name',
+                        'units.unit_postcode',
                         'units.unit_website',
 
                         'users.name as user_name'
@@ -444,7 +444,7 @@ class QualityController extends Controller
         if ($titleFilter) {
             $model->whereIn('applicants.job_title_id', $titleFilter);
         }
-        
+
         // Sorting logic
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
@@ -490,7 +490,7 @@ class QualityController extends Controller
                     $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
                         $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
                     });
-                   
+
                     $query->orWhereHas('user', function ($q) use ($searchTerm) {
                         $q->where('users.name', 'LIKE', "%{$searchTerm}%");
                     });
@@ -499,7 +499,7 @@ class QualityController extends Controller
         }
 
         // Filter by type if it's not empty
-        switch($typeFilter){
+        switch ($typeFilter) {
             case 'specialist':
                 $model->where('applicants.job_type', 'specialist');
                 break;
@@ -553,10 +553,10 @@ class QualityController extends Controller
                         }
                     }
 
-                    if($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked){
+                    if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="'. $url .'" style="color:blue;" target="_blank">'. $applicant->formatted_postcode .'</a>'; // Using accessor
-                    }else{
+                        $button = '<a href="' . $url . '" style="color:blue;" target="_blank">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                    } else {
                         $button = $applicant->formatted_postcode;
                     }
                     return $button;
@@ -683,87 +683,86 @@ class QualityController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($applicant) use ($statusFilter) {
-                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type));
-                    $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
-
-                    if ($applicant->sale_status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
-                        $status = '<span class="badge bg-danger">Closed</span>';
-                    } elseif ($applicant->sale_status == 2) {
-                        $status = '<span class="badge bg-warning">Pending</span>';
-                    } elseif ($applicant->sale_status == 3) {
-                        $status = '<span class="badge bg-danger">Rejected</span>';
-                    }
-
-                    // Escape HTML in $status for JavaScript (to prevent XSS)
-                    $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
-
-                    $html = '<div class="btn-group dropstart">
-                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-                                </button>
+                     $html = '<div class="btn-group dropstart"> 
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
+                                <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
                                 <ul class="dropdown-menu">';
 
-                    $office_name  = ucwords($applicant->office_name ?? '');
-                    $unit_name    = ucwords($applicant->unit_name ?? '');
-                    $postcode     = strtoupper($applicant->sale_postcode ?? '');
-                    $job_category = ucwords($applicant->job_category_name ?? '');
-                    $job_title    = strtoupper($applicant->job_title_name ?? '');
+                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+$position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
 
-                    $statusHtml = '<span class="badge bg-success">Active</span>';
+if ($applicant->sale_status == 1) {
+    $status = '<span class="badge bg-success">Active</span>';
+} elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+    $status = '<span class="badge bg-danger">Closed</span>';
+} elseif ($applicant->sale_status == 2) {
+    $status = '<span class="badge bg-warning">Pending</span>';
+} elseif ($applicant->sale_status == 3) {
+    $status = '<span class="badge bg-danger">Rejected</span>';
+} else {
+    $status = '<span class="badge bg-secondary">Unknown</span>';
+}
 
-                    $html .= '<li><a href="#" class="dropdown-item" onclick=\'showDetailsModal('
-                        . (int) $applicant->sale_id . ','
-                        . json_encode($office_name) . ','
-                        . json_encode($unit_name) . ','
-                        . json_encode($postcode) . ','
-                        . json_encode($job_category) . ','
-                        . json_encode($job_title) . ','
-                        . json_encode($statusHtml) . ','
-                        . json_encode($applicant->timing ?? '') . ','
-                        . json_encode($applicant->sale_experience ?? '') . ','
-                        . json_encode($applicant->salary ?? '') . ','
-                        . json_encode($position ?? '') . ','
-                        . json_encode($applicant->sale_qualification ?? '') . ','
-                        . json_encode($applicant->benefits ?? '')
-                        . ')\'>Job Details</a></li>';
+$jobData = [
+    'sale_id'       => (int) $applicant->sale_id,
+    'office_name'   => ucwords($applicant->office_name ?? ''),
+    'unit_name'     => ucwords($applicant->unit_name ?? ''),
+    'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
+    'job_category'  => ucwords($applicant->job_category_name ?? ''),
+    'job_title'     => strtoupper($applicant->job_title_name ?? ''),
+    'status'        => $status,       // RAW HTML
+    'timing'        => $applicant->timing ?? '',
+    'experience'    => $applicant->sale_experience ?? '',
+    'salary'        => $applicant->salary ?? '',
+    'position'      => $position,     // RAW HTML
+    'qualification' => $applicant->sale_qualification ?? '',
+    'benefits'      => $applicant->benefits ?? '',
+];
 
-
+$html .= '<li>
+    <a href="#"
+       class="dropdown-item job-details"
+       data-job=\'' . json_encode(
+            $jobData,
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+       ) . '\'>
+       Job Details
+    </a>
+</li>';
 
 
                     // Status-specific actions
                     switch ($statusFilter) {
                         case 'active cvs':
                             if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-open-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
                             }
                             break;
                         case 'open cvs':
                             if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                             }
                             break;
-                        case 'no job cvs': 
+                        case 'no job cvs':
                             if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                             }
                             break;
                         case 'rejected cvs':
                             if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
                             }
                             break;
                         case 'cleared cvs':
@@ -771,13 +770,13 @@ class QualityController extends Controller
                             break;
                         default:
                             if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                             }
                             if (Gate::allows('quality-assurance-resource-open-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
                             }
                             break;
                     }
@@ -800,7 +799,7 @@ class QualityController extends Controller
                         $html .= '<li><hr class="dropdown-divider"></li>';
                     }
                     if (Gate::allows('applicant-view-history')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory('.(int)$applicant->id.', '. (int)$applicant->sale_id . ')">Notes History</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
                     }
                     if (Gate::allows('applicant-view-notes-history')) {
                         $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
@@ -832,7 +831,7 @@ class QualityController extends Controller
                 'units.unit_name as unit_name',
                 'users.name as user_name',
 
-                 // ADD THESE — fields from latest sale note
+                // ADD THESE — fields from latest sale note
                 'updated_notes.id as latest_note_id',
                 'updated_notes.sale_note as latest_note',
                 'updated_notes.created_at as latest_note_time',
@@ -885,7 +884,7 @@ class QualityController extends Controller
                     $query->orWhereHas('unit', function ($q) use ($likeSearch) {
                         $q->where('units.unit_name', 'LIKE', "%{$likeSearch}%");
                     });
-                   
+
                     $query->orWhereHas('user', function ($q) use ($likeSearch) {
                         $q->where('users.name', 'LIKE', "%{$likeSearch}%");
                     });
@@ -897,26 +896,32 @@ class QualityController extends Controller
             }
         }
 
-         // Filter by status if it's not empty
+        // Filter by status if it's not empty
         switch ($statusFilter) {
             case 'requested sales':
-                $model->where(function($query) {
-                    $query->where('sales.status', 2)/**1=open, 2=pending */
-                        ->orWhere('is_re_open', 2);/** re-open requested */
+                $model->where(function ($query) {
+                    $query->where('sales.status', 2)
+                        /**1=open, 2=pending */
+                        ->orWhere('is_re_open', 2);
+                    /** re-open requested */
                 });
                 break;
-                
+
             case 'rejected sales':
-                $model->where('sales.status', 3);/**rejected */
+                $model->where('sales.status', 3);
+                /**rejected */
                 break;
-                
+
             case 'cleared sales':
-                $model->whereIn('sales.status', [0, 1]);/**0=disabled,1=active */
+                $model->whereIn('sales.status', [0, 1]);
+                /**0=disabled,1=active */
                 break;
             default:
-                $model->where(function($query) {
-                    $query->where('sales.status', 2)/**1=open, 2=pending */
-                        ->orWhere('is_re_open', 2);/** re-open requested */
+                $model->where(function ($query) {
+                    $query->where('sales.status', 2)
+                        /**1=open, 2=pending */
+                        ->orWhere('is_re_open', 2);
+                    /** re-open requested */
                 });
                 break;
         }
@@ -927,24 +932,26 @@ class QualityController extends Controller
         } elseif ($typeFilter == 'regular') {
             $model->where('sales.job_type', 'regular');
         }
-       
+
         // Filter by category if it's not empty
         if ($officeFilter) {
             $model->whereIn('sales.office_id', $officeFilter);
         }
-        
+
         // Filter by category if it's not empty
         if ($limitCountFilter) {
             if ($limitCountFilter == 'zero') {
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
                 });
             } elseif ($limitCountFilter == 'not max') {
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -952,19 +959,20 @@ class QualityController extends Controller
                 });
             } elseif ($limitCountFilter == 'max') {
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
                 });
             }
         }
-       
+
         // Filter by category if it's not empty
         if ($categoryFilter) {
             $model->whereIn('sales.job_category_id', $categoryFilter);
         }
-       
+
         // Filter by category if it's not empty
         if ($titleFilter) {
             $model->whereIn('sales.job_title_id', $titleFilter);
@@ -1184,10 +1192,10 @@ class QualityController extends Controller
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    if($sale->lat != null && $sale->lng != null){
-                        $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
-                    }else{
+                    if ($sale->lat != null && $sale->lng != null) {
+                        $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
+                        $button = '<a target="_blank" href="' . $url . '" style="color:blue;">' . $sale->formatted_postcode . '</a>'; // Using accessor
+                    } else {
                         $button = $sale->formatted_postcode;
                     }
                     return $button;
@@ -1199,10 +1207,10 @@ class QualityController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notesIndex = '-'; 
-                    if(!empty($sale->sale_notes)){
+                    $notesIndex = '-';
+                    if (!empty($sale->sale_notes)) {
                         $notesIndex = $sale->sale_notes;
-                    }else{
+                    } else {
                         $notesIndex = $sale->latest_note;
                     }
 
@@ -1301,9 +1309,9 @@ class QualityController extends Controller
                         $status = '<span class="badge bg-danger">Rejected</span>';
                     }
 
-                    $position_type = strtoupper(str_replace('-',' ',$sale->position_type));
-                    $position = '<span class="badge bg-primary">'. $position_type .'</span>';
-                    
+                    $position_type = strtoupper(str_replace('-', ' ', $sale->position_type));
+                    $position = '<span class="badge bg-primary">' . $position_type . '</span>';
+
                     $action = '';
                     $action = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -1326,32 +1334,32 @@ class QualityController extends Controller
                                     \'' . addslashes(htmlspecialchars($sale->qualification)) . '\',
                                     \'' . addslashes(htmlspecialchars($sale->benefits)) . '\',
                                     )">View</a></li>';
-                     // Filter by status if it's not empty
+                    // Filter by status if it's not empty
                     switch ($statusFilter) {
                         case 'active sales':
-                           // Filter by status if it's not empty
+                            // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
                             }
                             break;
-                            
+
                         case 'rejected sales':
                             $action .= '';
                             break;
-                            
+
                         case 'cleared sales':
-                             $action .= '';
+                            $action .= '';
                             break;
                         default:
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus('.$sale->id.', \'reject\')">Mark Reject Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
                             }
                             break;
                     }
-                    
+
                     $action .= '<li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
@@ -1399,9 +1407,9 @@ class QualityController extends Controller
 
             // Disable previous module note
             ModuleNote::where([
-                    'module_noteable_id' => $id,
-                    'module_noteable_type' => 'Horsefly\Sale'
-                ])
+                'module_noteable_id' => $id,
+                'module_noteable_type' => 'Horsefly\Sale'
+            ])
                 ->where('status', 1)
                 ->update(['status' => 0]);
 
@@ -1439,12 +1447,11 @@ class QualityController extends Controller
                 'success' => true,
                 'message' => 'Sale status changed successfully',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => config('app.debug') 
-                    ? $e->getMessage() 
+                'message' => config('app.debug')
+                    ? $e->getMessage()
                     : 'An error occurred while updating the sale. Please try again.'
             ], 500);
         }
@@ -1457,34 +1464,33 @@ class QualityController extends Controller
         $status = $request->input('status');
 
         $user = Auth::user();
-        $details = $notes . " --- ". ucwords($status) ." By: " . $user->name;
+        $details = $notes . " --- " . ucwords($status) . " By: " . $user->name;
 
-        try{
-            if($status == 'rejected'){
+        try {
+            if ($status == 'rejected') {
                 Applicant::where("id", $applicant_id)
                     ->update([
-                        'is_cv_in_quality_reject' => true, 
+                        'is_cv_in_quality_reject' => true,
                         'is_cv_in_quality' => false
                     ]);
 
                 CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'applicant_id' => $applicant_id
-                    ])->update(['status' => 0]);
-
-            }elseif($status == 'cleared'){
+                ])->update(['status' => 0]);
+            } elseif ($status == 'cleared') {
                 Applicant::where("id", $applicant_id)
                     ->update([
                         'is_interview_confirm' => true,
                         'is_cv_in_quality_clear' => true,
                         'is_cv_in_quality' => false,
-                        'is_cv_in_quality_reject' => false, 
+                        'is_cv_in_quality_reject' => false,
                     ]);
 
                 CrmNote::where([
                     'applicant_id' => $applicant_id,
                     'sale_id' => $sale_id
-                    ])->update(['status' => 0]);
+                ])->update(['status' => 0]);
 
                 $crm_notes = new CrmNote();
                 $crm_notes->applicant_id = $applicant_id;
@@ -1527,13 +1533,13 @@ class QualityController extends Controller
                         }
                     }
                 }
-            }elseif($status == 'cleared_no_job'){
+            } elseif ($status == 'cleared_no_job') {
                 Applicant::where("id", $applicant_id)
                     ->update([
                         'is_interview_confirm' => true,
                         'is_cv_in_quality_clear' => true,
                         'is_cv_in_quality' => false,
-                        'is_cv_in_quality_reject' => false, 
+                        'is_cv_in_quality_reject' => false,
                     ]);
 
                 $crm_notes = new CrmNote();
@@ -1547,11 +1553,10 @@ class QualityController extends Controller
                 /** Update UID */
                 $crm_notes->crm_notes_uid = md5($crm_notes->id);
                 $crm_notes->save();
-
-            }elseif($status == 'revert'){//Revert from Open Cv
+            } elseif ($status == 'revert') { //Revert from Open Cv
                 $cv_count = CvNote::where([
-                'cv_notes.sale_id' => $sale_id, 
-                'cv_notes.status' => 1
+                    'cv_notes.sale_id' => $sale_id,
+                    'cv_notes.status' => 1
                 ])->count();
 
                 $sale_cv_count = Sale::select('cv_limit')
@@ -1565,9 +1570,9 @@ class QualityController extends Controller
                 }
 
                 CvNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'applicant_id' => $applicant_id
-                    ])->update(['status' => 0 ]);
+                ])->update(['status' => 0]);
 
                 $cv_note = new CvNote();
                 $cv_note->sale_id = $sale_id;
@@ -1579,27 +1584,26 @@ class QualityController extends Controller
                 /** Update UID */
                 $cv_note->cv_uid = md5($cv_note->id);
                 $cv_note->save();
-
             }
-            
+
             $audit_data['action'] = $status;
             $audit_data['sale'] = $sale_id;
             $audit_data['details'] = $details;
             $audit_data['applicant'] = $applicant_id;
 
             $qualityStatus = null;
-            if($status == "opened"){
+            if ($status == "opened") {
                 $qualityStatus = "cv_hold";
-            }else{
+            } else {
                 $qualityStatus = $status;
             }
 
             QualityNotes::where([
-                    'applicant_id' => $applicant_id,
-                    'sale_id' => $sale_id,
-                ])->update(['status' => 0]);
+                'applicant_id' => $applicant_id,
+                'sale_id' => $sale_id,
+            ])->update(['status' => 0]);
 
-            if($status != 'revert'){
+            if ($status != 'revert') {
                 $quality_notes = new QualityNotes();
                 $quality_notes->applicant_id = $applicant_id;
                 $quality_notes->user_id = $user->id;
@@ -1617,18 +1621,18 @@ class QualityController extends Controller
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-            ->update(["status" => 0]);
+                ->update(["status" => 0]);
 
             $historyStatus = null;
-            if($status == 'rejected'){
+            if ($status == 'rejected') {
                 $historyStatus = 'quality_reject';
-            }elseif($status == 'cleared'){
+            } elseif ($status == 'cleared') {
                 $historyStatus = 'quality_cleared';
-            }elseif($status == 'opened'){
+            } elseif ($status == 'opened') {
                 $historyStatus = 'quality_cvs_hold';
-            }elseif($status == 'revert'){
+            } elseif ($status == 'revert') {
                 $historyStatus = 'quality_cvs';
-            }elseif($status == 'cleared_no_job'){
+            } elseif ($status == 'cleared_no_job') {
                 $historyStatus = 'quality_cleared_no_job';
             }
 
@@ -1643,14 +1647,14 @@ class QualityController extends Controller
             /** Update UID */
             $history->history_uid = md5($history->id);
             $history->save();
-            
-            if($status != 'cleared'){
+
+            if ($status != 'cleared') {
                 $revertStatus = null;
-                if($status == "opened"){
+                if ($status == "opened") {
                     $revertStatus = "cv_hold";
-                }elseif($status == "rejected"){
+                } elseif ($status == "rejected") {
                     $revertStatus = 'quality_note';
-                }elseif($status == "revert"){
+                } elseif ($status == "revert") {
                     $revertStatus = 'quality_revert';
                 }
 
@@ -1664,7 +1668,7 @@ class QualityController extends Controller
             }
 
             //send sms
-            if($status == 'cleared'){
+            if ($status == 'cleared') {
                 // $unit_name = Sale::join('units', 'sales.unit_id', '=', 'units.id')
                 //         ->where('sales.id', '=', $sale_id)
                 //         ->select('units.unit_name')
@@ -1697,13 +1701,13 @@ class QualityController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Resource '. $status .' successfully',
+                'message' => 'Resource ' . $status . ' successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => config('app.debug') 
-                    ? $e->getMessage() 
+                'message' => config('app.debug')
+                    ? $e->getMessage()
                     : 'An error occurred while updating the record. Please try again.'
             ], 500);
         }
