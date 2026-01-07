@@ -271,6 +271,9 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-resource-view-job-details',
             'quality-assurance-resource-manager-details',
             'quality-assurance-resource-change-status',
+            'quality-assurance-resource-open-cv',
+            'quality-assurance-resource-clear-cv',
+            'quality-assurance-resource-reject-cv',
             'quality-assurance-resource-upload-resume',
             'quality-assurance-resource-download-resume',
 
@@ -281,6 +284,9 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-sale-view-notes-history',
             'quality-assurance-sale-view',
             'quality-assurance-sale-manager-details',
+            'quality-assurance-sale-open-cv',
+            'quality-assurance-sale-clear-cv',
+            'quality-assurance-sale-reject-cv',
             'quality-assurance-sale-change-status',
             'quality-assurance-sale-view-documents',
 

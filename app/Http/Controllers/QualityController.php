@@ -24,6 +24,7 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
 use Exception;
@@ -731,28 +732,50 @@ class QualityController extends Controller
                     // Status-specific actions
                     switch ($statusFilter) {
                         case 'active cvs':
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-open-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                            }
                             break;
                         case 'open cvs':
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            if (Gate::allows('quality-assurance-resource-revert-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            }
                             break;
                         case 'no job cvs': 
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            }
                             break;
                         case 'rejected cvs':
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+                            if (Gate::allows('quality-assurance-resource-revert-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+                            }
                             break;
                         case 'cleared cvs':
                             $html .= "";
                             break;
                         default:
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                            }
+                            if (Gate::allows('quality-assurance-resource-open-cv')) {
+                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(".(int)$applicant->id.", ". (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                            }
                             break;
                     }
                     $html .= '<li>
