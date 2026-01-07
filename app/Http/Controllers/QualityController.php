@@ -562,47 +562,28 @@ class QualityController extends Controller
                     return $button;
                 })
                 ->addColumn('notes_detail', function ($applicant) {
-                    $fullHtml = $applicant->notes_detail; // HTML from Summernote
-                    $id = 'qua-' . $applicant->id;
+                        $fullHtml = $applicant->notes_detail; // HTML from Summernote
+                        $id = 'qua-' . $applicant->id;
+                        $copyId = "copy-quality-resources-notes-" . $applicant->id;
 
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+                        // 1. Convert HTML to readable plain text for copying
+                        $plainText = strip_tags($fullHtml); // remove all HTML
+                        $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
+                        $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
+                        $plainText = trim($plainText);
 
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
+                        // 2. Generate short preview (first 100 chars) for table
+                        $shortPreview = Str::limit($plainText, 100);
+                        $shortPreviewHtml = nl2br(e($shortPreview)); // preserve line breaks safely
 
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 100);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    $notesEscaped = nl2br(e($fullHtml));
-                    $copyId = "copy-quality-resources-notes-" . $applicant->id;
-
-                    return '
+                        return '
                         <div>
-                            <a href="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#' . $id . '">'
-                            . $shortText . '
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                                ' . $shortPreviewHtml . '
                             </a>
-                            <!-- Hidden full notes for copy -->
-                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
+
+                            <!-- Hidden full plain text for copy -->
+                            <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
 
                             <!-- Copy button under short note -->
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
@@ -610,11 +591,12 @@ class QualityController extends Controller
                             </button>
                         </div>
 
+                        <!-- Modal showing full formatted HTML notes -->
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title"  style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
+                                        <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body" style="color:#5d7186">
@@ -626,7 +608,8 @@ class QualityController extends Controller
                                 </div>
                             </div>
                         </div>';
-                })
+                    })
+
                 ->addColumn('applicant_phone', function ($applicant) {
                     $str = '';
 
@@ -1219,76 +1202,55 @@ class QualityController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notesIndex = '-';
-                    if (!empty($sale->sale_notes)) {
-                        $notesIndex = $sale->sale_notes;
-                    } else {
-                        $notesIndex = $sale->latest_note;
-                    }
+                    $notesIndex = $sale->sale_notes ?: $sale->latest_note;
 
                     $id = 'note-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $notesIndex);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 200);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-                    $notesEscaped = nl2br(e($notesIndex));
                     $copyId = "quality-sales-copy-notes-" . $sale->id;
 
+                    // 1. Convert HTML to readable plain text for copying
+                    $plainText = strip_tags($notesIndex); // remove all HTML
+                    $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
+                    $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
+                    $plainText = trim($plainText);
+
+                    // 2. Generate short preview (first 200 chars) for table
+                    $shortPreview = Str::limit($plainText, 200);
+                    $shortPreviewHtml = nl2br(e($shortPreview));
+
                     return '
-                        <div>
-                            <a href="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#' . $id . '">'
-                            . $shortText . '
-                            </a>
-                            <!-- Hidden full notes for copy -->
-                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
+                    <div>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                            ' . $shortPreviewHtml . '
+                        </a>
 
-                            <!-- Copy button under short note -->
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-sales-notes-btn" data-copy-quality-sales-notes-target="#' . $copyId . '">
-                                Copy Notes
-                            </button>
-                        </div>
+                        <!-- Hidden full plain text for copy -->
+                        <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
 
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $notesIndex . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
+                        <!-- Copy button under short note -->
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-sales-notes-btn" data-copy-quality-sales-notes-target="#' . $copyId . '">
+                            Copy Notes
+                        </button>
+                    </div>
+
+                    <!-- Modal showing full formatted HTML notes -->
+                    <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="' . $id . '-label">Notes Detail</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    ' . $notesIndex . '
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
-                        </div>';
+                        </div>
+                    </div>';
                 })
+
                 ->addColumn('job_details', function ($sale) {
                     $position_type = strtoupper(str_replace('-', ' ', $sale->position_type ?? ''));
                     $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
