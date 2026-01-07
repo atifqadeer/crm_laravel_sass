@@ -379,61 +379,69 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        if ($request->filled('search.value')) {
+       $search = trim($request->input('search.value', ''));
 
-            $search = trim(preg_replace('/\s+/', ' ', $request->search['value']));
-            $searchWords = explode(' ', $search);
+if ($search !== '') {
 
-            $model->where(function ($q) use ($search, $searchWords) {
+    // Normalize inputs
+    $searchLower = strtolower($search);
+    $searchPhone = preg_replace('/[^0-9]/', '', $search);
 
-                /*
-                |--------------------------------------------------------------------------
-                | 1️⃣ EXACT MATCH (Highest Priority)
-                |--------------------------------------------------------------------------
-                */
-                $q->where('applicants.applicant_name', '=', $search)
-                ->orWhere('applicants.applicant_email', '=', $search)
-                ->orWhere('applicants.applicant_email_secondary', '=', $search)
-                ->orWhere('applicants.applicant_phone', '=', $search)
-                ->orWhere('applicants.applicant_phone_secondary', '=', $search);
+    $model->where(function ($q) use ($search, $searchLower, $searchPhone) {
 
-                /*
-                |--------------------------------------------------------------------------
-                | 2️⃣ VERY CLOSE MATCH (ALL WORDS MUST MATCH)
-                |--------------------------------------------------------------------------
-                */
-                $q->orWhere(function ($sq) use ($searchWords) {
+        /*
+        |--------------------------------------------------
+        | 1️⃣ EMAIL (PRIMARY + SECONDARY)
+        |--------------------------------------------------
+        */
+        $q->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$searchLower}%"])
+          ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$searchLower}%"]);
 
-                    foreach ($searchWords as $word) {
-                        $sq->where(function ($wq) use ($word) {
-                            $wq->where('applicants.applicant_name', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_email', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_phone', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_landline', 'LIKE', "%{$word}%")
-                                ->orWhere('applicants.applicant_experience', 'LIKE', "%{$word}%");
-                        });
-                    }
-                });
-
-                /*
-                |--------------------------------------------------------------------------
-                | 3️⃣ RELATED TABLES (OPTIONAL)
-                |--------------------------------------------------------------------------
-                */
-                $q->orWhereHas('jobTitle', fn($x) =>
-                    $x->where('job_titles.name', 'LIKE', "%{$search}%")
-                )
-                ->orWhereHas('jobCategory', fn($x) =>
-                    $x->where('job_categories.name', 'LIKE', "%{$search}%")
-                )
-                ->orWhereHas('jobSource', fn($x) =>
-                    $x->where('job_sources.name', 'LIKE', "%{$search}%")
-                );
-            });
+        /*
+        |--------------------------------------------------
+        | 2️⃣ PHONE (PRIMARY + SECONDARY)
+        |--------------------------------------------------
+        */
+        if ($searchPhone !== '') {
+            $q->orWhereRaw(
+                'REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", ""), "+", "") LIKE ?',
+                ["%{$searchPhone}%"]
+            )
+            ->orWhereRaw(
+                'REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", ""), "+", "") LIKE ?',
+                ["%{$searchPhone}%"]
+            );
         }
+
+        /*
+        |--------------------------------------------------
+        | 3️⃣ NAME & BASIC TEXT
+        |--------------------------------------------------
+        */
+        $words = explode(' ', $search);
+        foreach ($words as $word) {
+            $q->orWhere('applicants.applicant_name', 'LIKE', "%{$word}%")
+              ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$word}%")
+              ->orWhere('applicants.applicant_experience', 'LIKE', "%{$word}%");
+        }
+
+        /*
+        |--------------------------------------------------
+        | 4️⃣ RELATED TABLES
+        |--------------------------------------------------
+        */
+        $q->orWhereHas('jobTitle', fn ($x) =>
+            $x->where('job_titles.name', 'LIKE', "%{$search}%")
+        )
+        ->orWhereHas('jobCategory', fn ($x) =>
+            $x->where('job_categories.name', 'LIKE', "%{$search}%")
+        )
+        ->orWhereHas('jobSource', fn ($x) =>
+            $x->where('job_sources.name', 'LIKE', "%{$search}%")
+        );
+    });
+}
+
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
