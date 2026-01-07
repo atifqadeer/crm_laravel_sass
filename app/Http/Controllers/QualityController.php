@@ -705,29 +705,32 @@ class QualityController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">';
 
-                    $office_name = ucwords($applicant->office_name);
-                    $unit_name = ucwords($applicant->unit_name);
-                    $postcode = strtoupper($applicant->sale_postcode);
-                    $job_category = ucwords($applicant->job_category_name);
-                    $job_title = strtoupper($applicant->job_title_name);
+                    $office_name  = ucwords($applicant->office_name ?? '');
+                    $unit_name    = ucwords($applicant->unit_name ?? '');
+                    $postcode     = strtoupper($applicant->sale_postcode ?? '');
+                    $job_category = ucwords($applicant->job_category_name ?? '');
+                    $job_title    = strtoupper($applicant->job_title_name ?? '');
+
+                    $statusHtml = '<span class="badge bg-success">Active</span>';
+
+                    $html .= '<li><a href="#" class="dropdown-item" onclick=\'showDetailsModal('
+                        . (int) $applicant->sale_id . ','
+                        . json_encode($office_name) . ','
+                        . json_encode($unit_name) . ','
+                        . json_encode($postcode) . ','
+                        . json_encode($job_category) . ','
+                        . json_encode($job_title) . ','
+                        . json_encode($statusHtml) . ','
+                        . json_encode($applicant->timing ?? '') . ','
+                        . json_encode($applicant->sale_experience ?? '') . ','
+                        . json_encode($applicant->salary ?? '') . ','
+                        . json_encode($position ?? '') . ','
+                        . json_encode($applicant->sale_qualification ?? '') . ','
+                        . json_encode($applicant->benefits ?? '')
+                        . ')\'>Job Details</a></li>';
 
 
-                    // Job Details Link
-                    $html .= '<li><a href="#" class="dropdown-item" onclick="showDetailsModal('
-                        . (int)$applicant->sale_id . ','
-                        . '\'' . htmlspecialchars($office_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($unit_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($postcode, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($job_category, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($job_title, ENT_QUOTES) . '\','
-                        . '\'' . $escapedStatus . '\','
-                        . '\'' . htmlspecialchars($applicant->timing, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->sale_experience, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->salary, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($position, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->sale_qualification, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($applicant->benefits, ENT_QUOTES) . '\''
-                        . ')">Job Details</a></li>';
+
 
                     // Status-specific actions
                     switch ($statusFilter) {
