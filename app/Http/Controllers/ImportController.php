@@ -430,7 +430,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function unitsImport(Request $request)
+    public function unitsImportOld(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -825,7 +825,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImportold(Request $request)
+    public function applicantsImport(Request $request)
     {
         $request->validate([
             'csv_file' => [
@@ -2756,7 +2756,7 @@ class ImportController extends Controller
             ], 500);
         }
     }
-    public function applicantsImport(Request $request)
+    public function unitsImport(Request $request)
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5242880'],
