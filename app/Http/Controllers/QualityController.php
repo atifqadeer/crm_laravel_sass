@@ -581,6 +581,7 @@ class QualityController extends Controller
                             <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
                                 ' . $shortPreviewHtml . '
                             </a>
+                            <br>
 
                             <!-- Hidden full plain text for copy -->
                             <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
@@ -1222,6 +1223,7 @@ class QualityController extends Controller
                         <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
                             ' . $shortPreviewHtml . '
                         </a>
+                        <br>
 
                         <!-- Hidden full plain text for copy -->
                         <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
