@@ -382,7 +382,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action'])
+                ->rawColumns(['action', 'credit_hours', 'created_at', 'user_name'])
                 ->make(true);
         }
     }
