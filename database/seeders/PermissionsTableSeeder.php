@@ -285,9 +285,6 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-sale-view-notes-history',
             'quality-assurance-sale-view',
             'quality-assurance-sale-manager-details',
-            'quality-assurance-sale-open-cv',
-            'quality-assurance-sale-clear-cv',
-            'quality-assurance-sale-reject-cv',
             'quality-assurance-sale-change-status',
             'quality-assurance-sale-view-documents',
 

@@ -619,65 +619,63 @@
         //     }, 300); // simulate a loading experience
         // }
 
-        function showDetailsModal(saleId, postedAt, officeName, name, postcode, 
-            jobCategory, jobTitle, status, timing, experience, salary, 
-            position, qualification, benefits
-        ) {
-            // Show loader first while content is being prepared
-            $('#showDetailsModal .modal-body').html(
-                '<div class="d-flex justify-content-center align-items-center" style="height: 100px;">' +
-                    '<div class="spinner-border text-primary" role="status">' +
-                        '<span class="visually-hidden">Loading...</span>' +
-                    '</div>' +
-                '</div>'
-            );
+        document.addEventListener('click', function (e) {
 
-            // Ensure modal exists first (only append once)
-            if ($('#showDetailsModal').length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="showDetailsModal" tabindex="-1" aria-labelledby="showDetailsModalLabel">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="showDetailsModalLabel">Sale Details</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                );
+            const link = e.target.closest('.job-details');
+            if (!link) return;
+
+            e.preventDefault();
+
+            let job;
+            try {
+                job = JSON.parse(link.dataset.job);
+            } catch (err) {
+                console.error('Invalid job data', err);
+                return;
             }
 
-            // Show the modal
-            $('#showDetailsModal').modal('show');
+            showDetailsModal(job);
+        });
 
-            // After short delay, replace loader with content
-            setTimeout(function () {
-                $('#showDetailsModal .modal-body').html(
-                    '<table class="table table-bordered">' +
-                        '<tr><th>Sale ID</th><td>' + saleId + '</td></tr>' +
-                        '<tr><th>Posted At</th><td>' + postedAt + '</td></tr>' +
-                        '<tr><th>Head Office Name</th><td>' + officeName + '</td></tr>' +
-                        '<tr><th>Unit Name</th><td>' + name + '</td></tr>' +
-                        '<tr><th>Postcode</th><td>' + postcode + '</td></tr>' +
-                        '<tr><th>Job Category</th><td>' + jobCategory + '</td></tr>' +
-                        '<tr><th>Job Title</th><td>' + jobTitle + '</td></tr>' +
-                        '<tr><th>Status</th><td>' + status + '</td></tr>' +
-                        '<tr><th>Timing</th><td>' + timing + '</td></tr>' +
-                        '<tr><th>Qualification</th><td>' + qualification + '</td></tr>' +
-                        '<tr><th>Salary</th><td>' + salary + '</td></tr>' +
-                        '<tr><th>Position</th><td>' + position + '</td></tr>' +
-                        '<tr><th>Experience</th><td>' + experience + '</td></tr>' +
-                        '<tr><th>Benefits</th><td>' + benefits + '</td></tr>' +
-                    '</table>'
-                );
-            }, 300); // simulate loading delay (can adjust or remove)
+        function showDetailsModal(job) {
+            const modalId = `job-modal-${job.sale_id}`;
+            document.getElementById(modalId)?.remove();
+
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="${modalId}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Job Details</h5>
+                                <button class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Posted Date</th><td>${job.posted_date}</td></tr>
+                                    <tr><th>Head Office</th><td>${job.office_name}</td></tr>
+                                    <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
+                                    <tr><th>Postcode</th><td>${job.postcode}</td></tr>
+                                    <tr><th>Job Category</th><td>${job.job_category}</td></tr>
+                                    <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Status</th><td>${job.status}</td></tr>
+                                    <tr><th>Timing</th><td>${job.timing}</td></tr>
+                                    <tr><th>Experience</th><td>${job.experience}</td></tr>
+                                    <tr><th>Salary</th><td>${job.salary}</td></tr>
+                                    <tr><th>Position</th><td>${job.position}</td></tr>
+                                    <tr><th>Qualification</th><td>${job.qualification}</td></tr>
+                                    <tr><th>Benefits</th><td>${job.benefits}</td></tr>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            new bootstrap.Modal(document.getElementById(modalId)).show();
         }
 
         // Function to show the notes modal

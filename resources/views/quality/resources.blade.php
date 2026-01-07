@@ -797,60 +797,7 @@
             });
         }
 
-        function showDetailsModal(job) {
-
-    const modalId = `job-modal-${job.sale_id}`;
-    document.getElementById(modalId)?.remove();
-
-    document.body.insertAdjacentHTML('beforeend', `
-        <div class="modal fade" id="${modalId}" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Job Details</h5>
-                        <button class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <table class="table table-bordered">
-                            <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
-                            <tr><th>Head Office</th><td>${job.office_name}</td></tr>
-                            <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
-                            <tr><th>Postcode</th><td>${job.postcode}</td></tr>
-                            <tr><th>Job Category</th><td>${job.job_category}</td></tr>
-                            <tr><th>Job Title</th><td>${job.job_title}</td></tr>
-                            <tr><th>Status</th><td>${job.status}</td></tr>
-                            <tr><th>Timing</th><td>${job.timing}</td></tr>
-                            <tr><th>Experience</th><td>${job.experience}</td></tr>
-                            <tr><th>Salary</th><td>${job.salary}</td></tr>
-                            <tr><th>Position</th><td>${job.position}</td></tr>
-                            <tr><th>Qualification</th><td>${job.qualification}</td></tr>
-                            <tr><th>Benefits</th><td>${job.benefits}</td></tr>
-                        </table>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-
-    new bootstrap.Modal(document.getElementById(modalId)).show();
-}
-
-
-        let applicantId = null; // Store applicant ID
-
-        function triggerCrmFileInput(id) {
-            // Store the applicant ID when the button is clicked
-            applicantId = id;
-            
-            // Trigger the file input click event
-            document.getElementById('crmfileInput').click();
-        }
-
         document.addEventListener('click', function (e) {
-
             const link = e.target.closest('.job-details');
             if (!link) return;
 
@@ -867,6 +814,55 @@
             showDetailsModal(job);
         });
 
+        function showDetailsModal(job) {
+            const modalId = `job-modal-${job.sale_id}`;
+            document.getElementById(modalId)?.remove();
+
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="${modalId}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Job Details</h5>
+                                <button class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Head Office</th><td>${job.office_name}</td></tr>
+                                    <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
+                                    <tr><th>Postcode</th><td>${job.postcode}</td></tr>
+                                    <tr><th>Job Category</th><td>${job.job_category}</td></tr>
+                                    <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Status</th><td>${job.status}</td></tr>
+                                    <tr><th>Timing</th><td>${job.timing}</td></tr>
+                                    <tr><th>Experience</th><td>${job.experience}</td></tr>
+                                    <tr><th>Salary</th><td>${job.salary}</td></tr>
+                                    <tr><th>Position</th><td>${job.position}</td></tr>
+                                    <tr><th>Qualification</th><td>${job.qualification}</td></tr>
+                                    <tr><th>Benefits</th><td>${job.benefits}</td></tr>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            new bootstrap.Modal(document.getElementById(modalId)).show();
+        }
+
+        let applicantId = null; // Store applicant ID
+
+        function triggerCrmFileInput(id) {
+            // Store the applicant ID when the button is clicked
+            applicantId = id;
+            
+            // Trigger the file input click event
+            document.getElementById('crmfileInput').click();
+        }
 
         function crmuploadFile() {
             const fileInput = document.getElementById('crmfileInput');

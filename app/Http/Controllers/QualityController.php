@@ -683,52 +683,52 @@ class QualityController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($applicant) use ($statusFilter) {
-                     $html = '<div class="btn-group dropstart"> 
+                    $html = '<div class="btn-group dropstart"> 
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
                                 <ul class="dropdown-menu">';
 
                     $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
-$position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
 
-if ($applicant->sale_status == 1) {
-    $status = '<span class="badge bg-success">Active</span>';
-} elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
-    $status = '<span class="badge bg-danger">Closed</span>';
-} elseif ($applicant->sale_status == 2) {
-    $status = '<span class="badge bg-warning">Pending</span>';
-} elseif ($applicant->sale_status == 3) {
-    $status = '<span class="badge bg-danger">Rejected</span>';
-} else {
-    $status = '<span class="badge bg-secondary">Unknown</span>';
-}
+                    if ($applicant->sale_status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+                        $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($applicant->sale_status == 2) {
+                        $status = '<span class="badge bg-warning">Pending</span>';
+                    } elseif ($applicant->sale_status == 3) {
+                        $status = '<span class="badge bg-danger">Rejected</span>';
+                    } else {
+                        $status = '<span class="badge bg-secondary">Unknown</span>';
+                    }
 
-$jobData = [
-    'sale_id'       => (int) $applicant->sale_id,
-    'office_name'   => ucwords($applicant->office_name ?? ''),
-    'unit_name'     => ucwords($applicant->unit_name ?? ''),
-    'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
-    'job_category'  => ucwords($applicant->job_category_name ?? ''),
-    'job_title'     => strtoupper($applicant->job_title_name ?? ''),
-    'status'        => $status,       // RAW HTML
-    'timing'        => $applicant->timing ?? '',
-    'experience'    => $applicant->sale_experience ?? '',
-    'salary'        => $applicant->salary ?? '',
-    'position'      => $position,     // RAW HTML
-    'qualification' => $applicant->sale_qualification ?? '',
-    'benefits'      => $applicant->benefits ?? '',
-];
+                    $jobData = [
+                        'sale_id'       => (int) $applicant->sale_id,
+                        'office_name'   => ucwords($applicant->office_name ?? ''),
+                        'unit_name'     => ucwords($applicant->unit_name ?? ''),
+                        'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
+                        'job_category'  => ucwords($applicant->job_category_name ?? ''),
+                        'job_title'     => strtoupper($applicant->job_title_name ?? ''),
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $applicant->timing ?? '',
+                        'experience'    => $applicant->sale_experience ?? '',
+                        'salary'        => $applicant->salary ?? '',
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $applicant->sale_qualification ?? '',
+                        'benefits'      => $applicant->benefits ?? '',
+                    ];
 
-$html .= '<li>
-    <a href="#"
-       class="dropdown-item job-details"
-       data-job=\'' . json_encode(
-            $jobData,
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-       ) . '\'>
-       Job Details
-    </a>
-</li>';
+                    $html .= '<li>
+                        <a href="#"
+                        class="dropdown-item job-details"
+                        data-job=\'' . json_encode(
+                                            $jobData,
+                                            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                        ) . '\'>
+                        Job Details
+                        </a>
+                    </li>';
 
 
                     // Status-specific actions
@@ -1285,20 +1285,15 @@ $html .= '<li>
                     return $status;
                 })
                 ->addColumn('action', function ($sale) use ($statusFilter) {
-                    $postcode = $sale->formatted_postcode;
-                    $posted_date = $sale->formatted_created_at;
-                    $office_id = $sale->office_id;
-                    $office = Office::find($office_id);
-                    $office_name = $office ? ucwords($office->office_name) : '-';
-                    $unit_id = $sale->unit_id;
-                    $unit = Unit::find($unit_id);
-                    $unit_name = $unit ? ucwords($unit->unit_name) : '-';
-                    $status = '';
-                    $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
-                    $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
+                    $action = '<div class="btn-group dropstart">
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                </button>
+                                <ul class="dropdown-menu">';
 
+                    $position_type = strtoupper(str_replace('-', ' ', $sale->position_type ?? ''));
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $status = '';
                     if ($sale->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($sale->status == 0 && $sale->is_on_hold == 0) {
@@ -1309,38 +1304,61 @@ $html .= '<li>
                         $status = '<span class="badge bg-danger">Rejected</span>';
                     }
 
-                    $position_type = strtoupper(str_replace('-', ' ', $sale->position_type));
-                    $position = '<span class="badge bg-primary">' . $position_type . '</span>';
+                    $postcode = $sale->formatted_postcode;
+                    $posted_date = $sale->formatted_created_at;
+                    $office_id = $sale->office_id;
+                    $office = Office::find($office_id);
+                    $office_name = $office ? ucwords($office->office_name) : '-';
+                    $unit_id = $sale->unit_id;
+                    $unit = Unit::find($unit_id);
+                    $unit_name = $unit ? ucwords($unit->unit_name) : '-';
+                    
+                    $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
+                    $type = $sale->job_type;
+                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
-                    $action = '';
-                    $action = '<div class="btn-group dropstart">
-                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-                                </button>
-                                <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                    ' . (int)$sale->id . ',
-                                    \'' . addslashes($posted_date) . '\',
-                                    \'' . addslashes(htmlspecialchars($office_name)) . '\',
-                                    \'' . addslashes(htmlspecialchars($unit_name)) . '\',
-                                    \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                    \'' . addslashes(htmlspecialchars($jobCategory)) . '\',
-                                    \'' . addslashes(htmlspecialchars($jobTitle)) . '\',
-                                    \'' . addslashes(htmlspecialchars($status)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->timing)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->experience)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->salary)) . '\',
-                                    \'' . addslashes(htmlspecialchars($position)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->qualification)) . '\',
-                                    \'' . addslashes(htmlspecialchars($sale->benefits)) . '\',
-                                    )">View</a></li>';
+                    $jobData = [
+                        'sale_id'       => (int)$sale->id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $jobCategory,
+                        'job_title'     => $jobTitle,
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $sale->timing,
+                        'experience'    => $sale->experience,
+                        'salary'        => $sale->salary,
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $sale->qualification,
+                        'benefits'      => $sale->benefits,
+                    ];
+                    if (Gate::allows('sale-edit')) {
+                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int)$sale->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('quality-assurance-sale-view')) {
+                        $action .= '<li>
+                            <a href="#"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                                                $jobData,
+                                                JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                            ) . '\'>
+                            View Details
+                            </a>
+                        </li>';
+                    }
+                  
                     // Filter by status if it's not empty
                     switch ($statusFilter) {
                         case 'active sales':
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                if (Gate::allows('quality-assurance-sale-change-status')) {
+                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                }
                             }
                             break;
 
@@ -1354,17 +1372,25 @@ $html .= '<li>
                         default:
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
-                                $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                if (Gate::allows('quality-assurance-sale-change-status')) {
+                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                }
                             }
                             break;
                     }
 
-                    $action .= '<li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
-                            </ul>
+                    $action .= '<li><hr class="dropdown-divider"></li>';
+                    if (Gate::allows('quality-assurance-sale-view-documents')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>';
+                    }
+                    if (Gate::allows('quality-assurance-sale-view-notes-history')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>';
+                    }
+                    if (Gate::allows('quality-assurance-sale-manager-details')) {
+                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>';
+                    }
+                        $action .= '</ul>
                         </div>';
 
                     return $action;
