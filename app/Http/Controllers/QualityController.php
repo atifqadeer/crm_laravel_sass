@@ -1241,13 +1241,24 @@ class QualityController extends Controller
 
                     // 6. Convert newlines to <br>
                     $shortText = nl2br($preview);
+                    $notesEscaped = nl2br(e($notesIndex));
+                    $copyId = "quality-sales-copy-notes-" . $sale->id;
 
                     return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
+                        <div>
+                            <a href="#"
+                            data-bs-toggle="modal"
+                            data-bs-target="#' . $id . '">'
+                            . $shortText . '
+                            </a>
+                            <!-- Hidden full notes for copy -->
+                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
+
+                            <!-- Copy button under short note -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-sales-notes-btn" data-copy-quality-sales-notes-target="#' . $copyId . '">
+                                Copy Notes
+                            </button>
+                        </div>
 
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
