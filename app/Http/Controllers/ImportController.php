@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Horsefly\Sale;
+use Horsefly\Office;
 use Horsefly\Unit;
 use Horsefly\Applicant;
 use Horsefly\Message;
@@ -343,12 +344,9 @@ class ImportController extends Controller
                                 $contacts = $row['contacts'] ?? [];
                                 unset($row['contacts']); // remove contacts before inserting to offices table
 
-                                // Upsert into `offices` table
-                                DB::table('offices')->updateOrInsert(
-                                    ['id' => $row['id']], // match by ID
-                                    $row // update/insert data
-                                );
-
+                                Office::withoutTimestamps(function () use ($row) {
+                                    Office::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 Log::channel('import')->info("Office created/updated for row " . ($index + 1) . ": ID={$row['id']}");
 
                                 // Optional: remove old contacts for this office to avoid duplicates
