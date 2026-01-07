@@ -343,30 +343,31 @@ class UserController extends Controller
                 ->addIndexColumn()
                 ->editColumn('user_name', fn($row) => e($row->user_name))
                 ->editColumn('created_at', fn($row) => Carbon::parse($row->created_at)->format('d M Y'))
-                ->addColumn('credit_hours', function ($row) {
-                    if ($row->login_at && $row->logout_at) {
-                        try {
-                            // Ensure Carbon instances
-                            $login = $row->login_at instanceof Carbon ? $row->login_at : Carbon::parse($row->login_at);
-                            $logout = $row->logout_at instanceof Carbon ? $row->logout_at : Carbon::parse($row->logout_at);
+               ->addColumn('credit_hours', function ($row) {
+    if ($row->login_at && $row->logout_at) {
+        try {
+            // Parse times as Carbon instances, assuming the same day
+            $login = Carbon::parse($row->login_at);
+            $logout = Carbon::parse($row->logout_at);
 
-                            // If logout is before login, return 0
-                            if ($logout->lessThanOrEqualTo($login)) {
-                                return '0h 0m';
-                            }
+            // If logout < login, assume logout is on the next day
+            if ($logout->lessThan($login)) {
+                $logout->addDay();
+            }
 
-                            // Difference in total minutes
-                            $diffInMinutes = $logout->diffInMinutes($login);
-                            $hours = intdiv($diffInMinutes, 60);
-                            $minutes = $diffInMinutes % 60;
+            // Difference in total minutes
+            $diffInMinutes = $logout->diffInMinutes($login);
+            $hours = intdiv($diffInMinutes, 60);
+            $minutes = $diffInMinutes % 60;
 
-                            return "{$hours}h {$minutes}m";
-                        } catch (\Exception $e) {
-                            return '0h 0m';
-                        }
-                    }
-                    return '0h 0m';
-                })
+            return "{$hours}h {$minutes}m";
+        } catch (\Exception $e) {
+            return '0h 0m';
+        }
+    }
+    return '0h 0m';
+})
+
                 ->addColumn('action', function ($row) {
                     return '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown">
@@ -446,29 +447,30 @@ class UserController extends Controller
                 ->editColumn('user_name', fn($row) => e($row->user_name))
                 ->editColumn('created_at', fn($row) => Carbon::parse($row->created_at)->format('d M Y'))
                 ->addColumn('credit_hours', function ($row) {
-                    if ($row->login_at && $row->logout_at) {
-                        try {
-                            // Ensure Carbon instances
-                            $login = $row->login_at instanceof Carbon ? $row->login_at : Carbon::parse($row->login_at);
-                            $logout = $row->logout_at instanceof Carbon ? $row->logout_at : Carbon::parse($row->logout_at);
+    if ($row->login_at && $row->logout_at) {
+        try {
+            // Parse times as Carbon instances, assuming the same day
+            $login = Carbon::parse($row->login_at);
+            $logout = Carbon::parse($row->logout_at);
 
-                            // If logout is before login, return 0
-                            if ($logout->lessThanOrEqualTo($login)) {
-                                return '0h 0m';
-                            }
+            // If logout < login, assume logout is on the next day
+            if ($logout->lessThan($login)) {
+                $logout->addDay();
+            }
 
-                            // Difference in total minutes
-                            $diffInMinutes = $logout->diffInMinutes($login);
-                            $hours = intdiv($diffInMinutes, 60);
-                            $minutes = $diffInMinutes % 60;
+            // Difference in total minutes
+            $diffInMinutes = $logout->diffInMinutes($login);
+            $hours = intdiv($diffInMinutes, 60);
+            $minutes = $diffInMinutes % 60;
 
-                            return "{$hours}h {$minutes}m";
-                        } catch (\Exception $e) {
-                            return '0h 0m';
-                        }
-                    }
-                    return '0h 0m';
-                })
+            return "{$hours}h {$minutes}m";
+        } catch (\Exception $e) {
+            return '0h 0m';
+        }
+    }
+    return '0h 0m';
+})
+
 
                 ->rawColumns(['created_at', 'user_name', 'credit_hours'])
                 ->make(true);
