@@ -346,30 +346,25 @@ class UserController extends Controller
                 ->addColumn('credit_hours', function ($row) {
                     if ($row->login_at && $row->logout_at) {
                         try {
-                            $login = Carbon::parse($row->login_at)->timezone(config('app.timezone'));
-                            $logout = Carbon::parse($row->logout_at)->timezone(config('app.timezone'));
+                            // Ensure Carbon instances
+                            $login = $row->login_at instanceof Carbon ? $row->login_at : Carbon::parse($row->login_at);
+                            $logout = $row->logout_at instanceof Carbon ? $row->logout_at : Carbon::parse($row->logout_at);
 
-                            // Ensure logout is not before login
-                            if ($logout->lessThan($login)) {
-                                // Swap if accidentally reversed or use now() if not realistic
+                            // If logout is before login, return 0
+                            if ($logout->lessThanOrEqualTo($login)) {
                                 return '0h 0m';
                             }
 
-                            $diffInSeconds = abs($logout->diffInSeconds($login)); // always positive
-                            $hours = floor($diffInSeconds / 3600);
-                            $minutes = floor(($diffInSeconds % 3600) / 60);
+                            // Difference in total minutes
+                            $diffInMinutes = $logout->diffInMinutes($login);
+                            $hours = intdiv($diffInMinutes, 60);
+                            $minutes = $diffInMinutes % 60;
 
                             return "{$hours}h {$minutes}m";
                         } catch (\Exception $e) {
                             return '0h 0m';
                         }
                     }
-
-                    // If no logout yet → show ongoing or zero
-                    if ($row->login_at && !$row->logout_at) {
-                        return '<span class="text-warning">Active</span>';
-                    }
-
                     return '0h 0m';
                 })
                 ->addColumn('action', function ($row) {
@@ -453,16 +448,19 @@ class UserController extends Controller
                 ->addColumn('credit_hours', function ($row) {
                     if ($row->login_at && $row->logout_at) {
                         try {
-                            $login = Carbon::parse($row->login_at);
-                            $logout = Carbon::parse($row->logout_at);
+                            // Ensure Carbon instances
+                            $login = $row->login_at instanceof Carbon ? $row->login_at : Carbon::parse($row->login_at);
+                            $logout = $row->logout_at instanceof Carbon ? $row->logout_at : Carbon::parse($row->logout_at);
 
+                            // If logout is before login, return 0
                             if ($logout->lessThanOrEqualTo($login)) {
                                 return '0h 0m';
                             }
 
-                            $diffInSeconds = $logout->diffInSeconds($login);
-                            $hours = intdiv($diffInSeconds, 3600);
-                            $minutes = intdiv($diffInSeconds % 3600, 60);
+                            // Difference in total minutes
+                            $diffInMinutes = $logout->diffInMinutes($login);
+                            $hours = intdiv($diffInMinutes, 60);
+                            $minutes = $diffInMinutes % 60;
 
                             return "{$hours}h {$minutes}m";
                         } catch (\Exception $e) {
@@ -471,6 +469,7 @@ class UserController extends Controller
                     }
                     return '0h 0m';
                 })
+
                 ->rawColumns(['created_at', 'user_name', 'credit_hours'])
                 ->make(true);
         }
