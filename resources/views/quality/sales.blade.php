@@ -288,19 +288,25 @@
                 ],
                 columnDefs: [
                     {
+                        targets: 8,  // Column index for 'job_details'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
                         targets: 11,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
                     },
                     {
-                        targets: 13,  // Column index for 'job_details'
+                        targets: 14,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
                     },
                     {
-                        targets: 14,  // Column index for 'job_details'
+                        targets: 15,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
