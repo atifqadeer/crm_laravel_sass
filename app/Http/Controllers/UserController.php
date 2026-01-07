@@ -445,7 +445,6 @@ class UserController extends Controller
             });
         }
 
-
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
@@ -472,7 +471,7 @@ class UserController extends Controller
                     }
                     return '0h 0m';
                 })
-                ->rawColumns(['credit_hours'])
+                ->rawColumns(['created_at', 'user_name', 'credit_hours'])
                 ->make(true);
         }
     }
