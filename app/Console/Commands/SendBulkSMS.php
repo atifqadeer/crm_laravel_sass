@@ -163,6 +163,7 @@ class SendBulkSMS extends Command
 
             $queryString .= '&message=' . $messageEncoded;
             $url = "$apiUrl?$queryString";
+            Log::info("SMS BULK SEND" . $url);
 
             // Curl
             $ch = curl_init();
