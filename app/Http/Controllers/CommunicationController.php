@@ -501,7 +501,7 @@ class CommunicationController extends Controller
             'recipient_id' => 'required',
             'recipient_type' => 'required',
             'recipient_phone' => 'required|string|max:50',
-            'message' => 'required|string|max:255',
+            'message' => 'required|string',
         ]);
 
         if ($request->recipient_type == 'user') {
