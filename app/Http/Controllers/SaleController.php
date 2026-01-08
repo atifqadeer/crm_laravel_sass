@@ -3948,10 +3948,17 @@ class SaleController extends Controller
                                     \'' . e($sale->qualification) . '\',
                                     \'' . e($sale->benefits) . '\'
                                 )">View</a></li>';
-                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatusModal(' . $sale->id . ', 0)">Mark as Close</a></li>';
-                    if ($sale->status == '1' && $sale->is_on_hold == '0') {
-                        $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . $sale->id . ', 2)">Mark as On Hold</a></li>';
-                    }
+                    $action .= '<li>
+                                    <a class="dropdown-item" href="#" data-sale-id="' . $sale->id . '" data-action="approve">
+                                        Mark Approved
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#" data-sale-id="' . $sale->id . '" data-action="disapprove">
+                                        Mark Disapproved
+                                    </a>
+                                </li>';
+
                     $url = route('sales.history', [ 'id' => $sale->id ]);
                     $action .= '<li><hr class="dropdown-divider"></li>
                                      <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
@@ -4775,23 +4782,23 @@ class SaleController extends Controller
                         $color_class = 'bg-primary';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value['status'] == 1) {//active
-                                $status_value = 'sent';
-                                $color_class = 'bg-success';
-                                break;
-                            } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale_id)) {
-                                $status_value = 'reject_job';
-                                $color_class = 'bg-danger';
-                                break;
-                            } elseif ($value['status'] == 0) {//disable
-                                $status_value = 'reject';
-                                $color_class = 'bg-danger';
-                            } elseif (($value['status'] == 2) && //2 for paid
-                            ($value['sale_id'] == $sale_id) && 
-                            ($applicant->paid_status == 'open')) {
-                                $status_value = 'paid';
-                                $color_class = 'bg-primary';
-                                break;
+                            if($value['sale_id'] == $sale_id){
+                                if ($value['status'] == 1) {//active
+                                    $status_value = 'sent';
+                                    $color_class = 'bg-success';
+                                    break;
+                                } elseif ($value['status'] == 0) {
+                                    $status_value = 'reject_job';
+                                    $color_class = 'bg-danger';
+                                    break;
+                                } elseif ($value['status'] == 0) {//disable
+                                    $status_value = 'reject';
+                                    $color_class = 'bg-danger';
+                                } elseif ($value['status'] == 2) {
+                                    $status_value = 'paid';
+                                    $color_class = 'bg-primary';
+                                    break;
+                                }
                             }
                         }
                     }
@@ -4809,17 +4816,15 @@ class SaleController extends Controller
                         $status_value = 'paid';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value['status'] == 1) {//active
-                                $status_value = 'sent';
-                            } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale_id)) {
-                                $status_value = 'reject_job';
-                            } elseif ($value['status'] == 0) {//disable
-                                $status_value = 'reject';
-                            } elseif (($value['status'] == 2) && //2 for paid
-                                ($value['sale_id'] == $sale_id) && 
-                                ($applicant['paid_status'] == 'open')) 
-                            {
-                                $status_value = 'paid';
+                            if($value['sale_id'] == $sale_id){
+                                if ($value['status'] == 1) {//active
+                                    $status_value = 'sent';
+                                } elseif ($value['status'] == 0) {
+                                    $status_value = 'reject_job';
+                                } elseif ($value['status'] == 2)
+                                {
+                                    $status_value = 'paid';
+                                }
                             }
                         }
                     }
