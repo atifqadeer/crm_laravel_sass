@@ -1314,7 +1314,7 @@ class ApplicantController extends Controller
         // Create storage path
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
         $publicPath = public_path($directory);
-
+return $publicPath;
         // Create directory if not exists
         if (!file_exists($publicPath)) {
             mkdir($publicPath, 0755, true);
