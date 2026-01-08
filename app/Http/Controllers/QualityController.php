@@ -314,8 +314,9 @@ class QualityController extends Controller
                     ->join('offices', 'sales.office_id', '=', 'offices.id')
                     ->join('units', 'sales.unit_id', '=', 'units.id')
                     ->join('cv_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
-                            ->where("cv_notes.status", 1);
+                        $join->on('quality_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('quality_notes.sale_id', '=', 'cv_notes.sale_id');
+                            // ->where("cv_notes.status", 1);
                     })
                     ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect(
