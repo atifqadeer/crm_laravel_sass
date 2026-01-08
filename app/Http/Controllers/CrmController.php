@@ -89,11 +89,13 @@ class CrmController extends Controller
                 'applicants.id',
                 'applicants.applicant_name',
                 'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
                 'applicants.job_type',
                 'applicants.updated_at',
                 'applicants.applicant_postcode',
                 'applicants.paid_status',
                 'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
                 'applicants.applicant_landline',
                 'applicants.paid_timestamp',
                 'applicants.lat',
@@ -1946,8 +1948,10 @@ class CrmController extends Controller
                 $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
                     $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
@@ -2006,6 +2010,24 @@ class CrmController extends Controller
                         $button = $applicant->formatted_postcode;
                     }
                     return $button;
+                })
+                ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
+
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
+                    }
+
+                    return $str;
                 })
                 ->addColumn('notes_detail', function ($applicant) {
                     $notes_detail = strip_tags($applicant->notes_detail);
@@ -4556,7 +4578,7 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail', 'show_created_at', 'user_name', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'show_created_at', 'user_name', 'applicantPhone', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
