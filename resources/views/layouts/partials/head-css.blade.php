@@ -3,8 +3,13 @@
 @vite(['resources/js/config.js'])
 <style>
     html[data-bs-theme="light"] {
-        .table a {
-            color: #252728 !important;
+        $body-color: #252728;
+        .table>:not(caption)>*>* {
+            padding: .85rem;
+            color: var(--bs-table-color-state, var(--bs-table-color-type, #252728));
+            background-color: var(--bs-table-bg);
+            border-bottom-width: var(--bs-border-width);
+            box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
         }
     }
     html[data-bs-theme="dark"] {
