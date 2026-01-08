@@ -4,7 +4,7 @@
 <style>
     html[data-bs-theme="light"] {
         .table a {
-            color: #222;
+            color: #252728 !important;
         }
     }
     html[data-bs-theme="dark"] {
