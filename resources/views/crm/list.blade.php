@@ -698,11 +698,11 @@
 
             // Show/hide reject button based on reason selection
             $(reasonId).off('change.rejectButton').on('change.rejectButton', function () {
-                if ($(this).val() === 'position_filled') {
+                // if ($(this).val() === 'position_filled') {
                     $(rejectButton).show();
-                } else {
-                    $(rejectButton).hide();
-                }
+                // } else {
+                //     $(rejectButton).hide();
+                // }
             });
 
             // Handle save button click
