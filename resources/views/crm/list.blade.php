@@ -212,7 +212,7 @@
                                     <th>Agent</th>
                                     <th id="schedule_date" style="display:none;">Schedule Date</th>
                                     <th>Applicant Name</th>
-                                    <th>Email</th>
+                                    {{-- <th>Email</th> --}}
                                     <th width="15%">Phone / Landline</th>
                                     <th>Title</th>
                                     <th>Category</th>
@@ -394,7 +394,7 @@
                         }
                     },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
+                    // { data: 'applicant_email', name: 'applicants.applicant_email' },
                     {
                         data: 'applicantPhone',
                         name: 'applicantPhone',               // ← Use the same as data key
