@@ -2104,7 +2104,7 @@ class SaleController extends Controller
         // Subquery to get the latest audit (open_date) for each sale
         $latestAuditSub = DB::table('audits')
             ->select(DB::raw('MAX(id) as id'))
-            ->where('auditable_type', 'Horsefly\Sale')
+            ->where('auditable_type', 'Horsefly\\Sale')
             ->where('message', 'like', '%sale-closed%')
             ->whereIn('auditable_id', function($query) {
                 $query->select('id')
@@ -2142,7 +2142,7 @@ class SaleController extends Controller
              // Join only the latest audit for each sale
             ->leftJoin('audits', function ($join) use ($latestAuditSub) {
                 $join->on('audits.auditable_id', '=', 'sales.id')
-                    ->where('audits.auditable_type', '=', 'Horsefly\Sale')
+                    ->where('audits.auditable_type', '=', 'Horsefly\\Sale')
                     ->where('audits.message', 'like', '%sale-closed%')
                     ->whereIn('audits.id', $latestAuditSub);
             })
@@ -4608,6 +4608,7 @@ class SaleController extends Controller
                     // Direct column searches
                     $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
@@ -4708,7 +4709,7 @@ class SaleController extends Controller
                         </a>
                     ';
                 })
-                ->addColumn('applicant_phone', function ($applicant) {
+                ->addColumn('applicantPhone', function ($applicant) {
                     $str = '';
 
                     if ($applicant->is_blocked) {
@@ -4725,6 +4726,16 @@ class SaleController extends Controller
                     }
 
                     return $str;
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('created_at', function ($applicant) {
                     return $applicant->formatted_created_at; // Using accessor
@@ -4766,6 +4777,7 @@ class SaleController extends Controller
                         foreach ($applicant->cv_notes as $key => $value) {
                             if ($value['status'] == 1) {//active
                                 $status_value = 'sent';
+                                $color_class = 'bg-dark';
                                 break;
                             } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale_id)) {
                                 $status_value = 'reject_job';
