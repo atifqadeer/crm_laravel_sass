@@ -24,8 +24,12 @@
         .table a:hover {
             color: #4393e3 !important;
         }
-        .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_processing, .dataTables_wrapper .dataTables_paginate{
-            color: var(--#{$prefix}body-color) !important
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter, 
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_processing, 
+        .dataTables_wrapper .dataTables_paginate{
+            color: #aab8c5 !important
         }
         .bg-dark {
             --bs-bg-opacity: 1;
