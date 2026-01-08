@@ -4769,7 +4769,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('paid_status', function ($applicant) use ($sale_id) {
                     $status_value = 'open';
-                    $color_class = 'bg-success';
+                    $color_class = 'bg-dark';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
                         $color_class = 'bg-primary';
@@ -4777,7 +4777,7 @@ class SaleController extends Controller
                         foreach ($applicant->cv_notes as $key => $value) {
                             if ($value['status'] == 1) {//active
                                 $status_value = 'sent';
-                                $color_class = 'bg-dark';
+                                $color_class = 'bg-success';
                                 break;
                             } elseif (($value['status'] == 0) && ($value['sale_id'] == $sale_id)) {
                                 $status_value = 'reject_job';
