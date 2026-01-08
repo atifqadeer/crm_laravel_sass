@@ -257,6 +257,7 @@ class QualityController extends Controller
                         'applicants.applicant_email',
                         'applicants.applicant_email_secondary',
                         'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
                         'applicants.applicant_postcode',
                         'applicants.applicant_landline',
                         'applicants.updated_at',
