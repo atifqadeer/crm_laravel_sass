@@ -626,12 +626,24 @@ class QualityController extends Controller
                     } else {
                         $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
 
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
                         if ($applicant->applicant_landline) {
                             $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
                         }
                     }
 
                     return $str;
+                })
+                ->filterColumn('applicant_phone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('notes_created_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'); // Using accessor
