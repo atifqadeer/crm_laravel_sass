@@ -3792,11 +3792,10 @@ class ImportController extends Controller
                         foreach ($chunk as $index => $row) {
 
                             try {
-                                ApplicantNote::updateOrCreate(
-                                    ['note_uid' => $row['note_uid']], // unique key
-                                    $row                                // data to insert/update
-                                );
-
+                                ApplicantNote::withoutTimestamps(function () use ($row) {
+                                    ApplicantNote::updateOrCreate(['note_uid' => $row['note_uid']], $row);
+                                });
+                                
                                 $successfulRows++;
 
                                 if (($index + 1) % 100 == 0) {
