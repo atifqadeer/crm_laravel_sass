@@ -209,91 +209,95 @@ class QualityController extends Controller
                         ->where("quality_notes.moved_tab_to", "rejected");
                     // ->where("quality_notes.status", 1);
                 })
-                    ->join('sales', function ($join) {
-                        $join->on('quality_notes.sale_id', '=', 'sales.id')
-                            ->whereColumn('quality_notes.sale_id', 'sales.id');
-                    })
-                    ->join('offices', 'sales.office_id', '=', 'offices.id')
-                    ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('users', 'users.id', '=', 'quality_notes.user_id')
-                    ->addSelect(
-                        'users.name as user_name',
-                        'quality_notes.details as notes_detail',
-                        'quality_notes.created_at as notes_created_at',
-                        'offices.office_name as office_name',
+                ->join('sales', function ($join) {
+                    $join->on('quality_notes.sale_id', '=', 'sales.id')
+                        ->whereColumn('quality_notes.sale_id', 'sales.id');
+                })
+                ->join('offices', 'sales.office_id', '=', 'offices.id')
+                ->join('units', 'sales.unit_id', '=', 'units.id')
+                ->join('cv_notes', function ($join) {
+                    $join->on('applicants.id', '=', 'cv_notes.applicant_id')
+                        ->where("cv_notes.status", 1);
+                })
+                ->join('users', 'users.id', '=', 'cv_notes.user_id')
+                ->addSelect(
+                    'users.name as user_name',
+                    'quality_notes.details as notes_detail',
+                    'quality_notes.created_at as notes_created_at',
+                    'offices.office_name as office_name',
 
-                        // sale
-                        'sales.id as sale_id',
-                        'sales.job_category_id as sale_category_id',
-                        'sales.job_title_id as sale_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type as sale_job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience as sale_experience',
-                        'sales.qualification as sale_qualification',
-                        'sales.benefits',
-                        'sales.office_id as sale_office_id',
-                        'sales.unit_id as sale_unit_id',
-                        'sales.position_type',
-                        'sales.status as sale_status',
+                    // sale
+                    'sales.id as sale_id',
+                    'sales.job_category_id as sale_category_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type as sale_job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience as sale_experience',
+                    'sales.qualification as sale_qualification',
+                    'sales.benefits',
+                    'sales.office_id as sale_office_id',
+                    'sales.unit_id as sale_unit_id',
+                    'sales.position_type',
+                    'sales.status as sale_status',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
-                    )
-                    ->groupBy(
-                        'quality_notes.created_at',
-                        'quality_notes.applicant_id',
-                        'quality_notes.sale_id',
-                        'quality_notes.id',
-                        'quality_notes.details',
-                        'users.name',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
+                )
+                ->groupBy(
+                    'quality_notes.created_at',
+                    'quality_notes.applicant_id',
+                    'quality_notes.sale_id',
+                    'quality_notes.id',
+                    'quality_notes.details',
+                    'users.name',
 
-                        // applicant
-                        'applicants.id',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_phone_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_landline',
-                        'applicants.updated_at',
-                        'applicants.applicant_cv',
-                        'applicants.updated_cv',
-                        'applicants.applicant_notes',
-                        'applicants.job_category_id',
-                        'applicants.job_title_id',
-                        'applicants.job_type',
+                    // applicant
+                    'applicants.id',
+                    'applicants.applicant_name',
+                    'applicants.applicant_email',
+                    'applicants.applicant_email_secondary',
+                    'applicants.applicant_phone',
+                    'applicants.applicant_phone_secondary',
+                    'applicants.applicant_postcode',
+                    'applicants.applicant_landline',
+                    'applicants.updated_at',
+                    'applicants.applicant_cv',
+                    'applicants.updated_cv',
+                    'applicants.applicant_notes',
+                    'applicants.job_category_id',
+                    'applicants.job_title_id',
+                    'applicants.job_type',
 
-                        // sale
-                        'sales.id',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                        'sales.sale_postcode',
-                        'sales.job_type',
-                        'sales.timing',
-                        'sales.salary',
-                        'sales.experience',
-                        'sales.qualification',
-                        'sales.benefits',
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.position_type',
-                        'sales.status',
+                    // sale
+                    'sales.id',
+                    'sales.job_category_id',
+                    'sales.job_title_id',
+                    'sales.sale_postcode',
+                    'sales.job_type',
+                    'sales.timing',
+                    'sales.salary',
+                    'sales.experience',
+                    'sales.qualification',
+                    'sales.benefits',
+                    'sales.office_id',
+                    'sales.unit_id',
+                    'sales.position_type',
+                    'sales.status',
 
-                        // units
-                        'units.unit_name',
-                        'units.unit_postcode',
-                        'units.unit_website',
+                    // units
+                    'units.unit_name',
+                    'units.unit_postcode',
+                    'units.unit_website',
 
-                        'job_titles.name',
-                        'job_categories.name',
-                        'job_sources.name',
-                        'offices.office_name',
-                    );
+                    'job_titles.name',
+                    'job_categories.name',
+                    'job_sources.name',
+                    'offices.office_name',
+                );
                 break;
 
             case 'cleared cvs':
