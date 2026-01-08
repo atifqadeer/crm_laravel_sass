@@ -4,6 +4,9 @@
 <style>
     html[data-bs-theme="light"] {
         $body-color: #252728;
+        .table a {
+            color: #252728 !important;
+        }
         .table>:not(caption)>*>* {
             padding: .85rem;
             color: var(--bs-table-color-state, var(--bs-table-color-type, #252728));

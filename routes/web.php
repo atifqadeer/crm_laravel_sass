@@ -154,6 +154,9 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('changeSaleStatus', [SaleController::class, 'changeSaleStatus'])->name('changeSaleStatus');
     Route::get('getApplicantsBySaleRadius', [SaleController::class, 'getApplicantsBySaleRadius'])->name('getApplicantsBySaleRadius');
     Route::get('changeSaleHoldStatus', [SaleController::class, 'changeSaleHoldStatus'])->name('changeSaleHoldStatus');
+    // web.php
+    Route::post('updatePendingOnHoldStatus', [SaleController::class, 'updatePendingOnHoldStatus'])->name('updatePendingOnHoldStatus');
+
     Route::get('getSaleDocuments', [SaleController::class, 'getSaleDocuments'])->name('getSaleDocuments');
     Route::get('getSaleHistoryAjaxRequest', [SaleController::class, 'getSaleHistoryAjaxRequest'])->name('getSaleHistoryAjaxRequest');
 

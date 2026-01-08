@@ -1052,6 +1052,88 @@
             });
         });
     </script>
-    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Event delegation for dynamically added buttons
+            document.addEventListener('click', function(e) {
+                const target = e.target;
+
+                if (target.matches('.dropdown-item[data-action]')) {
+                    e.preventDefault();
+
+                    const saleId = target.dataset.saleId;
+                    const actionType = target.dataset.action;
+
+                    if (actionType === 'approve') {
+                        confirmSale(saleId, 'approve');
+                    } else if (actionType === 'disapprove') {
+                        confirmSale(saleId, 'disapprove');
+                    }
+                }
+            });
+
+            function confirmSale(saleId, actionType) {
+                const isApprove = actionType === 'approve';
+                const title = 'Are you sure?';
+                const text = isApprove ? 
+                    'You want to mark this sale as Approved.' : 
+                    'You want to mark this sale as Disapproved.';
+                const confirmBtnText = isApprove ? 'Yes, Approve' : 'Yes, Disapprove';
+                const confirmBtnColor = isApprove ? '#28a745' : '#d33';
+
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: confirmBtnText,
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: confirmBtnColor,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // AJAX call to backend
+                        updateSaleStatus(saleId, actionType);
+                    }
+                });
+            }
+
+            function updateSaleStatus(saleId, actionType) {
+                const url = "{{ route('updatePendingOnHoldStatus') }}"; // your route
+                const status = actionType === 'approve' ? 1 : 0;
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}', // Laravel CSRF
+                        sale_id: saleId,
+                        status: status
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                            // Optional: update status in the table row dynamically
+                            $('#sale-status-' + saleId).text(res.new_status_text);
+                            $('#sales_table').DataTable().ajax.reload();
+                        } else {
+                            Swal.fire('Error', res.message, 'error');
+                        }
+                    },
+                    error: function(err) {
+                        Swal.fire('Error', 'Something went wrong', 'error');
+                    }
+                });
+            }
+        });
+    </script>
+
+
 @endsection
 @endsection                        

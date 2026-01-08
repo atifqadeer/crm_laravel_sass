@@ -5007,6 +5007,35 @@ class SaleController extends Controller
 
         return redirect()->to(url()->previous());
     }
+    // SaleController.php
+    public function updatePendingOnHoldStatus(Request $request)
+    {
+        $request->validate([
+            'sale_id' => 'required|exists:sales,id',
+            'status' => 'required|in:0,1'
+        ]);
+
+        $sale = Sale::findOrFail($request->sale_id);
+
+        if ($request->status == 1) {
+            $sale->is_on_hold = 1;
+            $message = 'Sale marked as Approved';
+            $newStatusText = 'Approved';
+        } else {
+            $sale->is_on_hold = 0;
+            $message = 'Sale marked as Disapproved';
+            $newStatusText = 'On Hold Removed';
+        }
+
+        $sale->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'new_status_text' => $newStatusText
+        ]);
+    }
+
     public function saleHistoryIndex($id)
     {
         $sale = Sale::withCount('active_cvs')->find($id);
