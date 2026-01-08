@@ -3795,7 +3795,7 @@ class ImportController extends Controller
                                 ApplicantNote::withoutTimestamps(function () use ($row) {
                                     ApplicantNote::updateOrCreate(['note_uid' => $row['note_uid']], $row);
                                 });
-                                
+
                                 $successfulRows++;
 
                                 if (($index + 1) % 100 == 0) {
@@ -4069,10 +4069,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                ApplicantPivotSale::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                ApplicantPivotSale::withoutTimestamps(function () use ($row) {
+                                    ApplicantPivotSale::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -4339,10 +4338,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                NotesForRangeApplicant::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                NotesForRangeApplicant::withoutTimestamps(function () use ($row) {
+                                    NotesForRangeApplicant::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -4448,7 +4446,10 @@ class ImportController extends Controller
         $successfulRows = 0;
         foreach (array_chunk($processedData, 200) as $chunk) {
             try {
-                Audit::insert($chunk);
+                Audit::withoutTimestamps(function () use ($chunk) {
+                    Audit::insert($chunk);
+                });
+                
                 $successfulRows += count($chunk);
             } catch (\Throwable $e) {
                 $failedRows[] = ['row' => 'batch', 'error' => $e->getMessage()];
@@ -4666,10 +4667,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows, $chunkIndex) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                CrmNote::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                CrmNote::withoutTimestamps(function () use ($row) {
+                                    CrmNote::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -4942,10 +4942,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                CrmRejectedCv::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                CrmRejectedCv::withoutTimestamps(function () use ($row) {
+                                    CrmRejectedCv::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -5215,10 +5214,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                CVNote::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                CVNote::withoutTimestamps(function () use ($row) {
+                                    CVNote::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -5476,10 +5474,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                History::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                History::withoutTimestamps(function () use ($row) {
+                                    History::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -5933,10 +5930,9 @@ class ImportController extends Controller
                         foreach ($chunk as $index => $row) {
                             $rowIndex = ($chunkIndex * 100) + $index + 2;
                             try {
-                                Interview::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                Interview::withoutTimestamps(function () use ($row) {
+                                    Interview::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -6504,10 +6500,9 @@ class ImportController extends Controller
             DB::transaction(function () use ($batch, &$successfulRows, &$failedRows) {
                 foreach ($batch as $row) {
                     try {
-                        ModuleNote::updateOrCreate(
-                            ['id' => $row['id']],
-                            $row
-                        );
+                        ModuleNote::withoutTimestamps(function () use ($row) {
+                            ModuleNote::updateOrCreate(['id' => $row['id']], $row);
+                        });
                         $successfulRows++;
                     } catch (\Exception $e) {
                         $failedRows[] = ['id' => $row['id'], 'error' => $e->getMessage()];
@@ -6741,10 +6736,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                QualityNotes::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                QualityNotes::withoutTimestamps(function () use ($row) {
+                                    QualityNotes::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -7173,10 +7167,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                RevertStage::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                RevertStage::withoutTimestamps(function () use ($row) {
+                                    RevertStage::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -7697,10 +7690,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                SaleNote::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                SaleNote::withoutTimestamps(function () use ($row) {
+                                    SaleNote::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
@@ -7965,10 +7957,9 @@ class ImportController extends Controller
                     DB::transaction(function () use ($chunk, &$successfulRows, &$failedRows) {
                         foreach ($chunk as $index => $row) {
                             try {
-                                SentEmail::updateOrCreate(
-                                    ['id' => $row['id']],
-                                    $row
-                                );
+                                SentEmail::withoutTimestamps(function () use ($row) {
+                                    SentEmail::updateOrCreate(['id' => $row['id']], $row);
+                                });
                                 $successfulRows++;
                                 if (($index + 1) % 100 == 0) {
                                     Log::channel('import')->info("Processed " . ($index + 1) . " rows in chunk");
