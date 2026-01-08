@@ -1294,19 +1294,6 @@ class ApplicantController extends Controller
     }
     public function uploadCv(Request $request)
     {
-        // Validate the request
-        // $validator = Validator::make($request->all(), [
-        //     'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
-        //     'applicant_id' => 'required|integer|exists:applicants,id',
-        // ]);
-
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => $validator->errors()->first(),
-        //         'errors'  => $validator->errors(),
-        //     ], 422);
-        // }
         // Get file and applicant data
         $file = $request->file('resume');
         $applicantId = $request->input('applicant_id');
@@ -1326,28 +1313,41 @@ class ApplicantController extends Controller
 
         // Create storage path
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
-        $storagePath = "public/{$directory}";
+        $publicPath = public_path($directory);
 
-        // Ensure directory exists
-        if (!Storage::exists($storagePath)) {
-            Storage::makeDirectory($storagePath, 0755, true); // recursive creation
+        // Create directory if not exists
+        if (!file_exists($publicPath)) {
+            mkdir($publicPath, 0755, true);
         }
 
-        // Generate unique filename
-        $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
+        /*
+        |--------------------------------------------------------------------------
+        | Generate unique filename
+        |--------------------------------------------------------------------------
+        */
+        $fileName = $applicantId . '_' . time() . '.' . $file->getClientOriginalExtension();
 
-        // Store the file
-        $filePath = $file->storeAs($directory, $fileName, 'public');
+        /*
+        |--------------------------------------------------------------------------
+        | Move file to public directory
+        |--------------------------------------------------------------------------
+        */
+        $file->move($publicPath, $fileName);
 
-        // Update applicant record
+        // Save relative path in DB
+        $filePath = $directory . '/' . $fileName;
         $applicant->update(['applicant_cv' => $filePath]);
 
-        // Return response
+        /*
+        |--------------------------------------------------------------------------
+        | Return response
+        |--------------------------------------------------------------------------
+        */
         return response()->json([
-            'success' => true,
-            'message' => 'File uploaded successfully',
+            'success'   => true,
+            'message'   => 'File uploaded successfully',
             'file_path' => $filePath,
-            'file_url' => Storage::url($filePath),
+            'file_url'  => asset($filePath),
         ]);
     }
     public function crmuploadCv(Request $request)
