@@ -31,6 +31,9 @@
         .dataTables_wrapper .dataTables_paginate{
             color: #aab8c5 !important
         }
+        table.dataTable tbody tr {
+            background-color: transparent !important;
+        }
         .bg-dark {
             --bs-bg-opacity: 1;
             background-color: rgba(var(--bs-light-rgb), var(--bs-bg-opacity)) !important;
