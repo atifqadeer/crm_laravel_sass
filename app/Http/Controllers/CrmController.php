@@ -2118,7 +2118,7 @@ class CrmController extends Controller
                     }
 
                     $postcode = strtoupper($applicant->sale_postcode);
-                    $posted_date = $applicant->formatted_created_at;
+                    $posted_date = Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A');
                     $office_name = ucwords($applicant->office_name) ?? '-';
                     $unit_name = ucwords($applicant->unit_name) ?? '-';
                     $jobTitle = strtoupper($applicant->jobTitle) ?? '-';

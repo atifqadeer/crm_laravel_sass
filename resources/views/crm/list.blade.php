@@ -5407,6 +5407,7 @@
                             <div class="modal-body">
                                 <table class="table table-bordered">
                                     <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Posted Date</th><td>${job.posted_date}</td></tr>
                                     <tr><th>Head Office</th><td>${job.office_name}</td></tr>
                                     <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
                                     <tr><th>Postcode</th><td>${job.postcode}</td></tr>
