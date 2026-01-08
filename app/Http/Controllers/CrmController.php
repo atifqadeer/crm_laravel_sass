@@ -2122,7 +2122,7 @@ class CrmController extends Controller
                     $office_name = ucwords($applicant->office_name) ?? '-';
                     $unit_name = ucwords($applicant->unit_name) ?? '-';
                     $jobTitle = strtoupper($applicant->jobTitle) ?? '-';
-                    $stype  = $applicant->sale_job_type;
+                    $stype  = $applicant->sale_job_type && $applicant->sale_job_type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     $jobCategory = ucwords($applicant->jobCategory) . $stype ?? '-';
 
                     $jobData = [
