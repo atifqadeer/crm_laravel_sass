@@ -4816,14 +4816,16 @@ class SaleController extends Controller
                         $status_value = 'paid';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if($value['sale_id'] == $sale_id){
-                                if ($value['status'] == 1) {//active
+                            if ($value['sale_id'] == $sale_id) {
+                                if ($value->status == 'active') {
                                     $status_value = 'sent';
-                                } elseif ($value['status'] == 0) {
+                                    break;
+                                } elseif ($value->status == 'disable') {
                                     $status_value = 'reject_job';
-                                } elseif ($value['status'] == 2)
-                                {
+                                    break;
+                                } elseif ($value->status == 'paid') {
                                     $status_value = 'paid';
+                                    break;
                                 }
                             }
                         }
@@ -4834,7 +4836,7 @@ class SaleController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">';
-                                if ($status_value == 'open' || $status_value == 'reject') {
+                                if ($status_value == 'open') {
                                     $html .= '<li><a href="#" onclick="markNotInterestedModal('. $applicant->id .', '. $sale_id .')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
