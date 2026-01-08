@@ -41,5 +41,10 @@
             --bs-bg-opacity: 1;
             background-color: rgba(var(--bs-light-rgb), var(--bs-bg-opacity)) !important;
         }
+
+        .bg-success {
+            --bs-bg-opacity: 1;
+            background-color: rgb(10 171 74) !important;
+        }
     }
 </style>
