@@ -76,6 +76,7 @@ class QualityController extends Controller
                 'applicants.applicant_email',
                 'applicants.applicant_email_secondary',
                 'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
                 'applicants.applicant_postcode',
                 'applicants.applicant_landline',
                 'applicants.applicant_cv',
@@ -306,7 +307,11 @@ class QualityController extends Controller
                     })
                     ->join('offices', 'sales.office_id', '=', 'offices.id')
                     ->join('units', 'sales.unit_id', '=', 'units.id')
-                    ->join('users', 'users.id', '=', 'quality_notes.user_id')
+                    ->join('cv_notes', function ($join) {
+                        $join->on('applicants.id', '=', 'cv_notes.applicant_id')
+                            ->where("cv_notes.status", 1);
+                    })
+                    ->join('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect(
                         'users.name as user_name',
                         'quality_notes.details as notes_detail',
