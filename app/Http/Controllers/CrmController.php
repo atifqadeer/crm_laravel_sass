@@ -2104,9 +2104,9 @@ class CrmController extends Controller
                     return $applicant->paid_status ?? '-';
                 })
                 ->addColumn('job_details', function ($applicant) {
-                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type));
-                    $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
-
+                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $status = '';
                     if ($applicant->sale_status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
@@ -2117,30 +2117,39 @@ class CrmController extends Controller
                         $status = '<span class="badge bg-danger">Rejected</span>';
                     }
 
-                    // Escape HTML in $status for JavaScript (to prevent XSS)
-                    $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
+                    $postcode = strtoupper($applicant->sale_postcode);
+                    $posted_date = $applicant->formatted_created_at;
+                    $office_name = ucwords($applicant->office_name) ?? '-';
+                    $unit_name = ucwords($applicant->unit_name) ?? '-';
+                    $jobTitle = strtoupper($applicant->jobTitle) ?? '-';
+                    $stype  = $applicant->sale_job_type;
+                    $jobCategory = ucwords($applicant->jobCategory) . $stype ?? '-';
 
-                    // Prepare modal HTML for the "Job Details"
-                    $modalHtml = $this->generateJobDetailsModal($applicant);
+                    $jobData = [
+                        'sale_id'       => (int)$applicant->sale_id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $jobCategory,
+                        'job_title'     => $jobTitle,
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $applicant->timing,
+                        'experience'    => $applicant->sale_experience,
+                        'salary'        => $applicant->salary,
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $applicant->sale_qualification,
+                        'benefits'      => $applicant->benefits,
+                    ];
 
-                    // Return the action link with a modal trigger and the modal HTML
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
-                        . (int)$applicant->sale_id . ','
-                        . '\'' . htmlspecialchars(Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->office_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->unit_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->sale_postcode, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->jobCategory, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->jobTitle, ENT_QUOTES) . '\','
-                        . '\'' . $escapedStatus . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->timing, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->sale_experience, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->salary, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$position, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->sale_qualification, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars((string)$applicant->benefits, ENT_QUOTES) . '\')">
-                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
-                        </a>' . $modalHtml;
+                        return '<a href="#"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                                                $jobData,
+                                                JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                            ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
                 })
                 ->addColumn('action', function ($applicant) use ($tabFilter) {
                     $formattedMessage = '';

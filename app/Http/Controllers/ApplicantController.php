@@ -98,8 +98,8 @@ class ApplicantController extends Controller
             ],
             'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline',
             'applicant_experience' => 'nullable|string',
-            'applicant_notes' => 'required|string|max:255',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // max 5mb
+            'applicant_notes' => 'required|string',
+            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:10000', // max 5mb
         ]);
 
         $validator->sometimes('have_nursing_home_experience', 'required|boolean', function ($input) {
@@ -137,7 +137,7 @@ class ApplicantController extends Controller
             ]);
 
             $applicantData['applicant_phone'] = preg_replace('/[^0-9]/', '', $applicantData['applicant_phone']);
-            $applicantData['applicant_phone_secondary'] = $applicantData['applicant_phone_secondary'] 
+            $applicantData['applicant_phone_secondary'] = $applicantData['applicant_phone_secondary']
                 ? preg_replace('/[^0-9]/', '', $applicantData['applicant_phone_secondary'])
                 : null;
             $applicantData['applicant_landline'] = $applicantData['applicant_landline']
@@ -227,10 +227,10 @@ class ApplicantController extends Controller
 
             if (!empty($phones)) {
                 Message::where(function ($q) use ($phones) {
-                        foreach ($phones as $phone) {
-                            $q->orWhere('phone_number', $phone); // exact match preferred
-                        }
-                    })
+                    foreach ($phones as $phone) {
+                        $q->orWhere('phone_number', $phone); // exact match preferred
+                    }
+                })
                     ->update([
                         'module_id'   => $applicant->id,
                         'module_type' => Applicant::class,
@@ -381,90 +381,90 @@ class ApplicantController extends Controller
 
         if ($request->filled('search.value')) {
 
-    $search = trim(preg_replace('/\s+/', ' ', $request->search['value']));
-    $searchWords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
-    $cleanDigits = preg_replace('/\D+/', '', $search);
-    $searchLower = strtolower($search);
+            $search = trim(preg_replace('/\s+/', ' ', $request->search['value']));
+            $searchWords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            $cleanDigits = preg_replace('/\D+/', '', $search);
+            $searchLower = strtolower($search);
 
-    $model->where(function ($q) use ($search, $searchLower, $searchWords, $cleanDigits) {
+            $model->where(function ($q) use ($search, $searchLower, $searchWords, $cleanDigits) {
 
-        /*
+                /*
         |--------------------------------------------------
         | 1️⃣ EXACT MATCH (Highest Priority)
         |--------------------------------------------------
         */
-        $q->whereRaw('LOWER(applicants.applicant_name) = ?', [$searchLower])
-          ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$searchLower])
-          ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$searchLower]);
+                $q->whereRaw('LOWER(applicants.applicant_name) = ?', [$searchLower])
+                    ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$searchLower])
+                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$searchLower]);
 
-        // Exact phone match (digits only)
-        if ($cleanDigits !== '') {
-            $q->orWhereRaw(
-                'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") = ?',
-                [$cleanDigits]
-            )
-            ->orWhereRaw(
-                'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") = ?',
-                [$cleanDigits]
-            );
-        } else {
-            $q->orWhere('applicants.applicant_phone', '=', $search)
-              ->orWhere('applicants.applicant_phone_secondary', '=', $search);
-        }
+                // Exact phone match (digits only)
+                if ($cleanDigits !== '') {
+                    $q->orWhereRaw(
+                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") = ?',
+                        [$cleanDigits]
+                    )
+                        ->orWhereRaw(
+                            'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") = ?',
+                            [$cleanDigits]
+                        );
+                } else {
+                    $q->orWhere('applicants.applicant_phone', '=', $search)
+                        ->orWhere('applicants.applicant_phone_secondary', '=', $search);
+                }
 
-        /*
+                /*
         |--------------------------------------------------
         | 2️⃣ VERY CLOSE MATCH (ALL WORDS MUST MATCH)
         |--------------------------------------------------
         */
-        $q->orWhere(function ($sq) use ($searchWords, $cleanDigits) {
-            foreach ($searchWords as $word) {
-                $word = trim($word);
-                if ($word === '') continue;
+                $q->orWhere(function ($sq) use ($searchWords, $cleanDigits) {
+                    foreach ($searchWords as $word) {
+                        $word = trim($word);
+                        if ($word === '') continue;
 
-                $sq->where(function ($wq) use ($word, $cleanDigits) {
-                    $wordLower = strtolower($word);
+                        $sq->where(function ($wq) use ($word, $cleanDigits) {
+                            $wordLower = strtolower($word);
 
-                    // Name, email, secondary email, postcode, experience
-                    $wq->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$wordLower}%"])
-                       ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$wordLower}%"])
-                       ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$wordLower}%"])
-                       ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$wordLower}%"])
-                       ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$wordLower}%"]);
+                            // Name, email, secondary email, postcode, experience
+                            $wq->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$wordLower}%"])
+                                ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$wordLower}%"])
+                                ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$wordLower}%"])
+                                ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$wordLower}%"])
+                                ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$wordLower}%"]);
 
-                    // Phone / phone_secondary / landline
-                    if ($cleanDigits !== '') {
-                        $wq->orWhereRaw(
-                            'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                            ["%{$cleanDigits}%"]
-                        )
-                        ->orWhereRaw(
-                            'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                            ["%{$cleanDigits}%"]
-                        )
-                        ->orWhereRaw(
-                            'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                            ["%{$cleanDigits}%"]
-                        );
-                    } else {
-                        $wq->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$wordLower}%"])
-                           ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$wordLower}%"])
-                           ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$wordLower}%"]);
+                            // Phone / phone_secondary / landline
+                            if ($cleanDigits !== '') {
+                                $wq->orWhereRaw(
+                                    'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
+                                    ["%{$cleanDigits}%"]
+                                )
+                                    ->orWhereRaw(
+                                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
+                                        ["%{$cleanDigits}%"]
+                                    )
+                                    ->orWhereRaw(
+                                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
+                                        ["%{$cleanDigits}%"]
+                                    );
+                            } else {
+                                $wq->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$wordLower}%"])
+                                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$wordLower}%"])
+                                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$wordLower}%"]);
+                            }
+                        });
                     }
                 });
-            }
-        });
 
-        /*
+                /*
         |--------------------------------------------------
         | 3️⃣ RELATED TABLES
         |--------------------------------------------------
         */
-        $q->orWhereHas('jobTitle', fn($x) => $x->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$searchLower}%"]))
-          ->orWhereHas('jobCategory', fn($x) => $x->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$searchLower}%"]))
-          ->orWhereHas('jobSource', fn($x) => $x->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$searchLower}%"]));
-    });
-}
+                $q->orWhereHas('jobTitle', fn($x) => $x->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$searchLower}%"]))
+                    ->orWhereHas('jobCategory', fn($x) => $x->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$searchLower}%"]))
+                    ->orWhereHas('jobSource', fn($x) => $x->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$searchLower}%"]));
+            });
+        }
 
 
         // Filter by status if it's not empty
@@ -743,7 +743,7 @@ class ApplicantController extends Controller
                             $applicant->is_in_crm_start_date == 1 ||
                             $applicant->is_in_crm_invoice == 1 ||
                             $applicant->is_in_crm_invoice_sent == 1 ||
-                            $applicant->is_in_crm_start_date_hold == 1 || 
+                            $applicant->is_in_crm_start_date_hold == 1 ||
                             $applicant->is_in_crm_paid == 0
                         )
                     ) {
@@ -1095,8 +1095,8 @@ class ApplicantController extends Controller
                 },
             ],
             'applicant_experience' => 'nullable|string',
-            'applicant_notes' => 'required|string|max:255',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:5000', // 5mb
+            'applicant_notes' => 'required|string',
+            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:10000', // 5mb
         ]);
 
         // Add conditionally required validation
@@ -1195,10 +1195,10 @@ class ApplicantController extends Controller
 
             if (!empty($phones)) {
                 Message::where(function ($q) use ($phones) {
-                        foreach ($phones as $phone) {
-                            $q->orWhere('phone_number', $phone); // exact match preferred
-                        }
-                    })
+                    foreach ($phones as $phone) {
+                        $q->orWhere('phone_number', $phone); // exact match preferred
+                    }
+                })
                     ->update([
                         'module_id'   => $applicant->id,
                         'module_type' => Applicant::class,
