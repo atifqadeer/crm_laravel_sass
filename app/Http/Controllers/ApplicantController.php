@@ -177,10 +177,14 @@ class ApplicantController extends Controller
                 $directory = "uploads/resume/{$year}/{$month}/{$day}";
 
                 // Store the file in the "public" disk under that directory
-                $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
+                // $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
 
-                // Save file path in DB
-                $applicantData['applicant_cv'] = $path;
+                $destinationPath = storage_path('app/public/'. $directory);
+
+                $request->file('applicant_cv')->move($destinationPath, $fileNameToStore);
+
+                $applicantData['applicant_cv'] = $directory . $fileNameToStore;
+
             }
 
             $postcode = $request->applicant_postcode;
@@ -1161,11 +1165,17 @@ class ApplicantController extends Controller
                 // 🕒 Generate unique filename
                 $fileNameToStore = $filename . '_' . time() . '.' . $extension;
 
+                $destinationPath = storage_path('app/public/'. $directory);
+
+                $request->file('applicant_cv')->move($destinationPath, $fileNameToStore);
+
+                $applicantData['applicant_cv'] = $directory . $fileNameToStore;
+
                 // 💾 Store the file in the "public" disk under the dynamic path
-                $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
+                // $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
 
                 // ✅ Save the new file path in the data array
-                $applicantData['applicant_cv'] = $path;
+                // $applicantData['applicant_cv'] = $path;
             }
 
             // Sanitize emails (trim spaces and lowercase)
