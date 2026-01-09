@@ -379,91 +379,24 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        if ($request->filled('search.value')) {
-
-            $search = trim(preg_replace('/\s+/', ' ', $request->search['value']));
-            $searchWords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
-            $cleanDigits = preg_replace('/\D+/', '', $search);
-            $searchLower = strtolower($search);
-
-            $model->where(function ($q) use ($search, $searchLower, $searchWords, $cleanDigits) {
-
-                /*
-        |--------------------------------------------------
-        | 1️⃣ EXACT MATCH (Highest Priority)
-        |--------------------------------------------------
-        */
-                $q->whereRaw('LOWER(applicants.applicant_name) = ?', [$searchLower])
-                    ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$searchLower])
-                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$searchLower]);
-
-                // Exact phone match (digits only)
-                if ($cleanDigits !== '') {
-                    $q->orWhereRaw(
-                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") = ?',
-                        [$cleanDigits]
-                    )
-                        ->orWhereRaw(
-                            'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") = ?',
-                            [$cleanDigits]
-                        );
-                } else {
-                    $q->orWhere('applicants.applicant_phone', '=', $search)
-                        ->orWhere('applicants.applicant_phone_secondary', '=', $search);
-                }
-
-                /*
-        |--------------------------------------------------
-        | 2️⃣ VERY CLOSE MATCH (ALL WORDS MUST MATCH)
-        |--------------------------------------------------
-        */
-                $q->orWhere(function ($sq) use ($searchWords, $cleanDigits) {
-                    foreach ($searchWords as $word) {
-                        $word = trim($word);
-                        if ($word === '') continue;
-
-                        $sq->where(function ($wq) use ($word, $cleanDigits) {
-                            $wordLower = strtolower($word);
-
-                            // Name, email, secondary email, postcode, experience
-                            $wq->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$wordLower}%"])
-                                ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$wordLower}%"])
-                                ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$wordLower}%"])
-                                ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$wordLower}%"])
-                                ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$wordLower}%"]);
-
-                            // Phone / phone_secondary / landline
-                            if ($cleanDigits !== '') {
-                                $wq->orWhereRaw(
-                                    'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                                    ["%{$cleanDigits}%"]
-                                )
-                                    ->orWhereRaw(
-                                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                                        ["%{$cleanDigits}%"]
-                                    )
-                                    ->orWhereRaw(
-                                        'REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?',
-                                        ["%{$cleanDigits}%"]
-                                    );
-                            } else {
-                                $wq->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$wordLower}%"])
-                                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$wordLower}%"])
-                                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$wordLower}%"]);
-                            }
-                        });
-                    }
-                });
-
-                /*
-        |--------------------------------------------------
-        | 3️⃣ RELATED TABLES
-        |--------------------------------------------------
-        */
-                $q->orWhereHas('jobTitle', fn($x) => $x->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$searchLower}%"]))
-                    ->orWhereHas('jobCategory', fn($x) => $x->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$searchLower}%"]))
-                    ->orWhereHas('jobSource', fn($x) => $x->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$searchLower}%"]));
-            });
+        if ($request->has('search.value')) { 
+            $searchTerm = (string) $request->input('search.value'); 
+            if (!empty($searchTerm)) { 
+                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
+                $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
+                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
+                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
+            } 
         }
 
 
@@ -599,7 +532,7 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-                ->editColumn('applicant_email', function ($applicant) {
+                ->editColumn('applicantEmail', function ($applicant) {
                     $email = '';
                     if ($applicant->applicant_email_secondary) {
                         $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
@@ -608,6 +541,15 @@ class ApplicantController extends Controller
                     }
 
                     return $email; // Using accessor
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = strtolower(trim($keyword));
+
+                    $query->where(function ($q) use ($keyword) {
+                        $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                    });
                 })
                 ->editColumn('applicant_postcode', function ($applicant) {
                     if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
@@ -836,7 +778,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicant_email', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
