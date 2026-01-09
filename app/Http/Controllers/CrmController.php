@@ -5712,7 +5712,7 @@ class CrmController extends Controller
         // Validate request data
         $validatedData = $request->validate([
             'email_to' => 'required|email',
-            'email_from' => 'required|email',
+            // 'email_from' => 'required|email',
             'email_subject' => 'required|max:255',
             'email_body' => 'required',
             'applicant_id' => 'required|integer',
@@ -5727,7 +5727,8 @@ class CrmController extends Controller
                 // Attempt to send email
                 $is_save = $this->saveEmailDB(
                     $validatedData['email_to'], 
-                    $validatedData['email_from'], 
+                    // $validatedData['email_from'], 
+                    'crm@kingsburypersonnel.com',
                     $validatedData['email_subject'], 
                     $validatedData['email_body'], 
                     $validatedData['email_subject'], 
