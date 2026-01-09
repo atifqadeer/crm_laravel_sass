@@ -42,7 +42,7 @@
                                     </li>
                                     <li>
                                         @php
-                                            $percentage = $cvLimit > 0 ? ($active_cvs_count / $cv_limit) * 100 : 0;
+                                            $percentage = $cv_limit > 0 ? ($active_cvs_count / $cv_limit) * 100 : 0;
 
                                             $badgeClass = 'bg-success';
                                             $blinkClass = '';
