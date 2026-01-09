@@ -492,8 +492,9 @@ class CrmController extends Controller
                     'crm_notes.details as notes_detail',
                     'crm_notes.created_at as notes_created_at',
 
-                    // show created date
-                    'first_crm_notes.created_at as show_created_at',
+                    // FIRST CRM NOTE DATE
+                    'first_crm_notes.first_created_at as show_created_at',
+                    
                     // Offices
                     'offices.office_name',
                     // Sales
