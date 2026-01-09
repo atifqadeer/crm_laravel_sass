@@ -370,26 +370,47 @@ class UnitController extends Controller
     public function getUnits(Request $request)
     {
         $statusFilter = $request->input('status_filter', '');
-        $query = Unit::query(); // Remove with() here; eager load later if needed
+    $query = Unit::query();
 
-        // Status filter (unchanged)
-        if ($statusFilter === 'active') {
-            $query->where('status', 1);
-        } elseif ($statusFilter === 'inactive') {
-            $query->where('status', 0);
-        }
+    // Apply status filter if needed
+    if ($statusFilter) {
+        $query->where('status', $statusFilter === 'active' ? 1 : 0);
+    }
 
-        // Sorting (keep your existing logic, but consider moving join inside if needed)
-        $orderColumnIndex = $request->input('order.0.column', 0);
-        $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
-        $orderDir = $request->input('order.0.dir', 'desc');
+    // Sorting
+    $orderColumnIndex = $request->input('order.0.column', 0);
+    $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
+    $orderDir = $request->input('order.0.dir', 'desc');
 
-        if ($orderColumn === 'office_name') {
-            $query->join('offices', 'units.office_id', '=', 'offices.id')
-                ->orderBy('offices.office_name', $orderDir);
-        } elseif ($orderColumn !== 'DT_RowIndex') {
-            $query->orderBy($orderColumn, $orderDir);
-        }
+    if ($orderColumn === 'office_name') {
+        $query->join('offices', 'units.office_id', '=', 'offices.id')
+              ->orderBy('offices.office_name', $orderDir);
+    } else {
+        $query->orderBy($orderColumn, $orderDir);
+    }
+
+    // Efficient search with office_name inclusion
+    $searchTerm = $request->input('search.value', '');
+    if ($searchTerm) {
+        $words = array_filter(explode(' ', trim($searchTerm)));
+        $query->where(function ($q) use ($words) {
+            foreach ($words as $word) {
+                // Searching in unit's columns and office_name
+                $q->where('unit_name', 'LIKE', "%{$word}%")
+                  ->orWhere('unit_postcode', 'LIKE', "%{$word}%")
+                  ->orWhere('unit_website', 'LIKE', "%{$word}%")
+                  ->orWhere('unit_notes', 'LIKE', "%{$word}%")
+                  ->orWhereHas('contacts', function ($c) use ($word) {
+                      $c->where('contact_email', 'LIKE', "%{$word}%")
+                        ->orWhere('contact_phone', 'LIKE', "%{$word}%")
+                        ->orWhere('contact_landline', 'LIKE', "%{$word}%");
+                  })
+                  ->orWhereHas('office', function ($o) use ($word) {
+                      $o->where('office_name', 'LIKE', "%{$word}%");
+                  });
+            }
+        });
+    }
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
