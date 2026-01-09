@@ -762,7 +762,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -1317,7 +1317,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -1797,7 +1797,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -2335,7 +2335,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                    if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -2877,7 +2877,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -3677,7 +3677,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
@@ -4154,7 +4154,7 @@ class SaleController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
                     }else{
                         $button = $sale->formatted_postcode;
                     }
