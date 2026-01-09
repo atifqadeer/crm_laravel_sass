@@ -390,12 +390,6 @@
                         }
                     },
                     {
-                        targets: 14,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
                         targets: 15,  // Column index for 'job_details'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
@@ -1257,7 +1251,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalLabelId}">Sale Notes History</h5>
@@ -1334,7 +1328,7 @@
             if ($('#' + modalID).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${id}">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="viewManagerDetailsModalLabel-${id}">Manager Details</h5>
