@@ -159,8 +159,8 @@
                                 <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
                                 <li><strong>Posted On:</strong> {{ \Carbon\Carbon::parse($sale->created_at)->format('d M Y, h:i A') }}</li>
                                 <li><strong>Position Type:</strong> {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}</li>
-                                <li><strong>Salary:</strong> {{ $sale->salary }}</li>
-                                <li><strong>Timing:</strong> {{ $sale->timing }}</li>
+                                <li><strong>Salary:</strong> {!! $sale->salary !!}</li>
+                                <li><strong>Timing:</strong> {!! $sale->timing !!}</li>
                                  @php
                                     $fullHtml = $sale->experience; // HTML from Summernote
                                     $id = 'experience-' . $sale->id;
