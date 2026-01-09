@@ -2329,9 +2329,9 @@
                 // Hide any previous alerts
                 $(notificationAlert).html('').hide();
             });
-
             // Handle save button click
             saveButton.off('click').on('click', function() {
+                crmScheduleInterviewModal(applicantID, saleID);
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
                         .next('.invalid-feedback').remove();
@@ -2387,6 +2387,103 @@
                         `).show();
                     },
                     complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        function crmReScheduleInterviewModal(applicantID, saleID) {
+            const formId = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
+            const modalId = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const schedule_date = `#reschedule_date${applicantID}-${saleID}`;
+            const schedule_time = `#reschedule_time${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmReScheduleInterviewButton`);
+
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(schedule_date).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+                $(schedule_time).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // Handle save button click
+            saveButton.off('click').on('click', function() {
+                // Reset validation
+                $(schedule_date).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                        
+                $(schedule_time).removeClass('is-invalid is-valid')
+                        .next('.invalid-feedback').remove();
+                
+                // Validate inputs
+                const sdate = $(schedule_date).val();
+                const stime = $(schedule_time).val();
+
+                // Add date validation
+                if (sdate && new Date(sdate) < new Date()) {
+                    $(schedule_date).addClass('is-invalid');
+                    $(schedule_date).after('<div class="invalid-feedback">Date must be in the future.</div>');
+                    return;
+                }
+                if (!stime) {
+                    $(schedule_time).addClass('is-invalid');
+                    $(schedule_time).after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
+
+                // Show loading state
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                // Get form properly
+                const form = $(formId)[0];
+
+                // Send data via AJAX
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        schedule_date: sdate,
+                        schedule_time: stime,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert success">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        setTimeout(() => {
+                            $(modalId).modal('hide');
+                            $(formId)[0].reset();
+                            // $('#applicants_table').DataTable().ajax.reload();
+                        }, 2000);
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'An error occurred while scheduling the interview.';
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON.errors) {
+                                // Handle validation errors
+                                errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
+                            }
+                        }
+                        $(notificationAlert).html(`<div class="notification-alert error">${errorMessage}</div>`).show();
+                    },
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
