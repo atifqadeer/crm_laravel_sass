@@ -437,7 +437,6 @@ class CrmController extends Controller
                     ->whereIn('cn1.moved_tab_to', ['cv_sent_request', 'request_save'])
                     ->groupBy('cn1.applicant_id', 'cn1.sale_id');
 
-
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
                     ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
@@ -450,10 +449,6 @@ class CrmController extends Controller
                 // Build the main query
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
-                })
-                ->joinSub($firstCrmNotesSubQuery, 'first_crm_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'first_crm_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'first_crm_notes.sale_id');
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id');
@@ -484,6 +479,10 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
+                ->joinSub($firstCrmNotesSubQuery, 'first_crm_notes', function ($join) {
+                    $join->on('crm_notes.applicant_id', '=', 'first_crm_notes.applicant_id')
+                        ->on('crm_notes.sale_id', '=', 'first_crm_notes.sale_id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // Applicants
@@ -494,7 +493,7 @@ class CrmController extends Controller
 
                     // FIRST CRM NOTE DATE
                     'first_crm_notes.first_created_at as show_created_at',
-                    
+
                     // Offices
                     'offices.office_name',
                     // Sales
