@@ -3779,7 +3779,7 @@ class CrmController extends Controller
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Subject</label>
-                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" required>
+                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" value="Request Rejected" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Message</label>
