@@ -4450,6 +4450,10 @@ class SaleController extends Controller
         $lat = $sale->lat;
         $lon = $sale->lng;
 
+        $cv_count = CVNote::where('sale_id', $sale_id)
+            ->where('status', 1)
+            ->count();
+
         $model = Applicant::query()->with('cv_notes', 'pivotSales', 'history_request_nojob')
             ->select([
                 'applicants.*',
@@ -4810,7 +4814,7 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->orderColumn('paid_status', 'paid_status_order $1')
-                ->addColumn('action', function ($applicant) use ($sale_id) {
+                ->addColumn('action', function ($applicant) use ($sale_id, $sale, $cv_count) {
                     $status_value = 'open';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
@@ -4830,7 +4834,6 @@ class SaleController extends Controller
                             }
                         }
                     }
-
                     $html = '<div class="btn-group dropstart">
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
@@ -4849,7 +4852,7 @@ class SaleController extends Controller
                                                     <span>Send CV</span></a></li>
                                             
                                                 <li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
-                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
+                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid' || $sale->cv_limit == $cv_count || $sale->cv_limit < $cv_count) {
                                     $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                             <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
                                         </button>';
