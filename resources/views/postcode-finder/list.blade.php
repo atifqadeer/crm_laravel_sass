@@ -20,6 +20,39 @@
             max-height: 80vh;
             overflow-y: auto;
         }
+        .cursor-off {
+            cursor: default;
+            pointer-events: none; /* optional – disables clicking */
+        }
+        .location-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #dc3545; /* bootstrap danger */
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: 20px;
+            transition: all 0.25s ease;
+        }
+
+        .location-btn iconify-icon {
+            font-size: 18px;
+        }
+
+        .location-btn:hover {
+            background: #dc3545;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(220, 53, 69, 0.25);
+        }
+
+        .location-btn:hover iconify-icon {
+            color: #fff;
+        }
 
     </style>
     <div class="row">
@@ -77,7 +110,7 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-center my-3 gap-2">
                         <div>
-                            <img src="{{ asset('images/empty.jpg') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">
+                            <img src="{{ asset('images/empty.png') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">
                         </div>
                     
                     </div>
@@ -178,7 +211,7 @@
                                     <div>
                                         <div class="d-flex justify-content-between align-items-center flex-wrap">
                                             <div>
-                                                <a href="#!" class="fs-18 text-dark fw-medium">
+                                                <a href="#!" class="fs-18 text-dark fw-medium cursor-off">
                                                     ${result.job_title.toUpperCase()} / ${result.job_category.toUpperCase()} / 
                                                     <span class="badge ${result.cv_limit_remains == 0 ? 'bg-danger' : 'bg-success'} text-white">
                                                         ${result.cv_limit_remains} ${result.cv_limit_remains == 0 ? 'Limit Reached' : 'Limit Remains'}</span>
@@ -199,10 +232,13 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <p class="d-flex align-items-center gap-1 mt-1 mb-0">
-                                            <iconify-icon icon="solar:map-point-wave-bold-duotone" class="fs-22 text-danger"></iconify-icon>
-                                            <a href="${url}" style="color:blue">${result.sale_postcode.toUpperCase()}</a>
+                                        <p class="mt-1 mb-0">
+                                            <a href="${url}" class="location-btn">
+                                                <iconify-icon icon="solar:map-point-wave-bold-duotone" class="fs-20"></iconify-icon>
+                                                ${result.sale_postcode.toUpperCase()}
+                                            </a>
                                         </p>
+
                                     </div>
                                 </div><hr> 
                                 <div class="row mt-1">
@@ -244,7 +280,7 @@
                         cardBody.classList.add('card-body');
                         cardBody.innerHTML = '<div class="d-flex flex-wrap justify-content-center my-3 gap-2">'+
                             '<div>'+
-                                '<img src="{{ asset('images/empty.jpg') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">'+
+                                '<img src="{{ asset('images/empty.png') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">'+
                             '</div>'+
                         '</div>';
                         
