@@ -387,16 +387,16 @@ if ($orderColumn === 'office_name') {
     $query->join('offices', 'units.office_id', '=', 'offices.id')
           ->orderBy('offices.office_name', $orderDir);
 
-// Handle sorting by `contact_*` columns (e.g., contact_landline, contact_email, etc.)
+// Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
 } elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
     // Join contacts table when sorting by contact fields
-    $query->join('contacts', function ($join) {
-        $join->on('contacts.contactable_id', '=', 'units.id')
-             ->where('contacts.contactable_type', '=', 'Horsefly\\Unit');
+    $query->join('contacts as c', function ($join) {
+        $join->on('c.contactable_id', '=', 'units.id')
+             ->where('c.contactable_type', '=', 'Horsefly\\Unit');
     });
 
     // Order by the contact field
-    $query->orderBy("contacts.$orderColumn", $orderDir);
+    $query->orderBy("c.$orderColumn", $orderDir);
 
 // Handle sorting by unit fields
 } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
