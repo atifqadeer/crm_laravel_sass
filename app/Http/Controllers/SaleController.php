@@ -7,7 +7,7 @@ use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\User;
 use Horsefly\Sale;
-use Horsefly\CvNote;
+use Horsefly\CVNote;
 use Horsefly\SaleNote;
 use Horsefly\Applicant;
 use Horsefly\JobCategory;
@@ -4450,7 +4450,9 @@ class SaleController extends Controller
         $lat = $sale->lat;
         $lon = $sale->lng;
 
-      
+        $sale_cv_counts = CVNote::where('sale_id', $sale_id)
+            ->where('status', 1)
+            ->count();
 
         $model = Applicant::query()->with('cv_notes', 'pivotSales', 'history_request_nojob')
             ->select([
@@ -4812,7 +4814,7 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->orderColumn('paid_status', 'paid_status_order $1')
-                ->addColumn('action', function ($applicant) use ($sale_id) {
+                ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
                     $status_value = 'open';
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
@@ -4850,7 +4852,7 @@ class SaleController extends Controller
                                                     <span>Send CV</span></a></li>
                                             
                                                 <li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
-                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
+                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid' || $sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit) {
                                     $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                             <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
                                         </button>';
