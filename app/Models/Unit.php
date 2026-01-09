@@ -43,7 +43,7 @@ class Unit extends Model
     {
         return $this->updated_at ? $this->updated_at->format('d M Y, h:i A') : '-';
     }
-    public function contact()
+    public function contacts()
     {
         return $this->morphMany(Contact::class, 'contactable');
     }
