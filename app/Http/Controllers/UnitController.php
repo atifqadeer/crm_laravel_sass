@@ -367,8 +367,8 @@ class UnitController extends Controller
     //             ->make(true);
     //     }
     // }
-        public function getUnits(Request $request)
-        {
+    public function getUnits(Request $request)
+    {
         $statusFilter = $request->input('status_filter', '');
         $query = Unit::query(); // Remove with() here; eager load later if needed
 
@@ -395,6 +395,7 @@ class UnitController extends Controller
             return DataTables::eloquent($query)
                 ->addIndexColumn()
                 ->addColumn('office_name', fn($unit) => $unit->office?->office_name ?? '-')
+                ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
                 ->addColumn('unit_name', fn($unit) => $unit->formatted_unit_name)
                 ->addColumn('unit_postcode', fn($unit) => $unit->formatted_postcode)
                 ->addColumn('contact_email', fn($unit) => $unit->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-')
