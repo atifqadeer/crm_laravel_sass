@@ -60,6 +60,8 @@ class PostcodeController extends Controller
 
         // Retrieve job result matching the postcode in Sale
         $job_result = Sale::where('sale_postcode', $postcode)
+            ->where('status', 1)
+            ->where('is_on_hold', 0)
             ->first();
 
         // If not found in Sale or lat/lng are invalid, try in Applicant
