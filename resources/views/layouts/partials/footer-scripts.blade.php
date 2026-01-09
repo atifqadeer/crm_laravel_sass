@@ -156,16 +156,11 @@ function showSwalAlert(notification) {
         title: 'New Notification!',
         text: notification.message,
         icon: 'info',
-        showCancelButton: true,
+        showCancelButton: false,
         confirmButtonText: 'Read Notifications',
-        cancelButtonText: 'Reject',
-        confirmButtonColor: '#28a745', // Green
-        cancelButtonColor: '#dc3545',  // Red
         customClass: {
-            confirmButton: 'btn text-white mt-2',
-            cancelButton: 'btn text-white mt-2'
-        },
-        buttonsStyling: true
+            confirmButton: 'btn bg-danger text-white mt-2'
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -176,7 +171,10 @@ function showSwalAlert(notification) {
                 },
                 success: function (response) {
                     if (response.success) {
-                        window.location.href = '/notifications';
+                        // Open in new blank tab
+                        window.open('/notifications', '_blank');
+                    } else {
+                        console.log('Error marking notifications as read');
                     }
                 }
             });
