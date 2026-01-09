@@ -378,36 +378,34 @@ class UnitController extends Controller
         }
 
         // Sorting (keep your existing logic, but consider moving join inside if needed)
-$orderColumnIndex = $request->input('order.0.column', 0);
-$orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
-$orderDir = $request->input('order.0.dir', 'desc');
+        $orderColumnIndex = $request->input('order.0.column', 0);
+        $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
+        $orderDir = $request->input('order.0.dir', 'desc');
 
-// Handling sorting by `office_name`
-if ($orderColumn === 'office_name') {
-    $query->join('offices', 'units.office_id', '=', 'offices.id')
-          ->orderBy('offices.office_name', $orderDir);
+        // Handling sorting by `office_name`
+        if ($orderColumn === 'office_name') {
+            $query->join('offices', 'units.office_id', '=', 'offices.id')
+                ->orderBy('offices.office_name', $orderDir);
 
-// Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
-} elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
-    // Join contacts table when sorting by contact fields
-    $query->join('contacts as c', function ($join) {
-        $join->on('c.contactable_id', '=', 'units.id')
-             ->where('c.contactable_type', '=', 'Horsefly\\Unit');
-    });
+        // Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
+        } elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
+            // Join contacts table when sorting by contact fields
+            $query->join('contacts as c', function ($join) {
+                $join->on('c.contactable_id', '=', 'units.id')
+                    ->where('c.contactable_type', '=', 'Horsefly\\Unit');
+            });
 
-    // Order by the contact field
-    $query->orderBy("c.$orderColumn", $orderDir);
+            // Order by the contact field
+            $query->orderBy("c.$orderColumn", $orderDir);
 
-// Handle sorting by unit fields
-} elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
-    $query->orderBy($orderColumn, $orderDir);
+        // Handle sorting by unit fields
+        } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
+            $query->orderBy($orderColumn, $orderDir);
 
-// Default ordering
-} else {
-    $query->orderBy('created_at', $orderDir);
-}
-
-
+        // Default ordering
+        } else {
+            $query->orderBy('units.created_at', 'desc');
+        }
 
         // Efficient search with office_name inclusion
         $searchTerm = $request->input('search.value', '');
