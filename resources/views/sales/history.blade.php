@@ -41,7 +41,26 @@
                                         {!! $statusClass !!}
                                     </li>
                                     <li>
-                                        <strong>Sent CV Status:</strong> <span class="badge fs-12 {{ $badgeColor }}"> {{ $active_cvs_count .' / '. $cv_limit }}</span>
+                                        @php
+                                            $percentage = $cvLimit > 0 ? ($active_cvs_count / $cv_limit) * 100 : 0;
+
+                                            $badgeClass = 'bg-success';
+                                            $blinkClass = '';
+
+                                            if ($percentage >= 80 && $percentage < 100) {
+                                                $badgeClass = 'bg-warning text-dark';
+                                                $blinkClass = 'badge-blink';
+                                            } elseif ($percentage >= 100) {
+                                                $badgeClass = 'bg-danger';
+                                                $blinkClass = 'badge-blink';
+                                            }
+                                        @endphp
+                                        <li>
+                                            <strong>Sent CV Status:</strong>
+                                            <span class="badge {{ $badgeClass }} {{ $blinkClass }}">
+                                                {{ $active_cvs_count }}/{{ $cv_limit }}
+                                            </span>
+                                        </li>
                                     </li>
                                 </ul>
                             </div>
