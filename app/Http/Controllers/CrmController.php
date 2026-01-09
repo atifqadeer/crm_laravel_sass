@@ -428,6 +428,16 @@ class CrmController extends Controller
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
+                $crmNotesCreateDate = DB::table('crm_notes')
+                    ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                    ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save'])
+                    ->whereIn('id', function ($subQuery) {
+                        $subQuery->select(DB::raw('MIN(id)'))
+                            ->from('crm_notes')
+                            ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
                     ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
@@ -440,6 +450,10 @@ class CrmController extends Controller
                 // Build the main query
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                })
+                ->joinSub($crmNotesCreateDate, 'first_crm_notes', function ($join) {
+                    $join->on('applicants.id', '=', 'first_crm_notes.applicant_id')
+                         ->on('crm_notes.sale_id', '=', 'first_crm_notes.sale_id');
                 })
                 ->join('sales', function ($join) {
                     $join->on('crm_notes.sale_id', '=', 'sales.id');
@@ -479,7 +493,7 @@ class CrmController extends Controller
                     'crm_notes.created_at as notes_created_at',
 
                     // show created date
-                    'crm_notes.created_at as show_created_at',
+                    'first_crm_notes.created_at as show_created_at',
                     // Offices
                     'offices.office_name',
                     // Sales
