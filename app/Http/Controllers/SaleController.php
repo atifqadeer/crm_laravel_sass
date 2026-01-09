@@ -670,7 +670,7 @@ class SaleController extends Controller
         
         // Filter by category if it's not empty
         switch($limitCountFilter){
-            case 'zero':
+            case 'max':
                 $model->where('sales.cv_limit', '=', function ($query) {
                     $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
@@ -687,7 +687,7 @@ class SaleController extends Controller
                     ));
                 });
                 break;
-            case 'max':
+            case 'zero':
                 $model->where('sales.cv_limit', '>', function ($query) {
                     $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
