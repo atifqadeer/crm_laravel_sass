@@ -377,17 +377,22 @@ class UnitController extends Controller
         $query->where('status', $statusFilter === 'active' ? 1 : 0);
     }
 
-    // Sorting
+    // Sorting (keep your existing logic, but consider moving join inside if needed)
     $orderColumnIndex = $request->input('order.0.column', 0);
     $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
     $orderDir = $request->input('order.0.dir', 'desc');
 
+    // Check if the column exists before applying the order
     if ($orderColumn === 'office_name') {
         $query->join('offices', 'units.office_id', '=', 'offices.id')
-              ->orderBy('offices.office_name', $orderDir);
-    } else {
+            ->orderBy('offices.office_name', $orderDir);
+    } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
         $query->orderBy($orderColumn, $orderDir);
+    } else {
+        // Default ordering (if column is not found, default to 'created_at')
+        $query->orderBy('created_at', $orderDir);
     }
+
 
     // Efficient search with office_name inclusion
     $searchTerm = $request->input('search.value', '');
