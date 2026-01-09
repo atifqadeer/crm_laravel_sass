@@ -41,6 +41,7 @@
                         <div class="col-md-6 mb-3">
                             <ul class="list-unstyled mb-0">
                                 <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
+                                <li><strong>CV Limit:</strong> {{ $sale_cv_count . '/' . $sale->cv_limit ?? '0' }}</li>
                                 <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
                                 <li><strong>PostCode:</strong> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</li>
                                 <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>

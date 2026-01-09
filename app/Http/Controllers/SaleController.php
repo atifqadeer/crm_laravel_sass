@@ -84,8 +84,11 @@ class SaleController extends Controller
         $jobType = $jobType == 'Specialist' ? ' (' . $jobType . ')' : '';
         // Convert radius to miles if provided in kilometers (1 km ≈ 0.621371 miles)
         $radiusInMiles = round($radius * 0.621371, 1);
+        $sale_cv_count = CVNote::where('sale_id', $id)
+                            ->where('status', 1)
+                            ->count();
 
-        return view('sales.fetch-applicants-by-radius', compact('sale', 'radiusInMiles','jobCategory', 'jobTitle', 'jobType', 'office', 'unit', 'radius'));
+        return view('sales.fetch-applicants-by-radius', compact('sale', 'radiusInMiles','jobCategory', 'sale_cv_count', 'jobTitle', 'jobType', 'office', 'unit', 'radius'));
     }
     public function rejectedSaleIndex()
     {
