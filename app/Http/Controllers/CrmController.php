@@ -434,7 +434,7 @@ class CrmController extends Controller
                         'cn1.sale_id',
                         DB::raw('MIN(cn1.created_at) as first_created_at')
                     )
-                    ->whereIn('cn1.moved_tab_to', ['cv_sent_request', 'request_save'])
+                    // ->whereIn('cn1.moved_tab_to', ['cv_sent_request', 'request_save'])
                     ->groupBy('cn1.applicant_id', 'cn1.sale_id');
 
                 // Subquery for latest cv_notes per applicant_id and sale_id
