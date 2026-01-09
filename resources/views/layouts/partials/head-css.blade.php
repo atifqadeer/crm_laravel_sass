@@ -56,16 +56,15 @@
             background-color: rgb(10 171 74) !important;
         }
     }
-    .cv-limit-alert {
-        color: #dc3545;
-        font-weight: 600;
-        animation: pulseBlink 1s infinite;
+    .badge-blink {
+        animation: badgeBlink 1s infinite;
     }
 
-    @keyframes pulseBlink {
+    @keyframes badgeBlink {
         0%   { opacity: 1; }
-        50%  { opacity: 0.3; }
+        50%  { opacity: 0.4; }
         100% { opacity: 1; }
     }
+
 
 </style>

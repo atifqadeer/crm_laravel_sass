@@ -44,12 +44,28 @@
                                     @php
                                         $cvCount = $sale_cv_count ?? 0;
                                         $cvLimit = $sale->cv_limit ?? 0;
-                                        $isNearLimit = $cvLimit > 0 && ($cvCount / $cvLimit) >= 0.8;
+
+                                        $percentage = $cvLimit > 0 ? ($cvCount / $cvLimit) * 100 : 0;
+
+                                        $badgeClass = 'bg-success';
+                                        $blinkClass = '';
+
+                                        if ($percentage >= 80 && $percentage < 100) {
+                                            $badgeClass = 'bg-warning text-dark';
+                                            $blinkClass = 'badge-blink';
+                                        } elseif ($percentage >= 100) {
+                                            $badgeClass = 'bg-danger';
+                                            $blinkClass = 'badge-blink';
+                                        }
                                     @endphp
-                                    <strong>CV Limit:</strong>
-                                    <span class="{{ $isNearLimit ? 'cv-limit-alert' : '' }}">
-                                        {{ $cvCount }}/{{ $cvLimit }}
-                                    </span>
+
+                                    <li>
+                                        <strong>CV Limit:</strong>
+                                        <span class="badge {{ $badgeClass }} {{ $blinkClass }}">
+                                            {{ $cvCount }}/{{ $cvLimit }}
+                                        </span>
+                                    </li>
+
                                 </li>
                                 <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
                                 <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
