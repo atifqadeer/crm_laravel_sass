@@ -7,6 +7,9 @@
         .table a {
             color: #252728 !important;
         }
+        .table a:hover {
+            color: #4393e3 !important;
+        }
         .table>:not(caption)>*>* {
             padding: .85rem;
             color: var(--bs-table-color-state, var(--bs-table-color-type, #252728));
