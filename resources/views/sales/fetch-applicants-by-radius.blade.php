@@ -40,8 +40,18 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <ul class="list-unstyled mb-0">
+                                <li>
+                                    @php
+                                        $cvCount = $sale_cv_count ?? 0;
+                                        $cvLimit = $sale->cv_limit ?? 0;
+                                        $isNearLimit = $cvLimit > 0 && ($cvCount / $cvLimit) >= 0.8;
+                                    @endphp
+                                    <strong>CV Limit:</strong>
+                                    <span class="{{ $isNearLimit ? 'cv-limit-alert' : '' }}">
+                                        {{ $cvCount }}/{{ $cvLimit }}
+                                    </span>
+                                </li>
                                 <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
-                                <li><strong>CV Limit:</strong> {{ $sale_cv_count . '/' . $sale->cv_limit ?? '0' }}</li>
                                 <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
                                 <li><strong>PostCode:</strong> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</li>
                                 <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
