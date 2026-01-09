@@ -174,6 +174,4 @@ class PostcodeController extends Controller
         return $location_distance;
     }
 
-
-
 }
