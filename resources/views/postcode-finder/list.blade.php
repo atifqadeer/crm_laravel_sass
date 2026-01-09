@@ -110,7 +110,7 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-center my-3 gap-2">
                         <div>
-                            <img src="{{ asset('images/empty.png') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">
+                            <img src="{{ asset('images/empty.jpg') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">
                         </div>
                     
                     </div>
@@ -280,7 +280,7 @@
                         cardBody.classList.add('card-body');
                         cardBody.innerHTML = '<div class="d-flex flex-wrap justify-content-center my-3 gap-2">'+
                             '<div>'+
-                                '<img src="{{ asset('images/empty.png') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">'+
+                                '<img src="{{ asset('images/empty.jpg') }}" class="img-fluid" alt="Empty Image" style="max-height: 250px;">'+
                             '</div>'+
                         '</div>';
                         
