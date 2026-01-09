@@ -4849,13 +4849,16 @@ class SaleController extends Controller
                                                     </a></li>
 
                                                 <li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal('. $applicant->id .')">
-                                                        Mark No Nursing Home</a></li>
-
-                                                <li><a href="#" onclick="sendCVModal('. $applicant->id .', '. $sale_id .')" class="dropdown-item" >
-                                                    <span>Send CV</span></a></li>
-                                            
-                                                <li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
-                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid' || $sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit) {
+                                                        Mark No Nursing Home</a></li>';
+                                    if($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit){
+                                        $html .= '<li><a href="#" class="dropdown-item" >
+                                                    <span>Send CV <small class="text-danger">(CV Limit Reached)</small></span></a></li>';
+                                    }else{
+                                        $html .= '<li><a href="#" onclick="sendCVModal('. $applicant->id .', '. $sale_id .')" class="dropdown-item" >
+                                            <span>Send CV</span></a></li>';
+                                    }
+                                               $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
+                                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                                     $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                             <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
                                         </button>';
