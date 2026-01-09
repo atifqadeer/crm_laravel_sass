@@ -646,6 +646,16 @@
 
             const initModal = () => {
                 resetValidation();
+
+                // Style buttons
+                $(`${formId} .savecrmMarkRequestButtonConfirm`)
+                    .removeClass('btn-secondary btn-danger')
+                    .addClass('btn btn-success');
+
+                $(`${formId} .savecrmMarkRequestButtonReject`)
+                    .removeClass('btn-secondary btn-success')
+                    .addClass('btn btn-danger');
+
                 attachEventHandlers();
             };
 
