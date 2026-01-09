@@ -1839,7 +1839,7 @@ class CrmController extends Controller
                         ->whereIn('id', function ($sub) {
                             $sub->select(DB::raw('MAX(id)'))
                                 ->from('quality_notes')
-                                ->where('status', 1)
+                                // ->where('status', 1)
                                 ->whereIn('moved_tab_to', ['cleared'])
                                 ->groupBy('applicant_id', 'sale_id');
                         });
@@ -1865,11 +1865,8 @@ class CrmController extends Controller
                                 ->from('cv_notes')
                                 ->groupBy('applicant_id', 'sale_id');
                         });
-
-                    $model->joinSub($latestQuality, 'quality_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'quality_notes.applicant_id');
-                    })
-                    ->joinSub($latestCrm, 'crm_notes', function ($join) {
+                    
+                    $model->joinSub($latestCrm, 'crm_notes', function ($join) {
                         $join->on('quality_notes.applicant_id', '=', 'crm_notes.applicant_id')
                             ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
                     })
@@ -1897,6 +1894,10 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'interviews.applicant_id')
                             ->on('sales.id', '=', 'interviews.sale_id')
                             ->where('interviews.status', 1);
+                    })
+                    ->joinSub($latestQuality, 'quality_notes', function ($join) {
+                        $join->on('applicants.id', '=', 'quality_notes.applicant_id')
+                                ->on('sales.id', '=', 'quality_notes.sale_id');
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
