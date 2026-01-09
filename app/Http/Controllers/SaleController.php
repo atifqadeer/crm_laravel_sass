@@ -4851,8 +4851,8 @@ class SaleController extends Controller
                                                 <li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal('. $applicant->id .')">
                                                         Mark No Nursing Home</a></li>';
                                     if($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit){
-                                        $html .= '<li><a href="#" class="dropdown-item" >
-                                                    <span>Send CV <small class="text-danger">(CV Limit Reached)</small></span></a></li>';
+                                        $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
+                                                    <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                                     }else{
                                         $html .= '<li><a href="#" onclick="sendCVModal('. $applicant->id .', '. $sale_id .')" class="dropdown-item" >
                                             <span>Send CV</span></a></li>';
