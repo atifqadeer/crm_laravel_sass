@@ -405,7 +405,31 @@ class UnitController extends Controller
                 ->addColumn('unit_notes', fn($unit) => '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(' . (int)$unit->id . ')">' . nl2br(e($unit->unit_notes)) . '</a>')
                 ->addColumn('status', fn($unit) => $unit->status? '<span class="badge bg-success">Active</span>': '<span class="badge bg-secondary">Inactive</span>')
                 ->addColumn('action', function ($unit) {
-                    // Your existing action column code (unchanged)
+                    $postcode = $unit->formatted_postcode;
+                    $office_name = $unit->offices->office_name ?? '-';
+                    $status = $unit->status
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>';
+
+                    $html = '<div class="btn-group dropstart">
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                                </button>
+                                <ul class="dropdown-menu">';
+                    if (Gate::allows('unit-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('unit-view')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
+                            . (int)$unit->id . ', '
+                            . '\'' . e($office_name) . '\', '
+                            . '\'' . e($unit->unit_name) . '\', '
+                            . '\'' . e($postcode) . '\', '
+                            . '\'' . e($status) . '\')">View</a></li>';
+                    }
+                    $html .= '</ul></div>';
+
+                    return $html;
                 })
                 ->filter(function ($query) use ($request) {
                     $searchTerm = $request->input('search.value', '');
@@ -441,8 +465,6 @@ class UnitController extends Controller
                 ->make(true);
         }
     }
-
-
     public function storeUnitShortNotes(Request $request)
     {
         $user = Auth::user();
