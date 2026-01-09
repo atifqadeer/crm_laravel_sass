@@ -4450,10 +4450,7 @@ class SaleController extends Controller
         $lat = $sale->lat;
         $lon = $sale->lng;
 
-        $sale_cv_counts = CVNote::where('sale_id', $sale_id)
-            ->where('status', 1)
-            ->count();
-            return $sale_cv_counts;
+      
 
         $model = Applicant::query()->with('cv_notes', 'pivotSales', 'history_request_nojob')
             ->select([
