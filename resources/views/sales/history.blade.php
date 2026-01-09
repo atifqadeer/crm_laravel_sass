@@ -42,7 +42,13 @@
                                     </li>
                                     <li>
                                         @php
-                                            $percentage = $cv_limit > 0 ? ($active_cvs_count / $cv_limit) * 100 : 0;
+                                            if($cv_limit == $active_cvs_count){
+                                                $limit = 0;  
+                                            }else{
+                                                $limit = $cv_limit - $active_cvs_count;
+                                            }
+
+                                            $percentage = $limit > 0 ? ($active_cvs_count / $limit) * 100 : 0;
 
                                             $badgeClass = 'bg-success';
                                             $blinkClass = '';
@@ -58,7 +64,7 @@
                                         <li>
                                             <strong>Sent CV Status:</strong>
                                             <span class="badge {{ $badgeClass }} {{ $blinkClass }}">
-                                                {{ $active_cvs_count }}/{{ $cv_limit }}
+                                                {{ $limit }}/{{ $cv_limit }}
                                             </span>
                                         </li>
                                     </li>
