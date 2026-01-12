@@ -446,14 +446,19 @@ class CrmController extends Controller
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
-                $firstCrmNotesSubQuery = DB::table('crm_notes as cn1')
+                $firstCrmNote = DB::table('crm_notes as cn_first')
                     ->select(
-                        'cn1.applicant_id',
-                        'cn1.sale_id',
-                        DB::raw('MIN(cn1.created_at) as first_created_at')
+                        'cn_first.applicant_id',
+                        'cn_first.sale_id',
+                        'cn_first.created_at as first_created_at'
                     )
-                    // ->whereIn('cn1.moved_tab_to', ['cv_sent_request', 'request_save'])
-                    ->groupBy('cn1.applicant_id', 'cn1.sale_id');
+                    ->whereIn('cn_first.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
+                    ->whereIn('cn_first.id', function ($q) {
+                        $q->select(DB::raw('MIN(id)'))
+                            ->from('crm_notes')
+                            ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
 
                 // Subquery for latest cv_notes per applicant_id and sale_id
                 $cvNotesSubQuery = DB::table('cv_notes')
@@ -463,18 +468,6 @@ class CrmController extends Controller
                             ->from('cv_notes')
                             ->groupBy('applicant_id', 'sale_id');
                     });
-
-                $latestQuality = DB::table('quality_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
-                        // ->where('status', 1)
-                        ->whereIn('moved_tab_to', ['cleared'])
-                        ->whereIn('id', function ($sub) {
-                            $sub->select(DB::raw('MAX(id)'))
-                                ->from('quality_notes')
-                                // ->where('status', 1)
-                                ->whereIn('moved_tab_to', ['cleared'])
-                                ->groupBy('applicant_id', 'sale_id');
-                        });
 
                 // Build the main query
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
@@ -509,9 +502,9 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
-                ->leftJoinSub($latestQuality, 'quality_notes', function ($join) {
-                    $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                        ->on('sales.id', '=', 'quality_notes.sale_id');
+                ->leftJoinSub($firstCrmNote, 'first_crm_notes', function ($join) {
+                    $join->on('first_crm_notes.applicant_id', '=', 'applicants.id')
+                        ->on('first_crm_notes.sale_id', '=', 'sales.id');
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
@@ -522,7 +515,7 @@ class CrmController extends Controller
                     'crm_notes.created_at as notes_created_at',
 
                     // FIRST CRM NOTE DATE
-                    'quality_notes.created_at as show_created_at',
+                    'first_crm_notes.first_created_at as show_created_at',
 
                     // Offices
                     'offices.office_name',
