@@ -325,20 +325,6 @@ class CrmController extends Controller
                             ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
-                
-                $firstCrmNote = DB::table('crm_notes as cn_first')
-                    ->select(
-                        'cn_first.applicant_id',
-                        'cn_first.sale_id',
-                        'cn_first.created_at as first_created_at'
-                    )
-                    ->whereIn('cn_first.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
-                    ->whereIn('cn_first.id', function ($q) {
-                        $q->select(DB::raw('MIN(id)'))
-                            ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
-                            ->groupBy('applicant_id', 'sale_id');
-                    });
 
                 // Subquery to get latest CV notes
                 $cvNotesSubQuery = DB::table('cv_notes as cv1')
@@ -383,9 +369,6 @@ class CrmController extends Controller
                             ->on('crm_last_notes.sale_id', '=', 'cv_last_notes.sale_id');
                     })
                     ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
-                    ->joinSub($firstCrmNote, 'crm_notes_created', function ($join) {
-                        $join->on('applicants.id', '=', 'crm_notes_created.applicant_id');
-                    })
                     ->addSelect([
                         // Applicants
                         'applicants.id as applicant_id',
@@ -395,7 +378,7 @@ class CrmController extends Controller
                         'crm_last_notes.created_at as notes_created_at',
 
                         // show created date
-                        'crm_notes_created.created_at as show_created_at',
+                        'crm_last_notes.created_at as show_created_at',
                         
                         // Offices
                         'offices.office_name',
@@ -2060,12 +2043,13 @@ class CrmController extends Controller
                     ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
                     ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"])
-                    ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$lowerSearchTerm}%"])
                     ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
                     $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                     $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                     $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    // ✅ OFFICE NAME SEARCH (FIXED)
+                   $query->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+
                     $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                 }); 
             } 
