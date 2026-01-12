@@ -398,6 +398,7 @@ class ApplicantController extends Controller
         //             $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
         //     } 
         // }
+
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
 
@@ -575,12 +576,16 @@ class ApplicantController extends Controller
                 })
                 ->editColumn('applicantEmail', function ($applicant) {
                     $email = '';
-                    if ($applicant->applicant_email_secondary) {
-                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    if ($applicant->is_blocked) {
+                        $email = "<span class='badge bg-dark'>Blocked</span>";
                     } else {
-                        $email = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $applicant->applicant_email;
-                    }
+                        $email = $applicant->applicant_email;
 
+                        if ($applicant->applicant_email_secondary) {
+                            $email .= '<br>' . $applicant->applicant_email_secondary;
+                        }
+                    }
+                    
                     return $email; // Using accessor
                 })
                 // In your DataTable or controller
