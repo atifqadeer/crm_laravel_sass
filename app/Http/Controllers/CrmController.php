@@ -318,13 +318,22 @@ class CrmController extends Controller
                 // Subquery to get latest CRM notes (rejected)
                 $crmNotesSubQuery = DB::table('crm_notes as cn1')
                     ->select('cn1.*')
-                    ->where('status', 1)
                     ->whereIn('cn1.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                     ->whereIn('cn1.id', function ($q) {
-                        $q->select('*')
-                            ->where('status', 1)
+                        $q->select(DB::raw('MIN(id)'))
                             ->from('crm_notes')
                             ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -370,14 +379,18 @@ class CrmController extends Controller
                         $join->on('crm_last_notes.applicant_id', '=', 'cv_last_notes.applicant_id')
                             ->on('crm_last_notes.sale_id', '=', 'cv_last_notes.sale_id');
                     })
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'first_crm.sale_id');
+                    })
                     ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
                     ->addSelect([
                         // Applicants
                         'applicants.id as applicant_id',
 
                         // CRM Notes
-                        'crm_last_notes.details as notes_detail',
-                        'crm_last_notes.created_at as notes_created_at',
+                        'latest_crm.details as notes_detail',
+                        'latest_crm.created_at as notes_created_at',
 
                         // show created date
                         'crm_last_notes.created_at as show_created_at',
