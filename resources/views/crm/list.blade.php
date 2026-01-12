@@ -2531,6 +2531,7 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
     const sdate = $(`#reschedule_date${applicantID}-${saleID}`).val();
     const stime = $(`#reschedule_time${applicantID}-${saleID}`).val();
 
+    // Reset validation
     $('.invalid-feedback').remove();
     $('.is-invalid').removeClass('is-invalid');
 
@@ -2540,28 +2541,36 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
         return;
     }
 
-    btn.prop('disabled', true).html(
-        '<span class="spinner-border spinner-border-sm"></span> Processing...'
-    );
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
 
-    /* =======================
-       AJAX #1 → REVERT STATUS
-    ======================= */
+    // =======================
+    // AJAX #1 → REVERT STATUS
+    // =======================
     $.ajax({
         url: $(revertForm).attr('action'),
         type: 'POST',
-        data: $(revertForm).serialize(),
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+        data: {
+            applicant_id: $(revertForm + ' input[name="applicant_id"]').val(),
+            sale_id: $(revertForm + ' input[name="sale_id"]').val(),
+            details: $(revertForm + ' textarea[name="details"]').val()
+        },
         success: function () {
 
-            /* ===========================
-               AJAX #2 → RESCHEDULE
-            =========================== */
+            // =======================
+            // AJAX #2 → RESCHEDULE
+            // =======================
             $.ajax({
                 url: $(scheduleForm).attr('action'),
                 type: 'POST',
-                data: $(scheduleForm).serialize(),
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                data: {
+                    applicant_id: $(scheduleForm + ' input[name="applicant_id"]').val(),
+                    sale_id: $(scheduleForm + ' input[name="sale_id"]').val(),
+                    reschedule_date: sdate,
+                    reschedule_time: stime
+                },
                 success: function (response) {
-
                     $(alertBox).html(
                         `<div class="notification-alert success">${response.message}</div>`
                     ).show();
@@ -2594,7 +2603,6 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
         ).show();
     }
 });
-
 
         
         /** Schedule Interview Modal */
