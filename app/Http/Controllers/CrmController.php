@@ -9396,7 +9396,9 @@ class CrmController extends Controller
         try{
             CrmNote::where([
                 "applicant_id" => $applicant_id,
-                "sale_id" => $sale_id
+                "sale_id" => $sale_id,
+                "moved_tab_to" => "request_save",
+                "status" => 1
             ])->update(["status" => 0]);
 
             $crm_notes = new CrmNote();
@@ -9661,7 +9663,9 @@ class CrmController extends Controller
         try{
             CrmNote::where([
                 "applicant_id" => $applicant_id,
-                "sale_id" => $sale_id
+                "sale_id" => $sale_id,
+                "moved_tab_to" => "interview_save",
+                "status" => 1
             ])->update(["status" => 0]);
 
             $crm_notes = new CrmNote();
@@ -9938,6 +9942,7 @@ class CrmController extends Controller
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
+                "moved_tab_to" => "rebook_save",
                 "status" => 1
             ])->update(["status" => 0]);
 
@@ -10258,6 +10263,7 @@ class CrmController extends Controller
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
+                "moved_tab_to" => "prestart_save",
                 "status" => 1
             ])->update(["status" => 0]);
 
@@ -10709,6 +10715,7 @@ class CrmController extends Controller
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
+                "moved_tab_to" => "start_date_save",
                 "status" => 1
             ])->update(["status" => 0]);
 
@@ -10893,6 +10900,7 @@ class CrmController extends Controller
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
+                "moved_tab_to" => "start_date_hold_save",
                 "status" => 1
             ])->update(["status" => 0]);
 
@@ -11123,6 +11131,7 @@ class CrmController extends Controller
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
+                "moved_tab_to" => "final_save",
                 "status" => 1
             ])->update(["status" => 0]);
 
