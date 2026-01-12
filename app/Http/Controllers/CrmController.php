@@ -3603,7 +3603,7 @@ class CrmController extends Controller
                                         <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"></div>
                                         <form action="' . route('crmScheduleInterview') . '" method="POST" id="crmReScheduleInterviewForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
                                             <!-- Date Picker Field -->
-                                            @csrf
+                                             <input type="hidden" name="_token" value="' . csrf_token() . '">
                                             <div class="mb-4">
                                                 <label for="schedule_date' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Interview Date</label>
                                                 <div class="input-group">
