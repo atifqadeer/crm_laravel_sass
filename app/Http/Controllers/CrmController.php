@@ -1636,7 +1636,7 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ["invoice_sent", "final_save"])
+                        ->whereIn('moved_tab_to', ["invoice_sent"])
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
