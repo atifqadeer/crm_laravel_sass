@@ -435,12 +435,12 @@ class CrmController extends Controller
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
                     ->where('status', 1)
-                    ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save'])
+                    ->whereIn('moved_tab_to', ['cv_sent_request'])
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MIN(id)'))
                             ->from('crm_notes')
                             ->where('status', 1)
-                            ->whereIn('moved_tab_to', ['cv_sent_request', 'request_save'])
+                            ->whereIn('moved_tab_to', ['cv_sent_request'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -8391,11 +8391,11 @@ class CrmController extends Controller
     {
         try {
             /** update to the existing active note of requested applicant_id and sale_id */
-            CrmNote::where([
-                'applicant_id' => $applicant_id,
-                'sale_id' => $sale_id,
-                'status' => 1
-            ])->update(['status' => 0]);
+            // CrmNote::where([
+            //     'applicant_id' => $applicant_id,
+            //     'sale_id' => $sale_id,
+            //     'status' => 1
+            // ])->update(['status' => 0]);
 
             // Create CRM note
             $crm_notes = new CrmNote();
@@ -8444,10 +8444,10 @@ class CrmController extends Controller
                 }
 
                 // Update history status
-                SaleNote::where([
-                    "sale_id" => $sale_id,
-                    "status" => 1
-                ])->update(["status" => 0]);
+                // SaleNote::where([
+                //     "sale_id" => $sale_id,
+                //     "status" => 1
+                // ])->update(["status" => 0]);
 
                 // Create sale note
                 $sale_note = new SaleNote();
