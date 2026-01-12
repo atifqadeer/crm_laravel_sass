@@ -383,6 +383,9 @@ class CrmController extends Controller
                             ->on('crm_last_notes.sale_id', '=', 'cv_last_notes.sale_id');
                     })
                     ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
+                    ->joinSub($firstCrmNote, 'crm_notes_created', function ($join) {
+                        $join->on('applicants.id', '=', 'crm_notes_created.applicant_id');
+                    })
                     ->addSelect([
                         // Applicants
                         'applicants.id as applicant_id',
