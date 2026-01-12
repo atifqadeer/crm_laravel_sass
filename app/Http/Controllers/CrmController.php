@@ -2048,9 +2048,8 @@ class CrmController extends Controller
                     $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                     $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                     // ✅ OFFICE NAME SEARCH (FIXED)
-                    $query->orWhereHas('office', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
+                   $query->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+
                     $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
                 }); 
             } 
