@@ -272,9 +272,4 @@ class Applicant extends Model
     {
         return $this->hasMany(QualityNotes::class, 'applicant_id', 'id');
     }
-    // Applicant model
-    // public function office()
-    // {
-    //     return $this->belongsTo(Office::class, 'office_id');
-    // }
 }
