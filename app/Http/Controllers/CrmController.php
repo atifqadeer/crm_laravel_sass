@@ -336,18 +336,6 @@ class CrmController extends Controller
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
-                $latestQuality = DB::table('quality_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
-                        // ->where('status', 1)
-                        ->whereIn('moved_tab_to', ['cleared'])
-                        ->whereIn('id', function ($sub) {
-                            $sub->select(DB::raw('MAX(id)'))
-                                ->from('quality_notes')
-                                // ->where('status', 1)
-                                ->whereIn('moved_tab_to', ['cleared'])
-                                ->groupBy('applicant_id', 'sale_id');
-                        });
-
                 // Main query
                 $model->joinSub($crmNotesSubQuery, 'crm_last_notes', function ($join) {
                         $join->on('applicants.id', '=', 'crm_last_notes.applicant_id');
@@ -381,10 +369,6 @@ class CrmController extends Controller
                         $join->on('crm_last_notes.applicant_id', '=', 'cv_last_notes.applicant_id')
                             ->on('crm_last_notes.sale_id', '=', 'cv_last_notes.sale_id');
                     })
-                    ->leftJoinSub($latestQuality, 'quality_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                            ->on('sales.id', '=', 'quality_notes.sale_id');
-                    })
                     ->leftJoin('users', 'users.id', '=', 'cv_last_notes.user_id')
                     ->addSelect([
                         // Applicants
@@ -395,7 +379,7 @@ class CrmController extends Controller
                         'crm_last_notes.created_at as notes_created_at',
 
                         // show created date
-                        'quality_notes.created_at as show_created_at',
+                        'crm_last_notes.created_at as show_created_at',
                         
                         // Offices
                         'offices.office_name',
@@ -3607,6 +3591,60 @@ class CrmController extends Controller
                                 </div>
                             </div>
                         </div>';
+                    // If the email is successfully sent (status = '1'), skip the email modal
+                    $html .= '<div id="crmReScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmReScheduleInterviewModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
+                            <div class="modal-dialog modal-md modal-dialog-top">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="crmReScheduleInterviewModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">Schedule Interview for <em>' . $applicant->applicant_name . '</em></h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body modal-body-text-left">
+                                        <div class="notificationAlert' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"></div>
+                                        <form action="' . route('crmScheduleInterview') . '" method="POST" id="crmReScheduleInterviewForm' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-horizontal">
+                                            <!-- Date Picker Field -->
+                                            <div class="mb-4">
+                                                <label for="schedule_date' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Interview Date</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="ri-calendar-2-fill"></i></span>
+                                                    <input type="date" class="form-control" 
+                                                        name="reschedule_date" 
+                                                        id="reschedule_date' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                        placeholder="Select date"
+                                                        data-date-format="Y-m-d"
+                                                        data-min-date="today">
+                                                    <div class="invalid-feedback">Please provide schedule date.</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Time Picker Field -->
+                                            <div class="mb-4">
+                                                <label for="schedule_time' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="form-label">Interview Time</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="ri-alarm-fill"></i></span>
+                                                    <input type="time" class="form-control" 
+                                                        name="reschedule_time"
+                                                        id="reschedule_time' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                        placeholder="Select time"
+                                                        data-enable-time="true"
+                                                        data-no-calendar="true"
+                                                        data-time-format="H:i"
+                                                        data-minute-increment="15">
+                                                        <div class="invalid-feedback">Please provide time.</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-success saveCrmReScheduleInterviewButton" 
+                                                        data-applicant-id="' . (int)$applicant->id . '" 
+                                                        data-sale-id="' . (int)$applicant->sale_id . '">Schedule</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
 
                     // If no email has been sent yet, open the email modal first
                     $html .= '<div id="crmSendApplicantEmailRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="crmSendApplicantEmailRequestModalLabel" aria-hidden="true" style="z-index:99999">
@@ -3779,7 +3817,7 @@ class CrmController extends Controller
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Subject</label>
-                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" value="Request Rejected" required>
+                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Message</label>
