@@ -55,7 +55,6 @@ class CrmController extends Controller
 
         return view('crm.list', compact('jobCategories', 'jobTitles'));
     }
-   
     public function crmNotesHistoryIndex($applicant_id, $sale_id)
     {
         // Fetch the applicant or fail with a 404 if not found
@@ -76,8 +75,6 @@ class CrmController extends Controller
         // Return the view with all required data
         return view('crm.notes-history', compact('applicant_id', 'sale_id', 'applicant', 'cv_notes', 'quality_notes'));
     }
-
-
     public function getCrmApplicantsAjaxRequest(Request $request)
     {
         $typeFilter = $request->input('type_filter', '');
@@ -3314,6 +3311,7 @@ class CrmController extends Controller
                                                 <select class="form-select crm_select_reason" name="reason" id="reasonDropdown' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" required>
                                                     <option value="" disabled selected>Select Reason</option>
                                                     <option value="position_filled">Position Filled</option>
+                                                    <option value="position_filled">Do Not Use In Agency</option>
                                                     <option value="agency">Sent By Another Agency</option>
                                                     <option value="manager">Rejected By Manager</option>
                                                     <option value="no_response">No Response</option>
@@ -3886,6 +3884,7 @@ class CrmController extends Controller
                                                     <select class="form-select" name="reason" id="reasonDropdownNoJob' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" required>
                                                         <option value="" disabled selected>Select Reason</option>
                                                         <option value="position_filled">Position Filled</option>
+                                                        <option value="position_filled">Do Not Use In Agency</option>
                                                         <option value="agency">Sent By Another Agency</option>
                                                         <option value="manager">Rejected By Manager</option>
                                                         <option value="no_response">No Response</option>
