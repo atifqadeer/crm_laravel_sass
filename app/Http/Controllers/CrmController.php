@@ -389,8 +389,8 @@ class CrmController extends Controller
                         'applicants.id as applicant_id',
 
                         // CRM Notes
-                        'latest_crm.details as notes_detail',
-                        'latest_crm.created_at as notes_created_at',
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
 
                         // show created date
                         'crm_last_notes.created_at as show_created_at',
