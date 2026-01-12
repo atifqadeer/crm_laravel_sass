@@ -8391,11 +8391,12 @@ class CrmController extends Controller
     {
         try {
             /** update to the existing active note of requested applicant_id and sale_id */
-            // CrmNote::where([
-            //     'applicant_id' => $applicant_id,
-            //     'sale_id' => $sale_id,
-            //     'status' => 1
-            // ])->update(['status' => 0]);
+            CrmNote::where([
+                'applicant_id' => $applicant_id,
+                'sale_id' => $sale_id,
+                'status' => 1,
+                'moved_tab_to' => 'cv_sent_saved'
+            ])->update(['status' => 0]);
 
             // Create CRM note
             $crm_notes = new CrmNote();
