@@ -468,6 +468,18 @@ class CrmController extends Controller
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
+                $latestQuality = DB::table('quality_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
+                        // ->where('status', 1)
+                        ->whereIn('moved_tab_to', ['cleared'])
+                        ->whereIn('id', function ($sub) {
+                            $sub->select(DB::raw('MAX(id)'))
+                                ->from('quality_notes')
+                                // ->where('status', 1)
+                                ->whereIn('moved_tab_to', ['cleared'])
+                                ->groupBy('applicant_id', 'sale_id');
+                        });
+
                 // Build the main query
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
@@ -501,6 +513,10 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
+                ->leftJoinSub($latestQuality, 'quality_notes', function ($join) {
+                    $join->on('applicants.id', '=', 'quality_notes.applicant_id')
+                        ->on('sales.id', '=', 'quality_notes.sale_id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->leftJoinSub($firstCrmNote, 'first_crm_notes', function ($join) {
                     $join->on('first_crm_notes.applicant_id', '=', 'applicants.id')
@@ -514,7 +530,7 @@ class CrmController extends Controller
                     'crm_notes.created_at as notes_created_at',
 
                     // FIRST CRM NOTE DATE
-                    'first_crm_notes.created_at as show_created_at',
+                    'quality_notes.created_at as show_created_at',
 
                     // Offices
                     'offices.office_name',
