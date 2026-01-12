@@ -2558,8 +2558,10 @@ $(document).on('show.bs.modal', '[id^="crmReScheduleInterviewModal"]', function 
 
         // ✅ Merge both forms
         const finalData =
-            $(revertForm).serialize() + '&' +
-            $(rescheduleForm).serialize();
+    $(revertForm).serialize() + '&' +
+    $(rescheduleForm).serialize() +
+    '&_token=' + $('meta[name="csrf-token"]').attr('content');
+
 
         const btn = $(this);
         const originalText = btn.html();
