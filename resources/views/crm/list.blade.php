@@ -2565,8 +2565,8 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
                 type: 'POST',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 data: {
-                    applicant_id: $(scheduleForm + ' input[name="applicant_id"]').val(),
-                    sale_id: $(scheduleForm + ' input[name="sale_id"]').val(),
+                    applicant_id: applicantID,
+                    sale_id: saleID,
                     reschedule_date: sdate,
                     reschedule_time: stime
                 },
