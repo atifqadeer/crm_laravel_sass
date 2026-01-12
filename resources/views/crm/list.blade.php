@@ -2509,8 +2509,12 @@
                     return;
                 }
 
-                // ✅ Open reschedule modal AFTER notes validation
-                $(`#crmReScheduleInterviewModal${applicantID}-${saleID}`).modal('show');
+                // ✅ CLOSE first modal, THEN open second
+                $(modalId).modal('hide');
+
+                setTimeout(() => {
+                    $(`#crmReScheduleInterviewModal${applicantID}-${saleID}`).modal('show');
+                }, 300);
             });
         }
         function crmReScheduleInterviewModal(applicantID, saleID) {
