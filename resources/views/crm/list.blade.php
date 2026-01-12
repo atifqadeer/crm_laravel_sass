@@ -2488,108 +2488,116 @@
         //         });
         //     });
         // }
-        function crmRevertRebookToConfirmationModal(applicantID, saleID) {
+       function crmRevertRebookToConfirmationModal(applicantID, saleID) {
 
-            const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
-            const modalId = `#crmRevertRebookToConfirmationModal${applicantID}-${saleID}`;
-            const detailsId = `#crmRevertRebookToConfirmationDetails${applicantID}-${saleID}`;
+    const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
+    const modalId = `#crmRevertRebookToConfirmationModal${applicantID}-${saleID}`;
+    const detailsId = `#crmRevertRebookToConfirmationDetails${applicantID}-${saleID}`;
 
-            const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
+    const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
 
-            saveButton.off('click').on('click', function () {
+    saveButton.off('click').on('click', function () {
 
-                // Reset validation
-                $(detailsId).removeClass('is-invalid')
-                    .next('.invalid-feedback').remove();
+        $(detailsId).removeClass('is-invalid')
+            .next('.invalid-feedback').remove();
 
-                const notes = $(detailsId).val();
-                if (!notes) {
-                    $(detailsId).addClass('is-invalid')
-                        .after('<div class="invalid-feedback">Please provide details.</div>');
-                    return;
-                }
+        const notes = $(detailsId).val();
+        if (!notes) {
+            $(detailsId).addClass('is-invalid')
+                .after('<div class="invalid-feedback">Please provide details.</div>');
+            return;
+        }
 
-                // ✅ CLOSE first modal, THEN open second
-                $(modalId).modal('hide');
+        // ✅ Close first modal
+        $(modalId).modal('hide');
+
+        // ✅ Open schedule modal
+        setTimeout(() => {
+            const scheduleModal = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
+            $(scheduleModal)
+                .data('applicant-id', applicantID)
+                .data('sale-id', saleID)
+                .modal('show');
+        }, 300);
+    });
+}
+$(document).on('show.bs.modal', '[id^="crmReScheduleInterviewModal"]', function () {
+
+    const modal = $(this);
+    const applicantID = modal.data('applicant-id');
+    const saleID = modal.data('sale-id');
+
+    const rescheduleForm = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
+    const revertForm = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
+    const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+
+    const schedule_date = `#reschedule_date${applicantID}-${saleID}`;
+    const schedule_time = `#reschedule_time${applicantID}-${saleID}`;
+
+    const saveButton = $(`${rescheduleForm} .saveCrmReScheduleInterviewButton`);
+
+    saveButton.off('click').on('click', function () {
+
+        $(schedule_date).removeClass('is-invalid').next('.invalid-feedback').remove();
+        $(schedule_time).removeClass('is-invalid').next('.invalid-feedback').remove();
+
+        const sdate = $(schedule_date).val();
+        const stime = $(schedule_time).val();
+
+        if (!sdate) {
+            $(schedule_date).addClass('is-invalid')
+                .after('<div class="invalid-feedback">Please select date.</div>');
+            return;
+        }
+
+        if (!stime) {
+            $(schedule_time).addClass('is-invalid')
+                .after('<div class="invalid-feedback">Please select time.</div>');
+            return;
+        }
+
+        // ✅ Merge both forms
+        const finalData =
+            $(revertForm).serialize() + '&' +
+            $(rescheduleForm).serialize();
+
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm"></span> Processing...'
+        );
+
+        $.ajax({
+            url: $(revertForm).attr('action'),
+            type: 'POST',
+            data: finalData,
+            success: function (response) {
+
+                $(notificationAlert).html(
+                    `<div class="notification-alert success">${response.message}</div>`
+                ).show();
 
                 setTimeout(() => {
-                    $(`#crmReScheduleInterviewModal${applicantID}-${saleID}`).modal('show');
-                }, 300);
-            });
-        }
-        function crmReScheduleInterviewModal(applicantID, saleID) {
+                    modal.modal('hide');
+                    $(revertForm)[0].reset();
+                    $(rescheduleForm)[0].reset();
+                    $('#applicants_table').DataTable().ajax.reload();
+                }, 1500);
+            },
+            error: function (xhr) {
+                $(notificationAlert).html(
+                    `<div class="notification-alert error">
+                        ${xhr.responseJSON?.message || 'Something went wrong'}
+                    </div>`
+                ).show();
+            },
+            complete: function () {
+                btn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+});
 
-            const rescheduleForm = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
-            const revertForm = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
-
-            const modalId = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
-            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-
-            const schedule_date = `#reschedule_date${applicantID}-${saleID}`;
-            const schedule_time = `#reschedule_time${applicantID}-${saleID}`;
-
-            const saveButton = $(`${rescheduleForm} .saveCrmReScheduleInterviewButton`);
-
-            saveButton.off('click').on('click', function () {
-
-                $(schedule_date).removeClass('is-invalid').next('.invalid-feedback').remove();
-                $(schedule_time).removeClass('is-invalid').next('.invalid-feedback').remove();
-
-                const sdate = $(schedule_date).val();
-                const stime = $(schedule_time).val();
-
-                if (!sdate) {
-                    $(schedule_date).addClass('is-invalid')
-                        .after('<div class="invalid-feedback">Please select date.</div>');
-                    return;
-                }
-
-                if (!stime) {
-                    $(schedule_time).addClass('is-invalid')
-                        .after('<div class="invalid-feedback">Please select time.</div>');
-                    return;
-                }
-
-                // 🔥 Collect BOTH form data
-                const revertData = $(revertForm).serialize();
-                const rescheduleData = $(rescheduleForm).serialize();
-
-                const finalData = revertData + '&' + rescheduleData;
-
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html(
-                    '<span class="spinner-border spinner-border-sm"></span> Processing...'
-                );
-
-                $.ajax({
-                    url: $(revertForm).attr('action'), // ONE backend endpoint
-                    type: 'POST',
-                    data: finalData,
-                    success: function (response) {
-
-                        $(notificationAlert).html(
-                            `<div class="notification-alert success">${response.message}</div>`
-                        ).show();
-
-                        setTimeout(() => {
-                            $(modalId).modal('hide');
-                            $(revertForm)[0].reset();
-                            $(rescheduleForm)[0].reset();
-                            $('#applicants_table').DataTable().ajax.reload();
-                        }, 1500);
-                    },
-                    error: function (xhr) {
-                        $(notificationAlert).html(
-                            `<div class="notification-alert error">${xhr.responseJSON?.message || 'Something went wrong'}</div>`
-                        ).show();
-                    },
-                    complete: function () {
-                        btn.prop('disabled', false).html(originalText);
-                    }
-                });
-            });
-        }
 
         
         /** Schedule Interview Modal */
