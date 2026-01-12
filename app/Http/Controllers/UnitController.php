@@ -136,7 +136,7 @@ class UnitController extends Controller
                 ];
 
                 // Create each contact and associate it with the office
-                $unit->contact()->create($contactData);
+                $unit->contacts()->create($contactData);
             }
 
             // Generate UID
@@ -671,7 +671,7 @@ class UnitController extends Controller
                 ];
 
                 // Create each contact and associate it with the office
-                $unit->contact()->create($contactData);
+                $unit->contacts()->create($contactData);
             }
 
             DB::commit();
