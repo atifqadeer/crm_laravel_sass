@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace App\Http\Controllers;
 
+namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Horsefly\Sale;
@@ -22,18 +22,19 @@ use Horsefly\JobCategory;
 use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
-use Horsefly\ModuleNote;
+
 use App\Observers\ActionObserver;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Cache;
 use Yajra\DataTables\Facades\DataTables;
+
 use Exception;
 use Carbon\Carbon;
 use Horsefly\SmsTemplate;
@@ -75,6 +76,7 @@ class CrmController extends Controller
         // Return the view with all required data
         return view('crm.notes-history', compact('applicant_id', 'sale_id', 'applicant', 'cv_notes', 'quality_notes'));
     }
+
 
     public function getCrmApplicantsAjaxRequest(Request $request)
     {
@@ -2198,7 +2200,7 @@ class CrmController extends Controller
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
-                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; // Using accessor
+                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date)->format('d M Y').' '.$applicant->schedule_time : '-'; // Using 
                 })
                 ->addColumn('paid_status', function ($applicant) {
                     return $applicant->paid_status ?? '-';
@@ -4755,7 +4757,7 @@ class CrmController extends Controller
                 ->make(true);
         }
     }
-
+    
     /** CRM Sent CV */
     public function updateCrmNotes(Request $request)
     {
@@ -5413,6 +5415,7 @@ class CrmController extends Controller
             ], 500);
         }
     }
+
     /*** CRM Mark Request Confirmed */
     public function crmRequestNoResponseToConfirmedRequest(Request $request)
     {
@@ -5456,6 +5459,7 @@ class CrmController extends Controller
             ], 500);
         }
     }
+
     /** CRM Request NO Response */
     public function crmRequestNoResponse(Request $request)
     {
@@ -5780,7 +5784,7 @@ class CrmController extends Controller
         }
     }
 
-    /** CRM Confirmation */
+    /** CRM Confirmation tab*/
     public function crmConfirmInterviewToNotAttend(Request $request)
     {
         try {
@@ -11343,6 +11347,7 @@ class CrmController extends Controller
     /** Dispute */
     private function crmRevertDisputeToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
+        /** lets start to the process of dispute */
         try{
             CVNote::where([
                 "applicant_id" => $applicant_id, 
