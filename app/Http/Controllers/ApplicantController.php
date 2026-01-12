@@ -379,26 +379,67 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        if ($request->has('search.value')) { 
-            $searchTerm = (string) $request->input('search.value'); 
-            if (!empty($searchTerm)) { 
-                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
-                $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
-                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
-            } 
-        }
+        // if ($request->has('search.value')) { 
+        //     $searchTerm = (string) $request->input('search.value'); 
+        //     if (!empty($searchTerm)) { 
+        //         $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
+        //         $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
+        //             $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+        //             ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
+        //             $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+        //             $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+        //             $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+        //             $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
+        //     } 
+        // }
+        if ($request->has('search.value')) {
+            $searchTerm = (string) $request->input('search.value');
 
+            if (!empty($searchTerm)) {
+                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
+
+                $model->where(function ($query) use ($lowerSearchTerm) {
+
+                    // ✅ Applicant name: allow partial matches
+                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
+
+                        // ✅ Emails: exact match only
+                        ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
+
+                        // ✅ Postcode: exact match only
+                        ->orWhereRaw('LOWER(applicants.applicant_postcode) = ?', [$lowerSearchTerm])
+
+                        // ✅ Phones: partial matches allowed
+                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
+
+                        // ✅ Experience: partial matches allowed
+                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]);
+
+                    // ✅ Relationship searches (partial matches)
+                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                });
+            }
+        }
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
@@ -1414,8 +1455,8 @@ class ApplicantController extends Controller
 
         // Join with the latest CRM notes
         $model->joinSub($latestCrmNotes, 'crm_notes', function ($join) {
-            $join->on('crm_notes.applicant_id', '=', 'applicants.id');
-        })
+                $join->on('crm_notes.applicant_id', '=', 'applicants.id');
+            })
             ->join('sales', 'sales.id', '=', 'crm_notes.sale_id')
             ->join('offices', 'offices.id', '=', 'sales.office_id')
             ->join('units', 'units.id', '=', 'sales.unit_id')
