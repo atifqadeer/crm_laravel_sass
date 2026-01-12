@@ -2331,7 +2331,7 @@
             });
             // Handle save button click
             saveButton.off('click').on('click', function() {
-                crmScheduleInterviewModal(applicantID, saleID);
+                crmReScheduleInterviewModal(applicantID, saleID);
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
                         .next('.invalid-feedback').remove();
