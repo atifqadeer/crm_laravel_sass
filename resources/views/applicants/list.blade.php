@@ -325,8 +325,10 @@
                     name: 'applicants.applicant_name'
                 },
                 {
-                    data: 'applicant_email',
-                    name: 'applicants.applicant_email'
+                    data: 'applicantEmail',
+                    name: 'applicantEmail',
+                    orderable: false,
+                    searchable: true
                 },
                 {
                     data: 'job_title',
