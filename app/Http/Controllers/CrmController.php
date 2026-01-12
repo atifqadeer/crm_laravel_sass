@@ -5231,6 +5231,12 @@ class CrmController extends Controller
 
             DB::beginTransaction();
 
+            Interview::where('applicant_id', $request->input('applicant_id'))
+                ->where('sale_id', $request->input('sale_id'))
+                ->update([
+                    'status' => 0
+                ]);
+
             $interview = new Interview();
             $interview->user_id = $user->id;
             $interview->sale_id = $request->input('sale_id');
