@@ -503,13 +503,13 @@ class CrmController extends Controller
                 ->addSelect([
                     // Applicants
                     'applicants.id as applicant_id',
-                    
+
                     // CRM Notes
                     'latest_crm.latest_details as notes_detail',
                     'latest_crm.latest_created_at as notes_created_at',
 
                     // FIRST CRM NOTE DATE
-                    'quality_notes.created_at as show_created_at',
+                    'crm_notes.created_at as show_created_at',
 
                     // Offices
                     'offices.office_name',
