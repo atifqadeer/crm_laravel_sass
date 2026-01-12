@@ -2567,8 +2567,8 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
                 data: {
                     applicant_id: applicantID,
                     sale_id: saleID,
-                    reschedule_date: sdate,
-                    reschedule_time: stime
+                    schedule_date: sdate,
+                    schedule_time: stime
                 },
                 success: function (response) {
                     $(alertBox).html(
