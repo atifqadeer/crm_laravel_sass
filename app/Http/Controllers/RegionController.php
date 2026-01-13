@@ -65,24 +65,22 @@ class RegionController extends Controller
             $reg = Region::first();
         }
 
-       $district = $reg['districts_code'] ?? null;
+        $district = $reg['districts_code'] ?? null;
 
         $model = Applicant::query()
-            ->with('cv_notes')
             ->select([
                 'applicants.*',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name'
             ])
+            ->with(['cv_notes', 'jobTitle', 'jobCategory', 'jobSource'])
             ->where('applicants.status', 1)
             ->where('applicants.is_blocked', false)
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->leftJoin('cv_notes', 'cv_notes.applicant_id', '=', 'applicants.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource'])
             ->whereRaw("UPPER(TRIM(applicants.applicant_postcode)) REGEXP '^($district)[0-9]'");
 
         // Sorting logic
@@ -104,11 +102,11 @@ class RegionController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('cv_notes.created_at', 'desc');
+                $model->orderBy('applicants.updated_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
-            $model->orderBy('cv_notes.created_at', 'desc');
+            $model->orderBy('applicants.created_at', 'desc');
         }
 
         if ($request->has('search.value')) {
@@ -265,13 +263,13 @@ class RegionController extends Controller
 
                     return $email; // Using accessor
                 })
-                ->addColumn('updated_at', function ($applicant) {
+                ->addColumn('created_at', function ($applicant) {
                     if (!empty($applicant->cv_notes) && count($applicant->cv_notes) > 0) {
                         // Get the latest cv_note by created_at
                         $latestNote = $applicant->cv_notes->sortByDesc('created_at')->first();
                         return $latestNote ? Carbon::parse($latestNote->created_at)->format('d M Y, h:i A') : '';
                     } else {
-                        return Carbon::parse($applicant->updated_at)->format('d M Y, h:i A');
+                        return Carbon::parse($applicant->created_at)->format('d M Y, h:i A');
                     }
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
@@ -371,7 +369,7 @@ class RegionController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'created_at', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
