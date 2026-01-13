@@ -920,7 +920,7 @@ class CrmController extends Controller
                         DB::raw('(
                             SELECT MIN(id) as id
                             FROM crm_notes
-                            WHERE moved_tab_to IN ("request_confirm", "request_no_job_confirm")
+                            WHERE moved_tab_to IN ("request_confirm", "interview_save", "request_no_job_confirm")
                             GROUP BY applicant_id, sale_id
                         ) as first_cn'),
                         'cn1.id',
@@ -937,6 +937,7 @@ class CrmController extends Controller
                     )
                     ->whereIn('cn1.moved_tab_to', [
                         'request_confirm',
+                        "interview_save", 
                         'request_no_job_confirm'
                     ]);
 
