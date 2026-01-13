@@ -19,16 +19,39 @@
                             <div class="text-md-end mt-3">
                                 <!-- Regions Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterRegion">All Regions</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle"
+                                        type="button"
+                                        id="dropdownMenuButton10"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+
+                                        <i class="ri-filter-line me-1"></i>
+
+                                        <span id="showFilterRegion">
+                                            @if($regions->count())
+                                                {{ $regions->first()->name }}
+                                            @else
+                                                No Regions Found
+                                            @endif
+                                        </span>
                                     </button>
+
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton10">
-                                        <a class="dropdown-item region-filter" href="#">All Regions</a>
-                                        @foreach($regions as $region)
-                                            <a class="dropdown-item region-filter" href="#" data-region-id="{{ $region->id }}">{{ $region->name }}</a>
-                                        @endforeach
+                                        @forelse($regions as $region)
+                                            <a
+                                                class="dropdown-item region-filter"
+                                                href="#"
+                                                data-region-id="{{ $region->id }}">
+                                                {{ $region->name }}
+                                            </a>
+                                        @empty
+                                            <a class="dropdown-item disabled" href="#">
+                                                No Regions Found
+                                            </a>
+                                        @endforelse
                                     </div>
                                 </div>
+
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
@@ -240,7 +263,7 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'updated_at', name: 'cv_notes.updated_at' },
+                    { data: 'created_at', name: 'cv_notes.created_at' },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },
