@@ -895,15 +895,27 @@ class CrmController extends Controller
             case 'confirmation':
                 // Define reusable subqueries with MAX(id) grouped — using joinSub with indexes
                 $crmNotesSubQuery = DB::table('crm_notes as cn1')
-                    ->select('cn1.id', 'cn1.applicant_id', 'cn1.sale_id', 'cn1.details', 'cn1.created_at')
-                    ->where('cn1.status', 1)
-                    ->join(DB::raw('(SELECT MIN(id) as id 
-                                    FROM crm_notes 
-                                    WHERE status = 1 
-                                    WHERE moved_tab_to IN ("request_confirm", "request_no_job_confirm") 
-                                    GROUP BY applicant_id, sale_id) as latest_cn'),
-                        'cn1.id', '=', 'latest_cn.id'
-                    );
+    ->select(
+        'cn1.id',
+        'cn1.applicant_id',
+        'cn1.sale_id',
+        'cn1.details',
+        'cn1.created_at'
+    )
+    ->where('cn1.status', 1)
+    ->join(
+        DB::raw('(
+            SELECT MIN(id) as id
+            FROM crm_notes
+            WHERE status = 1
+              AND moved_tab_to IN ("request_confirm", "request_no_job_confirm")
+            GROUP BY applicant_id, sale_id
+        ) as first_cn'),
+        'cn1.id',
+        '=',
+        'first_cn.id'
+    );
+
 
                 $latestCvNotes = DB::table('cv_notes as cv1')
                     ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status', 'cv1.created_at')
@@ -968,7 +980,7 @@ class CrmController extends Controller
                         // Crm Notes
                         'latest_crm.latest_details as notes_detail',
                         'latest_crm.latest_created_at as notes_created_at',
-                        
+
                         // show created date
                         'crm_notes.created_at as show_created_at',
                         // Offices
