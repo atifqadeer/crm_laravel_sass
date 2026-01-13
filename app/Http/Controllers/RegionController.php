@@ -102,7 +102,7 @@ class RegionController extends Controller
             }
             // Fallback if no valid order column is found
             else {
-                $model->orderBy('applicants.updated_at', 'desc');
+                $model->orderBy('applicants.created_at', 'desc');
             }
         } else {
             // Default sorting when no order is specified
