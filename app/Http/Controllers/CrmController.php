@@ -928,8 +928,8 @@ class CrmController extends Controller
                         ->join(
                             DB::raw('(
                                 SELECT MIN(id) as id
-                                FROM crm_notes
-                                AND moved_tab_to IN ("request_confirm", "request_no_job_confirm")
+                                FROM crm_notes 
+                                moved_tab_to IN ("request_confirm", "request_no_job_confirm")
                                 GROUP BY applicant_id, sale_id
                             ) as first_cn'),
                             'cn1.id',
