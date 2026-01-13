@@ -1462,11 +1462,11 @@ class CrmController extends Controller
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
                     ->whereIn('moved_tab_to', ['start_date'])
-                    ->where('status', 1)
+                    // ->where('status', 1)
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn('moved_tab_to', ['start_date'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
