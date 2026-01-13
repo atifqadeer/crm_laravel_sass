@@ -1451,11 +1451,11 @@ class ApplicantController extends Controller
     // Subquery: get latest CRM note per applicant-sale (status = 1)
     $latestCrmNotes = DB::table('crm_notes')
         ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
-        ->where('status', 1)
+        // ->where('status', 1)
         ->whereIn('id', function ($query) {
             $query->selectRaw('MAX(id)')
                 ->from('crm_notes')
-                ->where('status', 1)
+                // ->where('status', 1)
                 ->groupBy('applicant_id', 'sale_id');
         });
 
