@@ -1461,18 +1461,27 @@
                         notesHtml = '<p>No record found.</p>';
                     } else {
                         // Loop through the response array (assuming it's an array of documents)
-                        response.data.forEach(function(doc) {
-                            var doc_name = doc.document_name;
-                            var created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            var file_path = '/storage/uploads/' + doc.document_path;
+                        response.data.forEach(doc => {
+                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mm A');
 
-                            // Append each document's details to the notesHtml string, with a button to open in new tab
-                            notesHtml += 
-                                '<div class="note-entry">' +
-                                    '<p><strong>Dated:</strong> ' + created + '</p>' +
-                                    '<p><strong>File:</strong> ' + doc_name + 
-                                    '<br> <button class="btn btn-sm btn-primary" onclick="window.open(\'' + file_path + '\', \'_blank\')">Open</button></p>' +
-                                '</div><hr>';  // Add a separator between notes
+                            // ✅ DB already contains folder path relative to public/
+                            const filePath = '/' + doc.document_path;
+
+                            const docName = doc.document_name;
+
+                            notesHtml += `
+                                <div class="note-entry text-start">
+                                    <p><strong>Dated:</strong> ${created}</p>
+                                    <p><strong>File:</strong> ${docName}
+                                        <br>
+                                        <button class="btn btn-sm btn-primary mt-1"
+                                            onclick="window.open('${encodeURI(filePath)}', '_blank')">
+                                            Open
+                                        </button>
+                                    </p>
+                                </div>
+                                <hr>
+                            `;
                         });
                     }
 

@@ -1017,8 +1017,11 @@
                         contentHtml = '<p class="text-muted text-center">No record found.</p>';
                     } else {
                         response.data.forEach(doc => {
-                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            const filePath = '/storage/' + doc.document_path;
+                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mm A');
+
+                            // ✅ DB already contains folder path relative to public/
+                            const filePath = '/' + doc.document_path;
+
                             const docName = doc.document_name;
 
                             contentHtml += `
@@ -1026,7 +1029,10 @@
                                     <p><strong>Dated:</strong> ${created}</p>
                                     <p><strong>File:</strong> ${docName}
                                         <br>
-                                        <button class="btn btn-sm btn-primary mt-1" onclick="window.open('${filePath}', '_blank')">Open</button>
+                                        <button class="btn btn-sm btn-primary mt-1"
+                                            onclick="window.open('${encodeURI(filePath)}', '_blank')">
+                                            Open
+                                        </button>
                                     </p>
                                 </div>
                                 <hr>

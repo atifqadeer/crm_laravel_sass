@@ -259,36 +259,81 @@ class SaleController extends Controller
             ]);
 
             // Handle attachments if provided
+            // if ($request->hasFile('attachments')) {
+            //     $attachments = $request->file('attachments');
+
+            //     foreach ($attachments as $attachment) {
+            //         // Get the original filename
+            //         $filenameWithExt = $attachment->getClientOriginalName();
+            //         $size = $attachment->getSize();
+
+            //         // Get just the filename without extension
+            //         $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+
+            //         // Get just the extension
+            //         $extension = $attachment->getClientOriginalExtension();
+
+            //         // Create a new filename with timestamp
+            //         $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+
+            //         // Upload file to public/uploads directory
+            //         $path = $attachment->storeAs('uploads/docs/', $fileNameToStore, 'public');
+
+            //         // Save document details in sale_documents table
+            //         SaleDocument::create([
+            //             'sale_id' => $sale->id,
+            //             'document_name' => $fileNameToStore,
+            //             'document_path' => $path,
+            //             'document_extension' => $extension,
+            //             'document_size' => $size
+            //         ]);
+            //     }
+            // }
+
             if ($request->hasFile('attachments')) {
-                $attachments = $request->file('attachments');
 
-                foreach ($attachments as $attachment) {
-                    // Get the original filename
-                    $filenameWithExt = $attachment->getClientOriginalName();
-                    $size = $attachment->getSize();
+                foreach ($request->file('attachments') as $attachment) {
 
-                    // Get just the filename without extension
-                    $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+                    // Original file info
+                    $originalName = $attachment->getClientOriginalName();
+                    $size         = $attachment->getSize();
+                    $extension    = $attachment->getClientOriginalExtension();
 
-                    // Get just the extension
-                    $extension = $attachment->getClientOriginalExtension();
+                    // Filename without extension
+                    $filename = pathinfo($originalName, PATHINFO_FILENAME);
 
-                    // Create a new filename with timestamp
+                    // Clean filename (remove spaces)
+                    $filename = preg_replace('/\s+/', '_', trim($filename));
+
+                    // Unique filename
                     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
 
-                    // Upload file to public/uploads directory
-                    $path = $attachment->storeAs('uploads/docs/', $fileNameToStore, 'public');
+                    // 📁 Target directory inside public
+                    $directory  = 'uploads/docs';
+                    $publicPath = public_path($directory);
 
-                    // Save document details in sale_documents table
+                    // Ensure directory exists
+                    if (!file_exists($publicPath)) {
+                        mkdir($publicPath, 0755, true);
+                    }
+
+                    // 🚚 Move file to public/uploads/docs
+                    $attachment->move($publicPath, $fileNameToStore);
+
+                    // Save relative path in DB
+                    $path = $directory . '/' . $fileNameToStore;
+
+                    // 💾 Save document record
                     SaleDocument::create([
-                        'sale_id' => $sale->id,
-                        'document_name' => $fileNameToStore,
-                        'document_path' => $path,
+                        'sale_id'            => $sale->id,
+                        'document_name'      => $fileNameToStore,
+                        'document_path'      => $path, // e.g. uploads/docs/file.pdf
                         'document_extension' => $extension,
-                        'document_size' => $size
+                        'document_size'      => $size,
                     ]);
                 }
             }
+
 
             return response()->json([
                 'success' => true,
@@ -457,37 +502,83 @@ class SaleController extends Controller
             ]);
 
             // Handle attachments if provided
+            // if ($request->hasFile('attachments')) {
+            //     $attachments = $request->file('attachments');
+
+            //     foreach ($attachments as $attachment) {
+            //         // Get the original filename
+            //         $filenameWithExt = $attachment->getClientOriginalName();
+            //         $size = $attachment->getSize();
+
+            //         // Get just the filename without extension
+            //         $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+
+            //         // Get just the extension
+            //         $extension = $attachment->getClientOriginalExtension();
+
+            //         // Create a new filename with timestamp
+            //         $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+
+            //         // Upload file to public/uploads directory
+            //         $path = $attachment->storeAs('sale_docs', $fileNameToStore, 'public');
+
+            //         // Save document details in sale_documents table
+            //         SaleDocument::create([
+            //             'sale_id' => $id,
+            //             'user_id' => $user->id,
+            //             'document_name' => $fileNameToStore,
+            //             'document_path' => $path,
+            //             'document_extension' => $extension,
+            //             'document_size' => $size
+            //         ]);
+            //     }
+            // }
+
             if ($request->hasFile('attachments')) {
-                $attachments = $request->file('attachments');
 
-                foreach ($attachments as $attachment) {
-                    // Get the original filename
-                    $filenameWithExt = $attachment->getClientOriginalName();
-                    $size = $attachment->getSize();
+                foreach ($request->file('attachments') as $attachment) {
 
-                    // Get just the filename without extension
-                    $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+                    // Original file info
+                    $originalName = $attachment->getClientOriginalName();
+                    $size         = $attachment->getSize();
+                    $extension    = $attachment->getClientOriginalExtension();
 
-                    // Get just the extension
-                    $extension = $attachment->getClientOriginalExtension();
+                    // Filename without extension
+                    $filename = pathinfo($originalName, PATHINFO_FILENAME);
 
-                    // Create a new filename with timestamp
+                    // Clean filename (remove spaces & special chars)
+                    $filename = preg_replace('/\s+/', '_', trim($filename));
+
+                    // Unique filename
                     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
 
-                    // Upload file to public/uploads directory
-                    $path = $attachment->storeAs('sale_docs', $fileNameToStore, 'public');
+                    // 📁 Public directory
+                    $directory = 'sale_docs';
+                    $publicPath = public_path($directory);
 
-                    // Save document details in sale_documents table
+                    // Ensure directory exists
+                    if (!file_exists($publicPath)) {
+                        mkdir($publicPath, 0755, true);
+                    }
+
+                    // 🚚 Move file to public/sale_docs
+                    $attachment->move($publicPath, $fileNameToStore);
+
+                    // Save relative path in DB
+                    $path = $directory . '/' . $fileNameToStore;
+
+                    // 💾 Save document details
                     SaleDocument::create([
-                        'sale_id' => $id,
-                        'user_id' => $user->id,
-                        'document_name' => $fileNameToStore,
-                        'document_path' => $path,
+                        'sale_id'            => $id,
+                        'user_id'            => $user->id,
+                        'document_name'      => $fileNameToStore,
+                        'document_path'      => $path, // e.g. sale_docs/file.pdf
                         'document_extension' => $extension,
-                        'document_size' => $size
+                        'document_size'      => $size,
                     ]);
                 }
             }
+
 
             if($request->has('sale_notes')){
                  $sale_note = SaleNote::create([

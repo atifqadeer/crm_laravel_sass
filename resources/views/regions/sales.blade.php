@@ -765,18 +765,27 @@
                     if (!response.data || response.data.length === 0) {
                         html = '<p>No documents found.</p>';
                     } else {
-                        response.data.forEach(function(doc) {
+                        response.data.forEach(doc => {
+                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mm A');
+
+                            // ✅ DB already contains folder path relative to public/
+                            const filePath = '/' + doc.document_path;
+
                             const docName = doc.document_name;
-                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mmA');
-                            const filePath = '/storage/' + doc.document_path;
 
                             html += `
-                                <div class="note-entry">
+                                <div class="note-entry text-start">
                                     <p><strong>Dated:</strong> ${created}</p>
-                                    <p><strong>File:</strong> ${docName}<br>
-                                        <button class="btn btn-sm btn-primary" onclick="window.open('${filePath}', '_blank')">Open</button>
+                                    <p><strong>File:</strong> ${docName}
+                                        <br>
+                                        <button class="btn btn-sm btn-primary mt-1"
+                                            onclick="window.open('${encodeURI(filePath)}', '_blank')">
+                                            Open
+                                        </button>
                                     </p>
-                                </div><hr>`;
+                                </div>
+                                <hr>
+                            `;
                         });
                     }
 
