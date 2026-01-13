@@ -511,7 +511,7 @@ class CommunicationController extends Controller
         }
 
         $message = new Message();
-        $message->module_id = $request->recipient_id;
+        $message->module_id = (int) $request->recipient_id;
         $message->module_type = $recipient_type;
         $message->user_id = Auth::id();
         $message->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
@@ -528,6 +528,8 @@ class CommunicationController extends Controller
             'id' => $message->id,
             'msg_id' => $message->msg_id,
             'user_id' => $message->user_id,
+            'module_type' => $message->user_id,
+            'module_id' => $message->module_id,
             'user_name' => Auth::user()->name,
             'message' => $message->message,
             'phone_number' => $message->phone_number,
