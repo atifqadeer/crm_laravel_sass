@@ -1748,7 +1748,7 @@ class ApplicantController extends Controller
 
                 $cv_note->update(['cv_uid' => md5($cv_note->id)]);
 
-                History::where('applicant_id', $applicant->id)->update(['status' => 0]);
+                // History::where('applicant_id', $applicant->id)->update(['status' => 0]);
 
                 $history = History::create([
                     'sale_id'      => $sale->id,
