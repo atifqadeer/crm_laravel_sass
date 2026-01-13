@@ -206,17 +206,17 @@ class CrmController extends Controller
 
             case 'sent cvs (no job)':
                 // Subquery: latest CRM note per applicant-sale (for details)
-                $latestCrmNotes = DB::table('crm_notes as cn_latest')
-                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
-                    ->whereIn("cn_latest.moved_tab_to", ["cv_sent_no_job"])
-                    ->whereIn('cn_latest.id', function ($q) {
-                        $q->selectRaw('MAX(id)')
-                            ->from('crm_notes')
-                            ->where('status', 1)
-                            ->whereIn("moved_tab_to", ["cv_sent_no_job"])
-                            ->groupBy('applicant_id', 'sale_id');
-                    });
+                // $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                //     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                //     ->where('cn_latest.status', 1)
+                //     ->whereIn("cn_latest.moved_tab_to", ["cv_sent_no_job"])
+                //     ->whereIn('cn_latest.id', function ($q) {
+                //         $q->selectRaw('MAX(id)')
+                //             ->from('crm_notes')
+                //             ->where('status', 1)
+                //             ->whereIn("moved_tab_to", ["cv_sent_no_job"])
+                //             ->groupBy('applicant_id', 'sale_id');
+                //     });
 
                 $model->joinSub(
                     DB::table('quality_notes')
@@ -290,14 +290,10 @@ class CrmController extends Controller
                     }
                 )
                 ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
                 ->addSelect([
                     // Quality Notes
-                    'latest_crm.details as notes_detail',
-                    'latest_crm.created_at as notes_created_at',
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
                     // show created date
                     'quality_notes.created_at as show_created_at',
                     // Offices
