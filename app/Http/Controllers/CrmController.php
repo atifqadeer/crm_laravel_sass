@@ -205,6 +205,19 @@ class CrmController extends Controller
                 break;
 
             case 'sent cvs (no job)':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["cv_sent_no_job"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["cv_sent_no_job"])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                     DB::table('quality_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
@@ -277,10 +290,14 @@ class CrmController extends Controller
                     }
                 )
                 ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->addSelect([
                     // Quality Notes
-                    'quality_notes.details as notes_detail',
-                    'quality_notes.created_at as notes_created_at',
+                    'latest_crm.details as notes_detail',
+                    'latest_crm.created_at as notes_created_at',
                     // show created date
                     'quality_notes.created_at as show_created_at',
                     // Offices
@@ -330,10 +347,12 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn('cn_latest.moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['cv_sent_reject', 'cv_sent_reject_no_job'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -457,10 +476,12 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["cv_sent_request", "request_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["cv_sent_request", "request_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -549,10 +570,12 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn('cn_latest.moved_tab_to', ['request_no_response'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['request_no_response'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -664,10 +687,12 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn('cn_latest.moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -780,10 +805,12 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn('cn_latest.moved_tab_to', ['request_reject', 'request_no_job_reject'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['request_reject', 'request_no_job_reject'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -895,26 +922,27 @@ class CrmController extends Controller
             case 'confirmation':
                 // Define reusable subqueries with MAX(id) grouped — using joinSub with indexes
                 $crmNotesSubQuery = DB::table('crm_notes as cn1')
-    ->select(
-        'cn1.id',
-        'cn1.applicant_id',
-        'cn1.sale_id',
-        'cn1.details',
-        'cn1.created_at'
-    )
-    ->where('cn1.status', 1)
-    ->join(
-        DB::raw('(
-            SELECT MIN(id) as id
-            FROM crm_notes
-            WHERE status = 1
-              AND moved_tab_to IN ("request_confirm", "request_no_job_confirm")
-            GROUP BY applicant_id, sale_id
-        ) as first_cn'),
-        'cn1.id',
-        '=',
-        'first_cn.id'
-    );
+                        ->select(
+                            'cn1.id',
+                            'cn1.applicant_id',
+                            'cn1.sale_id',
+                            'cn1.details',
+                            'cn1.created_at'
+                        )
+                        ->whereIn("cn1.moved_tab_to", ["request_confirm", "request_no_job_confirm"])
+                        ->where('cn1.status', 1)
+                        ->join(
+                            DB::raw('(
+                                SELECT MIN(id) as id
+                                FROM crm_notes
+                                WHERE status = 1
+                                AND moved_tab_to IN ("request_confirm", "request_no_job_confirm")
+                                GROUP BY applicant_id, sale_id
+                            ) as first_cn'),
+                            'cn1.id',
+                            '=',
+                            'first_cn.id'
+                        );
 
 
                 $latestCvNotes = DB::table('cv_notes as cv1')
@@ -927,9 +955,11 @@ class CrmController extends Controller
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
                     ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
+                            ->whereIn("moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
                             ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -1018,10 +1048,23 @@ class CrmController extends Controller
                     ]);
                 break;
             case 'rebook':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["rebook", "rebook_save"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("crm_notes.moved_tab_to", ["rebook", "rebook_save"])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                         DB::table('crm_notes')
                             ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to', ["rebook", "rebook_save"])
+                            ->whereIn('moved_tab_to', ["rebook"])
                             ->whereIn('id', fn ($subQuery) => 
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
@@ -1069,11 +1112,15 @@ class CrmController extends Controller
                                 ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                         }
                     )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
                     ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                     ->addSelect([
                         // Crm Notes
-                        'crm_notes.details as notes_detail',
-                        'crm_notes.created_at as notes_created_at',
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
                         // show created date
                         'crm_notes.created_at as show_created_at',
                         // offices
@@ -1112,11 +1159,24 @@ class CrmController extends Controller
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                    ->whereIn('moved_tab_to', ['interview_attended', 'prestart_save'])
+                    ->whereIn('moved_tab_to', ['interview_attended'])
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ['interview_attended', 'prestart_save'])
+                            ->whereIn('moved_tab_to', ['interview_attended'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["interview_attended", "prestart_save"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["interview_attended", "prestart_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -1162,13 +1222,17 @@ class CrmController extends Controller
                     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // Offices
@@ -1203,6 +1267,19 @@ class CrmController extends Controller
 
                 break;
             case 'declined':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["declined"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["declined"])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
@@ -1254,11 +1331,15 @@ class CrmController extends Controller
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // offices
@@ -1384,11 +1465,26 @@ class CrmController extends Controller
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                    ->whereIn('moved_tab_to', ['start_date', 'start_date_save', 'start_date_back'])
+                    ->whereIn('moved_tab_to', ['start_date'])
+                    ->where('status', 1)
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ['start_date', 'start_date_save', 'start_date_back'])
+                            ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['start_date'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["start_date", "start_date_save", "start_date_back"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->whereIn("moved_tab_to", ["start_date", "start_date_save", "start_date_back"])
+                            ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -1435,12 +1531,16 @@ class CrmController extends Controller
                         ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                 })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->addSelect([
                     // Applicants
                     'applicants.id as applicant_id',
                     // CRM Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // Offices
@@ -1475,10 +1575,23 @@ class CrmController extends Controller
 
                 break;
             case 'start date hold':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["start_date_hold", "start_date_hold_save"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["start_date_hold", "start_date_hold_save"])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ["start_date_hold", "start_date_hold_save"])
+                        ->whereIn('moved_tab_to', ["start_date_hold"])
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
@@ -1526,11 +1639,15 @@ class CrmController extends Controller
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // offices
@@ -1566,10 +1683,23 @@ class CrmController extends Controller
 
                 break;
             case 'invoice':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["invoice", "final_save"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn("moved_tab_to", ["invoice", "final_save"])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ["invoice", "final_save"])
+                        ->whereIn('moved_tab_to', ["invoice"])
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
@@ -1617,11 +1747,15 @@ class CrmController extends Controller
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // offices
@@ -1657,6 +1791,19 @@ class CrmController extends Controller
 
                 break;
             case 'invoice sent':
+                // Subquery: latest CRM note per applicant-sale (for details)
+                $latestCrmNotes = DB::table('crm_notes as cn_latest')
+                    ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+                    ->where('cn_latest.status', 1)
+                    ->whereIn("cn_latest.moved_tab_to", ["invoice_sent", "final_save"])
+                    ->whereIn('cn_latest.id', function ($q) {
+                        $q->selectRaw('MAX(id)')
+                            ->from('crm_notes')
+                            ->whereIn("moved_tab_to", ["invoice_sent", "final_save"])
+                            ->where('status', 1)
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
+
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
@@ -1708,13 +1855,17 @@ class CrmController extends Controller
                             ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
                     }
                 )
+                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                        ->on('latest_crm.sale_id', '=', 'sales.id');
+                })
                 ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect([
                     // show created date
                     'crm_notes.created_at as show_created_at',
                     // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
+                    'latest_crm.latest_details as notes_detail',
+                    'latest_crm.latest_created_at as notes_created_at',
                     // offices
                     'offices.office_name as office_name',
                     // sale
