@@ -43,7 +43,7 @@
                                 <li>
                                     @php
 
-                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%;width:" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge bg-danger" style="font-size:90%;width:20% !important;" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
 
                                     @endphp
                                     <div class="d-flex align-items-center"><strong>CV Limit: </strong> {!! $status !!}</div>
