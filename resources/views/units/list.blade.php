@@ -74,7 +74,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Date</th>
-                                <th>Head Office</th>
+                                {{-- <th>Head Office</th> --}}
                                 <th>Unit Name</th>
                                 <th>PostCode</th>
                                 <th>Contact Email</th>
@@ -165,7 +165,7 @@
             let columns = [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'units.created_at' },
-                { data: 'office_name', name: 'offices.office_name' },
+                // { data: 'office_name', name: 'offices.office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
                 { data: 'contact_email', name: 'contacts.contact_email'},                

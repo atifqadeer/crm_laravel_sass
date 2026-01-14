@@ -378,63 +378,63 @@ class UnitController extends Controller
         }
 
         // Sorting (keep your existing logic, but consider moving join inside if needed)
-        $orderColumnIndex = $request->input('order.0.column', 0);
-        $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
-        $orderDir = $request->input('order.0.dir', 'desc');
+        // $orderColumnIndex = $request->input('order.0.column', 0);
+        // $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
+        // $orderDir = $request->input('order.0.dir', 'desc');
 
         // Handling sorting by `office_name`
-        if ($orderColumn === 'office_name') {
-            $query->join('offices', 'units.office_id', '=', 'offices.id')
-                ->orderBy('offices.office_name', $orderDir);
+        // if ($orderColumn === 'office_name') {
+        //     $query->join('offices', 'units.office_id', '=', 'offices.id')
+        //         ->orderBy('offices.office_name', $orderDir);
 
-        // Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
-        } elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
-            // Join contacts table when sorting by contact fields
-            $query->join('contacts as c', function ($join) {
-                $join->on('c.contactable_id', '=', 'units.id')
-                    ->where('c.contactable_type', '=', 'Horsefly\\Unit');
-            });
+        // // Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
+        // } elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
+        //     // Join contacts table when sorting by contact fields
+        //     $query->join('contacts as c', function ($join) {
+        //         $join->on('c.contactable_id', '=', 'units.id')
+        //             ->where('c.contactable_type', '=', 'Horsefly\\Unit');
+        //     });
 
-            // Order by the contact field
-            $query->orderBy("c.$orderColumn", $orderDir);
+        //     // Order by the contact field
+        //     $query->orderBy("c.$orderColumn", $orderDir);
 
-        // Handle sorting by unit fields
-        } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
-            $query->orderBy($orderColumn, $orderDir);
+        // // Handle sorting by unit fields
+        // } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
+        //     $query->orderBy($orderColumn, $orderDir);
 
-        // Default ordering
-        } else {
+        // // Default ordering
+        // } else {
             $query->orderBy('units.created_at', 'desc');
-        }
+        // }
 
         // Efficient search with office_name inclusion
-        $searchTerm = $request->input('search.value', '');
-        if ($searchTerm) {
-            $words = array_filter(explode(' ', trim($searchTerm)));
-            $query->where(function ($q) use ($words) {
-                foreach ($words as $word) {
-                    // Searching in unit's columns and office_name
-                    $q->where('unit_name', 'LIKE', "%{$word}%")
-                        ->orWhere('unit_postcode', 'LIKE', "%{$word}%")
-                        ->orWhere('unit_website', 'LIKE', "%{$word}%")
-                        ->orWhere('unit_notes', 'LIKE', "%{$word}%")
-                        ->orWhereHas('contacts', function ($c) use ($word) {
-                            $c->where('contact_email', 'LIKE', "%{$word}%")
-                                ->orWhere('contact_phone', 'LIKE', "%{$word}%")
-                                ->orWhere('contact_landline', 'LIKE', "%{$word}%");
-                        })
-                        ->orWhereHas('office', function ($o) use ($word) {
-                            $o->where('office_name', 'LIKE', "%{$word}%");
-                        });
-                }
-            });
-        }
+        // $searchTerm = $request->input('search.value', '');
+        // if ($searchTerm) {
+        //     $words = array_filter(explode(' ', trim($searchTerm)));
+        //     $query->where(function ($q) use ($words) {
+        //         foreach ($words as $word) {
+        //             // Searching in unit's columns and office_name
+        //             $q->where('unit_name', 'LIKE', "%{$word}%")
+        //                 ->orWhere('unit_postcode', 'LIKE', "%{$word}%")
+        //                 ->orWhere('unit_website', 'LIKE', "%{$word}%")
+        //                 ->orWhere('unit_notes', 'LIKE', "%{$word}%")
+        //                 ->orWhereHas('contacts', function ($c) use ($word) {
+        //                     $c->where('contact_email', 'LIKE', "%{$word}%")
+        //                         ->orWhere('contact_phone', 'LIKE', "%{$word}%")
+        //                         ->orWhere('contact_landline', 'LIKE', "%{$word}%");
+        //                 })
+        //                 ->orWhereHas('office', function ($o) use ($word) {
+        //                     $o->where('office_name', 'LIKE', "%{$word}%");
+        //                 });
+        //         }
+        //     });
+        // }
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
                 ->addIndexColumn()
-                ->addColumn('office_name', fn($unit) => $unit->office?->office_name ?? '-')
-                ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
+                // ->addColumn('office_name', fn($unit) => $unit->office?->office_name ?? '-')
+                // ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
                 ->addColumn('unit_name', fn($unit) => $unit->formatted_unit_name)
                 ->addColumn('unit_postcode', fn($unit) => $unit->formatted_postcode)
                 ->addColumn('contact_email', fn($unit) => $unit->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-')
@@ -489,10 +489,10 @@ class UnitController extends Controller
                                                 $c->where('contact_email', 'LIKE', "%{$word}%")
                                                     ->orWhere('contact_phone', 'LIKE', "%{$word}%")
                                                     ->orWhere('contact_landline', 'LIKE', "%{$word}%");
-                                            })
-                                            ->orWhereHas('office', function ($o) use ($word) {
-                                                $o->where('office_name', 'LIKE', "%{$word}%");
                                             });
+                                            // ->orWhereHas('office', function ($o) use ($word) {
+                                            //     $o->where('office_name', 'LIKE', "%{$word}%");
+                                            // });
                                     });
                                 }
                             });
@@ -500,8 +500,8 @@ class UnitController extends Controller
                     }
                 })
                 // Keep your custom office_name filter (for individual column search)
-                ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
-                ->rawColumns(['unit_notes', 'unit_name', 'contact_email', 'contact_landline', 'contact_phone', 'office_name', 'status', 'action'])
+                // ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
+                ->rawColumns(['unit_notes', 'unit_name', 'contact_email', 'contact_landline', 'contact_phone', 'status', 'action'])
                 ->make(true);
         }
     }
