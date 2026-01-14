@@ -1696,12 +1696,13 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn("moved_tab_to", ["invoice"]),
-                        // ->whereIn('id', fn ($subQuery) => 
-                        //     $subQuery->select(DB::raw('MAX(id)'))
-                        //         ->from('crm_notes')
-                        //         ->groupBy('applicant_id', 'sale_id')
-                        // ),
+                        ->whereIn("moved_tab_to", ["invoice"])
+                        ->whereIn('id', fn ($subQuery) => 
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->whereIn("moved_tab_to", ["invoice"])
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
                     'crm_notes',
                     fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
@@ -1728,7 +1729,7 @@ class CrmController extends Controller
                 ->leftJoin('interviews', function ($join) {
                     $join->on('applicants.id', '=', 'interviews.applicant_id');
                     $join->on('sales.id', '=', 'interviews.sale_id');
-                    // $join->where('interviews.status', 1);
+                    $join->where('interviews.status', 1);
                 })
                 ->leftJoinSub(
                     DB::table('cv_notes')
