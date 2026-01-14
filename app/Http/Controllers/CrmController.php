@@ -469,12 +469,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["cv_sent_request", "request_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn("moved_tab_to", ["cv_sent_request", "request_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -563,12 +563,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn('cn_latest.moved_tab_to', ['request_no_response'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn('moved_tab_to', ['request_no_response'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -680,12 +680,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn('cn_latest.moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn('moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -798,12 +798,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn('cn_latest.moved_tab_to', ['request_reject', 'request_no_job_reject'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn('moved_tab_to', ['request_reject', 'request_no_job_reject'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -951,13 +951,13 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->whereIn("moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -1048,12 +1048,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["rebook", "rebook_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn("crm_notes.moved_tab_to", ["rebook", "rebook_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -1167,12 +1167,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["interview_attended", "prestart_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn("moved_tab_to", ["interview_attended", "prestart_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -1267,12 +1267,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["declined"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn("moved_tab_to", ["declined"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
