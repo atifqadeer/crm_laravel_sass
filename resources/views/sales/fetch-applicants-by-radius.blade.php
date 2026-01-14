@@ -64,7 +64,7 @@
                                     <li>
                                         <strong>CV Limit:</strong>
                                         <span>
-                                            {{ $status }}
+                                            {!! $status !!}
                                         </span>
                                     </li>
 
