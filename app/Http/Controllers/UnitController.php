@@ -508,69 +508,73 @@ class UnitController extends Controller
     // }
     public function getUnits(Request $request)
     {
-        $statusFilter = $request->input('status_filter', '');
+        $statusFilter = $request->input('status_filter');
 
-        // Query builder with minimal selected columns
-        $model = Unit::query()
-            ->leftJoin('contacts', function ($join) {
-                $join->on('contacts.contactable_id', '=', 'units.id')
-                    ->where('contacts.contactable_type', 'Horsefly\\Unit');
-            })
-            ->select(
-                'units.id',
-                'units.unit_name',
-                'units.unit_postcode',
-                'units.unit_website',
-                'units.unit_notes',
-                'units.status',
-                'units.created_at',
-                'units.updated_at'
-            );
+    $model = Unit::query()
+        ->leftJoin('contacts', function ($join) {
+            $join->on('contacts.contactable_id', '=', 'units.id')
+                ->where('contacts.contactable_type', Unit::class);
+        })
+        ->select(
+            'units.id',
+            'units.unit_name',
+            'units.unit_postcode',
+            'units.unit_website',
+            'units.unit_notes',
+            'units.status',
+            'units.created_at',
+            'units.updated_at',
+            DB::raw('GROUP_CONCAT(DISTINCT contacts.contact_email SEPARATOR "<br>") as contact_email'),
+            DB::raw('GROUP_CONCAT(DISTINCT contacts.contact_phone SEPARATOR "<br>") as contact_phone'),
+            DB::raw('GROUP_CONCAT(DISTINCT contacts.contact_landline SEPARATOR "<br>") as contact_landline')
+        )
+        ->groupBy('units.id');
 
-        // Apply status filter if provided
-        switch ($statusFilter) {
-            case 'active':
-                $model->where('units.status', 1);
-                break;
-            case 'inactive':
-                $model->where('units.status', 0);
-                break;
-            default:
-                // No status filter applied
-                break;
-        }
+    /* ---------------- Status Filter ---------------- */
+    if ($statusFilter === 'active') {
+        $model->where('units.status', 1);
+    } elseif ($statusFilter === 'inactive') {
+        $model->where('units.status', 0);
+    }
 
-       // Global search (now works on contact fields too)
-        if ($request->filled('search.value')) {
-            $search = trim($request->input('search.value'));
-            $model->where(function ($q) use ($search) {
-                $q->where('units.unit_name', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_notes', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
-            });
-        }
-        
-        // Sorting logic
-        if ($request->has('order')) {
-            $orderColumnIndex = $request->input('order.0.column');
-            $orderColumn = $request->input("columns.$orderColumnIndex.data");
-            $orderDirection = $request->input('order.0.dir', 'asc');
+    /* ---------------- Global Search ---------------- */
+    if ($request->filled('search.value')) {
+        $search = trim($request->input('search.value'));
 
-            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                // Handle contact.* columns differently if needed
-                // $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
-                $model->orderBy($orderColumn, $orderDirection);
-            } else {
-                $model->orderBy('units.created_at', 'desc');
-            }
-        } else {
-            $model->orderBy('units.created_at', 'desc');
-        }
+        $model->where(function ($q) use ($search) {
+            $q->where('units.unit_name', 'LIKE', "%{$search}%")
+              ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
+              ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
+              ->orWhere('units.unit_notes', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
+              ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
+        });
+    }
+
+    /* ---------------- Sorting ---------------- */
+    $orderColumnIndex = $request->input('order.0.column');
+    $orderColumn = $request->input("columns.$orderColumnIndex.data");
+    $orderDir = $request->input('order.0.dir', 'desc');
+
+    $sortable = [
+        'unit_name'        => 'units.unit_name',
+        'unit_postcode'    => 'units.unit_postcode',
+        'unit_website'     => 'units.unit_website',
+        'status'           => 'units.status',
+        'created_at'       => 'units.created_at',
+        'updated_at'       => 'units.updated_at',
+        'contact_email'    => 'contact_email',
+        'contact_phone'    => 'contact_phone',
+        'contact_landline' => 'contact_landline',
+    ];
+
+    if (isset($sortable[$orderColumn])) {
+        $model->orderBy($sortable[$orderColumn], $orderDir);
+    } else {
+        $model->orderBy('units.created_at', 'desc');
+    }
 
         if ($request->ajax()) {
                 return DataTables::eloquent($model)
