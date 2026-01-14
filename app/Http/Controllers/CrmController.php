@@ -2322,12 +2322,12 @@ class CrmController extends Controller
                     $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
                     $short = Str::limit($notes, 150);
-                    $modalId = 'crm-' . $applicant->id;
+                    $modalId = 'crm-' . $applicant->id . '-' . $applicant->sale_id;
 
                     $name = e($applicant->applicant_name);
                     $postcode = e($applicant->applicant_postcode);
                     $notesEscaped = nl2br(e($notes_detail));
-                    $copyId = "copy-notes-" . $applicant->id;
+                    $copyId = "copy-notes-" . $applicant->id . '-' . $applicant->sale_id;
 
                     return '
                         <div>
