@@ -5083,7 +5083,7 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
-                if ($sent_cv_count < $sale->send_cv_limit) {
+                // if ($sent_cv_count < $sale->send_cv_limit) {
                     // Private function might throw exceptions
                     $this->crmRevertCVInQualityAction(
                         $request->input('applicant_id'),
@@ -5093,9 +5093,9 @@ class CrmController extends Controller
                     );
 
                     return response()->json(['success' => true, 'message' => 'CRM CV Reverted In Quality Successfully']);
-                }else{
-                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }else{
                 return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
             }
