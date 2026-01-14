@@ -511,7 +511,7 @@ class UnitController extends Controller
         $statusFilter = $request->input('status_filter', '');
 
         // Query builder with minimal selected columns
-        $model = Units::query()
+        $model = Unit::query()
             ->leftJoin('contacts', function ($join) {
                 $join->on('contacts.contactable_id', '=', 'units.id')
                     ->where('contacts.contactable_type', 'Horsefly\\Unit');
