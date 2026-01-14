@@ -62,10 +62,7 @@
                                     @endphp
 
                                     <li>
-                                        <strong>CV Limit:</strong>
-                                        <span>
-                                            {!! $status !!}
-                                        </span>
+                                        <strong>CV Limit:</strong> {!! $status !!}
                                     </li>
 
                                 </li>
