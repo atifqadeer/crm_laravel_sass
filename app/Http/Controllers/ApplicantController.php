@@ -2335,6 +2335,10 @@ class ApplicantController extends Controller
                         }
                     }
 
+                    $sale_cv_counts = CVNote::where('sale_id', $sale->id)
+                        ->where('status', 1)
+                        ->count();
+
                     $html = '<div class="btn-group dropstart">
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
@@ -2349,10 +2353,16 @@ class ApplicantController extends Controller
                             $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
-
-                        $html .= '<li><a href="#" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
+                        if($sale->is_on_hold != 0){
+                            $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
+                                        <span><small class="text-danger">(Sale On Hold)</small></span></a></li>';
+                        }elseif($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit && $sale->is_on_hold == 0){
+                            $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
+                                        <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
+                        }else{
+                                $html .= '<li><a href="#" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
                                                     <span>Send CV</span></a></li>';
-
+                        }
                         if ($applicant->is_callback_enable == false) {
                             $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
