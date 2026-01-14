@@ -1683,12 +1683,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["invoice", "final_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn("moved_tab_to", ["invoice", "final_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -1696,7 +1696,7 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn("moved_tab_to", ["invoice", "final_save"])
+                        ->whereIn("moved_tab_to", ["invoice"])
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
@@ -1791,20 +1791,20 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["invoice_sent", "final_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->whereIn("moved_tab_to", ["invoice_sent", "final_save"])
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ["invoice_sent", "final_save"])
+                        ->whereIn('moved_tab_to', ["invoice_sent"])
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
