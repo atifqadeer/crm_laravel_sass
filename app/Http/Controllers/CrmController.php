@@ -1154,11 +1154,11 @@ class CrmController extends Controller
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                    ->whereIn('moved_tab_to', ["interview_attended", "prestart_save"])
+                    ->whereIn('moved_tab_to', ["interview_attended"])
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                            ->whereIn('moved_tab_to', ["interview_attended", "prestart_save"])
+                            ->whereIn('moved_tab_to', ["interview_attended"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
