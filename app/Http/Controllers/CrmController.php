@@ -1590,6 +1590,7 @@ class CrmController extends Controller
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
+                                ->whereIn("moved_tab_to", ["start_date_hold", "start_date_hold_save"])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
