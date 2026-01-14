@@ -8185,10 +8185,10 @@ class CrmController extends Controller
                     "sale_id" => $sale_id,
                     "status" => 1,
                     'moved_tab_to' => "paid"
-                ])
-                ->orderByDesc('id')
-                ->limit(1)
-                ->delete();
+                ])->update(['status' => 0]);
+                // ->orderByDesc('id')
+                // ->limit(1)
+                // ->delete();
 
             CrmNote::where([
                     'applicant_id' => $applicant_id,
@@ -8205,10 +8205,10 @@ class CrmController extends Controller
                 "sale_id" => $sale_id,
                 "status" => 1,
                 'sub_stage' => 'crm_paid',
-            ])
-                ->orderByDesc('id')
-                ->limit(1)
-                ->delete();
+            ])->update(['status' => 0]);
+                // ->orderByDesc('id')
+                // ->limit(1)
+                // ->delete();
 
             History::where([
                 "applicant_id" => $applicant_id,
