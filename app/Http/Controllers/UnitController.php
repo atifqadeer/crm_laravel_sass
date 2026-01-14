@@ -571,7 +571,7 @@ class UnitController extends Controller
         } else {
             $model->orderBy('units.created_at', 'desc');
         }
-return $model->get();
+return $model->take(100)->get();
         if ($request->ajax()) {
                 return DataTables::eloquent($model)
                     ->addIndexColumn()
