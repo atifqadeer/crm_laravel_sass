@@ -612,7 +612,7 @@ class UnitController extends Controller
                         $query->orderBy('contacts.contact_landline', $order);
                     })
                     ->addColumn('updated_at', function ($unit) {
-                        return $office->formatted_updated_at;
+                        return $unit->formatted_updated_at;
                     })
                     ->addColumn('created_at', function ($office) {
                         return $office->formatted_created_at;
