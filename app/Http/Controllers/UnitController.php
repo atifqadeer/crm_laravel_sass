@@ -571,7 +571,7 @@ class UnitController extends Controller
         } else {
             $model->orderBy('units.created_at', 'desc');
         }
-
+return $model->get();
         if ($request->ajax()) {
                 return DataTables::eloquent($model)
                     ->addIndexColumn()
@@ -585,13 +585,13 @@ class UnitController extends Controller
                         return ucwords(str_replace('_', ' ', $unit->unit_type));
                     })
                     ->addColumn('contact_email', function ($unit) {
-                        return $unit->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-';
+                        return $unit->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
                     })
                     ->addColumn('contact_landline', function ($unit) {
-                        return $unit->contacts->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
+                        return $unit->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
                     })
                     ->addColumn('contact_phone', function ($unit) {
-                        return $unit->contacts->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
+                        return $unit->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
                     })
                     ->filterColumn('contact_email', function ($query, $keyword) {
                         $query->where('contacts.contact_email', 'LIKE', "%{$keyword}%");
