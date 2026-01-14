@@ -577,11 +577,9 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn('moved_tab_to', ['request_no_response'])
-                        // ->where('status', 1)
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MIN(id)'))
                                 ->from('crm_notes')
-                                // ->where('status', 1)
                                 ->whereIn('moved_tab_to', ['request_no_response'])
                                 ->groupBy('applicant_id', 'sale_id');
                         }),
@@ -1905,6 +1903,7 @@ class CrmController extends Controller
                         ->whereIn('id', fn ($subQuery) => 
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
+                                ->whereIn('moved_tab_to', ['dispute'])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
