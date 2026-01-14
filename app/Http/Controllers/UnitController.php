@@ -571,7 +571,7 @@ class UnitController extends Controller
         } else {
             $model->orderBy('units.created_at', 'desc');
         }
-return $model->take(100)->get();
+
         if ($request->ajax()) {
                 return DataTables::eloquent($model)
                     ->addIndexColumn()
@@ -612,45 +612,45 @@ return $model->take(100)->get();
                         $query->orderBy('contacts.contact_landline', $order);
                     })
                     ->addColumn('updated_at', function ($unit) {
-                        return $unit->formatted_updated_at;
+                        return $office->formatted_updated_at;
                     })
-                    ->addColumn('created_at', function ($unit) {
-                        return $unit->formatted_created_at;
+                    ->addColumn('created_at', function ($office) {
+                        return $office->formatted_created_at;
                     })
-                    ->addColumn('unit_notes', function ($unit) {
-                        $notes = nl2br(htmlspecialchars($unit->unit_notes ?? '', ENT_QUOTES, 'UTF-8'));
-                        return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$unit->id . '\')">' . $notes . '</a>';
+                    ->addColumn('office_notes', function ($office) {
+                        $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
+                        return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
                     })
-                    ->addColumn('status', function ($unit) {
-                        return $unit->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    ->addColumn('status', function ($office) {
+                        return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
                     })
-                    ->addColumn('action', function ($unit) {
-                        $postcode = $unit->formatted_postcode;
-                        $status = $unit->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    ->addColumn('action', function ($office) {
+                        $postcode = $office->formatted_postcode;
+                        $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
                         $html = '<div class="btn-group dropstart">
                                     <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                     </button>
                                     <ul class="dropdown-menu">';
-                        if (Gate::allows('unit-edit')) {
-                            $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
+                        if (Gate::allows('office-edit')) {
+                            $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
                         }
-                        if (Gate::allows('unit-view')) {
-                            $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(' . (int)$unit->id . ',\'' . addslashes(htmlspecialchars($unit->unit_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
+                        if (Gate::allows('office-view')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
                         }
-                        if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
+                        if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
                             $html .= '<li><hr class="dropdown-divider"></li>';
                         }
-                        if (Gate::allows('unit-view-notes-history')) {
-                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $unit->id . ')">Notes History</a></li>';
+                        if (Gate::allows('office-view-notes-history')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
                         }
-                        if (Gate::allows('unit-view-manager-details')) {
-                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $unit->id . ')">Manager Details</a></li>';
+                        if (Gate::allows('office-view-manager-details')) {
+                            $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
                         }
                         $html .= '</ul></div>';
                         return $html;
                     })
-                    ->rawColumns(['unit_notes', 'unit_postcode', 'contact_email', 'contact_phone', 'contact_landline', 'unit_website', 'status', 'action'])
+                    ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
                     ->toJson();
         }
     }
