@@ -1698,7 +1698,7 @@ class CrmController extends Controller
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn("moved_tab_to", ["invoice"])
                         ->whereIn('id', fn ($subQuery) => 
-                            $subQuery->select(DB::raw('MIN(id)'))
+                            $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
@@ -1806,7 +1806,7 @@ class CrmController extends Controller
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn('moved_tab_to', ["invoice_sent"])
                         ->whereIn('id', fn ($subQuery) => 
-                            $subQuery->select(DB::raw('MIN(id)'))
+                            $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
