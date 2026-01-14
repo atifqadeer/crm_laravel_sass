@@ -5277,7 +5277,7 @@ class CrmController extends Controller
             if ($sale) {
                 $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
 
-                if ($sent_cv_count < $sale->send_cv_limit) {
+                // if ($sent_cv_count < $sale->send_cv_limit) {
                     // Private function might throw exceptions
                     $this->crmRevertRejectedCvToSentCvAction(
                         $request->input('applicant_id'),
@@ -5287,9 +5287,9 @@ class CrmController extends Controller
                     );
                     
                     return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
-                }else{
-                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }else{
                 return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
             }
@@ -5753,7 +5753,7 @@ class CrmController extends Controller
                     );
                     
                 }else{
-                    if ($sent_cv_count < $sale->cv_limit) {
+                    // if ($sent_cv_count < $sale->cv_limit) {
                         // Private function might throw exceptions
                         $this->crmRequestRejectedRevertToSentCvAction(
                             $request->input('applicant_id'),
@@ -5761,9 +5761,9 @@ class CrmController extends Controller
                             $sale_id,
                             $details
                             );
-                    }else{
-                        return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                    }
+                    // }else{
+                    //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                    // }
                 }
 
                 return response()->json(['success' => true, 'message' => 'CRM Reverted To Sent CV Successfully']);
@@ -6737,7 +6737,7 @@ class CrmController extends Controller
                     'status' => 1
                     ])->count();
 
-                if ($sent_cv_count < $sale->cv_limit) {
+                // if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
                     $this->crmInterviewNotAttendedToAttendedAction(
                         $request->input('applicant_id'),
@@ -6747,9 +6747,9 @@ class CrmController extends Controller
                     );
 
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
-                }else{
-                    return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }else{
                 return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
@@ -6887,7 +6887,7 @@ class CrmController extends Controller
                     'status' => 1
                     ])->count();
 
-                if ($sent_cv_count < $sale->cv_limit) {
+                // if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
                     $this->crmRevertDeclineToAttendedAction(
                         $request->input('applicant_id'),
@@ -6897,9 +6897,9 @@ class CrmController extends Controller
                     );
 
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
-                }else{
-                    return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }else{
                 return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
@@ -7288,7 +7288,7 @@ class CrmController extends Controller
                     'status' => 1
                     ])->count();
 
-                if ($sent_cv_count < $sale->cv_limit) {
+                // if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
                     $this->crmRevertStartDateHoldToStartDateAction(
                         $request->input('applicant_id'),
@@ -7299,9 +7299,9 @@ class CrmController extends Controller
 
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
-                }else{
-                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }
 
             return response()->json(['success' => false, 'message' => 'Sale record not found!']);
@@ -7935,7 +7935,7 @@ class CrmController extends Controller
                     'status' => 1
                     ])->count();
 
-                if ($sent_cv_count < $sale->cv_limit) {
+                // if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
                     $this->crmRevertDisputeToInvoiceAction(
                         $request->input('applicant_id'),
@@ -7946,9 +7946,9 @@ class CrmController extends Controller
 
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
-                }else{
-                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-                }
+                // }else{
+                //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                // }
             }
 
             return response()->json(['success' => false, 'message' => 'Sale record not found!']);
