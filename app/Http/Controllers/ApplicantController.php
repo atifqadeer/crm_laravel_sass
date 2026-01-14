@@ -1727,9 +1727,9 @@ class ApplicantController extends Controller
 
                 $net_sent_cv_count = $sent_cv_count - $open_cv_count;
 
-                if ($net_sent_cv_count >= $sale->cv_limit) {
-                    throw new Exception("Sorry, you can't send more CVs for this job. The maximum CV limit has been reached.");
-                }
+                // if ($net_sent_cv_count >= $sale->cv_limit) {
+                //     throw new Exception("Sorry, you can't send more CVs for this job. The maximum CV limit has been reached.");
+                // }
 
                 // ✅ Check if applicant is rejected
                 if ($this->checkIfApplicantRejected($applicant, $sale->id)) {
