@@ -42,27 +42,29 @@
                             <ul class="list-unstyled mb-0">
                                 <li>
                                     @php
-                                        $cvCount = $sale_cv_count ?? 0;
-                                        $cvLimit = $sale->cv_limit ?? 0;
+                                        // $cvCount = $sale_cv_count ?? 0;
+                                        // $cvLimit = $sale->cv_limit ?? 0;
 
-                                        $percentage = $cvLimit > 0 ? ($cvCount / $cvLimit) * 100 : 0;
+                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                  
+                                        // $percentage = $cvLimit > 0 ? ($cvCount / $cvLimit) * 100 : 0;
 
-                                        $badgeClass = 'bg-success';
-                                        $blinkClass = '';
+                                        // $badgeClass = 'bg-success';
+                                        // $blinkClass = '';
 
-                                        if ($percentage >= 80 && $percentage < 100) {
-                                            $badgeClass = 'bg-warning text-dark';
-                                            $blinkClass = 'badge-blink';
-                                        } elseif ($percentage >= 100) {
-                                            $badgeClass = 'bg-danger';
-                                            $blinkClass = 'badge-blink';
-                                        }
+                                        // if ($percentage >= 80 && $percentage < 100) {
+                                        //     $badgeClass = 'bg-warning text-dark';
+                                        //     $blinkClass = 'badge-blink';
+                                        // } elseif ($percentage >= 100) {
+                                        //     $badgeClass = 'bg-danger';
+                                        //     $blinkClass = 'badge-blink';
+                                        // }
                                     @endphp
 
                                     <li>
                                         <strong>CV Limit:</strong>
-                                        <span class="badge {{ $badgeClass }} {{ $blinkClass }}">
-                                            {{ $cvCount }}/{{ $cvLimit }}
+                                        <span>
+                                            {{ $status }}
                                         </span>
                                     </li>
 
