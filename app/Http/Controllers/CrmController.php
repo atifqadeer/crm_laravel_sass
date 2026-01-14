@@ -1059,11 +1059,10 @@ class CrmController extends Controller
                 $model->joinSub(
                         DB::table('crm_notes')
                             ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to',  ["rebook"])
+                            ->whereIn('moved_tab_to',  ["rebook", "rebook_save"])
                             ->whereIn('id', fn ($subQuery) => 
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
-                                    ->whereIn('moved_tab_to',  ["rebook"])
                                     ->groupBy('applicant_id', 'sale_id')
                             ),
                         'crm_notes',
