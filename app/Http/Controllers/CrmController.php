@@ -1993,6 +1993,7 @@ class CrmController extends Controller
                             ->whereIn('id', function ($subQuery) {
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
+                                    ->where('moved_tab_to', 'paid')
                                     ->groupBy('applicant_id', 'sale_id');
                             }),
                         'crm_notes',
