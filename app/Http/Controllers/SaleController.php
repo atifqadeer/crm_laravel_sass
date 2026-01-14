@@ -84,6 +84,7 @@ class SaleController extends Controller
         $jobType = $jobType == 'Specialist' ? ' (' . $jobType . ')' : '';
         // Convert radius to miles if provided in kilometers (1 km ≈ 0.621371 miles)
         $radiusInMiles = round($radius * 0.621371, 1);
+
         $sale_cv_count = CVNote::where('sale_id', $id)
                             ->where('status', 1)
                             ->count();
@@ -4941,12 +4942,15 @@ class SaleController extends Controller
 
                                                 <li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal('. $applicant->id .')">
                                                         Mark No Nursing Home</a></li>';
-                                    if($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit){
+                                    if($sale->is_on_hold != 0){
+                                        $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
+                                                    <span><small class="text-danger">(Sale On Hold)</small></span></a></li>';
+                                    }elseif($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit && $sale->is_on_hold == 0){
                                         $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
                                                     <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                                     }else{
                                         $html .= '<li><a href="#" onclick="sendCVModal('. $applicant->id .', '. $sale_id .')" class="dropdown-item" >
-                                            <span>Send CV '.$sale_cv_counts.'</span></a></li>';
+                                            <span>Send CV</span></a></li>';
                                     }
                                                $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
                                 } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
