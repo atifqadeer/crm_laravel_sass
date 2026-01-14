@@ -2630,7 +2630,6 @@ class CrmController extends Controller
                                                     ->orderBy('created_at', 'desc')
                                                     ->first();
 
-
                             $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >'. $emailText .'</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
                                 $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">
@@ -5079,12 +5078,12 @@ class CrmController extends Controller
 
             $user = Auth::user();
             $details = $request->input('details') . ' --- Rejected By: ' . $user->name;
-            // $sale_id = $request->input('sale_id');
+            $sale_id = $request->input('sale_id');
 
-            // $sale = Sale::find($sale_id);
-            // if ($sale) {
-            //     $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
-            //     if ($sent_cv_count < $sale->send_cv_limit) {
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
+                if ($sent_cv_count < $sale->send_cv_limit) {
                     // Private function might throw exceptions
                     $this->crmRevertCVInQualityAction(
                         $request->input('applicant_id'),
@@ -5094,12 +5093,12 @@ class CrmController extends Controller
                     );
 
                     return response()->json(['success' => true, 'message' => 'CRM CV Reverted In Quality Successfully']);
-            //     }else{
-            //         return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
-            //     }
-            // }else{
-            //     return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
-            // }
+                }else{
+                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                }
+            }else{
+                return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
+            }
 
         } catch (ValidationException $e) {
             return response()->json([
@@ -5272,15 +5271,28 @@ class CrmController extends Controller
             $user = Auth::user();
             $details = $request->input('details') . ' --- Reverted By: ' . $user->name;
 
-            // Private function might throw exceptions
-            $this->crmRevertRejectedCvToSentCvAction(
-                $request->input('applicant_id'),
-                $user->id,
-                $request->input('sale_id'),
-                $details
-            );
+            $sale_id = $request->input('sale_id');
 
-            return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
+            $sale = Sale::find($sale_id);
+            if ($sale) {
+                $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
+
+                if ($sent_cv_count < $sale->send_cv_limit) {
+                    // Private function might throw exceptions
+                    $this->crmRevertRejectedCvToSentCvAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $request->input('sale_id'),
+                        $details
+                    );
+                    
+                    return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
+                }else{
+                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
+                }
+            }else{
+                return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
+            }
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5748,14 +5760,17 @@ class CrmController extends Controller
                             $user->id,
                             $sale_id,
                             $details
-                        );
+                            );
                     }else{
-                        return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                        return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                     }
                 }
+
+                return response()->json(['success' => true, 'message' => 'CRM Reverted To Sent CV Successfully']);
+            }else{
+                return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
 
-            return response()->json(['success' => true, 'message' => 'CRM Reverted To Sent CV Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -6731,12 +6746,14 @@ class CrmController extends Controller
                         $details
                     );
 
+                    return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
                 }else{
-                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                    return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 }
+            }else{
+                return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
 
-            return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -6879,12 +6896,14 @@ class CrmController extends Controller
                         $details
                     );
 
+                    return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
                 }else{
-                    return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                    return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 }
+            }else{
+                return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
 
-            return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -7281,11 +7300,11 @@ class CrmController extends Controller
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
                 }else{
-                    return response()->json(['success' => false, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 }
             }
 
-            return response()->json(['success' => false, 'message' => 'Sale Not Found']);
+            return response()->json(['success' => false, 'message' => 'Sale record not found!']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -7928,11 +7947,11 @@ class CrmController extends Controller
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
                 }else{
-                    return response()->json(['success' => false, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
+                    return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 }
             }
 
-            return response()->json(['success' => false, 'message' => 'Sale Not Found']);
+            return response()->json(['success' => false, 'message' => 'Sale record not found!']);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
