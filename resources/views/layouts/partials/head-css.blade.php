@@ -4,12 +4,12 @@
 <style>
     html[data-bs-theme="light"] {
         $body-color: #252728;
-        .table a {
+        /* .table a {
             color: #252728 !important;
         }
         .table a:hover {
             color: #4393e3 !important;
-        }
+        } */
         .table>:not(caption)>*>* {
             padding: .85rem;
             color: var(--bs-table-color-state, var(--bs-table-color-type, #252728));
@@ -30,12 +30,12 @@
         .postcode .active_postcode{
             color: rgb(218, 171, 20) !important;
         }
-        .table a {
+        /* .table a {
             color: #aab8c5 !important;
-        }
-        .table a:hover {
+        } */
+        /* .table a:hover {
             color: #4393e3 !important;
-        }
+        } */
         .dataTables_wrapper .dataTables_length, 
         .dataTables_wrapper .dataTables_filter, 
         .dataTables_wrapper .dataTables_info, 
