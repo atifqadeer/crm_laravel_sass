@@ -482,79 +482,11 @@ class UnitController extends Controller
     $statusFilter = $request->input('status_filter');
     $searchTerm   = trim($request->input('search.value', ''));
 
-    // /* -------------------------------------------------
-    //  | Base Query
-    //  -------------------------------------------------*/
-    // $query = Unit::query()
-    //     ->select('units.*')
-    //     ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-    //     ->leftJoin('contacts as c', function ($join) {
-    //         $join->on('c.contactable_id', '=', 'units.id')
-    //              ->where('c.contactable_type', 'Horsefly\\Unit');
-    //     })
-    //     ->with(['office', 'contacts'])
-    //     ->distinct('units.id'); // ✅ FIX for GROUP BY error
-
-    // /* -------------------------------------------------
-    //  | Status Filter
-    //  -------------------------------------------------*/
-    // if ($statusFilter === 'active') {
-    //     $query->where('units.status', 1);
-    // } elseif ($statusFilter === 'inactive') {
-    //     $query->where('units.status', 0);
-    // }
-
-    // /* -------------------------------------------------
-    //  | Global Search (Optimized, Multi-word AND logic)
-    //  -------------------------------------------------*/
-    // if ($searchTerm !== '') {
-    //     $words = preg_split('/\s+/', $searchTerm, -1, PREG_SPLIT_NO_EMPTY);
-
-    //     $query->where(function ($q) use ($words) {
-    //         foreach ($words as $word) {
-    //             $like = "%{$word}%";
-
-    //             $q->where(function ($w) use ($like) {
-    //                 $w->where('units.unit_name', 'LIKE', $like)
-    //                   ->orWhere('units.unit_postcode', 'LIKE', $like)
-    //                   ->orWhere('units.unit_website', 'LIKE', $like)
-    //                   ->orWhere('units.unit_notes', 'LIKE', $like)
-    //                   ->orWhere('offices.office_name', 'LIKE', $like)
-    //                   ->orWhere('c.contact_email', 'LIKE', $like)
-    //                   ->orWhere('c.contact_phone', 'LIKE', $like)
-    //                   ->orWhere('c.contact_landline', 'LIKE', $like);
-    //             });
-    //         }
-    //     });
-    // }
-
-    // /* -------------------------------------------------
-    //  | Ordering (Safe Mapping)
-    //  -------------------------------------------------*/
-    // $orderColumnIndex = $request->input('order.0.column', 0);
-    // $orderDir         = $request->input('order.0.dir', 'desc');
-    // $orderColumn      = $request->input("columns.$orderColumnIndex.data", 'created_at');
-
-    // $orderMap = [
-    //     'office_name'      => 'offices.office_name',
-    //     'unit_name'        => 'units.unit_name',
-    //     'unit_postcode'    => 'units.unit_postcode',
-    //     'contact_email'    => 'c.contact_email',
-    //     'contact_phone'    => 'c.contact_phone',
-    //     'contact_landline' => 'c.contact_landline',
-    //     'status'           => 'units.status',
-    //     'created_at'       => 'units.created_at',
-    // ];
-
-    // $query->orderBy(
-    //     $orderMap[$orderColumn] ?? 'units.created_at',
-    //     $orderDir
-    // );
-
     $query = Unit::query()
     ->select('units.*')
     ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-    ->whereNull('units.deleted_at');
+    ->whereNull('units.deleted_at')
+    ->with('office','contacts');
 
 if ($statusFilter === 'active') {
     $query->where('units.status', 1);
@@ -590,10 +522,6 @@ if ($statusFilter === 'active') {
             $query->orderBy('units.created_at', 'desc');
         }
 
-// Eager-load minimal contacts for display
-$query->with(['contacts' => function ($c) {
-    $c->select('contactable_id', 'contact_email', 'contact_phone', 'contact_landline');
-}])->with('office');
 
     /* -------------------------------------------------
      | DataTables Response
