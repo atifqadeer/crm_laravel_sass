@@ -483,7 +483,7 @@ class UnitController extends Controller
         $searchTerm   = trim($request->input('search.value', ''));
 
         $query = Unit::query()
-            ->select('units.*')
+            ->select('units.*', 'offices.office_name as office_name')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->whereNull('units.deleted_at')
             ->with('office', 'contacts');
