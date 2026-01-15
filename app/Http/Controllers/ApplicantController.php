@@ -2097,6 +2097,7 @@ class ApplicantController extends Controller
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
 
             ->where('sales.status', 1)
+            ->where('sales.is_on_hold', 0)
             ->having("distance", "<", $radius)
             ->orderBy("distance");
 
@@ -2485,6 +2486,7 @@ class ApplicantController extends Controller
             ->having('distance', '<', $radius)
             ->orderBy('distance')
             ->where('sales.status', 1) // Only active sales
+            ->where('sales.is_on_hold', 0) // Exclude on-hold sales
             ->whereNotExists(function ($query) use ($applicant_id) {
                 $query->select(DB::raw(1))
                     ->from('applicants_pivot_sales')
