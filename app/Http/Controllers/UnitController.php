@@ -569,11 +569,7 @@ if ($statusFilter === 'active') {
                 $q->where('units.unit_name', 'LIKE', "%{$search}%")
                 ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
                 ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_notes', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
-                ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
+                ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
             });
         }
         
