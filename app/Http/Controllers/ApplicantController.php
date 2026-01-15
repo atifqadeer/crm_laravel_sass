@@ -626,7 +626,7 @@ class ApplicantController extends Controller
 
                     if ($status_value == 'open' || $status_value == 'reject') {
                         return '
-                            <a href="#" title="Add Short Note" style="color:blue"
+                            <a href="#" class="active_postcode" title="Add Short Note"
                             onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                                 ' . $notes . '
                             </a>
