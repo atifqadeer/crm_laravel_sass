@@ -648,13 +648,45 @@ $query->with(['contacts' => function ($c) {
                 ? '<span class="badge bg-success">Active</span>'
                 : '<span class="badge bg-secondary">Inactive</span>'
         )
+        ->addColumn('action', function ($u) {
+            $postcode    = $u->formatted_postcode;
+            $office_name = $u->office?->office_name ?? '-';
+            $status      = $u->status
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-secondary">Inactive</span>';
+
+            $html = '<div class="btn-group dropstart">
+                        <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                        </button>
+                        <ul class="dropdown-menu">';
+
+            if (Gate::allows('unit-edit')) {
+                $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
+            }
+            if (Gate::allows('unit-view')) {
+                $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
+                    . (int)$u->id . ', '
+                    . '\'' . e($office_name) . '\', '
+                    . '\'' . e($u->unit_name) . '\', '
+                    . '\'' . e($postcode) . '\', '
+                    . '\'' . e($status) . '\')">View</a></li>';
+            }
+
+            $html .= '</ul></div>';
+
+            return $html;
+        })
 
         ->rawColumns([
             'unit_notes',
             'contact_email',
             'contact_phone',
             'contact_landline',
-            'status'
+            'status',
+            'office_name',
+            'unit_name',
+            'action',
         ])
         ->make(true);
 }
