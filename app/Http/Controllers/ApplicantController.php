@@ -600,7 +600,7 @@ class ApplicantController extends Controller
                 ->editColumn('applicant_postcode', function ($applicant) {
                     if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="' . $url . '" target="_blank" style="color:blue;">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                        $button = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>'; // Using accessor
                     } else {
                         $button = $applicant->formatted_postcode;
                     }
