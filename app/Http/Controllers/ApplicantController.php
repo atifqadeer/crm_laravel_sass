@@ -2371,6 +2371,15 @@ class ApplicantController extends Controller
 
                     return '<span class="badge ' . $status_clr . '">' . $status_value . '</span>';
                 })
+                 ->addColumn('position_type', function ($sale) {
+                    $status = '-';
+                    if($sale->position_type == 'full time'){
+                        $status = "<span class='badge w-100 bg-primary'>" . ucwords($sale->position_type) . "</span>";
+                    }elseif($sale->position_type == 'part time'){
+                        $status = "<span class='badge w-100 bg-info'>" . ucwords($sale->position_type) . "</span>";
+                    }
+                    return $status;
+                })
                 ->addColumn('action', function ($sale) use ($applicant) {
                     $status_value = 'open';
                     foreach ($applicant->cv_notes as $key => $value) {
@@ -2430,7 +2439,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'position_type', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

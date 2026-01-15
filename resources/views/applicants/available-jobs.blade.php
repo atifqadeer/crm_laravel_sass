@@ -96,6 +96,7 @@
                                                     <th>Date</th>
                                                     <th>Head Office</th>
                                                     <th>Unit Name</th>
+                                                    <th>Position Type</th>
                                                     <th>Title</th>
                                                     <th>Category</th>
                                                     <th>PostCode</th>
@@ -198,6 +199,7 @@
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
                     { data: 'job_title', name: 'job_titles.name' },
+                    { data: 'position_type', name: 'sales.position_type', searchable: false },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
                     { data: 'experience', name: 'sales.experience' },
