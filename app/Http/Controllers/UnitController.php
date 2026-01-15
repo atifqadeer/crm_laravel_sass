@@ -478,33 +478,65 @@ class UnitController extends Controller
     //     }
     // }
     public function getUnits(Request $request)
-{
-    $statusFilter = $request->input('status_filter');
-    $searchTerm   = trim($request->input('search.value', ''));
+    {
+        $statusFilter = $request->input('status_filter');
+        $searchTerm   = trim($request->input('search.value', ''));
 
-    $query = Unit::query()
-    ->select('units.*')
-    ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-    ->whereNull('units.deleted_at')
-    ->with('office','contacts');
+        $query = Unit::query()
+            ->select('units.*')
+            ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
+            ->whereNull('units.deleted_at')
+            ->with('office', 'contacts');
 
-if ($statusFilter === 'active') {
-    $query->where('units.status', 1);
-} elseif ($statusFilter === 'inactive') {
-    $query->where('units.status', 0);
-}
+        if ($statusFilter === 'active') {
+            $query->where('units.status', 1);
+        } elseif ($statusFilter === 'inactive') {
+            $query->where('units.status', 0);
+        }
 
- // Global search (now works on contact fields too)
-        if ($request->filled('search.value')) {
-            $search = trim($request->input('search.value'));
-            $query->where(function ($q) use ($search) {
-                $q->where('units.unit_name', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
-                ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
+        // Global search (now works on contact fields too)
+        // if ($request->filled('search.value')) {
+        //     $search = trim($request->input('search.value'));
+        //     $query->where(function ($q) use ($search) {
+        //         $q->where('units.unit_name', 'LIKE', "%{$search}%")
+        //             ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
+        //             ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
+        //             ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
+        //     });
+        // }
+
+        if ($searchTerm !== '') {
+    $words = preg_split('/\s+/', $searchTerm, -1, PREG_SPLIT_NO_EMPTY);
+
+    $query->where(function ($q) use ($words) {
+        foreach ($words as $word) {
+            $like = "%{$word}%";
+
+            $q->where(function ($w) use ($like) {
+                // Search units columns
+                $w->where('units.unit_name', 'LIKE', $like)
+                  ->orWhere('units.unit_postcode', 'LIKE', $like)
+                  ->orWhere('units.unit_website', 'LIKE', $like)
+                  ->orWhere('units.unit_notes', 'LIKE', $like)
+                  // Search office_name
+                  ->orWhere('offices.office_name', 'LIKE', $like)
+                  // Search contacts
+                  ->orWhereExists(function ($sub) use ($like) {
+                      $sub->select(DB::raw(1))
+                          ->from('contacts')
+                          ->whereColumn('contacts.contactable_id', 'units.id')
+                          ->where('contacts.contactable_type', 'Horsefly\\Unit')
+                          ->where(function ($c) use ($like) {
+                              $c->where('contacts.contact_email', 'LIKE', $like)
+                                ->orWhere('contacts.contact_phone', 'LIKE', $like)
+                                ->orWhere('contacts.contact_landline', 'LIKE', $like);
+                          });
+                  });
             });
         }
-        
+    });
+}
+
         // Sorting logic
         if ($request->has('order')) {
             $orderColumnIndex = $request->input('order.0.column');
@@ -523,81 +555,91 @@ if ($statusFilter === 'active') {
         }
 
 
-    /* -------------------------------------------------
+        /* -------------------------------------------------
      | DataTables Response
      -------------------------------------------------*/
-    return DataTables::eloquent($query)
-        ->addIndexColumn()
+        return DataTables::eloquent($query)
+            ->addIndexColumn()
 
-        ->addColumn('office_name', fn ($u) => $u->office?->office_name ?? '-')
-        ->addColumn('unit_name', fn ($u) => $u->formatted_unit_name)
-        ->addColumn('unit_postcode', fn ($u) => $u->formatted_postcode)
+            ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
+            ->addColumn('unit_name', fn($u) => $u->formatted_unit_name)
+            ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
 
-        ->addColumn('contact_email', fn ($u) =>
-            $u->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-'
-        )
-        ->addColumn('contact_phone', fn ($u) =>
-            $u->contacts->pluck('contact_phone')->filter()->implode('<br>') ?: '-'
-        )
-        ->addColumn('contact_landline', fn ($u) =>
-            $u->contacts->pluck('contact_landline')->filter()->implode('<br>') ?: '-'
-        )
+            ->addColumn(
+                'contact_email',
+                fn($u) =>
+                $u->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-'
+            )
+            ->addColumn(
+                'contact_phone',
+                fn($u) =>
+                $u->contacts->pluck('contact_phone')->filter()->implode('<br>') ?: '-'
+            )
+            ->addColumn(
+                'contact_landline',
+                fn($u) =>
+                $u->contacts->pluck('contact_landline')->filter()->implode('<br>') ?: '-'
+            )
 
-        ->addColumn('created_at', fn ($u) => $u->formatted_created_at)
-        ->addColumn('updated_at', fn ($u) => $u->formatted_updated_at)
+            ->addColumn('created_at', fn($u) => $u->formatted_created_at)
+            ->addColumn('updated_at', fn($u) => $u->formatted_updated_at)
 
-        ->addColumn('unit_notes', fn ($u) =>
-            '<a href="#" onclick="addShortNotesModal('.(int)$u->id.')">'
-            . nl2br(e($u->unit_notes)) . '</a>'
-        )
+            ->addColumn(
+                'unit_notes',
+                fn($u) =>
+                '<a href="#" onclick="addShortNotesModal(' . (int)$u->id . ')">'
+                    . nl2br(e($u->unit_notes)) . '</a>'
+            )
 
-        ->addColumn('status', fn ($u) =>
-            $u->status
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Inactive</span>'
-        )
-        ->addColumn('action', function ($u) {
-            $postcode    = $u->formatted_postcode;
-            $office_name = $u->office?->office_name ?? '-';
-            $status      = $u->status
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Inactive</span>';
+            ->addColumn(
+                'status',
+                fn($u) =>
+                $u->status
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-secondary">Inactive</span>'
+            )
+            ->addColumn('action', function ($u) {
+                $postcode    = $u->formatted_postcode;
+                $office_name = $u->office?->office_name ?? '-';
+                $status      = $u->status
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-secondary">Inactive</span>';
 
-            $html = '<div class="btn-group dropstart">
+                $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                         </button>
                         <ul class="dropdown-menu">';
 
-            if (Gate::allows('unit-edit')) {
-                $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
-            }
-            if (Gate::allows('unit-view')) {
-                $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
-                    . (int)$u->id . ', '
-                    . '\'' . e($office_name) . '\', '
-                    . '\'' . e($u->unit_name) . '\', '
-                    . '\'' . e($postcode) . '\', '
-                    . '\'' . e($status) . '\')">View</a></li>';
-            }
+                if (Gate::allows('unit-edit')) {
+                    $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
+                }
+                if (Gate::allows('unit-view')) {
+                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
+                        . (int)$u->id . ', '
+                        . '\'' . e($office_name) . '\', '
+                        . '\'' . e($u->unit_name) . '\', '
+                        . '\'' . e($postcode) . '\', '
+                        . '\'' . e($status) . '\')">View</a></li>';
+                }
 
-            $html .= '</ul></div>';
+                $html .= '</ul></div>';
 
-            return $html;
-        })
+                return $html;
+            })
 
-        ->rawColumns([
-            'unit_notes',
-            'contact_email',
-            'contact_phone',
-            'contact_landline',
-            'status',
-            'office_name',
-            'unit_name',
-            'action',
-        ])
-        ->make(true);
-}
+            ->rawColumns([
+                'unit_notes',
+                'contact_email',
+                'contact_phone',
+                'contact_landline',
+                'status',
+                'office_name',
+                'unit_name',
+                'action',
+            ])
+            ->make(true);
+    }
 
     public function storeUnitShortNotes(Request $request)
     {
