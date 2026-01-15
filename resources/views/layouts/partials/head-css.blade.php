@@ -17,7 +17,7 @@
             border-bottom-width: var(--bs-border-width);
             box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
         }
-        .active_postcode{
+        .postcode .active_postcode{
             color: rgb(30, 30, 185) !important;
         }
     }
@@ -27,7 +27,7 @@
             --#{$prefix}table-bg: var(--#{$prefix}light);
             --#{$prefix}table-border-color: #{$table-group-separator-color};
         }
-        .active_postcode{
+        .postcode .active_postcode{
             color: rgb(218, 171, 20) !important;
         }
         .table a {

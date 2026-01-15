@@ -176,7 +176,7 @@
                                     <th>Email</th>
                                     <th>Title</th>
                                     <th>Category</th>
-                                    <th>PostCode</th>
+                                    <th class="postcode">PostCode</th>
                                     <th width="15%">Phone / Landline</th>
                                     @canany(['applicant-download-resume'])
                                         <th>Applicant Resume</th>
