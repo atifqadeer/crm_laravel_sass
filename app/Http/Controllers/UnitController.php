@@ -495,47 +495,15 @@ class UnitController extends Controller
         }
 
         // Global search (now works on contact fields too)
-        // if ($request->filled('search.value')) {
-        //     $search = trim($request->input('search.value'));
-        //     $query->where(function ($q) use ($search) {
-        //         $q->where('units.unit_name', 'LIKE', "%{$search}%")
-        //             ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
-        //             ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
-        //             ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
-        //     });
-        // }
-
-        if ($searchTerm !== '') {
-    $words = preg_split('/\s+/', $searchTerm, -1, PREG_SPLIT_NO_EMPTY);
-
-    $query->where(function ($q) use ($words) {
-        foreach ($words as $word) {
-            $like = "%{$word}%";
-
-            $q->where(function ($w) use ($like) {
-                // Search units columns
-                $w->where('units.unit_name', 'LIKE', $like)
-                  ->orWhere('units.unit_postcode', 'LIKE', $like)
-                  ->orWhere('units.unit_website', 'LIKE', $like)
-                  ->orWhere('units.unit_notes', 'LIKE', $like)
-                  // Search office_name
-                  ->orWhere('offices.office_name', 'LIKE', $like)
-                  // Search contacts
-                  ->orWhereExists(function ($sub) use ($like) {
-                      $sub->select(DB::raw(1))
-                          ->from('contacts')
-                          ->whereColumn('contacts.contactable_id', 'units.id')
-                          ->where('contacts.contactable_type', 'Horsefly\\Unit')
-                          ->where(function ($c) use ($like) {
-                              $c->where('contacts.contact_email', 'LIKE', $like)
-                                ->orWhere('contacts.contact_phone', 'LIKE', $like)
-                                ->orWhere('contacts.contact_landline', 'LIKE', $like);
-                          });
-                  });
+        if ($request->filled('search.value')) {
+            $search = trim($request->input('search.value'));
+            $query->where(function ($q) use ($search) {
+                $q->where('units.unit_name', 'LIKE', "%{$search}%")
+                    ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
+                    ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
+                    ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
             });
         }
-    });
-}
 
         // Sorting logic
         if ($request->has('order')) {
@@ -562,6 +530,13 @@ class UnitController extends Controller
             ->addIndexColumn()
 
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
+            ->filterColumn('office_name', function ($query, $keyword) {
+                $keyword = strtolower(trim($keyword));
+
+                $query->where(function ($q) use ($keyword) {
+                    $q->whereRaw('LOWER(offices.office_name) LIKE ?', ["%{$keyword}%"]);
+                });
+            })
             ->addColumn('unit_name', fn($u) => $u->formatted_unit_name)
             ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
 
