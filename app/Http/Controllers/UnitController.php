@@ -562,53 +562,37 @@ if ($statusFilter === 'active') {
     $query->where('units.status', 0);
 }
 
-if ($searchTerm !== '') {
-    $words = preg_split('/\s+/', $searchTerm, -1, PREG_SPLIT_NO_EMPTY);
-
-    $query->where(function ($q) use ($words) {
-        foreach ($words as $word) {
-            $like = "%$word%";
-
-            // Search units columns
-            $q->where(function ($w) use ($like) {
-                $w->where('units.unit_name', 'LIKE', $like)
-                  ->orWhere('units.unit_postcode', 'LIKE', $like)
-                  ->orWhere('units.unit_website', 'LIKE', $like)
-                  ->orWhere('units.unit_notes', 'LIKE', $like)
-                  ->orWhereExists(function ($sub) use ($like) {
-                      $sub->selectRaw(1)
-                          ->from('contacts')
-                          ->whereColumn('contacts.contactable_id', 'units.id')
-                          ->where('contacts.contactable_type', 'Horsefly\\Unit')
-                          ->where(function ($c) use ($like) {
-                              $c->where('contact_email', 'LIKE', $like)
-                                ->orWhere('contact_phone', 'LIKE', $like)
-                                ->orWhere('contact_landline', 'LIKE', $like);
-                          });
-                  })
-                  ->orWhere('offices.office_name', 'LIKE', $like);
+ // Global search (now works on contact fields too)
+        if ($request->filled('search.value')) {
+            $search = trim($request->input('search.value'));
+            $query->where(function ($q) use ($search) {
+                $q->where('units.unit_name', 'LIKE', "%{$search}%")
+                ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
+                ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
+                ->orWhere('units.unit_notes', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_name', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_email', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_phone', 'LIKE', "%{$search}%")
+                ->orWhere('contacts.contact_landline', 'LIKE', "%{$search}%");
             });
         }
-    });
-}
+        
+        // Sorting logic
+        if ($request->has('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderColumn = $request->input("columns.$orderColumnIndex.data");
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-// Ordering
-$orderColumnIndex = $request->input('order.0.column', 0);
-$orderDir         = $request->input('order.0.dir', 'desc');
-$orderColumn      = $request->input("columns.$orderColumnIndex.data", 'created_at');
-
-$orderMap = [
-    'office_name'      => 'offices.office_name',
-    'unit_name'        => 'units.unit_name',
-    'unit_postcode'    => 'units.unit_postcode',
-    'contact_email'    => 'units.id', // cannot order contacts efficiently
-    'contact_phone'    => 'units.id',
-    'contact_landline' => 'units.id',
-    'status'           => 'units.status',
-    'created_at'       => 'units.created_at',
-];
-
-$query->orderBy($orderMap[$orderColumn] ?? 'units.created_at', $orderDir);
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                // Handle contact.* columns differently if needed
+                // $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'units.' . $orderColumn;
+                $query->orderBy($orderColumn, $orderDirection);
+            } else {
+                $query->orderBy('units.created_at', 'desc');
+            }
+        } else {
+            $query->orderBy('units.created_at', 'desc');
+        }
 
 // Eager-load minimal contacts for display
 $query->with(['contacts' => function ($c) {
