@@ -1280,64 +1280,116 @@ class ApplicantController extends Controller
         $applicant = Applicant::findOrFail($id);
         return view('applicants.show', compact('applicant'));
     }
+    // public function uploadCv(Request $request)
+    // {
+    //     // Validate the request
+    //     // $validator = Validator::make($request->all(), [
+    //     //     'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
+    //     //     'applicant_id' => 'required|integer|exists:applicants,id',
+    //     // ]);
+
+    //     // if ($validator->fails()) {
+    //     //     return response()->json([
+    //     //         'success' => false,
+    //     //         'message' => $validator->errors()->first(),
+    //     //         'errors'  => $validator->errors(),
+    //     //     ], 422);
+    //     // }
+    //     // Get file and applicant data
+    //     $file = $request->file('resume');
+    //     $applicantId = $request->input('applicant_id');
+
+    //     // Fetch applicant
+    //     $applicant = Applicant::findOrFail($applicantId);
+
+    //     // ✅ Delete old CV file if it exists
+    //     if (!empty($applicant->applicant_cv) && Storage::disk('public')->exists($applicant->applicant_cv)) {
+    //         Storage::disk('public')->delete($applicant->applicant_cv);
+    //     }
+
+    //     // Generate directory structure based on current date
+    //     $year = now()->year;
+    //     $month = now()->month;
+    //     $day = now()->day;
+
+    //     // Create storage path
+    //     $directory = "uploads/resume/{$year}/{$month}/{$day}";
+    //     $storagePath = "public/{$directory}";
+
+    //     // Ensure directory exists
+    //     if (!Storage::exists($storagePath)) {
+    //         Storage::makeDirectory($storagePath, 0755, true); // recursive creation
+    //     }
+
+    //     // Generate unique filename
+    //     $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
+
+    //     // Store the file
+    //     $filePath = $file->storeAs($directory, $fileName, 'public');
+
+    //     // Update applicant record
+    //     $applicant->update(['applicant_cv' => $filePath]);
+
+    //     // Return response
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'File uploaded successfully',
+    //         'file_path' => $filePath,
+    //         'file_url' => Storage::url($filePath),
+    //     ]);
+    // }
     public function uploadCv(Request $request)
-    {
-        // Validate the request
-        // $validator = Validator::make($request->all(), [
-        //     'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
-        //     'applicant_id' => 'required|integer|exists:applicants,id',
-        // ]);
+{
+    // Get file and applicant data
+    $file = $request->file('resume');
+    $applicantId = $request->input('applicant_id');
 
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => $validator->errors()->first(),
-        //         'errors'  => $validator->errors(),
-        //     ], 422);
-        // }
-        // Get file and applicant data
-        $file = $request->file('resume');
-        $applicantId = $request->input('applicant_id');
+    // Fetch applicant
+    $applicant = Applicant::findOrFail($applicantId);
 
-        // Fetch applicant
-        $applicant = Applicant::findOrFail($applicantId);
-
-        // ✅ Delete old CV file if it exists
-        if (!empty($applicant->applicant_cv) && Storage::disk('public')->exists($applicant->applicant_cv)) {
-            Storage::disk('public')->delete($applicant->applicant_cv);
+    // ✅ Delete old CV if exists (from public directory)
+    if (!empty($applicant->applicant_cv)) {
+        $oldPath = public_path($applicant->applicant_cv);
+        if (file_exists($oldPath)) {
+            unlink($oldPath);
         }
-
-        // Generate directory structure based on current date
-        $year = now()->year;
-        $month = now()->month;
-        $day = now()->day;
-
-        // Create storage path
-        $directory = "uploads/resume/{$year}/{$month}/{$day}";
-        $storagePath = "public/{$directory}";
-
-        // Ensure directory exists
-        if (!Storage::exists($storagePath)) {
-            Storage::makeDirectory($storagePath, 0755, true); // recursive creation
-        }
-
-        // Generate unique filename
-        $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
-
-        // Store the file
-        $filePath = $file->storeAs($directory, $fileName, 'public');
-
-        // Update applicant record
-        $applicant->update(['applicant_cv' => $filePath]);
-
-        // Return response
-        return response()->json([
-            'success' => true,
-            'message' => 'File uploaded successfully',
-            'file_path' => $filePath,
-            'file_url' => Storage::url($filePath),
-        ]);
     }
+
+    // Directory structure
+    $year  = now()->year;
+    $month = now()->month;
+    $day   = now()->day;
+
+    $directory = "uploads/resume/{$year}/{$month}/{$day}";
+    $publicPath = public_path($directory);
+
+    // Ensure directory exists
+    if (!file_exists($publicPath)) {
+        mkdir($publicPath, 0755, true);
+    }
+
+    // Generate unique filename
+    $fileName = $applicantId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+    // Move file to public directory
+    $file->move($publicPath, $fileName);
+
+    // Store relative path in DB
+    $filePath = "{$directory}/{$fileName}";
+
+    // Update applicant
+    $applicant->update([
+        'applicant_cv' => $filePath
+    ]);
+
+    return response()->json([
+        'success'   => true,
+        'message'   => 'File uploaded successfully',
+        'file_path'=> $filePath,
+        'file_url' => asset($filePath),
+    ]);
+}
+
     public function crmuploadCv(Request $request)
     {
         // Validate the request
