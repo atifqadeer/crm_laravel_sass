@@ -532,10 +532,7 @@ class UnitController extends Controller
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
                 $keyword = strtolower(trim($keyword));
-
-                $query->where(function ($q) use ($keyword) {
-                    $q->whereRaw('LOWER(offices.office_name) LIKE ?', ["%{$keyword}%"]);
-                });
+                $query->whereRaw('LOWER(offices.office_name) LIKE ?', ["%{$keyword}%"]);
             })
             ->addColumn('unit_name', fn($u) => $u->formatted_unit_name)
             ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
