@@ -1788,7 +1788,7 @@ class ApplicantController extends Controller
 
                 // ✅ Check if applicant is rejected
                 if ($this->checkIfApplicantRejected($applicant, $sale->id)) {
-                    throw new Exception("Oops! This applicant has already been rejected for the selected position.");
+                    throw new Exception("Oops! This applicant has already been quality rejected for the selected position.");
                 }
 
                 // 🔹 Update applicant and create related records
