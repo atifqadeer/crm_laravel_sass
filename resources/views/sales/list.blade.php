@@ -232,6 +232,7 @@
                                     <th>Agent</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>
+                                    <th>Position Type</th>
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
@@ -253,34 +254,33 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Import CSV Modal -->
     <div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <form id="csvImportForm" enctype="multipart/form-data">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog">
+            <form id="csvImportForm" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="csvImportLabel">Import CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                <div class="mb-3">
+                    <label for="csvFile" class="form-label">Choose CSV File</label>
+                    <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar" style="width: 0%">0%</div>
+                </div>
+                </div>
+                <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
             </div>
-            <div class="modal-body">
-            <div class="mb-3">
-                <label for="csvFile" class="form-label">Choose CSV File</label>
-                <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
-            </div>
-            <div class="progress" style="height: 20px;">
-                <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                    role="progressbar" style="width: 0%">0%</div>
-            </div>
-            </div>
-            <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Upload</button>
-            </div>
+            </form>
         </div>
-        </form>
-    </div>
     </div>
 
 @section('script')
@@ -371,6 +371,7 @@
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
+                    { data: 'position_type', name: 'sales.position_type', searchable: false },
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
@@ -384,19 +385,25 @@
                 ],
                 columnDefs: [
                     {
-                        targets: 13,  // Column index for 'job_details'
+                        targets: 7,  // Column index for 'position_type'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
                     },
                     {
-                        targets: 15,  // Column index for 'job_details'
+                        targets: 14,  // Column index for 'cv_limit'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }
                     },
                     {
-                        targets: 16,  // Column index for 'job_details'
+                        targets: 16,  // Column index for 'status'
+                        createdCell: function (td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center');  // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 17,  // Column index for 'action'
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');  // Center the text in this column
                         }

@@ -188,6 +188,7 @@
                                     <th>Agent Name</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>
+                                    <th>Position Type</th>
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
@@ -312,6 +313,7 @@
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
+                    { data: 'position_type', name: 'sales.position_type', searchable: false },
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
@@ -963,6 +965,105 @@
                         }
                     });
                 }
+            });
+        }
+
+        // Function to show the notes modal
+        function addNotesModal(saleID) {
+            const modalId = `notesModal_${saleID}`;
+            const formId = `notesForm_${saleID}`;
+            const textareaId = `detailsTextarea_${saleID}`;
+            const saveBtnId = `saveNotesButton_${saleID}`;
+
+            // Append modal HTML only once
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-top">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="${formId}">
+                                        <div class="mb-3">
+                                            <label for="${textareaId}" class="form-label">Details</label>
+                                            <textarea class="form-control" id="${textareaId}" rows="4" required></textarea>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-success" id="${saveBtnId}">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Show modal
+            $(`#${modalId}`).modal('show');
+
+            // Reset form fields on open
+            $(`#${modalId}`).on('shown.bs.modal', function () {
+                $(`#${formId}`)[0].reset();
+                $(`#${textareaId}`).removeClass('is-invalid is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
+            });
+
+            // Save button logic
+            $(`#${saveBtnId}`).off('click').on('click', function () {
+                const notes = $(`#${textareaId}`).val();
+
+                if (!notes) {
+                    $(`#${textareaId}`).addClass('is-invalid');
+                    if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
+                        $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+
+                    $(`#${textareaId}`).on('input', function () {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+
+                    return;
+                }
+
+                $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                $.ajax({
+                    url: '{{ route("storeSaleNotes") }}',
+                    type: 'POST',
+                    data: {
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        toastr.success('Notes saved successfully!');
+
+                        $(`#${modalId}`).modal('hide');
+                        $(`#${formId}`)[0].reset();
+                        $(`#${textareaId}`).removeClass('is-valid');
+
+                        $('#sales_table').DataTable().ajax.reload();
+                    },
+                    error: function (xhr) {
+                        alert('An error occurred while saving notes.');
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
             });
         }
 
