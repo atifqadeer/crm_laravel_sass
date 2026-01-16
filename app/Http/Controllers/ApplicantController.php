@@ -1645,39 +1645,87 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
+                // ->addColumn('job_details', function ($row) {
+                //     $position_type = strtoupper(str_replace('-', ' ', $row->position_type));
+                //     $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
+
+                //     $status = match ($row->sale_status) {
+                //         1 => '<span class="badge bg-success">Active</span>',
+                //         0 => '<span class="badge bg-danger">Closed</span>',
+                //         2 => '<span class="badge bg-warning">Pending</span>',
+                //         3 => '<span class="badge bg-danger">Rejected</span>',
+                //         default => '<span class="badge bg-secondary">Unknown</span>',
+                //     };
+
+                //     $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
+
+                //     $modalHtml = $this->generateJobDetailsModal($row);
+
+                //     return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
+                //         . (int)$row->sale_id . ','
+                //         . '\'' . htmlspecialchars(Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->office_name, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->unit_name, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->sale_postcode, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->job_category_name, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->job_title_name, ENT_QUOTES) . '\','
+                //         . '\'' . $escapedStatus . '\','
+                //         . '\'' . htmlspecialchars($row->timing, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->sale_experience, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->salary, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($position, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->sale_qualification, ENT_QUOTES) . '\','
+                //         . '\'' . htmlspecialchars($row->benefits, ENT_QUOTES) . '\')">'
+                //         . '<iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>'
+                //         . '</a>' . $modalHtml;
+                // })
                 ->addColumn('job_details', function ($row) {
-                    $position_type = strtoupper(str_replace('-', ' ', $row->position_type));
-                    $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
+                    $position_type = strtoupper(str_replace('-', ' ', $row->position_type ?? ''));
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $status = '';
+                    if ($row->sale_status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($row->sale_status == 0 && $row->is_on_hold == 0) {
+                        $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($row->sale_status == 2) {
+                        $status = '<span class="badge bg-warning">Pending</span>';
+                    } elseif ($row->sale_status == 3) {
+                        $status = '<span class="badge bg-danger">Rejected</span>';
+                    }
 
-                    $status = match ($row->sale_status) {
-                        1 => '<span class="badge bg-success">Active</span>',
-                        0 => '<span class="badge bg-danger">Closed</span>',
-                        2 => '<span class="badge bg-warning">Pending</span>',
-                        3 => '<span class="badge bg-danger">Rejected</span>',
-                        default => '<span class="badge bg-secondary">Unknown</span>',
-                    };
+                    $postcode = strtoupper($row->sale_postcode);
+                    $posted_date = Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A');
+                    $office_name = ucwords($row->office_name) ?? '-';
+                    $unit_name = ucwords($row->unit_name) ?? '-';
+                    $jobTitle = strtoupper($row->jobTitle) ?? '-';
+                    $stype  = $row->sale_job_type && $row->sale_job_type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $jobCategory = ucwords($row->jobCategory) . $stype ?? '-';
 
-                    $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
+                    $jobData = [
+                        'sale_id'       => (int)$row->sale_id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $jobCategory,
+                        'job_title'     => $jobTitle,
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $row->timing,
+                        'experience'    => $row->sale_experience,
+                        'salary'        => $row->salary,
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $row->sale_qualification,
+                        'benefits'      => $row->benefits,
+                    ];
 
-                    $modalHtml = $this->generateJobDetailsModal($row);
-
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
-                        . (int)$row->sale_id . ','
-                        . '\'' . htmlspecialchars(Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->office_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->unit_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_postcode, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->job_category_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->job_title_name, ENT_QUOTES) . '\','
-                        . '\'' . $escapedStatus . '\','
-                        . '\'' . htmlspecialchars($row->timing, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_experience, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->salary, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($position, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_qualification, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->benefits, ENT_QUOTES) . '\')">'
-                        . '<iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>'
-                        . '</a>' . $modalHtml;
+                        return '<a href="#"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                                                $jobData,
+                                                JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                            ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
                 })
                 ->addColumn('job_category', function ($row) {
                     $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
