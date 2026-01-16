@@ -5073,8 +5073,19 @@ class SaleController extends Controller
                                         $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
                                                     <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                                     }else{
-                                        $html .= '<li><a href="#" onclick="sendCVModal('. $applicant->id .', '. $sale_id .')" class="dropdown-item" >
-                                            <span>Send CV</span></a></li>';
+                                        $html .= '<li>
+                                            <a href="#"
+                                            class="dropdown-item"
+                                            onclick="sendCVModal('
+                                                . (int) $applicant->id . ','
+                                                . (int) $sale_id . ','
+                                                . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
+                                                . (int) $applicant->have_nursing_home_experience .
+                                            ')">
+                                                <span>Send CV</span>
+                                            </a>
+                                        </li>';
+
                                     }
                                                $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
                                 } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {

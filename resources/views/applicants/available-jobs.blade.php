@@ -503,7 +503,7 @@
         }
 
         // Function to send cv modal
-        function sendCVModal(applicantID, saleID) {
+        function sendCVModal(applicantID, saleID, applicantPostcode, applicantNursingHomeExp) {
             const modalId = `sendCVModal-${applicantID}-${saleID}`;
             const formId = `sendCV_form_${applicantID}_${saleID}`;
             const noteId = `note_details_${applicantID}_${saleID}`;
@@ -533,7 +533,7 @@
                                         <div class="form-group row">
                                             <label class="col-form-label col-sm-3"><strong style="font-size:18px">2.</strong> PostCode</label>
                                             <div class="col-sm-9">
-                                                <input type="text" name="postcode" class="form-control" placeholder="Enter PostCode">
+                                                <input type="text" name="postcode" class="form-control" placeholder="Enter PostCode" value="${applicantPostcode}">
                                             </div>
                                         </div>
                                         <div class="form-group row">
@@ -615,7 +615,11 @@
                                         <div class="form-group row">
                                             <div class="col-6 my-2">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" role="switch" name="nursing_home" id="nursing_home_checkbox">
+                                                     <input class="form-check-input" type="checkbox" role="switch"
+                                                        name="nursing_home"
+                                                        id="nursing_home_checkbox"
+                                                        ${applicantNursingHomeExp == 1 ? 'checked ' : ''}
+                                                        value="${applicantNursingHomeExp}">
                                                     <label class="form-check-label" for="nursing_home_checkbox">Nursing Home</label>
                                                 </div>
                                             </div>

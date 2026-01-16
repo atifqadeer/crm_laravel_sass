@@ -1748,8 +1748,25 @@ class ApplicantController extends Controller
                 $applicant = Applicant::findOrFail($request->input('applicant_id'));
                 $sale = Sale::findOrFail($request->input('sale_id'));
 
+                $jobTitle = JobTitle::find($sale->job_title_id);
+
+                // Decode related_titles safely and normalize
+                $relatedTitles = is_array($jobTitle->related_titles)
+                    ? $jobTitle->related_titles
+                    : json_decode($jobTitle->related_titles ?? '[]', true);
+
+                // Make sure it's an array, lowercase all, and add main title
+                $titles = collect($relatedTitles)
+                    ->map(fn($item) => strtolower(trim($item)))
+                    ->push(strtolower(trim($jobTitle->name)))
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
+                
                 // ✅ Check if job titles match
-                if ($applicant->job_title_id != $sale->job_title_id) {
+                if (!in_array((int) $applicant->job_title_id, $jobTitleIds, true)) {
                     throw new Exception("CV can't be sent - job titles don't match.");
                 }
 
@@ -2422,8 +2439,18 @@ class ApplicantController extends Controller
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
                                         <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                         }else{
-                                $html .= '<li><a href="#" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
-                                                    <span>Send CV</span></a></li>';
+                            $html .= '<li>
+                                            <a href="#"
+                                            class="dropdown-item"
+                                            onclick="sendCVModal('
+                                                . (int) $applicant->id . ','
+                                                . (int) $sale->id . ','
+                                                . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
+                                                . (int) $applicant->have_nursing_home_experience .
+                                            ')">
+                                                <span>Send CV</span>
+                                            </a>
+                                        </li>';
                         }
                         if ($applicant->is_callback_enable == false) {
                             $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';

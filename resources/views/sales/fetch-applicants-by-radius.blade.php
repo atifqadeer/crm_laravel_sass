@@ -43,10 +43,13 @@
                                 <li>
                                     @php
 
-                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge bg-danger" style="font-size:90%;width:20% !important;" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%;width:" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
 
                                     @endphp
-                                    <div class="d-flex align-items-center"><strong>CV Limit: </strong> {!! $status !!}</div>
+
+                                    <li>
+                                        <strong>CV Limit:</strong> {!! $status !!}
+                                    </li>
 
                                 </li>
                                 <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
@@ -829,7 +832,7 @@
             $('#' + modalId).modal('show');
         }
         // Function to send cv modal
-        function sendCVModal(applicantID, saleID) {
+        function sendCVModal(applicantID, saleID, applicantPostcode, applicantNursingHomeExp) {
             const modalID = 'sendCVModal' + applicantID + '-' + saleID;
             const formID = 'sendCV_form' + applicantID + '-' + saleID;
             
@@ -858,7 +861,7 @@
                                         '<div class="form-group row">' +
                                             '<label class="col-form-label col-sm-3"><strong style="font-size:18px">2.</strong> PostCode</label>' +
                                             '<div class="col-sm-9">' +
-                                                '<input type="text" name="postcode" class="form-control" placeholder="Enter PostCode">' +
+                                                '<input type="text" name="postcode" class="form-control" placeholder="Enter PostCode" value="' + applicantPostcode + '">' +
                                             '</div>' +
                                         '</div>' +
                                         '<div class="form-group row">' +
@@ -939,9 +942,13 @@
                                         '</div>'+
                                         '<div class="form-group row">' +
                                             '<div class="col-6 my-2">'+
-                                                '<div class="form-check form-switch">'+
-                                                    '<input class="form-check-input" type="checkbox" role="switch" name="nursing_home" id="nursing_home_checkbox">'+
-                                                    '<label class="form-check-label" for="nursing_home_checkbox">Nursing Home</label>'+
+                                                '<div class="form-check form-switch">' +
+                                                    '<input class="form-check-input" type="checkbox" role="switch" ' +
+                                                        'name="nursing_home" ' +
+                                                        'id="nursing_home_checkbox" ' +
+                                                        (applicantNursingHomeExp == 1 ? 'checked ' : '') +
+                                                        'value="' + applicantNursingHomeExp + '">' +
+                                                    '<label class="form-check-label" for="nursing_home_checkbox">Nursing Home</label>' +
                                                 '</div>'+
                                             '</div>'+
                                             '<div class="col-6 my-2">'+
