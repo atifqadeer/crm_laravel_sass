@@ -204,15 +204,22 @@ class QualityController extends Controller
                 break;
 
             case 'rejected cvs':
-                $model->join('quality_notes', function ($join) {
-                    $join->on('applicants.id', '=', 'quality_notes.applicant_id')
-                        ->where("quality_notes.moved_tab_to", "rejected");
-                    // ->where("quality_notes.status", 1);
-                })
-                ->join('sales', function ($join) {
-                    $join->on('quality_notes.sale_id', '=', 'sales.id')
-                        ->whereColumn('quality_notes.sale_id', 'sales.id');
-                })
+                $model->joinSub(
+                    DB::table('quality_notes')
+                        ->selectRaw('MAX(id) as id, applicant_id')
+                        ->where('moved_tab_to', 'rejected')
+                        ->groupBy('applicant_id'),
+                    'latest_quality_note',
+                    function ($join) {
+                        $join->on('applicants.id', '=', 'latest_quality_note.applicant_id');
+                    }
+                )->join(
+                    'quality_notes',
+                    'quality_notes.id',
+                    '=',
+                    'latest_quality_note.id'
+                )
+                ->join('sales', 'quality_notes.sale_id', '=', 'sales.id')
                 ->join('offices', 'sales.office_id', '=', 'offices.id')
                 ->join('units', 'sales.unit_id', '=', 'units.id')
                 ->join('cv_notes', function ($join) {
