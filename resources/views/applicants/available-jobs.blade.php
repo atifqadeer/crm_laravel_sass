@@ -10,11 +10,18 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <ul class="list-unstyled mb-0">
+                                    <li><strong>PostCode:</strong><span  style="font-size:18px;"> {{ strtoupper($applicant->applicant_postcode) ?? 'N/A' }}</span></li>
                                     <li><strong>Name:</strong> {{ $applicant->applicant_name ?? 'N/A' }}</li>
                                     <li><strong>Email <small>(Primary)</small>:</strong> {{ $applicant->applicant_email ?? 'N/A' }}</li>
                                     <li><strong>Email <small>(Secondary)</small>:</strong> {{ $applicant->applicant_email_secondary ?? 'N/A' }}</li>
-                                    <li><strong>Phone:</strong> {{ $applicant->applicant_phone ?? 'N/A' }}</li>
+                                    <li><strong>Phone <small>(Primary)</small>:</strong> {{ $applicant->applicant_phone ?? 'N/A' }}</li>
+                                    <li><strong>Phone <small>(Secondary)</small>:</strong> {{ $applicant->applicant_phone_secondary ?? 'N/A' }}</li>
                                     <li><strong>Landline:</strong> {{ $applicant->applicant_landline ?? 'N/A' }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <ul class="list-unstyled mb-0">
+                                    <li><strong>Applicant ID#:</strong> {{ $applicant->id ?? 'N/A' }}</li>
                                     <li><strong>Gender:</strong>
                                         @if($applicant->gender == 'm')
                                             Male
@@ -24,12 +31,6 @@
                                             Unknown
                                         @endif
                                     </li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>Applicant ID#:</strong> {{ $applicant->id ?? 'N/A' }}</li>
-                                    <li><strong>PostCode:</strong> {{ ucwords($applicant->applicant_postcode) ?? 'N/A' }}</li>
                                     <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                     <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
                                     <li><strong>Source:</strong> {{ $jobSource ? ucwords($jobSource->name) : 'N/A' }}</li>

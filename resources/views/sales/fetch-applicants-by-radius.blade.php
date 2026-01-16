@@ -40,21 +40,33 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <ul class="list-unstyled mb-0">
+                                <li><strong>PostCode:</strong><span  style="font-size:18px;"> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</span></li>
+                                @php
+                                    $remaining = (int)$sale->cv_limit - $sale_cv_count;
+                                    $isFull = $sale_cv_count >= $sale->cv_limit;
+                                @endphp
                                 <li>
-                                    @php
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong class="text-nowrap">CV Limit:</strong>
 
-                                        $status = $sale_cv_count == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%;width:" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - $sale_cv_count . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                                   <div class="d-flex justify-content-center">
+                                        <span class="badge
+                                            {{ $isFull ? 'bg-danger' : 'bg-primary' }}
+                                            d-flex justify-content-center align-items-center py-2 text-center"
+                                            style="font-size: 90%; min-width: 120px;"> <!-- adjust min-width if needed -->
 
-                                    @endphp
+                                            @if ($isFull)
+                                                0 / {{ (int)$sale->cv_limit }} &nbsp; Limit Reached
+                                            @else
+                                                {{ $remaining }} / {{ (int)$sale->cv_limit }} &nbsp; Limit Remains
+                                            @endif
 
-                                    <li>
-                                        <strong>CV Limit:</strong> {!! $status !!}
-                                    </li>
-
+                                        </span>
+                                    </div>
+                                </div>
                                 </li>
                                 <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
                                 <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
-                                <li><strong>PostCode:</strong> {{ strtoupper($sale->sale_postcode) ?? 'N/A' }}</li>
                                 <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                 <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
                                 @php
