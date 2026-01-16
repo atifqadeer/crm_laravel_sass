@@ -1498,7 +1498,7 @@ class ApplicantController extends Controller
     {
         $id = $request->applicant_id;
 
-        $model = Applicant::query();
+        $model = Applicant::query()->where('applicants.id', $id);
 
         // Subquery: get latest CRM note per applicant-sale (status = 1)
         $latestCrmNotes = DB::table('crm_notes')
@@ -1554,10 +1554,7 @@ class ApplicantController extends Controller
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
             ])
-            ->where([
-                'applicants.id' => $id,
-                'history.status' => 1
-            ]);
+            ->where('history.status', 1);
 
         /*** Sorting */
         if ($request->has('order')) {
