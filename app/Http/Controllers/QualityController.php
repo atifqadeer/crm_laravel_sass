@@ -224,7 +224,7 @@ class QualityController extends Controller
                 ->join('units', 'sales.unit_id', '=', 'units.id')
                 ->joinSub(
                     DB::table('cv_notes')
-                        ->selectRaw('MAX(id) as id, applicant_id, sale_id')
+                        ->selectRaw('MIN(id) as id, applicant_id, sale_id')
                         ->groupBy('applicant_id', 'sale_id'),
                     'latest_cv_note',
                     function ($join) {
@@ -233,6 +233,7 @@ class QualityController extends Controller
                     }
                 )
                 ->join('cv_notes', 'cv_notes.id', '=', 'latest_cv_note.id')
+
                 ->join('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect(
                     'users.name as user_name',
