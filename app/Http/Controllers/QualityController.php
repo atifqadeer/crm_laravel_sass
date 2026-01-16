@@ -222,11 +222,17 @@ class QualityController extends Controller
                 ->join('sales', 'quality_notes.sale_id', '=', 'sales.id')
                 ->join('offices', 'sales.office_id', '=', 'offices.id')
                 ->join('units', 'sales.unit_id', '=', 'units.id')
-                ->join('cv_notes', function ($join) {
-                    $join->on('quality_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('quality_notes.sale_id', '=', 'cv_notes.sale_id');
-                        // ->where("cv_notes.status", 1);
-                })
+                ->joinSub(
+                    DB::table('cv_notes')
+                        ->selectRaw('MAX(id) as id, applicant_id, sale_id')
+                        ->groupBy('applicant_id', 'sale_id'),
+                    'latest_cv_note',
+                    function ($join) {
+                        $join->on('quality_notes.applicant_id', '=', 'latest_cv_note.applicant_id')
+                            ->on('quality_notes.sale_id', '=', 'latest_cv_note.sale_id');
+                    }
+                )
+                ->join('cv_notes', 'cv_notes.id', '=', 'latest_cv_note.id')
                 ->join('users', 'users.id', '=', 'cv_notes.user_id')
                 ->addSelect(
                     'users.name as user_name',
