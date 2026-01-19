@@ -793,7 +793,6 @@ class ResourceController extends Controller
 
         return response()->json(['error' => 'Invalid request'], 400);
     }
-
     protected function getApplicantsAgainstSales($lat, $lng, $radius, $job_title_id, $status, $category, $orderColumn, $orderDirection)
     {
         $query = Applicant::query()
@@ -863,7 +862,6 @@ class ResourceController extends Controller
 
         return $applicants;
     }
-
     protected function getApplicantStatus($applicant)
     {
         return $applicant->paid_status === 'close'
@@ -2581,9 +2579,12 @@ class ResourceController extends Controller
                 'applicants.job_source_id',
                 'applicants.applicant_postcode',
                 'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
                 'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
                 'applicants.applicant_cv',
                 'applicants.updated_cv',
+                'applicants.is_blocked',
                 'applicants.status',
                 'applicants.created_at',
                 'applicants.updated_at',
@@ -2742,8 +2743,10 @@ class ResourceController extends Controller
                     // Direct column searches
                     $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%");
 
@@ -2834,15 +2837,27 @@ class ResourceController extends Controller
 
                     return $button;
                 })
-                ->addColumn('applicant_email', function ($applicant) {
+                ->addColumn('applicantEmail', function ($applicant) {
                     $email = '';
-                    if ($applicant->applicant_email_secondary) {
-                        $email = $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    if ($applicant->is_blocked) {
+                        $email = "<span class='badge bg-dark'>Blocked</span>";
                     } else {
                         $email = $applicant->applicant_email;
-                    }
 
+                        if ($applicant->applicant_email_secondary) {
+                            $email .= '<br>' . $applicant->applicant_email_secondary;
+                        }
+                    }
+                    
                     return $email; // Using accessor
+                })
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = strtolower(trim($keyword));
+
+                    $query->where(function ($q) use ($keyword) {
+                        $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                    });
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
                     $note = null;
@@ -2889,19 +2904,32 @@ class ResourceController extends Controller
 
                     return $notes;
                 })
-                ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if ($applicant->applicant_landline) {
-                        $phone = '<strong>P:</strong> ' . $applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> ' . $applicant->applicant_landline;
+                ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone . '<br>' . $landline;
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
                     } else {
-                        $phone = '<strong>P:</strong> ' . $applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    return $strng;
+                    return $str;
+                })
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('created_at', function ($applicant) {
                     $latestNote = null;
@@ -3109,7 +3137,7 @@ class ResourceController extends Controller
                 //     }
                 //     return $row_class;
                 // })
-                ->rawColumns(['checkbox', 'applicant_email', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicantEmail', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
