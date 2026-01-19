@@ -5116,6 +5116,8 @@ class SaleController extends Controller
 
         Sale::where('id', $sale_id)->update($updateData);
 
+        SaleNote::where('sale_id', $sale_id)->update(['status' => 0]);
+        
         $sale_note = SaleNote::create([
             'sale_id' => $sale_id,
             'sale_note' => $sale_notes,
@@ -5274,7 +5276,6 @@ class SaleController extends Controller
             'new_status_text' => $newStatusText
         ]);
     }
-
     public function saleHistoryIndex($id)
     {
         $sale = Sale::withCount('active_cvs')->find($id);
