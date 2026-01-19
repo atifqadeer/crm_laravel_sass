@@ -8635,17 +8635,17 @@ class CrmController extends Controller
                 if ($reject_reason == 'position_filled') {
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     // Just touch the record to update updated_at
                     $sale->touch();
                 }
 
                 // Update history status
-                // SaleNote::where([
-                //     "sale_id" => $sale_id,
-                //     "status" => 1
-                // ])->update(["status" => 0]);
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                ])->update(["status" => 0]);
 
                 // Create sale note
                 $sale_note = new SaleNote();
@@ -8886,11 +8886,17 @@ class CrmController extends Controller
                 if ($reject_reason == 'position_filled') {
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     // Just touch the record to update updated_at
                     $sale->touch();
                 }
+
+                // Update history status
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                 ])->update(["status" => 0]);
 
                 // Create sale note
                 $sale_note = new SaleNote();
@@ -9116,12 +9122,17 @@ class CrmController extends Controller
                     $sale = Sale::find($sale_id);
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     $sale = Sale::find($sale_id);
                     $sale->status = $sale->status;
                     $sale->update();
                 }
+
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                ])->update(["status" => 0]);
 
                 $sale_note = new SaleNote();
                 $sale_note->sale_id = $sale_id;
@@ -9218,12 +9229,17 @@ class CrmController extends Controller
                     $sale = Sale::find($sale_id);
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     $sale = Sale::find($sale_id);
                     $sale->status = $sale->status;
                     $sale->update();
                 }
+
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                ])->update(["status" => 0]);
 
                 $sale_note = new SaleNote();
                 $sale_note->sale_id = $sale_id;
@@ -9303,12 +9319,17 @@ class CrmController extends Controller
                     $sale = Sale::find($sale_id);
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     $sale = Sale::find($sale_id);
                     $sale->status = $sale->status;
                     $sale->update();
                 }
+
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                ])->update(["status" => 0]);
 
                 $sale_note = new SaleNote();
                 $sale_note->sale_id = $sale_id;
@@ -9359,11 +9380,17 @@ class CrmController extends Controller
                 if ($reject_reason == 'position_filled') {
                     $audit = new ActionObserver();
                     $audit->changeSaleStatus($sale, ['status' => 0]);
-                    $sale->update(['status' => 0, 'is_on_hold' => false]);
+                    $sale->update(['status' => 0, 'sale_notes' => $details, 'is_on_hold' => false]);
                 } else {
                     // Just touch the record to update updated_at
                     $sale->touch();
                 }
+
+                // Update history status
+                SaleNote::where([
+                    "sale_id" => $sale_id,
+                    "status" => 1
+                ])->update(["status" => 0]);
 
                 // Create sale note
                 $sale_note = new SaleNote();
