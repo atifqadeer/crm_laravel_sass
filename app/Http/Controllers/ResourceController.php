@@ -715,29 +715,71 @@ class ResourceController extends Controller
                     return $notes;
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
-                    $filePath = $applicant->applicant_cv;
-                    $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+                    $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path); // direct public URL
+
+                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
+                                    </a>';
+                        }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
-                    $filePath = $applicant->updated_cv;
-                    $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+                    $path = $applicant->updated_cv;
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path);
+
+                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
+                                    </a>';
+                        }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
+                // ->addColumn('applicant_resume', function ($applicant) {
+                //     $filePath = $applicant->applicant_cv;
+                //     $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+
+                //     if (!$applicant->is_blocked && $fileExists) {
+                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                //             '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
+                // ->addColumn('crm_resume', function ($applicant) {
+                //     $filePath = $applicant->updated_cv;
+                //     $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+
+                //     if (!$applicant->is_blocked && $fileExists) {
+                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                //             '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';
                     if ($applicant->applicant_email_secondary) {
@@ -1982,29 +2024,71 @@ class ResourceController extends Controller
 
                     return $strng;
                 })
-                ->addColumn('applicant_resume', function ($applicant) {
-                    $filePath = $applicant->applicant_cv;
-                    $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
+                // ->addColumn('applicant_resume', function ($applicant) {
+                //     $filePath = $applicant->applicant_cv;
+                //     $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                //     if (!$applicant->is_blocked && $fileExists) {
+                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                //             '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
+                // ->addColumn('crm_resume', function ($applicant) {
+                //     $filePath = $applicant->updated_cv;
+                //     $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+
+                //     if (!$applicant->is_blocked && $fileExists) {
+                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                //             '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
+                ->addColumn('applicant_resume', function ($applicant) {
+                    $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
+
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path); // direct public URL
+
+                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
+                                    </a>';
+                        }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
-                    $filePath = $applicant->updated_cv;
-                    $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
+                    $path = $applicant->updated_cv;
 
-                    if (!$applicant->is_blocked && $fileExists) {
-                        return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                            '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path);
+
+                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
+                                    </a>';
+                        }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     if (empty($applicant->applicant_experience) || $applicant->applicant_experience === 'NULL') {
@@ -2983,39 +3067,81 @@ class ResourceController extends Controller
                         </div>
                     ';
                 })
+                // ->addColumn('applicant_resume', function ($applicant) {
+                //     $path = $applicant->applicant_cv;
+
+                //     // ✅ Only proceed if path begins with "uploads/"
+                //     if ($path && str_starts_with($path, 'uploads/')) {
+                //         // ✅ Check if file exists on public disk
+                //         if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
+                //             // ✅ Correct URL (storage symlink points to storage/app/public)
+                //             $url = asset('storage/' . $path);
+
+                //             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">' .
+                //                 '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                //         }
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
+                // ->addColumn('crm_resume', function ($applicant) {
+                //     $path = $applicant->updated_cv;
+
+                //     if ($path && str_starts_with($path, 'uploads/')) {
+                //         if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
+
+                //             $url = asset('storage/' . $path);
+
+                //             return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
+                //                 '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                //         }
+                //     }
+
+                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
+                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                // })
                 ->addColumn('applicant_resume', function ($applicant) {
-                    $path = $applicant->applicant_cv;
+                    $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
 
-                    // ✅ Only proceed if path begins with "uploads/"
                     if ($path && str_starts_with($path, 'uploads/')) {
-                        // ✅ Check if file exists on public disk
-                        if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
-                            // ✅ Correct URL (storage symlink points to storage/app/public)
-                            $url = asset('storage/' . $path);
 
-                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                                '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path); // direct public URL
+
+                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
+                                    </a>';
                         }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
                 ->addColumn('crm_resume', function ($applicant) {
                     $path = $applicant->updated_cv;
 
                     if ($path && str_starts_with($path, 'uploads/')) {
-                        if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
 
-                            $url = asset('storage/' . $path);
+                        $fullPath = public_path($path);
 
-                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                                '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path);
+
+                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
+                                    </a>';
                         }
                     }
 
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                        '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $status_value = 'open';
