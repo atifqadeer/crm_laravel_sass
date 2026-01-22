@@ -59,44 +59,52 @@ class PostcodeController extends Controller
         };
 
         // Retrieve job result matching the postcode in Sale
-        $job_result = Sale::where('sale_postcode', $postcode)
-            ->where('status', 1)
-            ->where('is_on_hold', 0)
-            ->first();
+        // $job_result = Sale::where('sale_postcode', $postcode)
+        //     ->where('status', 1)
+        //     ->where('is_on_hold', 0)
+        //     ->first();
 
         // If not found in Sale or lat/lng are invalid, try in Applicant
-        if (!$job_result || !$isValidCoordinates($job_result->lat, $job_result->lng)) {
-            $job_result = Applicant::where('applicant_postcode', $postcode)
-                ->first();
+        // if (!$job_result || !$isValidCoordinates($job_result->lat, $job_result->lng)) {
+            // $job_result = Applicant::where('applicant_postcode', $postcode)
+            //     ->first();
 
-            if(!$job_result || !$isValidCoordinates($job_result->lat, $job_result->lng)){
-                try {
-                    $result = $this->geocode($postcode);
+            $postcodeResult = DB::table('postcodes')->where('postcode', $postcode)->first();
+            
+            if(!$postcodeResult || !$isValidCoordinates($postcodeResult->lat, $postcodeResult->lng)){
+                $outcodeResult = DB::table('outcodepostcodes')->where('outcode', $postcode)->first();
+                if(!$outcodeResult || !$isValidCoordinates($outcodeResult->lat, $outcodeResult->lng)){
+                    try {
+                        $result = $this->geocode($postcode);
 
-                    // If geocode fails, throw
-                    if (!isset($result['lat']) || !isset($result['lng'])) {
-                        throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        // If geocode fails, throw
+                        if (!isset($result['lat']) || !isset($result['lng'])) {
+                            throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        }
+
+                        $lati = $result['lat'];
+                        $longi = $result['lng'];
+
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Unable to locate address: ' . $e->getMessage()
+                        ], 400);
                     }
-
-                    $lati = $result['lat'];
-                    $longi = $result['lng'];
-
-                } catch (\Exception $e) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Unable to locate address: ' . $e->getMessage()
-                    ], 400);
+                }else{
+                    $lati = $outcodeResult->lat;
+                    $longi = $outcodeResult->lng;
                 }
 
             }else{
-                $lati = $job_result->lat;
-                $longi = $job_result->lng;
+                $lati = $postcodeResult->lat;
+                $longi = $postcodeResult->lng;
             }
 
-        }else{
-            $lati = $job_result->lat;
-            $longi = $job_result->lng;
-        }
+        // }else{
+        //     $lati = $job_result->lat;
+        //     $longi = $job_result->lng;
+        // }
 
         // Initialize coordinate results
         $data['cordinate_results'] = [];

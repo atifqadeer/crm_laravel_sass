@@ -31,7 +31,7 @@ trait Geocode
         }
 
         $url = $apiUrl . "?address={$address}&key={$apiKey}";
-
+        Log::info('Google Map API Request: '. $url);
         // $url = "https://maps.googleapis.com/maps/api/geocode/json?address={$address}&key={$apiKey}";
         try {
             $response = file_get_contents($url);
