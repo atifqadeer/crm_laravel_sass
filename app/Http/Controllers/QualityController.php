@@ -848,6 +848,7 @@ class QualityController extends Controller
     //             ->make(true);
     //     }
     // }
+    
     public function getResourcesByTypeAjaxRequest(Request $request)
     {
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
