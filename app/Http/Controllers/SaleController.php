@@ -2780,50 +2780,101 @@ class SaleController extends Controller
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
 
         // Subquery to get the latest audit (open_date) for each sale
+        // $latestAuditSub = DB::table('audits')
+        //     ->select(DB::raw('MAX(id) as id'))
+        //     ->where('auditable_type', 'Horsefly\Sale')
+        //     ->where('message', 'like', '%sale-opened%')
+        //     ->whereIn('auditable_id', function($query) {
+        //         $query->select('id')
+        //             ->from('sales'); // Ensure we only consider closed sales
+        //     })
+        //     ->groupBy('auditable_id');
+
+        // $model = Sale::query()
+        //     ->select([
+        //     'sales.*',
+        //     'job_titles.name as job_title_name',
+        //     'job_categories.name as job_category_name',
+        //     'offices.office_name as office_name',
+        //     'units.unit_name as unit_name',
+        //     'users.name as user_name',
+        //     'audits.created_at as open_date'
+        //     ])
+        //     ->where('sales.status', 1) // open sales
+        //     ->where('sales.is_on_hold', 0) // Not on hold
+        //     ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+        //     ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+        //     ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+        //     ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+        //     ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+        //      // Join only the latest audit for each sale
+        //     ->leftJoin('audits', function ($join) use ($latestAuditSub) {
+        //         $join->on('audits.auditable_id', '=', 'sales.id')
+        //             ->where('audits.auditable_type', '=', 'Horsefly\Sale')
+        //             ->where('audits.message', 'like', '%sale-opened%')
+        //             ->whereIn('audits.id', $latestAuditSub);
+        //     })
+        //     ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
+        //     ->leftJoin(DB::raw("
+        //         (SELECT sale_id, MAX(id) AS latest_id
+        //         FROM sale_notes
+        //         GROUP BY sale_id) AS latest_notes
+        //     "), 'sales.id', '=', 'latest_notes.sale_id')
+
+        //     // Join the actual sale_notes record
+        //     ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
+        //     ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+
         $latestAuditSub = DB::table('audits')
-            ->select(DB::raw('MAX(id) as id'))
-            ->where('auditable_type', 'Horsefly\Sale')
+            ->select('auditable_id', DB::raw('MAX(created_at) AS open_date'))
+            ->where('auditable_type', 'Horsefly\\Sale')
             ->where('message', 'like', '%sale-opened%')
-            ->whereIn('auditable_id', function($query) {
-                $query->select('id')
-                    ->from('sales'); // Ensure we only consider closed sales
-            })
             ->groupBy('auditable_id');
+
+        $latestSaleNoteSub = DB::table('sale_notes')
+            ->select('sale_id', DB::raw('MAX(id) AS latest_id'))
+            ->groupBy('sale_id');
+
+        $cvCountSub = DB::table('cv_notes')
+            ->select('sale_id', DB::raw('COUNT(*) AS no_of_sent_cv'))
+            ->where('status', 1)
+            ->groupBy('sale_id');
 
         $model = Sale::query()
             ->select([
-            'sales.*',
-            'job_titles.name as job_title_name',
-            'job_categories.name as job_category_name',
-            'offices.office_name as office_name',
-            'units.unit_name as unit_name',
-            'users.name as user_name',
-            'audits.created_at as open_date'
+                'sales.*',
+                'job_titles.name AS job_title_name',
+                'job_categories.name AS job_category_name',
+                'offices.office_name',
+                'units.unit_name',
+                'users.name AS user_name',
+                'a.open_date',
+                DB::raw('COALESCE(cv.no_of_sent_cv, 0) AS no_of_sent_cv'),
+                'updated_notes.sale_note AS latest_note'
             ])
-            ->where('sales.status', 1) // open sales
-            ->where('sales.is_on_hold', 0) // Not on hold
+
+            ->where('sales.status', 1)
+            ->where('sales.is_on_hold', 0)
+
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
-             // Join only the latest audit for each sale
-            ->leftJoin('audits', function ($join) use ($latestAuditSub) {
-                $join->on('audits.auditable_id', '=', 'sales.id')
-                    ->where('audits.auditable_type', '=', 'Horsefly\Sale')
-                    ->where('audits.message', 'like', '%sale-opened%')
-                    ->whereIn('audits.id', $latestAuditSub);
-            })
-            ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
-            ->leftJoin(DB::raw("
-                (SELECT sale_id, MAX(id) AS latest_id
-                FROM sale_notes
-                GROUP BY sale_id) AS latest_notes
-            "), 'sales.id', '=', 'latest_notes.sale_id')
 
-            // Join the actual sale_notes record
-            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
-            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+            ->leftJoinSub($latestAuditSub, 'a', function ($join) {
+                $join->on('a.auditable_id', '=', 'sales.id');
+            })
+
+            ->leftJoinSub($latestSaleNoteSub, 'ln', function ($join) {
+                $join->on('ln.sale_id', '=', 'sales.id');
+            })
+            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'ln.latest_id')
+
+            ->leftJoinSub($cvCountSub, 'cv', function ($join) {
+                $join->on('cv.sale_id', '=', 'sales.id');
+            });
+
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
