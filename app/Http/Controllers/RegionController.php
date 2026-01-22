@@ -54,7 +54,7 @@ class RegionController extends Controller
     }
     public function getApplicantsByRegions(Request $request)
     {
-        $regionFilter = $request->input('region_filter', ''); // Default is empty (no filter)
+        $regionFilter = $request->input('region_filter', ''); 
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
