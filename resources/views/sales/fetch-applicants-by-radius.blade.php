@@ -240,11 +240,13 @@
                                     @php
                                         $status = $sale->status;
                                         if ($status == '1') {
-                                            $statusClass = '<span class="badge bg-success">Active</span>';
+                                            $statusClass = '<span class="badge bg-success">Open</span>';
                                         }elseif ($status == '2') {
                                             $statusClass = '<span class="badge bg-warning">Pending</span>';
+                                        }elseif ($status == '3') {
+                                            $statusClass = '<span class="badge bg-danger">Rejected</span>';
                                         } else {
-                                            $statusClass = '<span class="badge bg-danger">Inactive</span>';
+                                            $statusClass = '<span class="badge bg-danger">Closed</span>';
                                         }
                                     @endphp
                                     {!! $statusClass !!}
