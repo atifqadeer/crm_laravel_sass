@@ -243,7 +243,10 @@ class CommunicationController extends Controller
             $applicant_id = $request->input('applicant_id');
 
             foreach ($phone_numbers as $phone) {
-                $applicant = Applicant::where('applicant_phone', $phone)->orWhere('applicant_landline')->first();
+                $applicant = Applicant::where('applicant_phone', 'like', '%' . $phone . '%')
+                            ->orWhere('applicant_phone_secondary', 'like', '%' . $phone . '%')
+                            ->orWhere('applicant_landline', 'like', '%' . $phone . '%')
+                            ->first();
 
                 if ($applicant) {
                     $is_saved = $this->saveSMSDB($phone, $message, 'Horsefly\Applicant', $applicant->id);
