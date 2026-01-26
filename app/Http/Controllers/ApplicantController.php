@@ -206,7 +206,7 @@ class ApplicantController extends Controller
 
                 // Create directory if not exists
                 if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
+                    mkdir($destinationPath, 0777, true);
                 }
 
                 // Move file to public directory
@@ -1254,7 +1254,7 @@ class ApplicantController extends Controller
 
                 // 📁 Create directory if not exists
                 if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
+                    mkdir($destinationPath, 0777, true);
                 }
 
                 // 🧾 Original filename & extension
@@ -1486,7 +1486,7 @@ class ApplicantController extends Controller
 
         // Ensure directory exists
         if (!file_exists($publicPath)) {
-            mkdir($publicPath, 0755, true);
+            mkdir($publicPath, 0777, true);
         }
 
         // Generate unique filename
@@ -1594,7 +1594,7 @@ class ApplicantController extends Controller
 
         // 📁 Create directory if missing
         if (!file_exists($destinationPath)) {
-            mkdir($destinationPath, 0755, true);
+            mkdir($destinationPath, 0777, true);
         }
 
         // 🧾 Generate filename
