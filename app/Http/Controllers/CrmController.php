@@ -450,13 +450,13 @@ class CrmController extends Controller
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
                     ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                    ->whereIn('moved_tab_to', ["cv_sent_request", "request_save"])
+                    ->whereIn('moved_tab_to', ["cv_sent_request"])
                     ->where('status', 1)
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MIN(id)'))
                             ->from('crm_notes')
                             ->where('status', 1)
-                            ->whereIn('moved_tab_to', ["cv_sent_request", "request_save"])
+                            ->whereIn('moved_tab_to', ["cv_sent_request"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -694,13 +694,13 @@ class CrmController extends Controller
                 $model->joinSub(
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        ->whereIn('moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
+                        ->whereIn('moved_tab_to', ['cv_sent_no_job_request'])
                         ->where('status', 1)
                         ->whereIn('id', function ($subQuery) {
                             $subQuery->select(DB::raw('MIN(id)'))
                                 ->from('crm_notes')
                                 ->where('status', 1)
-                                ->whereIn('moved_tab_to', ['cv_sent_no_job_request', 'request_no_job_save'])
+                                ->whereIn('moved_tab_to', ['cv_sent_no_job_request'])
                                 ->groupBy('applicant_id', 'sale_id');
                         }),
                     'crm_notes',
@@ -921,7 +921,7 @@ class CrmController extends Controller
                         DB::raw('(
                             SELECT MIN(id) as id
                             FROM crm_notes
-                            WHERE status = 1 AND moved_tab_to IN ("request_confirm", "interview_save", "request_no_job_confirm")
+                            WHERE status = 1 AND moved_tab_to IN ("request_confirm", "request_no_job_confirm")
                             GROUP BY applicant_id, sale_id
                         ) as first_cn'),
                         'cn1.id',
@@ -939,7 +939,6 @@ class CrmController extends Controller
                     ->where('cn1.status', 1)
                     ->whereIn('cn1.moved_tab_to', [
                         'request_confirm',
-                        "interview_save", 
                         'request_no_job_confirm'
                     ]);
 
@@ -1060,12 +1059,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    // ->where('cn_latest.status', 1)
+                    ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["rebook", "rebook_save"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            // ->where('status', 1)
+                            ->where('status', 1)
                             ->whereIn("crm_notes.moved_tab_to", ["rebook", "rebook_save"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -1073,11 +1072,11 @@ class CrmController extends Controller
                 $model->joinSub(
                         DB::table('crm_notes')
                             ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to',  ["rebook", "rebook_save"])
+                            ->whereIn('moved_tab_to',  ["rebook"])
                             ->whereIn('id', fn ($subQuery) => 
                                 $subQuery->select(DB::raw('MAX(id)'))
                                     ->from('crm_notes')
-                                    ->whereIn('moved_tab_to',  ["rebook", "rebook_save"])
+                                    ->whereIn('moved_tab_to',  ["rebook"])
                                     ->groupBy('applicant_id', 'sale_id')
                             ),
                         'crm_notes',
