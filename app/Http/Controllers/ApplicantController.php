@@ -35,6 +35,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Horsefly\Mail\GenericEmail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\File;
 use App\Observers\ActionObserver;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
@@ -205,8 +206,12 @@ class ApplicantController extends Controller
                 $destinationPath = public_path($directory);
 
                 // Create directory if not exists
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
+                // if (!file_exists($destinationPath)) {
+                //     mkdir($destinationPath, 0777, true);
+                // }
+
+                if (!File::exists($destinationPath)) {
+                    File::makeDirectory($destinationPath, 0755, true, true);
                 }
 
                 // Move file to public directory
@@ -1253,8 +1258,12 @@ class ApplicantController extends Controller
                 $destinationPath = public_path($directory);
 
                 // 📁 Create directory if not exists
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
+                // if (!file_exists($destinationPath)) {
+                //     mkdir($destinationPath, 0777, true);
+                // }
+
+                if (!File::exists($destinationPath)) {
+                    File::makeDirectory($destinationPath, 0755, true, true);
                 }
 
                 // 🧾 Original filename & extension
@@ -1485,8 +1494,12 @@ class ApplicantController extends Controller
         $publicPath = public_path($directory);
 
         // Ensure directory exists
-        if (!file_exists($publicPath)) {
-            mkdir($publicPath, 0777, true);
+        // if (!file_exists($publicPath)) {
+        //     mkdir($publicPath, 0777, true);
+        // }
+
+        if (!File::exists($publicPath)) {
+            File::makeDirectory($publicPath, 0755, true, true);
         }
 
         // Generate unique filename
@@ -1593,8 +1606,12 @@ class ApplicantController extends Controller
         $destinationPath = public_path($directory);
 
         // 📁 Create directory if missing
-        if (!file_exists($destinationPath)) {
-            mkdir($destinationPath, 0777, true);
+        // if (!file_exists($destinationPath)) {
+        //     mkdir($destinationPath, 0777, true);
+        // }
+
+        if (!File::exists($destinationPath)) {
+            File::makeDirectory($destinationPath, 0755, true, true);
         }
 
         // 🧾 Generate filename
