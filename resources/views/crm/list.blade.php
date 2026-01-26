@@ -34,9 +34,9 @@
                                     </div>
                                 </div>
                                 <!-- Date Range filter -->
-                                <div class="dropdown d-inline d-none" id="confirmation_date_range_filter">
+                                <div class="d-inline d-none" id="confirmation_date_range_filter">
                                     <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
-                                    <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
+                                    <button class="btn btn-outline-primary my-1 me-1" type="button" id="clearDateRange" title="Clear Date Range">
                                         <i class="ri-close-line"></i>
                                     </button>
                                 </div>
