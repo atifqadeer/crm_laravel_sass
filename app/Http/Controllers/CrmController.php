@@ -799,12 +799,12 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    ->where('cn_latest.status', 1)
+                    // ->where('cn_latest.status', 1)
                     ->whereIn('cn_latest.moved_tab_to', ['request_reject', 'request_no_job_reject'])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
-                            ->where('status', 1)
+                            // ->where('status', 1)
                             ->whereIn('moved_tab_to', ['request_reject', 'request_no_job_reject'])
                             ->groupBy('applicant_id', 'sale_id');
                     });
@@ -921,7 +921,7 @@ class CrmController extends Controller
                         DB::raw('(
                             SELECT MIN(id) as id
                             FROM crm_notes
-                            WHERE moved_tab_to IN ("request_confirm", "interview_save", "request_no_job_confirm")
+                            WHERE status = 1 AND moved_tab_to IN ("request_confirm", "interview_save", "request_no_job_confirm")
                             GROUP BY applicant_id, sale_id
                         ) as first_cn'),
                         'cn1.id',
@@ -936,12 +936,12 @@ class CrmController extends Controller
                         'cn1.created_at',
                         'cn1.moved_tab_to'
                     )
+                    ->where('cn1.status', 1)
                     ->whereIn('cn1.moved_tab_to', [
                         'request_confirm',
                         "interview_save", 
                         'request_no_job_confirm'
                     ]);
-
 
                 $latestCvNotes = DB::table('cv_notes as cv1')
                     ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status', 'cv1.created_at')
@@ -952,13 +952,13 @@ class CrmController extends Controller
                 // Subquery: latest CRM note per applicant-sale (for details)
                 $latestCrmNotes = DB::table('crm_notes as cn_latest')
                     ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
-                    // ->where('cn_latest.status', 1)
+                    ->where('cn_latest.status', 1)
                     ->whereIn("cn_latest.moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
                     ->whereIn('cn_latest.id', function ($q) {
                         $q->selectRaw('MAX(id)')
                             ->from('crm_notes')
                             ->whereIn("moved_tab_to", ["request_confirm", "interview_save", "request_no_job_confirm"])
-                            // ->where('status', 1)
+                            ->where('status', 1)
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
