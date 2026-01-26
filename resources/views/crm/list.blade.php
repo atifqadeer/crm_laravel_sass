@@ -33,6 +33,14 @@
                                         <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'rejected_cv']) }}">Export Emails</a>
                                     </div>
                                 </div>
+                                <!-- Date Range filter -->
+                                <div class="d-inline d-none" id="confirmation_date_range_filter">
+                                    <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
+                                    <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
+                                        <i class="ri-close-line"></i>
+                                    </button>
+                                </div>
+                                <!-- Date Range filter -->
                                 <!-- Declined -->
                                 <div class="dropdown d-inline d-none" id="declined_export_email">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -287,6 +295,10 @@
     <!-- Moment JS -->
     <script src="{{ asset('js/moment.min.js')}}"></script>
 
+    <!-- Add daterangepicker -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
+
     <!-- Summernote CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
@@ -336,12 +348,48 @@
             });
         });
 
+        $(function() {
+            // Initialize the date range picker
+            $('#dateRangePicker').daterangepicker({
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear'
+                }
+            });
+
+            // When a date range is selected
+            $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
+                // Set the filter variable and reload DataTable
+                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
+                $('#showDateRange').html($(this).val());
+                $('#applicants_table').DataTable().ajax.reload();
+            });
+
+            // When the date range is cleared
+            $('#dateRangePicker').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
+                window.currentDateRangeFilter = '';
+                $('#showDateRange').html('All Data');
+                $('#applicants_table').DataTable().ajax.reload();
+            });
+
+            // Clear button
+            $('#clearDateRange').on('click', function() {
+                $('#dateRangePicker').val('');
+                window.currentDateRangeFilter = '';
+                $('#showDateRange').html('All Data');
+                $('#applicants_table').DataTable().ajax.reload();
+            });
+        });
+
         $(document).ready(function() {
             // Store filter values
             var tabFilter = '';
             var currentTypeFilter = '';
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
+            var currentDateRangeFilter = '';
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -366,6 +414,7 @@
                         d.tab_filter = tabFilter;
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilters;
+                        d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
@@ -547,6 +596,7 @@
                 $('#openToPaid').toggle(formattedText === 'Paid');
                 $('#schedule_date').toggle(formattedText === 'Confirmation');
                 $('#rejected_cv_export_email').toggleClass('d-none', formattedText !== 'Rejected Cvs');
+                $('#confirmation_date_range_filter').toggleClass('d-none', formattedText !== 'Confirmation');
                 $('#declined_export_email').toggleClass('d-none', formattedText !== 'Declined');
                 $('#not_attended_export_email').toggleClass('d-none', formattedText !== 'Not Attended');
                 $('#start_date_hold_export_email').toggleClass('d-none', formattedText !== 'Start Date Hold');

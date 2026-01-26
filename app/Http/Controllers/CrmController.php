@@ -81,6 +81,7 @@ class CrmController extends Controller
         $categoryFilter = $request->input('category_filter', '');
         $titleFilter = $request->input('title_filter', '');
         $tabFilter = $request->input('tab_filter', '');
+        $date_range_filter = $request->input('date_range_filter', '');
 
         // Base query with minimal selected columns and eager loading
         $model = Applicant::query()
@@ -1041,6 +1042,17 @@ class CrmController extends Controller
                         // CV note user
                         'users.name as user_name',
                     ]);
+
+                    if ($date_range_filter) {
+                        // Parse the date range filter (format: "YYYY-MM-DD|YYYY-MM-DD")
+                        [$start_date, $end_date] = explode('|', $date_range_filter);
+                        $start_date = trim($start_date);
+                        $end_date = trim($end_date);
+
+                        $model->where(function ($query) use ($start_date, $end_date) {
+                            $query->whereBetween('interviews.schedule_date', [$start_date, $end_date]);
+                        });
+                    }
                 break;
             case 'rebook':
                 // Subquery: latest CRM note per applicant-sale (for details)
