@@ -213,11 +213,11 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
                         'status' => (function () use ($item, $sale_id) {
                             // Default
-                            $status_value = 'open';
+                            $status_value = 'Open';
 
                             // Highest priority: paid / closed
                             if ($item->paid_status === 'close') {
-                                return 'paid';
+                                return 'Paid';
                             }
 
                             foreach ($item->cv_notes as $note) {
@@ -228,17 +228,17 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
                                 // 1 = sent
                                 if ($note->status == 1) {
-                                    return 'sent';
+                                    return 'Sent';
                                 }
 
                                 // 2 = paid
                                 if ($note->status == 2) {
-                                    return 'paid';
+                                    return 'Paid';
                                 }
 
                                 // 0 = reject for this job
                                 if ($note->status == 0) {
-                                    return 'reject job';
+                                    return 'Reject Job';
                                 }
                             }
 
