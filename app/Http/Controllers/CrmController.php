@@ -3740,7 +3740,11 @@ class CrmController extends Controller
                         $prev_sub = ['(job_title)'];
                         $newSubject = str_replace($prev_sub, $subjectReplace, $subject);
 
-                        $applicant_email = htmlspecialchars($applicant->applicant_email, ENT_QUOTES, 'UTF-8');
+                        // $applicant_email = htmlspecialchars($applicant->applicant_email, ENT_QUOTES, 'UTF-8');
+
+                        $applicant_email = $applicant->applicant_email
+                            ? htmlspecialchars($applicant->applicant_email, ENT_QUOTES, 'UTF-8')
+                            : '';
                         $newSubject = htmlspecialchars($newSubject, ENT_QUOTES, 'UTF-8');
                         $newPhrase = htmlspecialchars($newPhrase, ENT_QUOTES, 'UTF-8');
                     }
