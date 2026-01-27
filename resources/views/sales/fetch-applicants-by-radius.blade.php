@@ -433,7 +433,7 @@
                 columns: [
                     { data: 'checkbox', 'name': 'checkbox', orderable: false, searchable: false },
                     // { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'applicants.created_at' },
+                    { data: 'updated_at', name: 'applicants.updated_at' },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
                     { data: 'applicant_email', name: 'applicants.applicant_email' },
                     { data: 'job_title', name: 'job_titles.name' },

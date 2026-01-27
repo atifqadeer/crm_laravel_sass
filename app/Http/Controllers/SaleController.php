@@ -5141,7 +5141,7 @@ class SaleController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['checkbox', 'applicant_postcode', 'applicant_experience', 'applicant_notes', 'applicant_email', 'applicantPhone', 'job_title', 'crm_resume', 'applicant_resume', 'paid_status', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_postcode', 'updated_at', 'applicant_experience', 'applicant_notes', 'applicant_email', 'applicantPhone', 'job_title', 'crm_resume', 'applicant_resume', 'paid_status', 'job_category', 'job_source', 'action'])
                 ->with(['sale_id' => $sale_id])
                 ->make(true);
         }
