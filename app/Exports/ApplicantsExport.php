@@ -211,7 +211,35 @@ class ApplicantsExport implements FromCollection, WithHeadings
                                 : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
 
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
-                        'status' => $item->paid_status_order ? ucfirst($item->paid_status_order) : 'N/A',
+                        'status' => (function () use ($item) {
+
+                            $status_value = 'open';
+
+                            switch ((int) $item->paid_status_order) {
+                                case 1:
+                                case 5:
+                                    $status_value = 'paid';
+                                    break;
+
+                                case 2:
+                                    $status_value = 'sent';
+                                    break;
+
+                                case 3:
+                                    $status_value = 'reject_job';
+                                    break;
+
+                                case 4:
+                                    $status_value = 'reject';
+                                    break;
+
+                                default:
+                                    $status_value = 'open';
+                            }
+
+                            return ucwords(str_replace('_', ' ', $status_value));
+                        })(),
+
                     ];
                 });
 
