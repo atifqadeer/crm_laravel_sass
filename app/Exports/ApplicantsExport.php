@@ -183,7 +183,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
 
                 // Filter applicants by the job title IDs
-                $model->whereIn('applicants.job_title_id', $jobTitleIds);
+                $model->whereIn('applicants.job_title_id', $jobTitleIds)
+                            ->orderBy('applicants.updated_at', 'desc');
 
                 // Fetch all applicants without pagination
                 $applicants = $model->get(); // No pagination here, we are getting all the results
@@ -191,17 +192,21 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 // Map the results into the desired format
                 $finalResults = $applicants->map(function ($item) {
                     return [
-                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                        'updated_at' => $item->updated_at ? $item->updated_at->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
                         'applicant_email' => $item->applicant_email,
                         'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'job_title' => strtoupper($item->job_title_name), // Correct field
+                        'job_category' => strtoupper($item->job_category_name), // Correct field
+                        'job_type' => strtoupper($item->job_type),
                         'applicant_postcode' => strtoupper($item->applicant_postcode),
                         'applicant_phone' => $item->applicant_phone,
                         'applicant_phone_secondary' => $item->applicant_phone_secondary,
                         'applicant_landline' => $item->applicant_landline,
-                        'job_category' => strtoupper($item->job_category_name), // Correct field
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title_name), // Correct field
+                        'applicant_experience' => $item->applicant_experience,
+                        'applicant_source' => $item->job_source_name ? strtoupper($item->job_source_name) : '',
+                        'have_nursing_home_experience' => $item->have_nursing_home_experience ? 'Yes' : 'No',
+                        'applicant_notes' => htmlspecialchars($item->applicant_notes),
                     ];
                 });
 
@@ -541,7 +546,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'all':
                 return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
+                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title' , 'Job Category', 'Job Type' , 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
