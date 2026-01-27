@@ -579,10 +579,10 @@
                     console.log('Stats Response:', resp);
 
                     // Applicants
-                    $('.stats-nurses').text(resp.applicants?.nurses ?? 0);
-                    $('.stats-non-nurses').text(resp.applicants?.non_nurses ?? 0);
-                    $('.stats-callbacks').text(resp.applicants?.callbacks ?? 0);
-                    $('.stats-not-interested').text(resp.applicants?.not_interested ?? 0);
+                    $('.stats-nurses').text(resp.applicants?.nurses_created ?? 0);
+                    $('.stats-non-nurses').text(resp.applicants?.non_nurses_created ?? 0);
+                    $('.stats-callbacks').text(resp.applicants?.callbacks_created ?? 0);
+                    $('.stats-not-interested').text(resp.applicants?.not_interested_created ?? 0);
 
                     // Sales
                     $('.stats-open').text(resp.sales?.open ?? 0);

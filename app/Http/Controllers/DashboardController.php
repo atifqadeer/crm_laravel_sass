@@ -903,28 +903,56 @@ class DashboardController extends Controller
          *  ------------------------*/
         $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
 
-        $nurses = Applicant::where([
+        $nurses_created = Applicant::where([
                 'status' => 1,
                 'job_category_id' => $job_category_nurse->id ?? 0
             ])
             ->whereDate('created_at', $formatted_date)
             ->count();
 
-        $non_nurses = Applicant::where('status', 1)
+        $nurses_updated = Applicant::where([
+                'status' => 1,
+                'job_category_id' => $job_category_nurse->id ?? 0
+            ])
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $non_nurses_created = Applicant::where('status', 1)
             ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
                 $q->where('job_category_id', '!=', $job_category_nurse->id);
             })
             ->whereDate('created_at', $formatted_date)
             ->count();
 
-        $callbacks = ApplicantNote::where('moved_tab_to', '=', 'callback')
+        $non_nurses_updated = Applicant::where('status', 1)
+            ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
+                $q->where('job_category_id', '!=', $job_category_nurse->id);
+            })
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $callbacks_created = ApplicantNote::where('moved_tab_to', '=', 'callback')
             ->whereDate('created_at', $formatted_date)
             ->count();
 
-        $not_interested = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
+        $callbacks_updated = ApplicantNote::where('moved_tab_to', '=', 'callback')
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $not_interested_created = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
             ->where('applicants.status', 1)
             ->where('applicants_pivot_sales.is_interested', 0)
             ->whereDate('applicants_pivot_sales.created_at', $formatted_date)
+            ->count();
+        
+        $not_interested_updated = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
+            ->where('applicants.status', 1)
+            ->where('applicants_pivot_sales.is_interested', 0)
+            ->whereDate('applicants_pivot_sales.updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         /** -------------------------
@@ -968,10 +996,14 @@ class DashboardController extends Controller
         return response()->json([
             'date' => Carbon::parse($formatted_date)->format('d M, Y'),
             'applicants' => [
-                'nurses' => $nurses,
-                'non_nurses' => $non_nurses,
-                'callbacks' => $callbacks,
-                'not_interested' => $not_interested,
+                'nurses_created' => $nurses_created,
+                'nurses_updated' => $nurses_updated,
+                'non_nurses_created' => $non_nurses_created,
+                'non_nurses_updated' => $non_nurses_updated,
+                'callbacks_created' => $callbacks_created,
+                'callbacks_updated' => $callbacks_updated,
+                'not_interested_created' => $not_interested_created,
+                'not_interested_updated' => $not_interested_updated,
             ],
             'sales' => [
                 'open' => $open_sales,
