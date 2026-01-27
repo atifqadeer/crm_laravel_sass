@@ -105,7 +105,7 @@ class DashboardController extends Controller
     }
     public function getUsersForDashboard(Request $request)
     {
-        $model = User::query()
+        $model = User::query()->where('is_active', 1)
             ->leftJoin('model_has_roles', function ($join) {
                 $join->on('users.id', '=', 'model_has_roles.model_id')
                     ->where('model_has_roles.model_type', '=', User::class);
@@ -880,7 +880,7 @@ class DashboardController extends Controller
     // }
     public function getStats(Request $request)
     {
-        $date = $request->input('date') ?? Carbon::parse('2025-02-26')->format('d-m-Y');
+        $date = $request->input('date') ?? Carbon::now()->format('d-m-Y');
 
         // ✅ Validate date format
         $validator = Validator::make(['date' => $date], [
@@ -988,7 +988,7 @@ class DashboardController extends Controller
     }
     public function getChartData(Request $request)
     {
-        $inputDate = $request->input('date') ?? Carbon::parse('2025-07-24')->format('d-m-Y');
+        $inputDate = $request->input('date') ?? Carbon::now()->format('d-m-Y');
 
         // ✅ Validate date format
         $validator = Validator::make(['date' => $inputDate], [
