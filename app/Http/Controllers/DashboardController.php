@@ -952,7 +952,7 @@ class DashboardController extends Controller
             ->where('applicants.status', 1)
             ->where('applicants_pivot_sales.is_interested', 0)
             ->whereDate('applicants_pivot_sales.updated_at', $formatted_date)
-            ->whereColumn('updated_at', '!=', 'created_at')
+            ->whereColumn('applicants_pivot_sales.updated_at', '!=', 'applicants_pivot_sales.created_at')
             ->count();
 
         /** -------------------------
