@@ -456,7 +456,7 @@ class DashboardController extends Controller
         $startOfWeek = now()->startOfWeek();
         $endOfWeek = now()->endOfWeek();
 
-        $dailyCounts = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])
+        $dailyCounts = Sale::whereBetween('created_at', ['2026-01-20', '2026-01-20'])
             ->select(DB::raw('DAYOFWEEK(created_at) as day'), DB::raw('COUNT(*) as total'))
             ->groupBy(DB::raw('DAYOFWEEK(created_at)'))
             ->pluck('total', 'day');
@@ -468,7 +468,7 @@ class DashboardController extends Controller
         }
 
         $salesDetails = Sale::with(['office', 'unit'])
-            ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->whereBetween('created_at', ['2026-01-20', '2026-01-20'])
             ->get(['id', 'unit_id', 'office_id', 'sale_postcode', 'created_at']);
 
         return response()->json([
@@ -917,7 +917,7 @@ class DashboardController extends Controller
             ->whereDate('created_at', $formatted_date)
             ->count();
 
-        $callbacks = ApplicantNote::where('moved_tab_to', 'callback')
+        $callbacks = ApplicantNote::where('moved_tab_to', '=', 'callback')
             ->whereDate('created_at', $formatted_date)
             ->count();
 
