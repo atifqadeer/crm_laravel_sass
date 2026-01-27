@@ -996,14 +996,22 @@ class DashboardController extends Controller
         return response()->json([
             'date' => Carbon::parse($formatted_date)->format('d M, Y'),
             'applicants' => [
-                'nurses_created' => $nurses_created,
-                'nurses_updated' => $nurses_updated,
-                'non_nurses_created' => $non_nurses_created,
-                'non_nurses_updated' => $non_nurses_updated,
-                'callbacks_created' => $callbacks_created,
-                'callbacks_updated' => $callbacks_updated,
-                'not_interested_created' => $not_interested_created,
-                'not_interested_updated' => $not_interested_updated,
+                'nurses' => [
+                    'created' => $nurses_created,
+                    'updated' => $nurses_updated,
+                ],
+                'non_nurses' => [
+                    'created' => $non_nurses_created,
+                    'updated' => $non_nurses_updated,
+                ],
+                'callbacks' => [
+                    'created' => $callbacks_created,
+                    'updated' => $callbacks_updated,
+                ],
+                'not_interested' => [
+                    'created' => $not_interested_created,
+                    'updated' => $not_interested_updated,
+                ],
             ],
             'sales' => [
                 'open' => $open_sales,
