@@ -211,6 +211,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                                 : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
 
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
+                        'status' => $item->paid_status_order ? ucfirst($item->paid_status_order) : 'N/A',
                     ];
                 });
 
@@ -550,7 +551,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'all':
                 return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title' , 'Job Category', 'Job Type' , 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes'];
+                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title' , 'Job Category', 'Job Type' , 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
