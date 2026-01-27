@@ -3432,18 +3432,33 @@ class CrmController extends Controller
                                             </a></li>';
                                 }
                                 if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
-                                    $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
-                                        data-bs-toggle="modal" 
+                                    // $actionButtons .= '<li><a class="dropdown-item" 
+                                    //     href="#" 
+                                    //     data-bs-toggle="modal" 
+                                    //     data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                    //     data-applicant-id="' . (int)$applicant->id . '"
+                                    //     data-sale-id="' . (int)$applicant->sale_id . '"
+                                    //     data-applicant-phone="' . $applicant->applicant_phone . '" 
+                                    //     data-applicant-name="' . $applicant->applicant_name . '" 
+                                    //     data-applicant-unit="' . $applicant->unit_name . '"
+                                    //     onclick="crmSentCvToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
+                                    //     Send Request
+                                    // </a></li>';
+                                    $actionButtons .= '<li>
+                                        <a class="dropdown-item"
+                                        href="#"
+                                        data-bs-toggle="modal"
                                         data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
                                         data-sale-id="' . (int)$applicant->sale_id . '"
-                                        data-applicant-phone="' . $applicant->applicant_phone . '" 
-                                        data-applicant-name="' . $applicant->applicant_name . '" 
-                                        data-applicant-unit="' . $applicant->unit_name . '"
-                                        onclick="crmSentCvToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
+                                        data-applicant-phone="' . e($applicant->applicant_phone) . '"
+                                        data-applicant-name="' . e($applicant->applicant_name) . '"
+                                        data-applicant-unit="' . e($applicant->unit_name) . '"
+                                        data-sms-message="' . e($formattedMessage) . '"
+                                        onclick="crmSentCvToRequestModal(this, ' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
                                         Send Request
-                                    </a></li>';
+                                        </a>
+                                    </li>';
                                 }
                                 if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                     $actionButtons .= '<li><a class="dropdown-item" 

@@ -917,22 +917,117 @@
         }
 
         /** Sent CV To Request Modal */
-        function crmSentCvToRequestModal(applicantID, saleID, tab, smsMessage) {
+        // function crmSentCvToRequestModal(applicantID, saleID, tab, smsMessage) {
+        //     const formId = `#crmSendRequestForm${applicantID}-${saleID}`;
+        //     const modalId = `#crmSentCvToRequestModal${applicantID}-${saleID}`;
+        //     const detailsId = `#sendRequestDetails${applicantID}-${saleID}`;
+        //     const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+        //     const saveButton = $(`${formId} .saveCrmSendRequestButton`);
+
+        //     // Capture data from trigger <a> element
+        //     if(smsMessage !== ''){
+        //         const triggerEl = document.querySelector(`[data-applicant-id="${applicantID}"][data-sale-id="${saleID}"]`);
+        //         const applicantName = triggerEl?.getAttribute('data-applicant-name') || '';
+        //         const applicantPhone = triggerEl?.getAttribute('data-applicant-phone') || '';
+        //         const applicantUnit = triggerEl?.getAttribute('data-applicant-unit') || '';
+        //         const smsTriggerId = modalId; // for reference back
+
+        //         // ✅ Show SMS Modal with pre-filled data
+        //         $('#smsName').text(applicantName);
+        //         $('#applicant_phone_number').val(applicantPhone);
+        //         $('#applicant_id').val(applicantID);
+        //         $('#smsBodyDetails').val(smsMessage);
+
+        //         $('#send_sms_to_requested_applicant').modal('show');
+        //     }
+
+        //     // Reset modal when it is about to be shown
+        //     $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+        //         // Reset form fields
+        //         $(formId)[0].reset();
+
+        //         // Remove validation styles and messages
+        //         $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+        //         // Hide any previous alerts
+        //         $(notificationAlert).html('').hide();
+        //     });
+
+        //     // Handle save button click
+        //     saveButton.off('click').on('click', function() {
+        //         // Reset validation
+        //         $(detailsId).removeClass('is-invalid is-valid')
+        //                 .next('.invalid-feedback').remove();
+                
+        //         // Validate inputs
+        //         const notes = $(detailsId).val();
+
+        //         if (!notes) {
+        //             $(detailsId).addClass('is-invalid');
+        //             $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+                    
+        //             return;
+        //         }
+
+        //         // Show loading state
+        //         const btn = $(this);
+        //         const originalText = btn.html();
+        //         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+        //         // Get form properly
+        //         const form = $(formId)[0];
+
+        //         // Send data via AJAX
+        //         $.ajax({
+        //             url: form.action,
+        //             method: form.method,
+        //             data: {
+        //                 applicant_id: applicantID,
+        //                 sale_id: saleID,
+        //                 details: notes,
+        //                 tab : tab,
+        //                 _token: '{{ csrf_token() }}'
+        //             },
+        //             success: function(response) {
+        //                 $(notificationAlert).html(`
+        //                     <div class="notification-alert success">
+        //                         ${response.message}
+        //                     </div>
+        //                 `).show();
+
+        //                 setTimeout(() => {
+        //                     $(modalId).modal('hide');
+        //                     $(formId)[0].reset();
+        //                     $('#applicants_table').DataTable().ajax.reload();
+        //                 }, 2000);
+        //             },
+        //             error: function(xhr) {
+        //                 $(notificationAlert).html(`
+        //                     <div class="notification-alert error">
+        //                         ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+        //                     </div>
+        //                 `).show();
+        //             },
+        //             complete: function() {
+        //                 btn.prop('disabled', false).html(originalText);
+        //             }
+        //         });
+        //     });
+        // }
+        function crmSentCvToRequestModal(el, applicantID, saleID, tab) {
+
             const formId = `#crmSendRequestForm${applicantID}-${saleID}`;
             const modalId = `#crmSentCvToRequestModal${applicantID}-${saleID}`;
             const detailsId = `#sendRequestDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
             const saveButton = $(`${formId} .saveCrmSendRequestButton`);
 
-            // Capture data from trigger <a> element
-            if(smsMessage !== ''){
-                const triggerEl = document.querySelector(`[data-applicant-id="${applicantID}"][data-sale-id="${saleID}"]`);
-                const applicantName = triggerEl?.getAttribute('data-applicant-name') || '';
-                const applicantPhone = triggerEl?.getAttribute('data-applicant-phone') || '';
-                const applicantUnit = triggerEl?.getAttribute('data-applicant-unit') || '';
-                const smsTriggerId = modalId; // for reference back
+            // ✅ Read safely from data attribute
+            const smsMessage = el.dataset.smsMessage || '';
+            const applicantName = el.dataset.applicantName || '';
+            const applicantPhone = el.dataset.applicantPhone || '';
 
-                // ✅ Show SMS Modal with pre-filled data
+            if (smsMessage) {
                 $('#smsName').text(applicantName);
                 $('#applicant_phone_number').val(applicantPhone);
                 $('#applicant_id').val(applicantID);
@@ -941,74 +1036,45 @@
                 $('#send_sms_to_requested_applicant').modal('show');
             }
 
-            // Reset modal when it is about to be shown
+            // Reset modal
             $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-                // Reset form fields
                 $(formId)[0].reset();
-
-                // Remove validation styles and messages
-                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-
-                // Hide any previous alerts
                 $(notificationAlert).html('').hide();
             });
 
-            // Handle save button click
-            saveButton.off('click').on('click', function() {
-                // Reset validation
-                $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
-                // Validate inputs
+            saveButton.off('click').on('click', function () {
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
-                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
                     return;
                 }
 
-                // Show loading state
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html('Processing...');
 
-                // Get form properly
-                const form = $(formId)[0];
-
-                // Send data via AJAX
                 $.ajax({
-                    url: form.action,
-                    method: form.method,
+                    url: $(formId).attr('action'),
+                    method: 'POST',
                     data: {
                         applicant_id: applicantID,
                         sale_id: saleID,
                         details: notes,
-                        tab : tab,
-                        _token: '{{ csrf_token() }}'
+                        tab: tab,
+                        _token: $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function(response) {
-                        $(notificationAlert).html(`
-                            <div class="notification-alert success">
-                                ${response.message}
-                            </div>
-                        `).show();
+                    success: function (response) {
+                        $(notificationAlert).html(
+                            `<div class="notification-alert success">${response.message}</div>`
+                        ).show();
 
                         setTimeout(() => {
                             $(modalId).modal('hide');
-                            $(formId)[0].reset();
                             $('#applicants_table').DataTable().ajax.reload();
-                        }, 2000);
+                        }, 1500);
                     },
-                    error: function(xhr) {
-                        $(notificationAlert).html(`
-                            <div class="notification-alert error">
-                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
-                            </div>
-                        `).show();
-                    },
-                    complete: function() {
+                    complete: function () {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
