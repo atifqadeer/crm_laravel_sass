@@ -205,7 +205,11 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_landline' => $item->applicant_landline,
                         'applicant_experience' => $item->applicant_experience,
                         'applicant_source' => $item->job_source_name ? strtoupper($item->job_source_name) : '',
-                        'have_nursing_home_experience' => $item->have_nursing_home_experience ? 'Yes' : 'No',
+                        'have_nursing_home_experience' =>
+                            $item->have_nursing_home_experience == 1
+                                ? 'Yes'
+                                : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
+
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
                     ];
                 });
