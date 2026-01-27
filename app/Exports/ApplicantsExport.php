@@ -190,7 +190,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 $applicants = $model->get(); // No pagination here, we are getting all the results
 
                 // Map the results into the desired format
-                $finalResults = $applicants->map(function ($item) {
+                $finalResults = $applicants->map(function ($item) use ($sale_id) {
                     return [
                         'updated_at' => $item->updated_at ? $item->updated_at->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
@@ -211,33 +211,39 @@ class ApplicantsExport implements FromCollection, WithHeadings
                                 : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
 
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
-                        'status' => (function () use ($item) {
-
+                        'status' => (function () use ($item, $sale_id) {
+                            // Default
                             $status_value = 'open';
 
-                            switch ((int) $item->paid_status_order) {
-                                case 1:
-                                case 5:
-                                    $status_value = 'paid';
-                                    break;
-
-                                case 2:
-                                    $status_value = 'sent';
-                                    break;
-
-                                case 3:
-                                    $status_value = 'reject_job';
-                                    break;
-
-                                case 4:
-                                    $status_value = 'reject';
-                                    break;
-
-                                default:
-                                    $status_value = 'open';
+                            // Highest priority: paid / closed
+                            if ($item->paid_status === 'close') {
+                                return 'paid';
                             }
 
-                            return ucwords(str_replace('_', ' ', $status_value));
+                            foreach ($item->cv_notes as $note) {
+
+                                if ($note->sale_id != $sale_id) {
+                                    continue;
+                                }
+
+                                // 1 = sent
+                                if ($note->status == 1) {
+                                    return 'sent';
+                                }
+
+                                // 2 = paid
+                                if ($note->status == 2) {
+                                    return 'paid';
+                                }
+
+                                // 0 = reject for this job
+                                if ($note->status == 0) {
+                                    return 'reject job';
+                                }
+                            }
+
+                            return ucwords($status_value);
+
                         })(),
 
                     ];
