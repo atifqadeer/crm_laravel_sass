@@ -18,6 +18,37 @@
                 <div class="row justify-content-between">
                     <div class="col-lg-12">
                         <div class="text-md-end mt-3">
+                            <!-- head office Filter Dropdown -->
+                            <div class="dropdown d-inline">
+                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
+                                </button>
+
+                                <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton6">
+                                    <!-- Search input -->
+                                    <input type="text" class="form-control mb-2" id="officeSearchInput"
+                                        placeholder="Search office...">
+
+                                    <!-- Scrollable checkbox list -->
+                                    <div id="officesList">
+                                        <div class="form-check">
+                                            <input class="form-check-input office-filter" type="checkbox" value=""
+                                                id="all-offices" data-title-id="">
+                                            <label class="form-check-label" for="all-offices">All Head Offices</label>
+                                        </div>
+
+                                        @foreach($offices as $office)
+                                            <div class="form-check">
+                                                <input class="form-check-input office-filter" type="checkbox"
+                                                    value="{{ $office->id }}" id="office_{{ $office->id }}"
+                                                    data-office-id="{{ $office->id }}">
+                                                <label class="form-check-label"
+                                                    for="office_{{ $office->id }}">{{ ucwords($office->office_name) }}</label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
                             @canany(['unit-filters'])
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
@@ -161,6 +192,7 @@
 
             // Store the current filter in a variable
             var currentFilter = '';
+            var currentOfficeFilters = [];
 
             let columns = [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
@@ -225,6 +257,7 @@
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                        d.office_filter = currentOfficeFilters;  // Send the current filter value as a parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -320,6 +353,38 @@
                 },
             });
 
+            /*** Office Filter Handler ***/
+            $('.office-filter').on('change', function() {
+                const id = $(this).data('office-id');
+
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentOfficeFilters = [];
+                    $('.office-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentOfficeFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.office-filter[data-office-id=""]').prop('checked', false);
+                    } else {
+                        currentOfficeFilters = currentOfficeFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text
+                const selectedLabels = $('.office-filter:checked')
+                    .map(function() {
+                        return $(this).next('label').text().trim();
+                    }).get();
+
+                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
+                    ')' : 'All Head Offices');
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
             // Handle filter button clicks and send filter parameters to the DataTable
             $('.dropdown-item').on('click', function() {
                 // Get the selected filter value
@@ -327,6 +392,16 @@
 
                 // Update the DataTable request with the selected filter
                 table.ajax.reload();  // Reload the table with the new filter
+            });
+        });
+
+        document.getElementById('officeSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#officesList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
 

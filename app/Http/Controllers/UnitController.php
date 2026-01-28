@@ -36,7 +36,8 @@ class UnitController extends Controller
      */
     public function index()
     {
-        return view('units.list');
+        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        return view('units.list', compact('offices'));
     }
     public function create()
     {
@@ -481,6 +482,7 @@ class UnitController extends Controller
     {
         $statusFilter = $request->input('status_filter');
         $searchTerm   = trim($request->input('search.value', ''));
+        $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
             ->select('units.*', 'offices.office_name as office_name')
@@ -492,6 +494,11 @@ class UnitController extends Controller
             $query->where('units.status', 1);
         } elseif ($statusFilter === 'inactive') {
             $query->where('units.status', 0);
+        }
+
+        // Office filter
+        if ($officeFilter !== '') {
+            $query->whereIn('units.office_id', $officeFilter);
         }
 
         // Global search (now works on contact fields too)
