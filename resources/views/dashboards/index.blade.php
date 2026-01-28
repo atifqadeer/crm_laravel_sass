@@ -272,7 +272,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="open_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-open"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-open-created"></span>
                                         <small class="text-muted">Open</small>
                                     </div>
                                 </div>
@@ -281,7 +281,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="close_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-close"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-close-created"></span>
                                         <small class="text-muted">Close</small>
                                     </div>
                                 </div>
@@ -290,7 +290,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="pending_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-pending"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-pending-created"></span>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                 </div>
@@ -299,7 +299,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-rejected"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-rejected-created"></span>
                                         <small class="text-muted">Rejected</small>
                                     </div>
                                 </div>
@@ -312,7 +312,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="open_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-open"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-open-updated"></span>
                                         <small class="text-muted">Open</small>
                                     </div>
                                 </div>
@@ -321,7 +321,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="close_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-close"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-close-updated"></span>
                                         <small class="text-muted">Close</small>
                                     </div>
                                 </div>
@@ -330,7 +330,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="pending_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-pending"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-pending-updated"></span>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                 </div>
@@ -339,7 +339,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-rejected"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-rejected-updated"></span>
                                         <small class="text-muted">Rejected</small>
                                     </div>
                                 </div>
@@ -674,11 +674,17 @@
                     $('.stats-callbacks-updated').text(resp.applicants?.callbacks.updated ?? 0);
                     $('.stats-not-interested-updated').text(resp.applicants?.not_interested.updated ?? 0);
 
-                    // Sales
-                    $('.stats-open').text(resp.sales?.open ?? 0);
-                    $('.stats-close').text(resp.sales?.close ?? 0);
-                    $('.stats-pending').text(resp.sales?.pending ?? 0);
-                    $('.stats-rejected').text(resp.sales?.rejected ?? 0);
+                    // Sales created
+                    $('.stats-open-created').text(resp.sales?.open.created ?? 0);
+                    $('.stats-close-created').text(resp.sales?.close.created ?? 0);
+                    $('.stats-pending-created').text(resp.sales?.pending.created ?? 0);
+                    $('.stats-rejected-created').text(resp.sales?.rejected.created ?? 0);
+
+                    // Sales updated
+                    $('.stats-open-updated').text(resp.sales?.open.updated ?? 0);
+                    $('.stats-close-updated').text(resp.sales?.close.updated ?? 0);
+                    $('.stats-pending-updated').text(resp.sales?.pending.updated ?? 0);
+                    $('.stats-rejected-updated').text(resp.sales?.rejected.updated ?? 0);
 
                     // Quality
                     $('.stats-sent-cvs').text(resp.quality?.sent_cvs ?? 0);

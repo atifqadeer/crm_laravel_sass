@@ -958,22 +958,45 @@ class DashboardController extends Controller
         /** -------------------------
          *  SALES SECTION
          *  ------------------------*/
-        $open_sales = Sale::where('status', 1)
+        $open_sales_created = Sale::where('status', 1)
+            ->whereDate('created_at', $formatted_date)
+            ->count();
+        
+        $open_sales_updated = Sale::where('status', 1)
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $close_sales_created = Audit::where('message', 'sale-closed')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereDate('created_at', $formatted_date)
+            ->count();
+       
+        $close_sales_updated = Audit::where('message', 'sale-closed')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $pending_sales_created = Sale::where('status', 'pending')
+            ->whereDate('created_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $pending_sales_updated = Sale::where('status', 'pending')
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $rejected_sales_created = Audit::where('message', 'sale-rejected')
+            ->where('auditable_type', 'Horsefly\\Sale')
             ->whereDate('created_at', $formatted_date)
             ->count();
 
-        $close_sales = Audit::where('message', 'sale-closed')
+        $rejected_sales_updated = Audit::where('message', 'sale-rejected')
             ->where('auditable_type', 'Horsefly\\Sale')
             ->whereDate('updated_at', $formatted_date)
-            ->count();
-
-        $pending_sales = Sale::where('status', 'pending')
-            ->whereDate('created_at', $formatted_date)
-            ->count();
-
-        $rejected_sales = Audit::where('message', 'sale-rejected')
-            ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         /** -------------------------
@@ -1014,10 +1037,22 @@ class DashboardController extends Controller
                 ],
             ],
             'sales' => [
-                'open' => $open_sales,
-                'close' => $close_sales,
-                'pending' => $pending_sales,
-                'rejected' => $rejected_sales,
+                'open' => [
+                    'created' => $open_sales_created,
+                    'updated' => $open_sales_updated,
+                ],
+                'close' => [
+                    'created' => $close_sales_created,
+                    'updated' => $close_sales_updated,
+                ],
+                'pending' => [
+                    'created' => $pending_sales_created,
+                    'updated' => $pending_sales_updated,
+                ],
+                'rejected' => [
+                    'created' => $rejected_sales_created,
+                    'updated' => $rejected_sales_updated,
+                ],
             ],
             'quality' => [
                 'sent_cvs' => $sent_cvs,
