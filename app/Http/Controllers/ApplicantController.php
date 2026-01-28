@@ -445,8 +445,20 @@ class ApplicantController extends Controller
 
                 $model->where(function ($query) use ($lowerSearchTerm) {
 
+                    // Split the search term by spaces to get individual words
+                    $keywords = explode(' ', $lowerSearchTerm);
+
+                    // ✅ IMPROVED Name Search: Matches "Tenda Menda" if you search "Menda Tenda"
+                    $query->where(function ($nameQuery) use ($keywords) {
+                        foreach ($keywords as $word) {
+                            if (trim($word) !== '') {
+                                $nameQuery->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$word}%"]);
+                            }
+                        }
+                    });
+
                     // ✅ Applicant name: allow partial matches
-                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
+                    $query->orWhereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
 
                         // ✅ Emails: exact match only
                         ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
