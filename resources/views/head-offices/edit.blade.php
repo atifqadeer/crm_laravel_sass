@@ -73,10 +73,15 @@
                                             <input type="text" class="form-control" name="contact_landline[]" placeholder="Contact Landline" maxlength="20" value="{{ $row->contact_landline }}">
                                             <div class="invalid-feedback">Please provide a landline number</div>
                                         </div>
-                                        <div class="col-lg-12">
+                                        @if(!$loop->first)<div class="col-lg-11">@else<div class="col-lg-12">@endif
                                             <textarea class="form-control" rows="3" name="contact_note[]" placeholder="Enter Contact Note">{{ $row->contact_note }}</textarea>
                                             <div class="invalid-feedback">Please provide a contact note</div>
                                         </div>
+                                        @if(!$loop->first)
+                                        <div class="col-lg-1 d-flex align-items-center">
+                                            <button type="button" class="btn btn-transparent btn-sm removeContactPersonButton"> <iconify-icon icon="solar:trash-bin-minimalistic-bold" class="text-danger fs-24"></iconify-icon></button>
+                                        </div>
+                                        @endif
                                     </div>
                                     @empty
                                         <div class="contact-person-form row g-3 mb-3">
@@ -156,7 +161,7 @@
                         <div class="col-lg-12">
                             <div class="mb-3">
                                 <label for="office_notes" class="form-label">Notes</label>
-                                <textarea class="form-control" id="office_notes" name="office_notes" rows="3" placeholder="Enter Notes" required>{{ old('office_notes') }}</textarea>
+                                <textarea class="form-control" id="office_notes" name="office_notes" rows="3" placeholder="Enter Notes" required>{{ old('office_notes', $office->office_notes) }}</textarea>
                                 <div class="invalid-feedback">Please provide notes</div>
                             </div>
                         </div>
