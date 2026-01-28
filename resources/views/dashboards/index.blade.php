@@ -184,14 +184,15 @@
                                 placeholder="Select date" style="width: 220px;" />
                         </div>
                     </div>
-                    <div class="card-body p-2 mx-3" style="min-height: 455px;">
+                    <div class="card-body p-2 mx-3">
+                        <!-- Applicants Statistics Created -->
                         <div class="row">
-                            <h6 class="mt-3 mb-1">Applicants Statistics</h6><hr>
+                            <h6 class="mt-3 mb-1">Applicants Statistics (Created)</h6><hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses">
-                                        <span class="fs-4 fw-bold text-primary stats-nurses"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-nurses-created"></span>
                                         <small class="text-muted">Nurses</small>
                                     </div>
                                 </div>
@@ -200,7 +201,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses">
-                                        <span class="fs-4 fw-bold text-primary stats-non-nurses"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-non-nurses-created"></span>
                                         <small class="text-muted">Non Nurses</small>
                                     </div>
                                 </div>
@@ -209,7 +210,7 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="callbacks">
-                                        <span class="fs-4 fw-bold text-primary stats-callbacks"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-callbacks-created"></span>
                                         <small class="text-muted">Callbacks</small>
                                     </div>
                                 </div>
@@ -218,14 +219,55 @@
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="not_interested">
-                                        <span class="fs-4 fw-bold text-primary stats-not-interested"></span>
+                                        <span class="fs-4 fw-bold text-primary stats-not-interested-created"></span>
                                         <small class="text-muted">Not Interested</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <!-- Applicants Statistics Updated -->
                         <div class="row">
-                            <h6 class="mt-2 mb-1">Sales Statistics</h6><hr>
+                            <h6 class="mt-3 mb-1">Applicants Statistics (Updated)</h6><hr>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses">
+                                        <span class="fs-4 fw-bold text-primary stats-nurses-updated"></span>
+                                        <small class="text-muted">Nurses</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses">
+                                        <span class="fs-4 fw-bold text-primary stats-non-nurses-updated"></span>
+                                        <small class="text-muted">Non Nurses</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="callbacks">
+                                        <span class="fs-4 fw-bold text-primary stats-callbacks-updated"></span>
+                                        <small class="text-muted">Callbacks</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="not_interested">
+                                        <span class="fs-4 fw-bold text-primary stats-not-interested-updated"></span>
+                                        <small class="text-muted">Not Interested</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sales Statistics Created -->
+                        <div class="row">
+                            <h6 class="mt-2 mb-1">Sales Statistics (Created)</h6><hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
@@ -263,6 +305,47 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Sales Statistics Updated -->
+                        <div class="row">
+                            <h6 class="mt-2 mb-1">Sales Statistics (Updated)</h6><hr>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="open_sale">
+                                        <span class="fs-4 fw-bold text-primary stats-open"></span>
+                                        <small class="text-muted">Open</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="close_sale">
+                                        <span class="fs-4 fw-bold text-primary stats-close"></span>
+                                        <small class="text-muted">Close</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="pending_sale">
+                                        <span class="fs-4 fw-bold text-primary stats-pending"></span>
+                                        <small class="text-muted">Pending</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_sale">
+                                        <span class="fs-4 fw-bold text-primary stats-rejected"></span>
+                                        <small class="text-muted">Rejected</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Quality Statistics -->
                         <div class="row">
                             <h6 class="mt-2 mb-1">Quality Statistics</h6><hr>
                             <div class="col-md-3 mb-3">
@@ -294,6 +377,7 @@
                             </div>
                         </div>
                     </div>
+                    
                 </div>
             </div>
             <div class="col-xl-5 col-lg-12">
@@ -578,11 +662,17 @@
                 success: function(resp) {
                     console.log('Stats Response:', resp);
 
-                    // Applicants
-                    $('.stats-nurses').text(resp.applicants?.nurses.created ?? 0);
-                    $('.stats-non-nurses').text(resp.applicants?.non_nurses.created ?? 0);
-                    $('.stats-callbacks').text(resp.applicants?.callbacks.created ?? 0);
-                    $('.stats-not-interested').text(resp.applicants?.not_interested.created ?? 0);
+                    // Applicants created
+                    $('.stats-nurses-created').text(resp.applicants?.nurses.created ?? 0);
+                    $('.stats-non-nurses-created').text(resp.applicants?.non_nurses.created ?? 0);
+                    $('.stats-callbacks-created').text(resp.applicants?.callbacks.created ?? 0);
+                    $('.stats-not-interested-created').text(resp.applicants?.not_interested.created ?? 0);
+                    
+                    // Applicants updated
+                    $('.stats-nurses-updated').text(resp.applicants?.nurses.updated ?? 0);
+                    $('.stats-non-nurses-updated').text(resp.applicants?.non_nurses.updated ?? 0);
+                    $('.stats-callbacks-updated').text(resp.applicants?.callbacks.updated ?? 0);
+                    $('.stats-not-interested-updated').text(resp.applicants?.not_interested.updated ?? 0);
 
                     // Sales
                     $('.stats-open').text(resp.sales?.open ?? 0);
