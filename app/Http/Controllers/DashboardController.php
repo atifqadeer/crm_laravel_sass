@@ -850,34 +850,6 @@ class DashboardController extends Controller
 
         return response()->json(['success' => true]);
     }
-
-    // public function getStats(Request $request)
-    // {
-    //     // Example: You can replace with your actual queries
-    //     return response()->json([
-    //         'applicants' => [
-    //             'nurses' => 5,
-    //             'non_nurses' => 6,
-    //             'callbacks' => 4,
-    //             'not_interested' => 2,
-    //         ],
-    //         'sales' => [
-    //             'open' => 5,
-    //             'close' => 6,
-    //             'pending' => 4,
-    //             'rejected' => 2,
-    //         ],
-    //         'quality' => [
-    //             'sent_cvs' => 5,
-    //             'rejected_cvs' => 6,
-    //             'cleared_cvs' => 4,
-    //         ],
-    //         'chart' => [
-    //             'labels' => ['Nurses','Non Nurses','Callbacks','Not Interested'],
-    //             'series' => [5,6,4,2],
-    //         ]
-    //     ]);
-    // }
     public function getStats(Request $request)
     {
         $date = $request->input('date');
@@ -885,8 +857,8 @@ class DashboardController extends Controller
         $range = $request->input('range');
 
         // ✅ Validate date format
-        $validator = Validator::make(['date' => $date], [
-            'date' => 'required|date',
+        $validator = Validator::make(['date_range' => $date], [
+            'date_range' => 'required|date',
         ]);
 
         if ($validator->fails()) {
