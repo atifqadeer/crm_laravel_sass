@@ -458,10 +458,7 @@ class ApplicantController extends Controller
                     });
 
                     // ✅ Applicant name: allow partial matches
-                    $query->orWhereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
-
-                        // ✅ Emails: exact match only
-                        ->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
+                    $query->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
                         ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
 
                         // ✅ Postcode: exact match only
