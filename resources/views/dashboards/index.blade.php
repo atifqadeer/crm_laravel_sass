@@ -320,7 +320,7 @@
 
                                         <div class="d-flex flex-column justify-content-center stat-box ps-3" data-type="reopen_sale_updated" style="flex: 1;">
                                             <span class="fs-4 fw-bold text-primary stats-reopen-updated">0</span>
-                                            <small class="text-muted fw-semibold">Re-Open</small>
+                                            <small class="text-muted fw-semibold">ReOpen</small>
                                         </div>
                                     </div>
                                 </div>
