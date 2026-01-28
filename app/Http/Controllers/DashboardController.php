@@ -880,7 +880,9 @@ class DashboardController extends Controller
     // }
     public function getStats(Request $request)
     {
-        $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
+        $date = $request->input('date');
+        // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
+        $range = $request->input('range');
 
         // ✅ Validate date format
         $validator = Validator::make(['date' => $date], [

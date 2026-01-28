@@ -13,6 +13,7 @@
         .collapse {
             visibility: visible;
         }
+        
     </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
@@ -171,7 +172,7 @@
                                     Daily
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="#!" class="dropdown-item stats-filter" data-range="daily">Daily</a>
+                                    <a href="#!" class="dropdown-item stats-filter active" data-range="daily">Daily</a>
                                     <a href="#!" class="dropdown-item stats-filter" data-range="weekly">Weekly</a>
                                     <a href="#!" class="dropdown-item stats-filter" data-range="monthly">Monthly</a>
                                     <a href="#!" class="dropdown-item stats-filter" data-range="yearly">Yearly</a>
@@ -401,7 +402,7 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center pb-1">
                         <div>
-                            <h4 class="card-title mb-0">Statistics Chart</h4>
+                            <h4 class="card-title mb-0">CRM Statistics Chart</h4>
                         </div>
                     </div>
                     <div class="card-body d-flex py-2" style="min-height: 470px;"> <!-- fixed min-height -->
@@ -668,56 +669,52 @@
             });
         });
 
-        /*** statistics data **/
-        function loadStatsBoxes(range, dateRange = null) {
-            console.log('Loading stats for range:', range, 'Date range:', dateRange);
+        let currentRange = 'daily';
+        let currentDateRange = null;
+        let fp = null;
 
-            $.ajax({
-                url: '/dashboard/statistics-data',
-                method: 'GET',
-                data: { range: range, date: dateRange },
-                success: function(resp) {
-                    console.log('Stats Response:', resp);
+        const dateInput = document.getElementById("statsDateRange");
+        const rangeBtn = document.getElementById("statsRangeBtn");
 
-                    // Applicants created
-                    $('.stats-nurses-created').text(resp.applicants?.nurses.created ?? 0);
-                    $('.stats-non-nurses-created').text(resp.applicants?.non_nurses.created ?? 0);
-                    $('.stats-callbacks-created').text(resp.applicants?.callbacks.created ?? 0);
-                    $('.stats-not-interested-created').text(resp.applicants?.not_interested.created ?? 0);
-                    
-                    // Applicants updated
-                    $('.stats-nurses-updated').text(resp.applicants?.nurses.updated ?? 0);
-                    $('.stats-non-nurses-updated').text(resp.applicants?.non_nurses.updated ?? 0);
-                    $('.stats-callbacks-updated').text(resp.applicants?.callbacks.updated ?? 0);
-                    $('.stats-not-interested-updated').text(resp.applicants?.not_interested.updated ?? 0);
-
-                    // Sales created
-                    $('.stats-open-created').text(resp.sales?.open.created ?? 0);
-                    $('.stats-close-created').text(resp.sales?.close.created ?? 0);
-                    $('.stats-pending-created').text(resp.sales?.pending.created ?? 0);
-                    $('.stats-rejected-created').text(resp.sales?.rejected.created ?? 0);
-
-                    // Sales updated
-                    $('.stats-open-updated').text(resp.sales?.open.updated ?? 0);
-                    $('.stats-reopen-updated').text(resp.sales?.reopen ?? 0);
-                    $('.stats-close-updated').text(resp.sales?.close.updated ?? 0);
-                    $('.stats-pending-updated').text(resp.sales?.pending.updated ?? 0);
-                    $('.stats-rejected-updated').text(resp.sales?.rejected.updated ?? 0);
-
-                    // Quality
-                    $('.stats-requested-cvs').text(resp.quality?.requested_cvs ?? 0);
-                    $('.stats-rejected-cvs').text(resp.quality?.rejected_cvs ?? 0);
-                    $('.stats-cleared-cvs').text(resp.quality?.cleared_cvs ?? 0);
-                    $('.stats-open-cvs').text(resp.quality?.open_cvs ?? 0);
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX Error:', status, error);
-                    console.log('Response:', xhr.responseText);
-                }
-            });
-        }
         // Correct syntax for calling:
         loadStatsBoxes('daily');
+        loadChartData('daily');
+        initFlatpickr("daily");
+
+        /*** statistics data **/
+        function loadStatsBoxes(range, dateRange = null) {
+            $.get('/dashboard/statistics-data', {
+                range: range,
+                date: dateRange
+            }, function (resp) {
+
+                $('.stats-nurses-created').text(resp.applicants?.nurses.created ?? 0);
+                $('.stats-non-nurses-created').text(resp.applicants?.non_nurses.created ?? 0);
+                $('.stats-callbacks-created').text(resp.applicants?.callbacks.created ?? 0);
+                $('.stats-not-interested-created').text(resp.applicants?.not_interested.created ?? 0);
+
+                $('.stats-nurses-updated').text(resp.applicants?.nurses.updated ?? 0);
+                $('.stats-non-nurses-updated').text(resp.applicants?.non_nurses.updated ?? 0);
+                $('.stats-callbacks-updated').text(resp.applicants?.callbacks.updated ?? 0);
+                $('.stats-not-interested-updated').text(resp.applicants?.not_interested.updated ?? 0);
+
+                $('.stats-open-created').text(resp.sales?.open.created ?? 0);
+                $('.stats-close-created').text(resp.sales?.close.created ?? 0);
+                $('.stats-pending-created').text(resp.sales?.pending.created ?? 0);
+                $('.stats-rejected-created').text(resp.sales?.rejected.created ?? 0);
+
+                $('.stats-open-updated').text(resp.sales?.open.updated ?? 0);
+                $('.stats-reopen-updated').text(resp.sales?.reopen ?? 0);
+                $('.stats-close-updated').text(resp.sales?.close.updated ?? 0);
+                $('.stats-pending-updated').text(resp.sales?.pending.updated ?? 0);
+                $('.stats-rejected-updated').text(resp.sales?.rejected.updated ?? 0);
+
+                $('.stats-requested-cvs').text(resp.quality?.requested_cvs ?? 0);
+                $('.stats-open-cvs').text(resp.quality?.open_cvs ?? 0);
+                $('.stats-rejected-cvs').text(resp.quality?.rejected_cvs ?? 0);
+                $('.stats-cleared-cvs').text(resp.quality?.cleared_cvs ?? 0);
+            });
+        }
 
         // When any stats box is clicked
         $(document).on('click', '.stat-box', function () {
@@ -761,187 +758,113 @@
             });
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            var chartEl = document.querySelector("#statisticsChart");
-            if (!chartEl) {
-            console.error("Chart container not found");
-            return;
-            }
+        let chart;
 
-            var colors = [
-                "#4B70E2","#E57373","#81C784","#FFD54F","#BA68C8",
-                "#4DD0E1","#F06292","#9575CD","#4DB6AC","#7986CB",
-                "#A1887F","#64B5F6","#E0A96D","#90A4AE","#FFB74D",
-                "#AED581","#FBC02D"
-            ];
-
-          var options = {
-                chart: {
-                    type: 'donut',
-                    height: 450
-                },
-                series: [],
-                labels: [],
-                colors: colors,
-                noData: {
-                    text: 'Loading chart data...'
-                },
-                dataLabels: {
-                    enabled: false // no labels inside slices
-                },
-                legend: {
-                    position: 'right',
-                    horizontalAlign: 'center',
-                    fontSize: '13px',
-                    markers: {
-                    width: 12,
-                    height: 12,
-                    radius: 12
-                    },
-                    formatter: function(val, opts) {
-                    const value = opts.w.globals.series[opts.seriesIndex] || 0;
-                    return val + " - " + value;
-                    },
-                    scrollable: false // no scrollbars
-                },
-                responsive: [
-                    {
-                    breakpoint: 992, // tablets
-                    options: {
-                        chart: { height: 400 },
-                        legend: {
-                        position: 'bottom'
-                        }
-                    }
-                    },
-                    {
-                    breakpoint: 576, // mobiles
-                    options: {
-                        chart: { height: 320 },
-                        legend: {
-                        position: 'bottom',
-                        fontSize: '11px'
-                        }
-                    }
-                    }
-                ]
-            };
-
-
-            var chart = new ApexCharts(chartEl, options);
-            chart.render();
-
-            // Example AJAX loader
-            function loadChartData(range = 'daily', dateRange = null) {
-            $.ajax({
-                url: '/statistics/chart-data',
-                method: 'GET',
-                data: { range: range, date_range: dateRange },
-                success: function(response) {
-                if (response.series && response.series.length > 0) {
-                    chart.updateOptions({ labels: response.labels || [] });
+        function loadChartData(range = 'daily', dateRange = null) {
+            $.get('/statistics/chart-data', {
+                range: range,
+                date_range: dateRange
+            }, function (response) {
+                if (response.series?.length) {
+                    chart.updateOptions({ labels: response.labels });
                     chart.updateSeries(response.series);
                 } else {
-                    chart.updateOptions({
-                    series: [],
-                    labels: [],
-                    noData: { text: 'No Data Available' }
-                    });
-                }
-                },
-                error: function() {
-                chart.updateOptions({
-                    series: [],
-                    labels: [],
-                    noData: { text: 'Error loading data' }
-                });
+                    chart.updateSeries([]);
                 }
             });
-            }
-
-            // Initial load
-            loadChartData();
-        });
-
-        let dateInput = document.getElementById("statsDateRange");
-        let rangeBtn = document.getElementById("statsRangeBtn");
-        let fp = null;
-
-        function initFlatpickr(mode) {
-            if (fp) fp.destroy(); // reset old picker
-
-            let options = { allowInput: false };
-
-            if (mode === "daily") {
-                options = { dateFormat: "Y-m-d" };
-            } 
-            else if (mode === "weekly") {
-                options = {
-                    dateFormat: "Y-m-d",
-                    mode: "range",
-                    onChange: function (selectedDates, dateStr, instance) {
-                        if (!selectedDates.length) return;
-                        let date = selectedDates[0];
-                        let start = new Date(date);
-                        start.setDate(date.getDate() - date.getDay()); // Sunday
-                        let end = new Date(start);
-                        end.setDate(start.getDate() + 6); // Saturday
-                        instance.setDate([start, end], true);
-                    }
-                };
-            } 
-            else if (mode === "monthly") {
-                options = {
-                    plugins: [
-                        new monthSelectPlugin({
-                            shorthand: true,
-                            dateFormat: "Y-m",
-                            altFormat: "F Y",
-                        })
-                    ]
-                };
-            } 
-            else if (mode === "yearly") {
-                options = {
-                    plugins: [
-                        new flatpickr.plugins.yearSelect({
-                            shorthand: true,
-                            dateFormat: "Y",
-                            altFormat: "Y",
-                        })
-                    ]
-                };
-            } 
-            else if (mode === "aggregate") {
-                options = {
-                    dateFormat: "Y-m-d",
-                    mode: "range",
-                    onChange: function (selectedDates, dateStr, instance) {
-                        if (!selectedDates.length) return;
-                        let date = selectedDates[0];
-                        let start = new Date(date);
-                        start.setDate(date.getDate() - date.getDay()); // Sunday
-                        let end = new Date(start);
-                        end.setDate(start.getDate() + 6); // Saturday
-                        instance.setDate([start, end], true);
-                    }
-                };
-            }
-
-            dateInput.removeAttribute("disabled");
-            fp = flatpickr(dateInput, options);
         }
 
-        // Default init
-        initFlatpickr("daily");
+        document.addEventListener("DOMContentLoaded", function () {
+            // Default UI
+            currentRange = 'daily';
+            rangeBtn.innerText = 'Daily';
+
+            document.querySelectorAll('.stats-filter').forEach(el => el.classList.remove('active'));
+            document.querySelector('[data-range="daily"]').classList.add('active');
+
+            // Init calendar
+            initFlatpickr('daily');
+
+            // Init chart
+            chart = new ApexCharts(
+                document.querySelector("#statisticsChart"),
+                {
+                    chart: { type: 'donut', height: 450 },
+                    series: [],
+                    labels: [],
+                    noData: { text: 'Loading chart data...' },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'right' }
+                }
+            );
+            chart.render();
+
+            // Load data with TODAY
+            loadStatsBoxes(currentRange, currentDateRange);
+            loadChartData(currentRange, currentDateRange);
+        });
+
+        function initFlatpickr(mode) {
+            if (fp) fp.destroy();
+
+            const today = new Date();
+
+            let options = {
+                allowInput: false,
+                defaultDate: today,
+                onChange: function (selectedDates, dateStr) {
+                    if (!dateStr) return;
+
+                    currentDateRange = dateStr;
+                    loadStatsBoxes(currentRange, currentDateRange);
+                    loadChartData(currentRange, currentDateRange);
+                }
+            };
+
+            if (mode === "daily") {
+                options.dateFormat = "Y-m-d";
+            } 
+            else if (mode === "weekly") {
+                options.mode = "range";
+                options.dateFormat = "Y-m-d";
+            } 
+            else if (mode === "monthly") {
+                options.plugins = [new monthSelectPlugin({
+                    shorthand: true,
+                    dateFormat: "Y-m",
+                    altFormat: "F Y"
+                })];
+            } 
+            else if (mode === "yearly") {
+                options.plugins = [new flatpickr.plugins.yearSelect({
+                    shorthand: true,
+                    dateFormat: "Y"
+                })];
+            } 
+            else if (mode === "aggregate") {
+                options.mode = "range";
+                options.dateFormat = "Y-m-d";
+            }
+
+            fp = flatpickr(dateInput, options);
+            currentDateRange = fp.input.value; // today
+        }
 
         // Dropdown filter click
         document.querySelectorAll(".stats-filter").forEach(item => {
             item.addEventListener("click", function (e) {
                 e.preventDefault();
-                let range = this.dataset.range;
+
+                document.querySelectorAll('.stats-filter').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+
+                currentRange = this.dataset.range;
                 rangeBtn.innerText = this.innerText;
-                initFlatpickr(range);
+
+                initFlatpickr(currentRange);
+
+                loadStatsBoxes(currentRange, currentDateRange);
+                loadChartData(currentRange, currentDateRange);
             });
         });
 
