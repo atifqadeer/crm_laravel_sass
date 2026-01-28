@@ -963,6 +963,13 @@ class DashboardController extends Controller
             ->count();
         
         $open_sales_updated = Sale::where('status', 1)
+            ->where('is_re_open', 0)
+            ->whereDate('updated_at', $formatted_date)
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+        
+        $reopen_sales_updated = Sale::where('status', 1)
+            ->where('is_re_open', 1)
             ->whereDate('updated_at', $formatted_date)
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
@@ -1002,7 +1009,7 @@ class DashboardController extends Controller
         /** -------------------------
          *  QUALITY SECTION
          *  ------------------------*/
-        $sent_cvs = CvNote::whereDate('created_at', $formatted_date)->count();
+        $requested_cvs = CVNote::whereDate('created_at', $formatted_date)->count();
 
         $rejected_cvs = History::where('sub_stage', 'quality_reject')
             ->where('status', 'active')
@@ -1010,6 +1017,10 @@ class DashboardController extends Controller
             ->count();
 
         $cleared_cvs = History::where('sub_stage', 'quality_cleared')
+            ->whereDate('created_at', $formatted_date)
+            ->count();
+        
+        $open_cvs = History::where('sub_stage', 'quality_cvs_hold')
             ->whereDate('created_at', $formatted_date)
             ->count();
 
@@ -1041,6 +1052,7 @@ class DashboardController extends Controller
                     'created' => $open_sales_created,
                     'updated' => $open_sales_updated,
                 ],
+                'reopen' => $reopen_sales_updated,
                 'close' => [
                     'created' => $close_sales_created,
                     'updated' => $close_sales_updated,
@@ -1055,9 +1067,10 @@ class DashboardController extends Controller
                 ],
             ],
             'quality' => [
-                'sent_cvs' => $sent_cvs,
+                'requested_cvs' => $requested_cvs,
                 'rejected_cvs' => $rejected_cvs,
                 'cleared_cvs' => $cleared_cvs,
+                'open_cvs' => $open_cvs,
             ]
         ]);
     }
@@ -1080,7 +1093,7 @@ class DashboardController extends Controller
         $daily_data = [];
 
         /*** QUALITY ***/
-        $daily_data['quality_cvs'] = CvNote::whereDate('created_at', $formattedDate)->count();
+        $daily_data['quality_cvs'] = CVNote::whereDate('created_at', $formattedDate)->count();
         $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')->whereDate('created_at', $formattedDate)->count();
         $daily_data['quality_cvs_rejected'] = History::where(['sub_stage' => 'quality_reject', 'status' => 'active'])
             ->whereDate('created_at', $formattedDate)->count();

@@ -308,12 +308,20 @@
                         <!-- Sales Statistics Updated -->
                         <div class="row">
                             <h6 class="mt-2 mb-1">Sales Statistics (Updated)</h6><hr>
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                           <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center rounded p-3 h-100 bg-light-primary border-0">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="open_sale">
-                                        <span class="fs-4 fw-bold text-primary stats-open-updated"></span>
-                                        <small class="text-muted">Open</small>
+                                    
+                                    <div class="d-flex w-100">
+                                        <div class="d-flex flex-column justify-content-center stat-box border-end pe-3" data-type="open_sale_updated" style="flex: 1;">
+                                            <span class="fs-4 fw-bold text-primary stats-open-updated">0</span>
+                                            <small class="text-muted fw-semibold">Open</small>
+                                        </div>
+
+                                        <div class="d-flex flex-column justify-content-center stat-box ps-3" data-type="reopen_sale_updated" style="flex: 1;">
+                                            <span class="fs-4 fw-bold text-primary stats-reopen-updated">0</span>
+                                            <small class="text-muted fw-semibold">Re-Open</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -351,9 +359,18 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:clipboard-check-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="sent_cvs">
-                                        <span class="fs-4 fw-bold text-primary stats-sent-cvs"></span>
-                                        <small class="text-muted">Sent CVs</small>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="requested_cvs">
+                                        <span class="fs-4 fw-bold text-primary stats-requested-cvs"></span>
+                                        <small class="text-muted">Requested CVs</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center  rounded p-3 h-100">
+                                    <iconify-icon icon="solar:folder-open-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="open_cvs">
+                                        <span class="fs-4 fw-bold text-primary stats-open-cvs"></span>
+                                        <small class="text-muted">Open CVs</small>
                                     </div>
                                 </div>
                             </div>
@@ -682,14 +699,16 @@
 
                     // Sales updated
                     $('.stats-open-updated').text(resp.sales?.open.updated ?? 0);
+                    $('.stats-reopen-updated').text(resp.sales?.reopen ?? 0);
                     $('.stats-close-updated').text(resp.sales?.close.updated ?? 0);
                     $('.stats-pending-updated').text(resp.sales?.pending.updated ?? 0);
                     $('.stats-rejected-updated').text(resp.sales?.rejected.updated ?? 0);
 
                     // Quality
-                    $('.stats-sent-cvs').text(resp.quality?.sent_cvs ?? 0);
+                    $('.stats-requested-cvs').text(resp.quality?.requested_cvs ?? 0);
                     $('.stats-rejected-cvs').text(resp.quality?.rejected_cvs ?? 0);
                     $('.stats-cleared-cvs').text(resp.quality?.cleared_cvs ?? 0);
+                    $('.stats-open-cvs').text(resp.quality?.open_cvs ?? 0);
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX Error:', status, error);
