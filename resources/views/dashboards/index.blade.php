@@ -685,7 +685,7 @@
         function loadStatsBoxes(range, dateRange = null) {
             $.get('/dashboard/statistics-data', {
                 range: range,
-                date: dateRange
+                date_range: dateRange
             }, function (resp) {
 
                 $('.stats-nurses-created').text(resp.applicants?.nurses.created ?? 0);

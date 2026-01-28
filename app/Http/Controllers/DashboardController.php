@@ -853,12 +853,13 @@ class DashboardController extends Controller
     public function getStats(Request $request)
     {
         $date = $request->input('date_range');
-        // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
         $range = $request->input('range');
+        // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
 
         // ✅ Validate date format
-        $validator = Validator::make(['date_range' => $date], [
+        $validator = Validator::make(['date_range' => $date, 'range' => $range], [
             'date_range' => 'required',
+            'range' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -1051,11 +1052,13 @@ class DashboardController extends Controller
     public function getChartData(Request $request)
     {
         $inputDate = $request->input('date_range');
+        $range = $request->input('range');
         // $inputDate = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
 
         // ✅ Validate date format
-        $validator = Validator::make(['date_range' => $inputDate], [
+        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
             'date_range' => 'required',
+            'range' => 'required',
         ]);
 
         if ($validator->fails()) {
