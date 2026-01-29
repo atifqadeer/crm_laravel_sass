@@ -167,7 +167,7 @@ window.salesChart = null;
 
 const salesChartOptions = {
     chart: {
-        height: 120,
+        height: "100%",
         parentHeightOffset: 0,
         type: "bar",
         toolbar: { show: false },

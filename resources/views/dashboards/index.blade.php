@@ -452,7 +452,7 @@
                                     This Year
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="#!" class="dropdown-item chart-filter" data-range="month">Month</a>
+                                    <a href="#!" class="dropdown-item chart-filter active" data-range="month">Month</a>
                                     <a href="#!" class="dropdown-item chart-filter" data-range="year">Year</a>
                                 </div>
                             </div>
@@ -469,8 +469,8 @@
                         <div class="card-header">
                             <h4 class="card-title">Weekly New Sales</h4>
                         </div>
-                        <div class="card-body">
-                            <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
+                        <div class="card-body" style="min-height: 360px;">
+                            {{-- <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
                                 <div class="carousel-inner">
                                     <div class="carousel-item active">
                                         <img src="{{ asset('images/dashboard/kingsburyPersonnel_1.jpg') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
@@ -498,9 +498,9 @@
                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                     <span class="visually-hidden">Next</span>
                                 </button>
-                            </div>
+                            </div> --}}
 
-                            <div id="sales_funnel" class="apex-charts mt-4"></div>
+                            <div id="sales_funnel" class="apex-charts"></div>
                         </div>
                         <div class="card-footer border-top d-flex align-items-center justify-content-between">
                             <p id="weeklySalesText" class="text-muted fw-medium fs-15 mb-0">
