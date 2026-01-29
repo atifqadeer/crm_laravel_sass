@@ -708,6 +708,15 @@
 
         /*** statistics data **/
         function loadStatsBoxes(range, dateRange = null) {
+            // If dateRange is null, use today's date in 'YYYY-MM-DD' format
+            if (!dateRange) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0'); // months are 0-indexed
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateRange = `${yyyy}-${mm}-${dd}`;
+            }
+            
             $.get('/dashboard/statistics-data', {
                 range: range,
                 date_range: dateRange
