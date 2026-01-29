@@ -315,13 +315,13 @@ class DashboardController extends Controller
                     // Quality stats
                     if (isset($history_forCleared['quality_cleared']) && $history_forCleared['quality_cleared']->status === 1) {
                         $quality_stats['cvs_cleared']++;
-                        $user_stats['CRM_sent_cvs']++;
+                        $crm_stats['CRM_sent_cvs']++;
                     }
                     if (isset($history['quality_reject']) && $history['quality_reject']->status === 1) {
                         $quality_stats['cvs_rejected']++;
                     }
                     if (isset($history['crm_reject']) && $history['crm_reject']->status === 1) {
-                        $user_stats['CRM_rejected_cv']++;
+                        $crm_stats['CRM_rejected_cv']++;
                         continue;
                     }
 
@@ -339,8 +339,8 @@ class DashboardController extends Controller
 
                         if ($crm_sent_cv && Carbon::parse($history['crm_request']->history_added_date . ' ' . 
                             $history['crm_request']->history_added_time)->gt($crm_sent_cv->created_at)) {
-                            $user_stats['CRM_request']++;
-                            $this->processCrmStats($history, $user_stats, $applicant_id, $sale_id, $startDate, $endDate);
+                            $crm_stats['CRM_request']++;
+                            $this->processCrmStats($history, $crm_stats, $applicant_id, $sale_id, $startDate, $endDate);
                         }
                     }
                 }
@@ -394,10 +394,10 @@ class DashboardController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-    private function processCrmStats($history, array &$user_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
+    private function processCrmStats($history, array &$crm_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
     {
         if (isset($history['crm_request_reject']) && $history['crm_request_reject']->status === 1) {
-            $user_stats['CRM_rejected_by_request']++;
+            $crm_stats['CRM_rejected_by_request']++;
         }
 
         if (isset($history['crm_request_confirm']) && isset($history['crm_request']) &&
@@ -406,39 +406,39 @@ class DashboardController extends Controller
                 Carbon::parse($history['crm_request']->history_added_date . ' ' . 
                     $history['crm_request']->history_added_time)
             )) {
-            $user_stats['CRM_confirmation']++;
+            $crm_stats['CRM_confirmation']++;
 
-            if (isset($history['crm_reebok']) && $history['crm_reebok']->status === 1) {
-                $user_stats['CRM_rebook']++;
+            if (isset($history['crm_reebok']) && $history['crm_reebok']->status == 1) {
+                $crm_stats['CRM_rebook']++;
             }
 
             if (isset($history['crm_interview_attended'])) {
-                $user_stats['CRM_attended']++;
+                $crm_stats['CRM_attended']++;
 
-                if (isset($history['crm_declined']) && $history['crm_declined']->status === 1) {
-                    $user_stats['CRM_declined']++;
+                if (isset($history['crm_declined']) && $history['crm_declined']->status == 1) {
+                    $crm_stats['CRM_declined']++;
                 }
 
-                if (isset($history['crm_interview_not_attended']) && $history['crm_interview_not_attended']->status === 1) {
-                    $user_stats['CRM_not_attended']++;
+                if (isset($history['crm_interview_not_attended']) && $history['crm_interview_not_attended']->status == 1) {
+                    $crm_stats['CRM_not_attended']++;
                 }
 
                 if (isset($history['crm_start_date']) || isset($history['crm_start_date_back'])) {
-                    $user_stats['CRM_start_date']++;
+                    $crm_stats['CRM_start_date']++;
 
-                    if (isset($history['crm_start_date_hold']) && $history['crm_start_date_hold']->status === 1) {
-                        $user_stats['CRM_start_date_hold']++;
+                    if (isset($history['crm_start_date_hold']) && $history['crm_start_date_hold']->status == 1) {
+                        $crm_stats['CRM_start_date_hold']++;
                     }
 
                     if (isset($history['crm_invoice'])) {
-                        $user_stats['CRM_invoice']++;
+                        $crm_stats['CRM_invoice']++;
 
-                        if (isset($history['crm_dispute']) && $history['crm_dispute']->status === 1) {
-                            $user_stats['CRM_dispute']++;
+                        if (isset($history['crm_dispute']) && $history['crm_dispute']->status == 1) {
+                            $crm_stats['CRM_dispute']++;
                         }
 
                         if (isset($history['crm_paid'])) {
-                            $user_stats['CRM_paid']++;
+                            $crm_stats['CRM_paid']++;
                         }
                     }
                 }
