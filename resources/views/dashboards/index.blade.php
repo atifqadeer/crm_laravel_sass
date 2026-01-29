@@ -1376,5 +1376,11 @@
         }
 
     </script>
-    @vite(['resources/js/pages/dashboard-analytics.js?v=time()'])
+   @vite([
+    'resources/js/pages/dashboard-analytics.js',
+])
+<script>
+    window.__ASSET_VERSION__ = "{{ time() }}";
+</script>
+
 @endsection
