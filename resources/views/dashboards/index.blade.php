@@ -13,7 +13,32 @@
         .collapse {
             visibility: visible;
         }
-        
+        /* ApexCharts legend in 4 columns */
+        .apexcharts-legend {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px 12px;
+            justify-items: start;
+        }
+
+        /* Each legend item */
+        .apexcharts-legend-series {
+            margin: 0 !important;
+            padding: 2px 0;
+            white-space: nowrap;
+        }
+        @media (max-width: 768px) {
+            .apexcharts-legend {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .apexcharts-legend {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
@@ -405,8 +430,8 @@
                             <h4 class="card-title mb-0">CRM Statistics Chart</h4>
                         </div>
                     </div>
-                    <div class="card-body d-flex py-2" style="min-height: 470px;"> <!-- fixed min-height -->
-                        <div id="statisticsChart" style="flex: 1; min-width: 300px;"></div>
+                    <div class="card-body d-flex py-3"> <!-- fixed min-height -->
+                        <div id="statisticsChart" style="flex: 1; min-width: 600px;"></div>
                     </div>
                 </div>
             </div>
@@ -761,6 +786,16 @@
         let chart;
 
         function loadChartData(range = 'daily', dateRange = null) {
+            // ✅ If no date selected, use today (d-m-Y)
+            if (!dateRange) {
+                const today = new Date();
+                const day   = String(today.getDate()).padStart(2, '0');
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const year  = today.getFullYear();
+
+                dateRange = `${day}-${month}-${year}`;
+            }
+            
             $.get('/statistics/chart-data', {
                 range: range,
                 date_range: dateRange
@@ -789,28 +824,52 @@
             chart = new ApexCharts(
                 document.querySelector("#statisticsChart"),
                 {
-                    chart: { type: 'donut', height: 450 },
+                    chart: { type: 'donut', height: 720 },
+
                     series: [],
                     labels: [],
+
+                    // 🎨 Your custom colors
+                    colors: [
+                        "#4B70E2",
+                        "#E57373",
+                        "#81C784",
+                        "#FFD54F",
+                        "#BA68C8",
+                        "#4DD0E1",
+                        "#F06292",
+                        "#9575CD",
+                        "#4DB6AC",
+                        "#7986CB",
+                        "#A1887F",
+                        "#64B5F6",
+                        "#E0A96D",
+                        "#90A4AE",
+                        "#FFB74D",
+                        "#AED581",
+                        "#FBC02D"
+                    ],
+
                     noData: { text: 'Loading chart data...' },
                     dataLabels: { enabled: false },
+
                     legend: {
-                        position: 'right',
-                        horizontalAlign: 'center',
+                        position: 'bottom',
                         fontSize: '13px',
                         markers: {
-                        width: 12,
-                        height: 12,
-                        radius: 12
+                            width: 12,
+                            height: 12,
+                            radius: 12
                         },
-                        formatter: function(val, opts) {
-                        const value = opts.w.globals.series[opts.seriesIndex] || 0;
-                        return val + " - " + value;
-                        },
-                        scrollable: false // no scrollbars
-                    },
+                        formatter: function (val, opts) {
+                            const value = opts.w.globals.series[opts.seriesIndex] || 0;
+                            return `${val} - ${value}`;
+                        }
+                    }
                 }
             );
+
+
             chart.render();
 
             // Load data with TODAY
