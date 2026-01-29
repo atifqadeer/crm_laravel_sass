@@ -391,7 +391,7 @@ class DashboardController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred while processing statistics'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     private function processCrmStats($history, array &$user_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
