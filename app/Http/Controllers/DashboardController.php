@@ -217,12 +217,7 @@ class DashboardController extends Controller
             [$start_date, $end_date] = explode('|', $request->input('date_range_filter'));
             $startDate = Carbon::createFromFormat('Y-m-d', $start_date)->startOfDay();
             $endDate   = Carbon::createFromFormat('Y-m-d', $end_date)->endOfDay();
-
-            // Validate date formats using Carbon
-            Carbon::parse($startDate);
-            Carbon::parse($endDate);
-
-            $user_id = $request->input('user_key');
+            $user_id   = $request->input('user_key');
 
             // Fetch user with role using Eloquent relationships
             $userWithRole = User::query()
@@ -241,7 +236,7 @@ class DashboardController extends Controller
                 'cvs_cleared' => 0,
             ];
 
-            $user_stats = array_fill_keys([
+            $crm_stats = array_fill_keys([
                 'CRM_sent_cvs', 'CRM_rejected_cv', 'CRM_request', 'CRM_rejected_by_request',
                 'CRM_confirmation', 'CRM_rebook', 'CRM_attended', 'CRM_not_attended',
                 'CRM_start_date', 'CRM_start_date_hold', 'CRM_declined', 'CRM_invoice',
@@ -253,7 +248,7 @@ class DashboardController extends Controller
             ], 0);
 
             // Process sales-related data for Sales roles
-            if (in_array($user_role, ['Sales', 'Sale and CRM'], true)) {
+            if (in_array($user_role, ['sales'], true)) {
                 // Fetch sales with related data
                 $salesQuery = Sale::query()
                     ->where('user_id', $user_id)
@@ -261,7 +256,7 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate]);
 
                 // Count closed sales
-                $user_stats['close_sales'] = Audit::query()
+                $crm_stats['close_sales'] = Audit::query()
                     ->where('message', 'sale-closed')
                     ->where('auditable_type', Sale::class)
                     ->whereIn('auditable_id', $salesQuery->pluck('id'))
@@ -269,7 +264,7 @@ class DashboardController extends Controller
                     ->count();
 
                 $sales = $salesQuery->get();
-                $user_stats['open_sales'] = $sales->count() - $user_stats['close_sales'];
+                $crm_stats['open_sales'] = $sales->count() - $crm_stats['close_sales'];
 
                 // Fetch CV notes for sales
                 $cv_notes = CVNote::query()
@@ -391,7 +386,7 @@ class DashboardController extends Controller
                 'user_name' => $user_name,
                 'user_role' => $user_role,
                 'quality_stats' => $quality_stats,
-                'user_stats' => $user_stats,
+                'user_stats' => $crm_stats,
                 'prev_user_stats' => $prev_user_stats,
             ]);
 
