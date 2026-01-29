@@ -1376,5 +1376,5 @@
         }
 
     </script>
-    @vite(['resources/js/pages/dashboard-analytics.js'])
+    @vite(['resources/js/pages/dashboard-analytics.js?v=time()'])
 @endsection
