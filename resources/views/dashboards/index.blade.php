@@ -447,13 +447,13 @@
                                 <h4 class="card-title mb-0">Sales Analytics</h4>
                             </div>
                             <div class="dropdown">
-                                <a href="#" class="dropdown-toggle btn btn-sm btn-outline-light rounded"
+                                <a href="#" class="dropdown-sale-toggle btn btn-sm btn-outline-light rounded"
                                 data-bs-toggle="dropdown" aria-expanded="false">
-                                    This Year
+                                    This Month
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="#!" class="dropdown-item chart-filter active" data-range="month">Month</a>
-                                    <a href="#!" class="dropdown-item chart-filter" data-range="year">Year</a>
+                                    <a href="#!" class="dropdown-item chart-sale-filter" data-sale-range="month">Month</a>
+                                    <a href="#!" class="dropdown-item chart-sale-filter" data-sale-range="year">Year</a>
                                 </div>
                             </div>
                         </div>
@@ -1021,7 +1021,7 @@
                 $('#dateRangePicker').val('');
                 window.userStatisticsDateRange = '';
                 $('#showDateRange').html('All Data');
-                $('#sales_table').DataTable().ajax.reload();
+                // $('#sales_table').DataTable().ajax.reload();
             });
         });
 

@@ -479,7 +479,7 @@ class DashboardController extends Controller
     }
     public function getSalesAnalytic(Request $request)
     {
-        $range = $request->input('range', 'year');
+        $range = $request->input('range', 'month');
 
         if ($range === 'year') {
             $from = now()->startOfYear();

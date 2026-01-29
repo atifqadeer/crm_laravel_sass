@@ -103,7 +103,7 @@ var chart = new ApexCharts(document.querySelector("#sales_analytic"), chartOptio
 chart.render();
 
 // Fetch and update chart data
-function fetchSalesAnalytic(range = "year") {
+function fetchSalesAnalytic(range = "month") {
     fetch(`/get-sales-analytic?range=${range}`)
         .then((res) => res.json())
         .then((data) => {
@@ -120,15 +120,15 @@ function fetchSalesAnalytic(range = "year") {
             });
 
             // Update active dropdown item
-            document.querySelectorAll(".chart-filter").forEach((el) => {
+            document.querySelectorAll(".chart-sale-filter").forEach((el) => {
                 el.classList.remove("active");
-                if (el.getAttribute("data-range") === range) {
+                if (el.getAttribute("data-sale-range") === range) {
                     el.classList.add("active");
                 }
             });
 
             // Update dropdown button text
-            const btn = document.querySelector(".dropdown-toggle");
+            const btn = document.querySelector(".dropdown-sale-toggle");
             if (btn) {
                 btn.textContent = range === "year" ? "This Year" : "This Month";
             }
@@ -138,25 +138,22 @@ function fetchSalesAnalytic(range = "year") {
         });
 }
 
-// Call it once on page load
-// fetchSalesAnalytic("year");
-
 // Dropdown filter click handler
-document.querySelectorAll(".chart-filter").forEach((el) => {
+document.querySelectorAll(".chart-sale-filter").forEach((el) => {
     el.addEventListener("click", function (e) {
         e.preventDefault();
-        const range = this.getAttribute("data-range");
+        const range = this.getAttribute("data-sale-range");
         fetchSalesAnalytic(range);
     });
 });
 
 // Event binding
 document.addEventListener("DOMContentLoaded", () => {
-    fetchSalesAnalytic("year");
+    fetchSalesAnalytic("month");
 
-    document.querySelectorAll(".chart-filter").forEach((el) => {
+    document.querySelectorAll(".chart-sale-filter").forEach((el) => {
         el.addEventListener("click", function () {
-            const range = this.getAttribute("data-range");
+            const range = this.getAttribute("data-sale-range");
             fetchSalesAnalytic(range);
         });
     });
