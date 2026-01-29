@@ -223,7 +223,7 @@ const salesChartOptions = {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
-    const chartEl = document.querySelector("#sales_funnel");
+    const chartEl = document.querySelector("#sales_chart");
     if (chartEl) {
         window.salesChart = new ApexCharts(chartEl, salesChartOptions);
         window.salesChart.render();

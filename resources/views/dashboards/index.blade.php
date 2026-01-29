@@ -500,7 +500,7 @@
                                 </button>
                             </div> --}}
 
-                            <div id="sales_funnel" class="apex-charts"></div>
+                            <div id="sales_chart" class="apex-charts"></div>
                         </div>
                         <div class="card-footer border-top d-flex align-items-center justify-content-between">
                             <p id="weeklySalesText" class="text-muted fw-medium fs-15 mb-0">
@@ -1379,8 +1379,5 @@
    @vite([
     'resources/js/pages/dashboard-analytics.js',
 ])
-<script>
-    window.__ASSET_VERSION__ = "{{ time() }}";
-</script>
 
 @endsection
