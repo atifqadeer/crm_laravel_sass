@@ -16,7 +16,7 @@
         /* ApexCharts legend in 4 columns */
         #statisticsChart .apexcharts-legend {
             display: grid !important;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px 12px;
             justify-items: start;
         }
@@ -716,7 +716,7 @@
                 const dd = String(today.getDate()).padStart(2, '0');
                 dateRange = `${yyyy}-${mm}-${dd}`;
             }
-            
+
             $.get('/dashboard/statistics-data', {
                 range: range,
                 date_range: dateRange
