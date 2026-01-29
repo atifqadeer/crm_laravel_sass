@@ -849,383 +849,228 @@ class DashboardController extends Controller
 
         return response()->json(['success' => true]);
     }
-    // public function getStats(Request $request)
-    // {
-    //     $inputDate = $request->input('date_range');
-    //     $range = $request->input('range');
-    //     // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
-
-    //     // ✅ Validate date format
-    //     $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
-    //         'date_range' => 'required',
-    //         'range' => 'required',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json(['error' => $validator->errors()->all()], 422);
-    //     }
-
-    //     /* -------------------------
-    //     DATE PARSING (CRITICAL)
-    //     --------------------------*/
-
-    //     if ($range === 'daily') {
-    //         $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
-    //         $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
-    //         $displayDate = $startDate->format('jS F Y');
-    //     }
-
-    //     elseif (in_array($range, ['weekly', 'aggregate'])) {
-    //         [$start, $end] = explode(' to ', $inputDate);
-
-    //         $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
-    //         $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
-    //         $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
-    //     }
-
-    //     elseif ($range === 'monthly') {
-    //         $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
-    //         $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
-    //         $displayDate = $startDate->format('F Y');
-    //     }
-
-    //     elseif ($range === 'yearly') {
-    //         $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
-    //         $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
-    //         $displayDate = $startDate->format('Y');
-    //     }
-
-    //     /** -------------------------
-    //      *  APPLICANTS SECTION
-    //      *  ------------------------*/
-    //     $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-    //     $nurses_created = Applicant::where([
-    //             'status' => 1,
-    //             'job_category_id' => $job_category_nurse->id ?? 0
-    //         ])
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     $nurses_updated = Applicant::where([
-    //             'status' => 1,
-    //             'job_category_id' => $job_category_nurse->id ?? 0
-    //         ])
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $non_nurses_created = Applicant::where('status', 1)
-    //         ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
-    //             $q->where('job_category_id', '!=', $job_category_nurse->id);
-    //         })
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     $non_nurses_updated = Applicant::where('status', 1)
-    //         ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
-    //             $q->where('job_category_id', '!=', $job_category_nurse->id);
-    //         })
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $callbacks_created = ApplicantNote::where('moved_tab_to', '=', 'callback')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     $callbacks_updated = ApplicantNote::where('moved_tab_to', '=', 'callback')
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $not_interested_created = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
-    //         ->where('applicants.status', 1)
-    //         ->where('applicants_pivot_sales.is_interested', 0)
-    //         ->whereBetween('applicants_pivot_sales.created_at', [$startDate, $endDate])
-    //         ->count();
-        
-    //     $not_interested_updated = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
-    //         ->where('applicants.status', 1)
-    //         ->where('applicants_pivot_sales.is_interested', 0)
-    //         ->whereBetween('applicants_pivot_sales.updated_at', [$startDate, $endDate])
-    //         ->whereColumn('applicants_pivot_sales.updated_at', '!=', 'applicants_pivot_sales.created_at')
-    //         ->count();
-
-    //     /** -------------------------
-    //      *  SALES SECTION
-    //      *  ------------------------*/
-    //     $open_sales_created = Sale::where('status', 1)
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-        
-    //     $open_sales_updated = Sale::where('status', 1)
-    //         ->where('is_re_open', 0)
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-        
-    //     $reopen_sales_updated = Sale::where('status', 1)
-    //         ->where('is_re_open', 1)
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $close_sales_created = Audit::where('message', 'sale-closed')
-    //         ->where('auditable_type', 'Horsefly\\Sale')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-       
-    //     $close_sales_updated = Audit::where('message', 'sale-closed')
-    //         ->where('auditable_type', 'Horsefly\\Sale')
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $pending_sales_created = Sale::where('status', 'pending')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $pending_sales_updated = Sale::where('status', 'pending')
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     $rejected_sales_created = Audit::where('message', 'sale-rejected')
-    //         ->where('auditable_type', 'Horsefly\\Sale')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     $rejected_sales_updated = Audit::where('message', 'sale-rejected')
-    //         ->where('auditable_type', 'Horsefly\\Sale')
-    //         ->whereBetween('updated_at', [$startDate, $endDate])
-    //         ->whereColumn('updated_at', '!=', 'created_at')
-    //         ->count();
-
-    //     /** -------------------------
-    //      *  QUALITY SECTION
-    //      *  ------------------------*/
-    //     $requested_cvs = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $rejected_cvs = History::where('sub_stage', 'quality_reject')
-    //         ->where('status', 'active')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     $cleared_cvs = History::where('sub_stage', 'quality_cleared')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-        
-    //     $open_cvs = History::where('sub_stage', 'quality_cvs_hold')
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->count();
-
-    //     /** -------------------------
-    //      *  FINAL RESPONSE
-    //      *  ------------------------*/
-    //     return response()->json([
-    //         'date' => $displayDate,
-    //         'applicants' => [
-    //             'nurses' => [
-    //                 'created' => $nurses_created,
-    //                 'updated' => $nurses_updated,
-    //             ],
-    //             'non_nurses' => [
-    //                 'created' => $non_nurses_created,
-    //                 'updated' => $non_nurses_updated,
-    //             ],
-    //             'callbacks' => [
-    //                 'created' => $callbacks_created,
-    //                 'updated' => $callbacks_updated,
-    //             ],
-    //             'not_interested' => [
-    //                 'created' => $not_interested_created,
-    //                 'updated' => $not_interested_updated,
-    //             ],
-    //         ],
-    //         'sales' => [
-    //             'open' => [
-    //                 'created' => $open_sales_created,
-    //                 'updated' => $open_sales_updated,
-    //             ],
-    //             'reopen' => $reopen_sales_updated,
-    //             'close' => [
-    //                 'created' => $close_sales_created,
-    //                 'updated' => $close_sales_updated,
-    //             ],
-    //             'pending' => [
-    //                 'created' => $pending_sales_created,
-    //                 'updated' => $pending_sales_updated,
-    //             ],
-    //             'rejected' => [
-    //                 'created' => $rejected_sales_created,
-    //                 'updated' => $rejected_sales_updated,
-    //             ],
-    //         ],
-    //         'quality' => [
-    //             'requested_cvs' => $requested_cvs,
-    //             'rejected_cvs' => $rejected_cvs,
-    //             'cleared_cvs' => $cleared_cvs,
-    //             'open_cvs' => $open_cvs,
-    //         ]
-    //     ]);
-    // }
     public function getStats(Request $request)
-{
-    $inputDate = $request->input('date_range');
-    $range     = $request->input('range');
+    {
+        $inputDate = $request->input('date_range');
+        $range = $request->input('range');
+        // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
 
-    // Validate
-    $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
-        'date_range' => 'required',
-        'range'      => 'required',
-    ]);
+        // ✅ Validate date format
+        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
+            'date_range' => 'required',
+            'range' => 'required',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['error' => $validator->errors()->all()], 422);
-    }
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->all()], 422);
+        }
 
-    /** -------------------------
-     * DATE RANGE PARSING
-     * ------------------------ */
-    switch ($range) {
-        case 'daily':
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+
+        if ($range === 'daily') {
             $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
             $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
             $displayDate = $startDate->format('jS F Y');
-            break;
+        }
 
-        case 'weekly':
-        case 'aggregate':
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
             [$start, $end] = explode(' to ', $inputDate);
+
             $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
             $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
             $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
-            break;
+        }
 
-        case 'monthly':
+        elseif ($range === 'monthly') {
             $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
             $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
             $displayDate = $startDate->format('F Y');
-            break;
+        }
 
-        case 'yearly':
+        elseif ($range === 'yearly') {
             $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
             $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
             $displayDate = $startDate->format('Y');
-            break;
+        }
 
-        default:
-            $startDate = $endDate = now();
-            $displayDate = now()->format('jS F Y');
+        /** -------------------------
+         *  APPLICANTS SECTION
+         *  ------------------------*/
+        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        $nurses_created = Applicant::where([
+                'status' => 1,
+                'job_category_id' => $job_category_nurse->id ?? 0
+            ])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $nurses_updated = Applicant::where([
+                'status' => 1,
+                'job_category_id' => $job_category_nurse->id ?? 0
+            ])
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $non_nurses_created = Applicant::where('status', 1)
+            ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
+                $q->where('job_category_id', '!=', $job_category_nurse->id);
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $non_nurses_updated = Applicant::where('status', 1)
+            ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
+                $q->where('job_category_id', '!=', $job_category_nurse->id);
+            })
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $callbacks_created = ApplicantNote::where('moved_tab_to', '=', 'callback')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $callbacks_updated = ApplicantNote::where('moved_tab_to', '=', 'callback')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $not_interested_created = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
+            ->where('applicants.status', 1)
+            ->where('applicants_pivot_sales.is_interested', 0)
+            ->whereBetween('applicants_pivot_sales.created_at', [$startDate, $endDate])
+            ->count();
+        
+        $not_interested_updated = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
+            ->where('applicants.status', 1)
+            ->where('applicants_pivot_sales.is_interested', 0)
+            ->whereBetween('applicants_pivot_sales.updated_at', [$startDate, $endDate])
+            ->whereColumn('applicants_pivot_sales.updated_at', '!=', 'applicants_pivot_sales.created_at')
+            ->count();
+
+        /** -------------------------
+         *  SALES SECTION
+         *  ------------------------*/
+        $open_sales_created = Sale::where('status', 1)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+        
+        $open_sales_updated = Sale::where('status', 1)
+            ->where('is_re_open', 0)
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+        
+        $reopen_sales_updated = Sale::where('status', 1)
+            ->where('is_re_open', 1)
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $close_sales_created = Audit::where('message', 'sale-closed')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+       
+        $close_sales_updated = Audit::where('message', 'sale-closed')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $pending_sales_created = Sale::where('status', 'pending')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $pending_sales_updated = Sale::where('status', 'pending')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        $rejected_sales_created = Audit::where('message', 'sale-rejected')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $rejected_sales_updated = Audit::where('message', 'sale-rejected')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at')
+            ->count();
+
+        /** -------------------------
+         *  QUALITY SECTION
+         *  ------------------------*/
+        $requested_cvs = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
+
+        $rejected_cvs = History::where('sub_stage', 'quality_reject')
+            ->where('status', 'active')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        $cleared_cvs = History::where('sub_stage', 'quality_cleared')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+        
+        $open_cvs = History::where('sub_stage', 'quality_cvs_hold')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        /** -------------------------
+         *  FINAL RESPONSE
+         *  ------------------------*/
+        return response()->json([
+            'date' => $displayDate,
+            'applicants' => [
+                'nurses' => [
+                    'created' => $nurses_created,
+                    'updated' => $nurses_updated,
+                ],
+                'non_nurses' => [
+                    'created' => $non_nurses_created,
+                    'updated' => $non_nurses_updated,
+                ],
+                'callbacks' => [
+                    'created' => $callbacks_created,
+                    'updated' => $callbacks_updated,
+                ],
+                'not_interested' => [
+                    'created' => $not_interested_created,
+                    'updated' => $not_interested_updated,
+                ],
+            ],
+            'sales' => [
+                'open' => [
+                    'created' => $open_sales_created,
+                    'updated' => $open_sales_updated,
+                ],
+                'reopen' => $reopen_sales_updated,
+                'close' => [
+                    'created' => $close_sales_created,
+                    'updated' => $close_sales_updated,
+                ],
+                'pending' => [
+                    'created' => $pending_sales_created,
+                    'updated' => $pending_sales_updated,
+                ],
+                'rejected' => [
+                    'created' => $rejected_sales_created,
+                    'updated' => $rejected_sales_updated,
+                ],
+            ],
+            'quality' => [
+                'requested_cvs' => $requested_cvs,
+                'rejected_cvs' => $rejected_cvs,
+                'cleared_cvs' => $cleared_cvs,
+                'open_cvs' => $open_cvs,
+            ]
+        ]);
     }
-
-    /** -------------------------
-     * HELPER FUNCTION
-     * ------------------------ */
-    $countModelRecords = function ($model, $conditions = [], $between = null, $updatedOnly = false) {
-        $query = $model::query();
-
-        if (!empty($conditions)) {
-            $query->where($conditions);
-        }
-
-        if ($between) {
-            [$column, $start, $end] = $between;
-            $query->whereBetween($column, [$start, $end]);
-        }
-
-        if ($updatedOnly) {
-            $query->whereColumn('updated_at', '!=', 'created_at');
-        }
-
-        return $query->count();
-    };
-
-    /** -------------------------
-     * APPLICANTS
-     * ------------------------ */
-    $jobCategoryNurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-    $nurseId = $jobCategoryNurse->id ?? 0;
-
-    $applicantSections = [
-        'nurses' => [
-            'created' => ['model' => Applicant::class, 'conditions' => ['status' => 1, 'job_category_id' => $nurseId]],
-            'updated' => ['model' => Applicant::class, 'conditions' => ['status' => 1, 'job_category_id' => $nurseId], 'updatedOnly' => true],
-        ],
-        'non_nurses' => [
-            'created' => ['model' => Applicant::class, 'conditions' => ['status' => 1], 'exclude_job_id' => $nurseId],
-            'updated' => ['model' => Applicant::class, 'conditions' => ['status' => 1], 'exclude_job_id' => $nurseId, 'updatedOnly' => true],
-        ],
-        'callbacks' => [
-            'created' => ['model' => ApplicantNote::class, 'conditions' => ['moved_tab_to' => 'callback']],
-            'updated' => ['model' => ApplicantNote::class, 'conditions' => ['moved_tab_to' => 'callback'], 'updatedOnly' => true],
-        ],
-    ];
-
-    $applicants = [];
-    foreach ($applicantSections as $key => $sections) {
-        foreach ($sections as $action => $data) {
-            $model = $data['model'];
-            $conditions = $data['conditions'] ?? [];
-            $updatedOnly = $data['updatedOnly'] ?? false;
-
-            $query = $model::query();
-            if (!empty($conditions)) $query->where($conditions);
-            if (!empty($data['exclude_job_id'])) $query->where('job_category_id', '!=', $data['exclude_job_id']);
-            if ($updatedOnly) $query->whereColumn('updated_at', '!=', 'created_at');
-            $query->whereBetween('created_at', [$startDate, $endDate]);
-            $applicants[$key][$action] = $query->count();
-        }
-    }
-
-    /** -------------------------
-     * SALES
-     * ------------------------ */
-    $salesSections = [
-        'open' => ['model' => Sale::class, 'conditions' => ['status' => 1]],
-        'reopen' => ['model' => Sale::class, 'conditions' => ['status' => 1, 'is_re_open' => 1], 'updatedOnly' => true],
-        'close' => ['model' => Audit::class, 'conditions' => ['message' => 'sale-closed', 'auditable_type' => 'Horsefly\\Sale']],
-        'pending' => ['model' => Sale::class, 'conditions' => ['status' => 'pending']],
-        'rejected' => ['model' => Audit::class, 'conditions' => ['message' => 'sale-rejected', 'auditable_type' => 'Horsefly\\Sale']],
-    ];
-
-    $sales = [];
-    foreach ($salesSections as $key => $section) {
-        $model = $section['model'];
-        $conditions = $section['conditions'] ?? [];
-        $updatedOnly = $section['updatedOnly'] ?? false;
-
-        $query = $model::query();
-        if ($conditions) $query->where($conditions);
-        if ($updatedOnly) $query->whereColumn('updated_at', '!=', 'created_at');
-        $query->whereBetween('created_at', [$startDate, $endDate]);
-
-        $sales[$key] = [
-            'created' => $query->count(),
-            'updated' => $updatedOnly ? $query->count() : $query->whereColumn('updated_at', '!=', 'created_at')->count()
-        ];
-    }
-
-    /** -------------------------
-     * QUALITY
-     * ------------------------ */
-    $quality = [
-        'requested_cvs' => CVNote::whereBetween('created_at', [$startDate, $endDate])->count(),
-        'rejected_cvs'  => History::where('sub_stage', 'quality_reject')->where('status', 'active')->whereBetween('created_at', [$startDate, $endDate])->count(),
-        'cleared_cvs'   => History::where('sub_stage', 'quality_cleared')->whereBetween('created_at', [$startDate, $endDate])->count(),
-        'open_cvs'      => History::where('sub_stage', 'quality_cvs_hold')->whereBetween('created_at', [$startDate, $endDate])->count(),
-    ];
-
-    return response()->json([
-        'date' => $displayDate,
-        'applicants' => $applicants,
-        'sales'      => $sales,
-        'quality'    => $quality,
-    ]);
-}
-
     public function getChartData(Request $request)
     {
         $range = $request->input('range');
