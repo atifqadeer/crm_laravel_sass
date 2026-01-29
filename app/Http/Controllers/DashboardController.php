@@ -248,7 +248,7 @@ class DashboardController extends Controller
             ], 0);
 
             // Process sales-related data for Sales roles
-            if (in_array($user_role, ['sales'], true)) {
+            // if (in_array($user_role, ['sales'], true)) {
                 // Fetch sales with related data
                 $salesQuery = Sale::query()
                     ->where('user_id', $user_id)
@@ -272,14 +272,14 @@ class DashboardController extends Controller
                     ->whereBetween('updated_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
                     ->get();
-            } else {
-                // Fetch CV notes for non-sales roles
-                $cv_notes = CVNote::query()
-                    ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->select('applicant_id', 'sale_id')
-                    ->get();
-            }
+            // } else {
+            //     // Fetch CV notes for non-sales roles
+            //     $cv_notes = CVNote::query()
+            //         ->where('user_id', $user_id)
+            //         ->whereBetween('created_at', [$startDate, $endDate])
+            //         ->select('applicant_id', 'sale_id')
+            //         ->get();
+            // }
 
             $quality_stats['cvs_sent'] = $cv_notes->count();
 
