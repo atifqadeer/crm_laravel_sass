@@ -14,7 +14,7 @@
             visibility: visible;
         }
         /* ApexCharts legend in 4 columns */
-        .apexcharts-legend {
+        #statisticsChart .apexcharts-legend {
             display: grid !important;
             grid-template-columns: repeat(4, 1fr);
             gap: 8px 12px;
@@ -22,19 +22,19 @@
         }
 
         /* Each legend item */
-        .apexcharts-legend-series {
+        #statisticsChart .apexcharts-legend-series {
             margin: 0 !important;
             padding: 2px 0;
             white-space: nowrap;
         }
         @media (max-width: 768px) {
-            .apexcharts-legend {
+            #statisticsChart .apexcharts-legend {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
         @media (max-width: 480px) {
-            .apexcharts-legend {
+            #statisticsChart .apexcharts-legend {
                 grid-template-columns: 1fr;
             }
         }
