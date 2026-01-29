@@ -794,7 +794,21 @@
                     labels: [],
                     noData: { text: 'Loading chart data...' },
                     dataLabels: { enabled: false },
-                    legend: { position: 'right' }
+                    legend: {
+                        position: 'right',
+                        horizontalAlign: 'center',
+                        fontSize: '13px',
+                        markers: {
+                        width: 12,
+                        height: 12,
+                        radius: 12
+                        },
+                        formatter: function(val, opts) {
+                        const value = opts.w.globals.series[opts.seriesIndex] || 0;
+                        return val + " - " + value;
+                        },
+                        scrollable: false // no scrollbars
+                    },
                 }
             );
             chart.render();

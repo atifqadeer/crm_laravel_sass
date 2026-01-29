@@ -852,12 +852,12 @@ class DashboardController extends Controller
     }
     public function getStats(Request $request)
     {
-        $date = $request->input('date_range');
+        $inputDate = $request->input('date_range');
         $range = $request->input('range');
         // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
 
         // ✅ Validate date format
-        $validator = Validator::make(['date_range' => $date, 'range' => $range], [
+        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
             'date_range' => 'required',
             'range' => 'required',
         ]);
@@ -866,11 +866,34 @@ class DashboardController extends Controller
             return response()->json(['error' => $validator->errors()->all()], 422);
         }
 
-        // ✅ Safely parse date (handles various formats)
-        try {
-            $formatted_date = Carbon::parse($date)->format('Y-m-d');
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid date format.'], 400);
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+
+        if ($range === 'daily') {
+            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+            $displayDate = $startDate->format('jS F Y');
+        }
+
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
+            [$start, $end] = explode(' to ', $inputDate);
+
+            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+        }
+
+        elseif ($range === 'monthly') {
+            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+            $displayDate = $startDate->format('F Y');
+        }
+
+        elseif ($range === 'yearly') {
+            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+            $displayDate = $startDate->format('Y');
         }
 
         /** -------------------------
@@ -882,14 +905,14 @@ class DashboardController extends Controller
                 'status' => 1,
                 'job_category_id' => $job_category_nurse->id ?? 0
             ])
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         $nurses_updated = Applicant::where([
                 'status' => 1,
                 'job_category_id' => $job_category_nurse->id ?? 0
             ])
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
@@ -897,36 +920,36 @@ class DashboardController extends Controller
             ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
                 $q->where('job_category_id', '!=', $job_category_nurse->id);
             })
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         $non_nurses_updated = Applicant::where('status', 1)
             ->when($job_category_nurse, function ($q) use ($job_category_nurse) {
                 $q->where('job_category_id', '!=', $job_category_nurse->id);
             })
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $callbacks_created = ApplicantNote::where('moved_tab_to', '=', 'callback')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         $callbacks_updated = ApplicantNote::where('moved_tab_to', '=', 'callback')
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $not_interested_created = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
             ->where('applicants.status', 1)
             ->where('applicants_pivot_sales.is_interested', 0)
-            ->whereDate('applicants_pivot_sales.created_at', $formatted_date)
+            ->whereBetween('applicants_pivot_sales.created_at', [$startDate, $endDate])
             ->count();
         
         $not_interested_updated = Applicant::join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
             ->where('applicants.status', 1)
             ->where('applicants_pivot_sales.is_interested', 0)
-            ->whereDate('applicants_pivot_sales.updated_at', $formatted_date)
+            ->whereBetween('applicants_pivot_sales.updated_at', [$startDate, $endDate])
             ->whereColumn('applicants_pivot_sales.updated_at', '!=', 'applicants_pivot_sales.created_at')
             ->count();
 
@@ -934,76 +957,76 @@ class DashboardController extends Controller
          *  SALES SECTION
          *  ------------------------*/
         $open_sales_created = Sale::where('status', 1)
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
         
         $open_sales_updated = Sale::where('status', 1)
             ->where('is_re_open', 0)
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
         
         $reopen_sales_updated = Sale::where('status', 1)
             ->where('is_re_open', 1)
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $close_sales_created = Audit::where('message', 'sale-closed')
             ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
        
         $close_sales_updated = Audit::where('message', 'sale-closed')
             ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $pending_sales_created = Sale::where('status', 'pending')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $pending_sales_updated = Sale::where('status', 'pending')
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         $rejected_sales_created = Audit::where('message', 'sale-rejected')
             ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         $rejected_sales_updated = Audit::where('message', 'sale-rejected')
             ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereDate('updated_at', $formatted_date)
+            ->whereBetween('updated_at', [$startDate, $endDate])
             ->whereColumn('updated_at', '!=', 'created_at')
             ->count();
 
         /** -------------------------
          *  QUALITY SECTION
          *  ------------------------*/
-        $requested_cvs = CVNote::whereDate('created_at', $formatted_date)->count();
+        $requested_cvs = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
 
         $rejected_cvs = History::where('sub_stage', 'quality_reject')
             ->where('status', 'active')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         $cleared_cvs = History::where('sub_stage', 'quality_cleared')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
         
         $open_cvs = History::where('sub_stage', 'quality_cvs_hold')
-            ->whereDate('created_at', $formatted_date)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
         /** -------------------------
          *  FINAL RESPONSE
          *  ------------------------*/
         return response()->json([
-            'date' => Carbon::parse($formatted_date)->format('d M, Y'),
+            'date' => $displayDate,
             'applicants' => [
                 'nurses' => [
                     'created' => $nurses_created,
@@ -1049,112 +1072,271 @@ class DashboardController extends Controller
             ]
         ]);
     }
+    // public function getChartData(Request $request)
+    // {
+    //     $inputDate = $request->input('date_range');
+    //     $range = $request->input('range');
+    //     // $inputDate = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
+
+    //     // ✅ Validate date format
+    //     $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
+    //         'date_range' => 'required',
+    //         'range' => 'required',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['error' => $validator->errors()->all()], 422);
+    //     }
+
+    //     $formattedDate = Carbon::createFromFormat('d-m-Y', $inputDate)->format('Y-m-d');
+    //     $displayDate = Carbon::createFromFormat('d-m-Y', $inputDate)->format('jS F Y');
+
+    //     $daily_data = [];
+
+    //     /*** QUALITY ***/
+    //     $daily_data['quality_cvs'] = CVNote::whereDate('created_at', $formattedDate)->count();
+    //     $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')->whereDate('created_at', $formattedDate)->count();
+    //     $daily_data['quality_cvs_rejected'] = History::where(['sub_stage' => 'quality_reject', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+    //     $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
+    //         ->whereDate('created_at', $formattedDate)->count();
+    //     $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     /*** CRM ***/
+    //     $daily_data['crm_sent'] = $daily_data['quality_cvs_cleared'];
+    //     $daily_data['crm_open_cvs'] = $daily_data['quality_cvs_hold'];
+
+    //     $daily_data['crm_rejected'] = History::where(['sub_stage' => 'crm_reject', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_request_rejected'] = History::where(['sub_stage' => 'crm_request_reject', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_prestart_attended'] = History::where('sub_stage', 'crm_interview_attended')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_rebook'] = History::where('sub_stage', 'crm_rebook')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_not_attended'] = History::where(['sub_stage' => 'crm_interview_not_attended', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_declined'] = History::where(['sub_stage' => 'crm_declined', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_date_started'] = History::whereIn('sub_stage', ['crm_start_date', 'crm_start_date_back'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_start_date_held'] = History::where(['sub_stage' => 'crm_start_date_hold', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_disputed'] = History::where(['sub_stage' => 'crm_dispute', 'status' => 'active'])
+    //         ->whereDate('created_at', $formattedDate)->count();
+
+    //     $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')->whereDate('created_at', $formattedDate)->count();
+    //     $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')->whereDate('created_at', $formattedDate)->count();
+
+    //     // ✅ Map the data into chart labels
+    //     $labels = [
+    //         'Sent CVs', 'Quality Revert', 'Request', 'Confirmation', 'Attended',
+    //         'Start Date', 'Invoice', 'Paid', 'Open CVs', 'Rejected CV',
+    //         'Crm Revert', 'Rejected By Request', 'Rebook', 'Not Attended',
+    //         'Start Date Hold', 'Declined', 'Dispute'
+    //     ];
+
+    //     $series = [
+    //         $daily_data['crm_sent'] ?? 0,
+    //         $daily_data['quality_revert'] ?? 0,
+    //         $daily_data['crm_requested'] ?? 0,
+    //         $daily_data['crm_confirmed'] ?? 0,
+    //         $daily_data['crm_prestart_attended'] ?? 0,
+    //         $daily_data['crm_date_started'] ?? 0,
+    //         $daily_data['crm_invoiced'] ?? 0,
+    //         $daily_data['crm_paid'] ?? 0,
+    //         $daily_data['crm_open_cvs'] ?? 0,
+    //         $daily_data['quality_cvs_rejected'] ?? 0,
+    //         $daily_data['crm_revert'] ?? 0,
+    //         $daily_data['crm_request_rejected'] ?? 0,
+    //         $daily_data['crm_rebook'] ?? 0,
+    //         $daily_data['crm_not_attended'] ?? 0,
+    //         $daily_data['crm_start_date_held'] ?? 0,
+    //         $daily_data['crm_declined'] ?? 0,
+    //         $daily_data['crm_disputed'] ?? 0,
+    //     ];
+
+    //     return response()->json([
+    //         'date' => $displayDate,
+    //         'series' => $series,
+    //         'labels' => $labels,
+    //     ]);
+    // }
     public function getChartData(Request $request)
     {
-        $inputDate = $request->input('date_range');
         $range = $request->input('range');
-        // $inputDate = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
+        $inputDate = $request->input('date_range');
 
-        // ✅ Validate date format
-        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
-            'date_range' => 'required',
+        $validator = Validator::make($request->all(), [
             'range' => 'required',
+            'date_range' => 'required',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()->all()], 422);
         }
 
-        $formattedDate = Carbon::createFromFormat('d-m-Y', $inputDate)->format('Y-m-d');
-        $displayDate = Carbon::createFromFormat('d-m-Y', $inputDate)->format('jS F Y');
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+
+        if ($range === 'daily') {
+            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+            $displayDate = $startDate->format('jS F Y');
+        }
+
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
+            [$start, $end] = explode(' to ', $inputDate);
+
+            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+        }
+
+        elseif ($range === 'monthly') {
+            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+            $displayDate = $startDate->format('F Y');
+        }
+
+        elseif ($range === 'yearly') {
+            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+            $displayDate = $startDate->format('Y');
+        }
+
+        /* -------------------------
+        DATA QUERIES
+        --------------------------*/
 
         $daily_data = [];
 
-        /*** QUALITY ***/
-        $daily_data['quality_cvs'] = CVNote::whereDate('created_at', $formattedDate)->count();
-        $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')->whereDate('created_at', $formattedDate)->count();
-        $daily_data['quality_cvs_rejected'] = History::where(['sub_stage' => 'quality_reject', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
-        $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
-            ->whereDate('created_at', $formattedDate)->count();
-        $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
-            ->whereDate('created_at', $formattedDate)->count();
+        /** QUALITY **/
+        $daily_data['quality_cvs'] = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
+        $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        /*** CRM ***/
+        $daily_data['quality_cvs_rejected'] = History::where([
+                'sub_stage' => 'quality_reject',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        /** CRM **/
         $daily_data['crm_sent'] = $daily_data['quality_cvs_cleared'];
         $daily_data['crm_open_cvs'] = $daily_data['quality_cvs_hold'];
 
-        $daily_data['crm_rejected'] = History::where(['sub_stage' => 'crm_reject', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_rejected'] = History::where([
+                'sub_stage' => 'crm_reject',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
-            ->whereDate('created_at', $formattedDate)->count();
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_request_rejected'] = History::where(['sub_stage' => 'crm_request_reject', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_request_rejected'] = History::where([
+                'sub_stage' => 'crm_request_reject',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
-            ->whereDate('created_at', $formattedDate)->count();
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_prestart_attended'] = History::where('sub_stage', 'crm_interview_attended')
-            ->whereDate('created_at', $formattedDate)->count();
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_rebook'] = History::where('sub_stage', 'crm_rebook')
-            ->whereDate('created_at', $formattedDate)->count();
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_not_attended'] = History::where(['sub_stage' => 'crm_interview_not_attended', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_not_attended'] = History::where([
+                'sub_stage' => 'crm_interview_not_attended',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_declined'] = History::where(['sub_stage' => 'crm_declined', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_declined'] = History::where([
+                'sub_stage' => 'crm_declined',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_date_started'] = History::whereIn('sub_stage', ['crm_start_date', 'crm_start_date_back'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_date_started'] = History::whereIn('sub_stage', [
+                'crm_start_date',
+                'crm_start_date_back'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_start_date_held'] = History::where(['sub_stage' => 'crm_start_date_hold', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_start_date_held'] = History::where([
+                'sub_stage' => 'crm_start_date_hold',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
-            ->whereDate('created_at', $formattedDate)->count();
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_disputed'] = History::where(['sub_stage' => 'crm_dispute', 'status' => 'active'])
-            ->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_disputed'] = History::where([
+                'sub_stage' => 'crm_dispute',
+                'status' => 'active'
+            ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')->whereDate('created_at', $formattedDate)->count();
-        $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')->whereDate('created_at', $formattedDate)->count();
+        $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        // ✅ Map the data into chart labels
-        $labels = [
-            'Sent CVs', 'Quality Revert', 'Request', 'Confirmation', 'Attended',
-            'Start Date', 'Invoice', 'Paid', 'Open CVs', 'Rejected CV',
-            'Crm Revert', 'Rejected By Request', 'Rebook', 'Not Attended',
-            'Start Date Hold', 'Declined', 'Dispute'
-        ];
+        $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $series = [
-            $daily_data['crm_sent'] ?? 0,
-            $daily_data['quality_revert'] ?? 0,
-            $daily_data['crm_requested'] ?? 0,
-            $daily_data['crm_confirmed'] ?? 0,
-            $daily_data['crm_prestart_attended'] ?? 0,
-            $daily_data['crm_date_started'] ?? 0,
-            $daily_data['crm_invoiced'] ?? 0,
-            $daily_data['crm_paid'] ?? 0,
-            $daily_data['crm_open_cvs'] ?? 0,
-            $daily_data['quality_cvs_rejected'] ?? 0,
-            $daily_data['crm_revert'] ?? 0,
-            $daily_data['crm_request_rejected'] ?? 0,
-            $daily_data['crm_rebook'] ?? 0,
-            $daily_data['crm_not_attended'] ?? 0,
-            $daily_data['crm_start_date_held'] ?? 0,
-            $daily_data['crm_declined'] ?? 0,
-            $daily_data['crm_disputed'] ?? 0,
-        ];
+        /* -------------------------
+        CHART RESPONSE
+        --------------------------*/
 
         return response()->json([
             'date' => $displayDate,
-            'series' => $series,
-            'labels' => $labels,
+            'labels' => [
+                'Sent CVs', 'Quality Revert', 'Request', 'Confirmation', 'Attended',
+                'Start Date', 'Invoice', 'Paid', 'Open CVs', 'Rejected CV',
+                'Crm Revert', 'Rejected By Request', 'Rebook', 'Not Attended',
+                'Start Date Hold', 'Declined', 'Dispute'
+            ],
+            'series' => [
+                $daily_data['crm_sent'],
+                $daily_data['quality_revert'],
+                $daily_data['crm_requested'],
+                $daily_data['crm_confirmed'],
+                $daily_data['crm_prestart_attended'],
+                $daily_data['crm_date_started'],
+                $daily_data['crm_invoiced'],
+                $daily_data['crm_paid'],
+                $daily_data['crm_open_cvs'],
+                $daily_data['quality_cvs_rejected'],
+                $daily_data['crm_revert'],
+                $daily_data['crm_request_rejected'],
+                $daily_data['crm_rebook'],
+                $daily_data['crm_not_attended'],
+                $daily_data['crm_start_date_held'],
+                $daily_data['crm_declined'],
+                $daily_data['crm_disputed'],
+            ],
         ]);
     }
     public function getStatisticsDetails(Request $request)
