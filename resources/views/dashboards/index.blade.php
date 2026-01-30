@@ -1113,9 +1113,9 @@
                     };
 
                     const prevIcons = {
-                        CRM_start_date: 'calendar-line-duotone',
-                        CRM_invoice: 'file-text-line-duotone',
-                        CRM_paid: 'wallet-line-duotone'
+                        start_date: 'calendar-line-duotone',
+                        invoice: 'file-text-line-duotone',
+                        paid: 'wallet-line-duotone'
                     };
                     const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
 

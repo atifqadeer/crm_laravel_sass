@@ -240,15 +240,20 @@ class DashboardController extends Controller
                 'CRM_sent_cvs', 'CRM_rejected_cv', 'CRM_request', 'CRM_rejected_by_request',
                 'CRM_confirmation', 'CRM_rebook', 'CRM_attended', 'CRM_not_attended',
                 'CRM_start_date', 'CRM_start_date_hold', 'CRM_declined', 'CRM_invoice',
-                'CRM_dispute', 'CRM_paid', 'close_sales', 'open_sales'
+                'CRM_dispute', 'CRM_paid'
             ], 0);
 
+            $sales_stats = [
+                'close_sales' => 0,
+                'open_sales' => 0
+            ];
+
             $prev_user_stats = array_fill_keys([
-                'CRM_start_date', 'CRM_invoice', 'CRM_paid'
+                'start_date', 'invoice', 'paid'
             ], 0);
 
             // Process sales-related data for Sales roles
-            // if (in_array($user_role, ['sales'], true)) {
+            if (in_array($user_role, ['sales'], true)) {
                 // Fetch sales with related data
                 $salesQuery = Sale::query()
                     ->where('user_id', $user_id)
@@ -256,7 +261,7 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate]);
 
                 // Count closed sales
-                $crm_stats['close_sales'] = Audit::query()
+                $sales_stats['close_sales'] = Audit::query()
                     ->where('message', 'sale-closed')
                     ->where('auditable_type', Sale::class)
                     ->whereIn('auditable_id', $salesQuery->pluck('id'))
@@ -264,7 +269,7 @@ class DashboardController extends Controller
                     ->count();
 
                 $sales = $salesQuery->get();
-                $crm_stats['open_sales'] = $sales->count() - $crm_stats['close_sales'];
+                $sales_stats['open_sales'] = $sales->count() - $sales_stats['close_sales'];
 
                 // Fetch CV notes for sales
                 $cv_notes = CVNote::query()
@@ -272,14 +277,14 @@ class DashboardController extends Controller
                     ->whereBetween('updated_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
                     ->get();
-            // } else {
-            //     // Fetch CV notes for non-sales roles
-            //     $cv_notes = CVNote::query()
-            //         ->where('user_id', $user_id)
-            //         ->whereBetween('created_at', [$startDate, $endDate])
-            //         ->select('applicant_id', 'sale_id')
-            //         ->get();
-            // }
+            } else {
+                // Fetch CV notes for non-sales roles
+                $cv_notes = CVNote::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->select('applicant_id', 'sale_id')
+                    ->get();
+            }
 
             $quality_stats['cvs_sent'] = $cv_notes->count();
 
@@ -371,13 +376,13 @@ class DashboardController extends Controller
                         ->keyBy('sub_stage');
 
                     if (isset($prev_history['crm_start_date']) || isset($prev_history['crm_start_date_back'])) {
-                        $prev_user_stats['CRM_start_date']++;
+                        $prev_user_stats['start_date']++;
                     }
                     if (isset($prev_history['crm_invoice'])) {
-                        $prev_user_stats['CRM_invoice']++;
+                        $prev_user_stats['invoice']++;
                     }
                     if (isset($prev_history['crm_paid'])) {
-                        $prev_user_stats['CRM_paid']++;
+                        $prev_user_stats['paid']++;
                     }
                 }
             }
