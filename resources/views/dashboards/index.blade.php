@@ -3,8 +3,9 @@
 @section('content')
     <!-- start page title -->
     <style>
-        .main-nav {
-            margin-top: 15px;
+        .logo-box{
+            padding-top: 21px;
+            padding-bottom: 19px;
         }
         .card {
             margin-bottom: 1.5625rem;
@@ -1040,7 +1041,7 @@
 
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-xl">
+                    <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">User Statistics</h5>
@@ -1074,18 +1075,20 @@
                 },
                 success: function (response) {
                     let notesHtml = `
-                        <div class="row bg-primary text-white rounded px-3 py-2 mb-3">
-                            <div class="col-md-4">
+                        <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
+                            <div class="col-sm-12 col-md-12 col-lg-4">
                                 ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
                             </div>
-                            <div class="col-md-4">
+
+                            <div class="col-sm-12 col-md-12 col-lg-4">
                                 ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
                             </div>
-                            <div class="col-md-4 text-md-end">
+
+                            <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
                                 ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
                             </div>
-                        </div>
-                    `;
+                        </div>`;
+
 
                     const currentIcons = {
                         cvs_sent: 'file-send-broken',
@@ -1114,46 +1117,70 @@
                         CRM_invoice: 'file-text-line-duotone',
                         CRM_paid: 'wallet-line-duotone'
                     };
+                    const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
                     function renderQualityStatBlock(data, icons, badgeClass) {
-                        let html = `<div class="row">`;
+                        let html = `<div class="row g-3">`;
+
                         Object.entries(data).forEach(([key, value]) => {
                             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
+
                             html += `
-                                <div class="col-md-4 mb-3">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon icon="solar:${icon}" class="fs-1 text-${badgeClass} me-3"></iconify-icon>
-                                        <div class="d-flex flex-column justify-content-center">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">${value}</span>
-                                            <small class="text-muted">${label}</small>
-                                        </div>
+                            <div class="${CARD_COL}">
+                                <div class="d-flex align-items-center border rounded p-3 h-100">
+                                    <iconify-icon 
+                                        icon="solar:${icon}" 
+                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                    </iconify-icon>
+
+                                    <div class="d-flex flex-column justify-content-center text-truncate">
+                                        <span class="fs-4 fw-bold text-${badgeClass}">
+                                            ${value}
+                                        </span>
+                                        <small class="text-muted text-truncate">
+                                            ${label}
+                                        </small>
                                     </div>
-                                </div>`;
+                                </div>
+                            </div>`;
                         });
+
                         html += `</div>`;
                         return html;
                     }
 
                     function renderStatBlock(data, icons, badgeClass) {
-                        let html = `<div class="row">`;
+                        let html = `<div class="row g-3">`;
+
                         Object.entries(data).forEach(([key, value]) => {
                             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
+
                             html += `
-                                <div class="col-md-3 mb-3">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon icon="solar:${icon}" class="fs-1 text-${badgeClass} me-3"></iconify-icon>
-                                        <div class="d-flex flex-column justify-content-center">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">${value}</span>
-                                            <small class="text-muted">${label}</small>
-                                        </div>
+                            <div class="${CARD_COL}">
+                                <div class="d-flex align-items-center border rounded p-3 h-100">
+                                    <iconify-icon 
+                                        icon="solar:${icon}" 
+                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                    </iconify-icon>
+
+                                    <div class="d-flex flex-column justify-content-center text-truncate">
+                                        <span class="fs-4 fw-bold text-${badgeClass}">
+                                            ${value}
+                                        </span>
+                                        <small class="text-muted text-truncate">
+                                            ${label}
+                                        </small>
                                     </div>
-                                </div>`;
+                                </div>
+                            </div>`;
                         });
+
                         html += `</div>`;
                         return html;
                     }
+
 
                     if (response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
