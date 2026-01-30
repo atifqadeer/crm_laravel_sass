@@ -315,18 +315,18 @@ class DashboardController extends Controller
                         ->where('applicant_id', $applicant_id)
                         ->where('sale_id', $sale_id)
                         ->whereBetween('updated_at', [$startDate, $endDate])
-                        ->get()
-                        ->keyBy('sub_stage');
+                        // ->where('status', 1)
+                        ->get();
 
                     // Quality stats
-                    if (isset($history_forCleared['quality_cleared']) && $history_forCleared['quality_cleared']->status === 1) {
+                    if (isset($history_forCleared) && $history_forCleared->count() > 0) {
                         $quality_stats['cvs_cleared']++;
                         $crm_stats['CRM_sent_cvs']++;
                     }
-                    if (isset($history['quality_reject']) && $history['quality_reject']->status === 1) {
+                    if (isset($history['quality_reject']) && $history['quality_reject']->status == 1) {
                         $quality_stats['cvs_rejected']++;
                     }
-                    if (isset($history['crm_reject']) && $history['crm_reject']->status === 1) {
+                    if (isset($history['crm_reject']) && $history['crm_reject']->status == 1) {
                         $crm_stats['CRM_rejected_cv']++;
                         continue;
                     }
@@ -343,8 +343,7 @@ class DashboardController extends Controller
                             ->orderByDesc('id')
                             ->first();
 
-                        if ($crm_sent_cv && Carbon::parse($history['crm_request']->history_added_date . ' ' . 
-                            $history['crm_request']->history_added_time)->gt($crm_sent_cv->created_at)) {
+                        if ($crm_sent_cv && Carbon::parse($history['crm_request']->created_at)->gt($crm_sent_cv->created_at)) {
                             $crm_stats['CRM_request']++;
                             $this->processCrmStats($history, $crm_stats, $applicant_id, $sale_id, $startDate, $endDate);
                         }
@@ -408,16 +407,14 @@ class DashboardController extends Controller
     }
     private function processCrmStats($history, array &$crm_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
     {
-        if (isset($history['crm_request_reject']) && $history['crm_request_reject']->status === 1) {
+        if (isset($history['crm_request_reject']) && $history['crm_request_reject']->status == 1) {
             $crm_stats['CRM_rejected_by_request']++;
         }
 
         if (isset($history['crm_request_confirm']) && isset($history['crm_request']) &&
-            Carbon::parse($history['crm_request_confirm']->history_added_date . ' ' . 
-                $history['crm_request_confirm']->history_added_time)->gt(
-                Carbon::parse($history['crm_request']->history_added_date . ' ' . 
-                    $history['crm_request']->history_added_time)
-            )) {
+            Carbon::parse($history['crm_request_confirm']->created_at)->gt(Carbon::parse($history['crm_request']->created_at)
+        )) 
+        {
             $crm_stats['CRM_confirmation']++;
 
             if (isset($history['crm_reebok']) && $history['crm_reebok']->status == 1) {
