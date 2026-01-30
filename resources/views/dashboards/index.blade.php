@@ -799,11 +799,10 @@
             // ✅ If no date selected, use today (d-m-Y)
             if (!dateRange) {
                 const today = new Date();
-                const day   = String(today.getDate()).padStart(2, '0');
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const year  = today.getFullYear();
-
-                dateRange = `${day}-${month}-${year}`;
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0'); // months are 0-indexed
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateRange = `${yyyy}-${mm}-${dd}`;
             }
             
             $.get('/statistics/chart-data', {
@@ -1074,6 +1073,7 @@
                     date_range_filter: window.userStatisticsDateRange
                 },
                 success: function (response) {
+                    console.log('Response: '+ JSON.stringify(response));
                     let notesHtml = `
                         <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
                             <div class="col-sm-12 col-md-12 col-lg-4">
@@ -1091,7 +1091,7 @@
 
 
                     const currentIcons = {
-                        cvs_sent: 'file-send-broken',
+                        cvs_requested: 'file-send-broken',
                         close_sales: 'bag-check-line-duotone',
                         open_sales: 'bag-cross-line-duotone',
                         cvs_cleared: 'shield-check-line-duotone',

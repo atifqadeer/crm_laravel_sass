@@ -231,7 +231,7 @@ class DashboardController extends Controller
 
             // Initialize stats arrays
             $quality_stats = [
-                'cvs_sent' => 0,
+                'cvs_requested' => 0,
                 'cvs_rejected' => 0,
                 'cvs_cleared' => 0,
             ];
@@ -284,9 +284,10 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
                     ->get();
+
             }
 
-            $quality_stats['cvs_sent'] = $cv_notes->count();
+            $quality_stats['cvs_requested'] = $cv_notes->count();
 
             // Batch process CV-related stats
             $cv_grouped = $cv_notes->groupBy(['applicant_id', 'sale_id']);
@@ -352,8 +353,8 @@ class DashboardController extends Controller
             }
 
             // Previous month stats
-            $prevMonthStart = Carbon::now()->subMonths(6)->startOfMonth()->startOfDay();
-            $prevMonthEnd   = Carbon::now()->subMonths(6)->endOfMonth()->endOfDay();
+            $prevMonthStart = $startDate->copy()->subMonth()->startOfMonth();
+            $prevMonthEnd   = $startDate->copy()->subMonth()->endOfMonth();
 
             $prev_cv_notes = CVNote::query()
                 ->where('user_id', $user_id)
@@ -363,14 +364,18 @@ class DashboardController extends Controller
 
             $prev_cv_grouped = $prev_cv_notes->groupBy(['applicant_id', 'sale_id']);
 
-            foreach ($prev_cv_grouped as $applicant_id => $sales_group) {
-                foreach ($sales_group as $sale_id => $cv_group) {
+            foreach ($prev_cv_grouped as $applicant_id => $notesData) {
+                foreach ($notesData as $sale_id => $cv_group) {
+                    // Use the KEYS, not the collection
                     $prev_history = History::query()
-                        ->whereIn('sub_stage', [
-                            'crm_start_date', 'crm_start_date_back', 'crm_invoice', 'crm_paid'
-                        ])
                         ->where('applicant_id', $applicant_id)
                         ->where('sale_id', $sale_id)
+                        ->whereIn('sub_stage', [
+                            'crm_start_date',
+                            'crm_start_date_back',
+                            'crm_invoice',
+                            'crm_paid'
+                        ])
                         ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
                         ->get()
                         ->keyBy('sub_stage');
@@ -378,9 +383,11 @@ class DashboardController extends Controller
                     if (isset($prev_history['crm_start_date']) || isset($prev_history['crm_start_date_back'])) {
                         $prev_user_stats['start_date']++;
                     }
+
                     if (isset($prev_history['crm_invoice'])) {
                         $prev_user_stats['invoice']++;
                     }
+
                     if (isset($prev_history['crm_paid'])) {
                         $prev_user_stats['paid']++;
                     }
