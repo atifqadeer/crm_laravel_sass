@@ -315,6 +315,7 @@ class DashboardController extends Controller
                         ->where('applicant_id', $applicant_id)
                         ->where('sale_id', $sale_id)
                         ->whereBetween('updated_at', [$startDate, $endDate])
+                        ->whereColumn('created_at', '!=', 'updated_at')
                         // ->where('status', 1)
                         ->get();
 
