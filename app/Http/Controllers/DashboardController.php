@@ -370,6 +370,7 @@ class DashboardController extends Controller
                     $prev_history = History::query()
                         ->where('applicant_id', $applicant_id)
                         ->where('sale_id', $sale_id)
+                        ->where('user_id', $user_id)
                         ->whereIn('sub_stage', [
                             'crm_start_date',
                             'crm_start_date_back',
