@@ -360,14 +360,15 @@ class DashboardController extends Controller
                 ->select('applicant_id', 'sale_id')
                 ->get();
 
-            $prev_cv_grouped = $prev_cv_notes->groupBy(['applicant_id', 'sale_id']);
+            // $prev_cv_grouped = $prev_cv_notes->groupBy(['applicant_id', 'sale_id']);
 
-            foreach ($prev_cv_grouped as $fkey => $notesData) {
-                foreach ($notesData as $key => $cv) {
-                    // Use the KEYS, not the collection
-                    $prev_history = History::query()
-                        ->where('applicant_id', $cv->applicant_id)
-                        ->where('sale_id', $cv->sale_id)
+            foreach ($prev_cv_notes as $cv) {
+                $applicantId = $cv->applicant_id;
+                $saleId = $cv->sale_id;
+                // Use the KEYS, not the collection
+                $prev_history = History::query()
+                    ->where('applicant_id', $applicantId)
+                    ->where('sale_id', $saleId)
                         ->where('user_id', $user_id)
                         ->whereIn('sub_stage', [
                             'crm_start_date',
@@ -390,7 +391,6 @@ class DashboardController extends Controller
                     if (isset($prev_history['crm_paid'])) {
                         $prev_user_stats['paid']++;
                     }
-                }
             }
 
             return response()->json([
