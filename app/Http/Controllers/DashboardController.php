@@ -362,12 +362,12 @@ class DashboardController extends Controller
 
             $prev_cv_grouped = $prev_cv_notes->groupBy(['applicant_id', 'sale_id']);
 
-            foreach ($prev_cv_grouped as $applicantId => $notesData) {
-                foreach ($notesData as $saleId => $cv_group) {
+            foreach ($prev_cv_grouped as $fkey => $notesData) {
+                foreach ($notesData as $key => $cv) {
                     // Use the KEYS, not the collection
                     $prev_history = History::query()
-                        ->where('applicant_id', $applicantId)
-                        ->where('sale_id', $saleId)
+                        ->where('applicant_id', $cv->applicant_id)
+                        ->where('sale_id', $cv->sale_id)
                         ->where('user_id', $user_id)
                         ->whereIn('sub_stage', [
                             'crm_start_date',
