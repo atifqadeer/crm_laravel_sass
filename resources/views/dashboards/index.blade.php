@@ -1091,9 +1091,15 @@
 
 
                     const currentIcons = {
+                        open_sales: 'bag-line-duotone',
+                        reopen_sales: 'bag-line-duotone',
+                        updated_sales: 'bag-line-duotone',
+                        onhold_sales: 'bag-check-line-duotone',
+                        pending_sales: 'hourglass-line-duotone',
+                        rejected_sales: 'shield-cross-line-duotone',
+                        close_sales: 'bag-cross-line-duotone',
+
                         cvs_requested: 'file-send-broken',
-                        close_sales: 'bag-check-line-duotone',
-                        open_sales: 'bag-cross-line-duotone',
                         cvs_cleared: 'shield-check-line-duotone',
                         cvs_rejected: 'shield-cross-line-duotone',
                         CRM_sent_cvs: 'plain-line-duotone',
@@ -1109,7 +1115,9 @@
                         CRM_declined: 'quit-full-screen-line-duotone',
                         CRM_invoice: 'file-text-line-duotone',
                         CRM_dispute: 'shield-warning-line-duotone',
-                        CRM_paid: 'wallet-line-duotone'
+                        CRM_paid: 'wallet-line-duotone',
+                        applicants_created: 'user-line-duotone',
+                        applicants_updated: 'user-line-duotone'
                     };
 
                     const prevIcons = {
@@ -1180,19 +1188,88 @@
                         html += `</div>`;
                         return html;
                     }
+                    
+                    function renderDataEntryStatBlock(data, icons, badgeClass) {
+                        let html = `<div class="row g-3">`;
+                        Object.entries(data).forEach(([key, value]) => {
+                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const icon = icons[key] || 'dot-line-duotone';
 
+                            html += `
+                            <div class="${CARD_COL}">
+                                <div class="d-flex align-items-center border rounded p-3 h-100">
+                                    <iconify-icon 
+                                        icon="solar:${icon}" 
+                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                    </iconify-icon>
 
-                    if (response.quality_stats && Object.keys(response.quality_stats).length > 0) {
+                                    <div class="d-flex flex-column justify-content-center text-truncate">
+                                        <span class="fs-4 fw-bold text-${badgeClass}">
+                                            ${value}
+                                        </span>
+                                        <small class="text-muted text-truncate">
+                                            ${label}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+
+                        html += `</div>`;
+                        return html;
+                    }
+
+                    function renderSaleStatBlock(data, icons, badgeClass) {
+                        let html = `<div class="row g-3">`;
+                        Object.entries(data).forEach(([key, value]) => {
+                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const icon = icons[key] || 'dot-line-duotone';
+
+                            html += `
+                            <div class="${CARD_COL}">
+                                <div class="d-flex align-items-center border rounded p-3 h-100">
+                                    <iconify-icon 
+                                        icon="solar:${icon}" 
+                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                    </iconify-icon>
+
+                                    <div class="d-flex flex-column justify-content-center text-truncate">
+                                        <span class="fs-4 fw-bold text-${badgeClass}">
+                                            ${value}
+                                        </span>
+                                        <small class="text-muted text-truncate">
+                                            ${label}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+
+                        html += `</div>`;
+                        return html;
+                    }
+
+                    if (response.user_role_type === 'quality' || response.user_role_type === 'agent' && response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
                         notesHtml += renderQualityStatBlock(response.quality_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_stats && Object.keys(response.user_stats).length > 0) {
+                    if (response.user_role_type === 'agent' && response.user_stats && Object.keys(response.user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">CRM Statistics</h6>';
                         notesHtml += renderStatBlock(response.user_stats, currentIcons, 'primary');
                     }
+                    
+                    if (response.user_role_type === 'data_entry' && response.data_entry_stats && Object.keys(response.data_entry_stats).length > 0) {
+                        notesHtml += '<h6 class="mt-3">Applicants Statistics</h6>';
+                        notesHtml += renderDataEntryStatBlock(response.data_entry_stats, currentIcons, 'primary');
+                    }
+                    
+                    if (response.user_role_type === 'sales' && response.sales_stats && Object.keys(response.sales_stats).length > 0) {
+                        notesHtml += '<h6 class="mt-3">Sales Statistics</h6>';
+                        notesHtml += renderSaleStatBlock(response.sales_stats, currentIcons, 'primary');
+                    }
 
-                    if (response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
+                    if (response.user_role_type === 'agent' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-4">Previous Month Stats</h6>';
                         notesHtml += renderQualityStatBlock(response.prev_user_stats, prevIcons, 'secondary');
                     }

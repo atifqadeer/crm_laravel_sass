@@ -221,12 +221,13 @@ class DashboardController extends Controller
 
             // Fetch user with role using Eloquent relationships
             $userWithRole = User::query()
-                ->with(['roles' => fn ($query) => $query->select('roles.id', 'roles.name')])
+                ->with(['roles' => fn ($query) => $query->select('roles.id', 'roles.name', 'roles.type')])
                 ->where('id', $user_id)
-                ->select('id', 'name')
+                ->select('users.id', 'users.name')
                 ->firstOrFail();
 
-            $user_role = $userWithRole->roles->first()->name ?? '';
+            $role_type = $userWithRole->roles->first()->type ?? 'agent';
+            $user_role = ucwords($userWithRole->roles->first()->name) ?? '';
             $user_name = $userWithRole->name ?? '';
 
             // Initialize stats arrays
@@ -244,39 +245,143 @@ class DashboardController extends Controller
             ], 0);
 
             $sales_stats = [
-                'close_sales' => 0,
-                'open_sales' => 0
+                'open_sales' => 0,
+                'reopen_sales' => 0,
+                'updated_sales' => 0,
+                'onhold_sales' => 0,
+                'pending_sales' => 0,
+                'rejected_sales' => 0,
+                'close_sales' => 0
+            ];
+            
+            $data_entry_stats = [
+                'applicants_created' => 0,
+                'applicants_updated' => 0
             ];
 
             $prev_user_stats = array_fill_keys([
                 'start_date', 'invoice', 'paid'
             ], 0);
 
-            // Process sales-related data for Sales roles
-            if (in_array($user_role, ['sales'], true)) {
-                // Fetch sales with related data
-                $salesQuery = Sale::query()
-                    ->where('user_id', $user_id)
-                    ->whereIn('status', [0, 1])
-                    ->whereBetween('created_at', [$startDate, $endDate]);
+            $cv_notes = collect();
 
-                // Count closed sales
-                $sales_stats['close_sales'] = Audit::query()
-                    ->where('message', 'sale-closed')
-                    ->where('auditable_type', Sale::class)
-                    ->whereIn('auditable_id', $salesQuery->pluck('id'))
+            // Process sales-related data for Sales roles
+            if (in_array($role_type, ['sales'], true)) {
+                // Fetch sales with related data                
+                $sales_stats['open_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 1)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', '%has been created%')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['reopen_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 1)
+                    ->where('sales.is_re_open', 1)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', '%has been updated%')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['updated_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 1)
+                    ->where('sales.is_re_open', 0)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', '%has been updated%')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['pending_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 2)
+                    ->where('sales.is_re_open', 0)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', '%has been created%')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['onhold_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 1)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', '%sale-onhold%')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['rejected_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 3)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'sale-rejected')
+                    ->orWhere('audits.message', 'reject')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                $sales_stats['close_sales'] = Sale::query()
+                    ->join('audits', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('sales.status', 0)
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'sale-closed')
+                    ->orWhere('audits.message', 'close')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->distinct('sales.id')
+                    ->count('sales.id');
+                
+                // Fetch CV notes for sales
+                // $cv_notes = CVNote::query()
+                //     ->whereIn('sale_id', $sales->pluck('id'))
+                //     ->whereBetween('updated_at', [$startDate, $endDate])
+                //     ->select('applicant_id', 'sale_id')
+                //     ->get();
+
+            }elseif (in_array($role_type, ['data_entry'], true)) {
+                // Count created applicants
+                $data_entry_stats['applicants_created'] = Audit::query()
+                    ->where('message', 'LIKE', '%has been created%')
+                    ->where('auditable_type', Applicant::class)
+                    // ->whereIn('auditable_id', $applicantsQuery->pluck('id'))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
 
-                $sales = $salesQuery->get();
-                $sales_stats['open_sales'] = $sales->count() - $sales_stats['close_sales'];
-
-                // Fetch CV notes for sales
-                $cv_notes = CVNote::query()
-                    ->whereIn('sale_id', $sales->pluck('id'))
+                // Count updated applicants
+                $data_entry_stats['applicants_updated'] = Audit::query()
+                    ->where('message', 'LIKE', '%has been updated%')
+                    ->where('auditable_type', Applicant::class)
+                    // ->whereIn('auditable_id', $applicantsQuery->pluck('id'))
                     ->whereBetween('updated_at', [$startDate, $endDate])
-                    ->select('applicant_id', 'sale_id')
-                    ->get();
+                    ->count();
+
             } else {
                 // Fetch CV notes for non-sales roles
                 $cv_notes = CVNote::query()
@@ -396,9 +501,12 @@ class DashboardController extends Controller
             return response()->json([
                 'user_name' => $user_name,
                 'user_role' => $user_role,
+                'user_role_type' => $role_type,
                 'quality_stats' => $quality_stats,
                 'user_stats' => $crm_stats,
                 'prev_user_stats' => $prev_user_stats,
+                'data_entry_stats' => $data_entry_stats,
+                'sales_stats' => $sales_stats,
             ]);
 
         } catch (\Exception $e) {
