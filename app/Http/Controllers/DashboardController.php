@@ -353,23 +353,21 @@ class DashboardController extends Controller
             }
 
             // Previous month stats
-            $prevMonthStart = $startDate->copy()->subMonth()->startOfMonth();
-            $prevMonthEnd   = $startDate->copy()->subMonth()->endOfMonth();
-
             $prev_cv_notes = CVNote::query()
                 ->where('user_id', $user_id)
-                ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
+                ->whereDate('created_at', '<', $startDate)
+                ->whereBetween('updated_at', [$startDate, $endDate])
                 ->select('applicant_id', 'sale_id')
                 ->get();
 
             $prev_cv_grouped = $prev_cv_notes->groupBy(['applicant_id', 'sale_id']);
 
-            foreach ($prev_cv_grouped as $applicant_id => $notesData) {
-                foreach ($notesData as $sale_id => $cv_group) {
+            foreach ($prev_cv_grouped as $applicantId => $notesData) {
+                foreach ($notesData as $saleId => $cv_group) {
                     // Use the KEYS, not the collection
                     $prev_history = History::query()
-                        ->where('applicant_id', $applicant_id)
-                        ->where('sale_id', $sale_id)
+                        ->where('applicant_id', $applicantId)
+                        ->where('sale_id', $saleId)
                         ->where('user_id', $user_id)
                         ->whereIn('sub_stage', [
                             'crm_start_date',
@@ -377,7 +375,7 @@ class DashboardController extends Controller
                             'crm_invoice',
                             'crm_paid'
                         ])
-                        ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
+                        ->whereBetween('created_at', [$startDate, $endDate])
                         ->get()
                         ->keyBy('sub_stage');
 
