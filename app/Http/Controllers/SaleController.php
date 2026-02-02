@@ -4152,7 +4152,7 @@ class SaleController extends Controller
 
                     $url = route('sales.history', [ 'id' => $sale->id ]);
                     $action .= '<li><hr class="dropdown-divider"></li>
-                                     <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="'. $url .'" target="_blank">View History</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
@@ -4645,8 +4645,10 @@ class SaleController extends Controller
                             </a>
                         </li>';
                     $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . $sale->id . ', 0)">Mark as Unhold</a></li>';
+                    $url = route('sales.history', [ 'id' => $sale->id ]);
                     $action .= '<li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="'. $url .'" target="_blank">View History</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
