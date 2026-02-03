@@ -1243,6 +1243,115 @@ class DashboardController extends Controller
             ]
         ]);
     }
+    public function getStatisticsDetails(Request $request)
+    {
+        $type = $request->input('type'); // e.g. "nurses", "non_nurses", etc.
+        $inputDate = $request->input('date_range');
+        $range = $request->input('range');
+
+        // ✅ Validate date format
+        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
+            'date_range' => 'required',
+            'range' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->all()], 422);
+        }
+
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+        if ($range === 'daily') {
+            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+            $displayDate = $startDate->format('jS F Y');
+        }
+
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
+            [$start, $end] = explode(' to ', $inputDate);
+
+            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+        }
+
+        elseif ($range === 'monthly') {
+            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+            $displayDate = $startDate->format('F Y');
+        }
+
+        elseif ($range === 'yearly') {
+            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+            $displayDate = $startDate->format('Y');
+        }
+
+        /** -------------------------
+         *  APPLICANTS SECTION
+         *  ------------------------*/
+        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        // Get the base query for Applicants filtered by date
+        $baseQuery = Applicant::query()
+            ->where('status', 1);
+            
+        // Filter by applicant type (based on clicked box)
+        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        if ($job_category_nurse) {
+            switch ($type) {
+                case 'nurses-created':
+                    $baseQuery->where('job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+
+                case 'non-nurses-created':
+                    $baseQuery->where('job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+
+                case 'nurses-updated':
+                    $baseQuery->where('job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
+                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
+                    break;
+
+                case 'non-nurses-updated':
+                    $baseQuery->where('job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
+                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
+                    break;
+            }
+        }
+
+        // ✅ Group by job_type (regular / specialist)
+        $jobTypeCounts = (clone $baseQuery)
+            ->select('job_type', DB::raw('COUNT(*) as total'))
+            ->groupBy('job_type')
+            ->pluck('total', 'job_type');
+
+
+        // ✅ Group by job_source (join job_sources table)
+        $jobSources = (clone $baseQuery)
+            ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
+            ->select('job_sources.name', DB::raw('COUNT(applicants.id) as total'))
+            ->groupBy('job_sources.name')
+            ->orderByDesc('total')
+            ->pluck('total', 'job_sources.name');
+
+
+        return response()->json([
+            'title' => ucfirst(str_replace('-', ' ', $type)) . ' Applicants',
+            'job_types' => [
+                'regular' => $jobTypeCounts['regular'] ?? 0,
+                'specialist' => $jobTypeCounts['specialist'] ?? 0,
+            ],
+            'sources' => $jobSources
+        ]);
+
+    }
     public function getChartData(Request $request)
     {
         $range = $request->input('range');
@@ -1415,111 +1524,7 @@ class DashboardController extends Controller
             ],
         ]);
     }
-    public function getStatisticsDetails(Request $request)
-    {
-        $type = $request->input('type'); // e.g. "nurses", "non_nurses", etc.
-        $inputDate = $request->input('date_range');
-        $range = $request->input('range');
-
-        // ✅ Validate date format
-        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
-            'date_range' => 'required',
-            'range' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->all()], 422);
-        }
-
-        /* -------------------------
-        DATE PARSING (CRITICAL)
-        --------------------------*/
-        if ($range === 'daily') {
-            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
-            $displayDate = $startDate->format('jS F Y');
-        }
-
-        elseif (in_array($range, ['weekly', 'aggregate'])) {
-            [$start, $end] = explode(' to ', $inputDate);
-
-            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
-            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
-        }
-
-        elseif ($range === 'monthly') {
-            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
-            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
-            $displayDate = $startDate->format('F Y');
-        }
-
-        elseif ($range === 'yearly') {
-            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
-            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
-            $displayDate = $startDate->format('Y');
-        }
-
-        /** -------------------------
-         *  APPLICANTS SECTION
-         *  ------------------------*/
-        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-        // $nurses_created = Applicant::where([
-        //         'status' => 1,
-        //         'job_category_id' => $job_category_nurse->id ?? 0
-        //     ])
-        //     ->whereBetween('created_at', [$startDate, $endDate])
-        //     ->count();
-
-        // Get the base query for Applicants filtered by date
-        $query = Applicant::query();
-            
-
-        // Filter by applicant type (based on clicked box)
-        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-        if($job_category_nurse){
-            switch($type){
-                case 'nurses-created':
-                    $query->where('applicants.job_category_id', $job_category_nurse->id)
-                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
-                    break;
-                case 'non-nurses-created':
-                    $query->where('applicants.job_category_id', '!=', $job_category_nurse->id)
-                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
-                    break;
-                case 'nurses-updated':
-                    $query->where('applicants.job_category_id', $job_category_nurse->id)
-                        ->whereBetween('applicants.updated_at', [$startDate, $endDate]);
-                    break;
-                case 'non-nurses-updated':
-                    $query->where('applicants.job_category_id', '!=', $job_category_nurse->id)
-                        ->whereBetween('applicants.updated_at', [$startDate, $endDate]);
-                    break;
-            }
-        }
-
-        // ✅ Group by job_type (regular / specialist)
-        $jobTypeCounts = $query->select('applicants.job_type', DB::raw('COUNT(*) as total'))
-            ->groupBy('applicants.job_type')
-            ->pluck('total', 'applicants.job_type');
-
-        // ✅ Group by job_source (join job_sources table)
-        $jobSources = $query->join('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->select('job_sources.name', DB::raw('COUNT(applicants.id) as total'))
-            ->groupBy('job_sources.name')
-            ->pluck('total', 'job_sources.name');
-
-        return response()->json([
-            'title' => ucfirst(str_replace('_', ' ', $type)) . ' Applicants',
-            'job_types' => [
-                'regular' => $jobTypeCounts['regular'] ?? 0,
-                'specialist' => $jobTypeCounts['specialist'] ?? 0,
-            ],
-            'sources' => $jobSources
-        ]);
-    }
+    
 
 
 }
