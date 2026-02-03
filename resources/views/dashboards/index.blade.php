@@ -40,6 +40,13 @@
             }
         }
 
+        .stat-box:hover {
+            cursor: pointer;
+        }
+        .stat-box span:hover {
+            color: var(--bs-info)   !important;
+        }
+
     </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
@@ -615,6 +622,7 @@
             </div>
         </div>
     </div>
+
 @endsection
 
 @section('script')
@@ -754,7 +762,6 @@
         // When any stats box is clicked
         $(document).on('click', '.stat-box', function () {
             const type = $(this).data('type');
-            const selectedDate = $('#selectedDate').val() || null; // Assuming your page has a date picker or variable
             if (!type) {
                 console.warn('⚠️ Missing data-type on this .stat-box element.');
                 return;
@@ -763,7 +770,11 @@
             $.ajax({
                 url: '/dashboard/statistics-details',
                 method: 'GET',
-                data: { type, date: selectedDate },
+                data: { 
+                    type : type, 
+                    range: currentRange,
+                    date_range: currentDateRange 
+                },
                 success: function(resp) {
                     // Set modal title
                     $('#applicantDetailsLabel').text(resp.title);

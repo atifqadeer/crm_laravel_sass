@@ -1026,7 +1026,6 @@ class DashboardController extends Controller
     {
         $inputDate = $request->input('date_range');
         $range = $request->input('range');
-        // $date = $request->input('date') ?? Carbon::parse('2026-01-20')->format('d-m-Y');
 
         // ✅ Validate date format
         $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
@@ -1419,18 +1418,64 @@ class DashboardController extends Controller
     public function getStatisticsDetails(Request $request)
     {
         $type = $request->input('type'); // e.g. "nurses", "non_nurses", etc.
-        $date = $request->input('date') ?? now()->format('Y-m-d');
+        $inputDate = $request->input('date_range');
+        $range = $request->input('range');
 
-        try {
-            $formatted_date = Carbon::parse('2025-02-26')->format('Y-m-d');
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid date format.'], 400);
+        // ✅ Validate date format
+        $validator = Validator::make(['date_range' => $inputDate, 'range' => $range], [
+            'date_range' => 'required',
+            'range' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->all()], 422);
         }
+
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+        if ($range === 'daily') {
+            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+            $displayDate = $startDate->format('jS F Y');
+        }
+
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
+            [$start, $end] = explode(' to ', $inputDate);
+
+            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+        }
+
+        elseif ($range === 'monthly') {
+            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+            $displayDate = $startDate->format('F Y');
+        }
+
+        elseif ($range === 'yearly') {
+            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+            $displayDate = $startDate->format('Y');
+        }
+
+        /** -------------------------
+         *  APPLICANTS SECTION
+         *  ------------------------*/
+        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        // $nurses_created = Applicant::where([
+        //         'status' => 1,
+        //         'job_category_id' => $job_category_nurse->id ?? 0
+        //     ])
+        //     ->whereBetween('created_at', [$startDate, $endDate])
+        //     ->count();
 
         // Get the base query for Applicants filtered by date
         $query = Applicant::query()
             ->where('applicants.status', 1)
-            ->whereDate('applicants.created_at', $formatted_date);
+            ->whereBetween('applicants.created_at', [$startDate, $endDate]);
 
         // Filter by applicant type (based on clicked box)
         $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
