@@ -1249,12 +1249,12 @@
                         return html;
                     }
 
-                    if (response.user_role_type === 'quality' || response.user_role_type === 'agent' && response.quality_stats && Object.keys(response.quality_stats).length > 0) {
+                    if (response.user_role_type === 'quality' || response.user_role_type === 'team_lead' || response.user_role_type === 'agent' || response.user_role_type === 'crm' && response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
                         notesHtml += renderQualityStatBlock(response.quality_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent' && response.user_stats && Object.keys(response.user_stats).length > 0) {
+                    if (response.user_role_type === 'agent'|| response.user_role_type === 'team_lead' || response.user_role_type === 'crm'  && response.user_stats && Object.keys(response.user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">CRM Statistics</h6>';
                         notesHtml += renderStatBlock(response.user_stats, currentIcons, 'primary');
                     }
@@ -1269,7 +1269,7 @@
                         notesHtml += renderSaleStatBlock(response.sales_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
+                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' || response.user_role_type === 'crm' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-4">Previous Month Stats</h6>';
                         notesHtml += renderQualityStatBlock(response.prev_user_stats, prevIcons, 'secondary');
                     }
