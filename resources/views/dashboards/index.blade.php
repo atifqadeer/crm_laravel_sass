@@ -225,7 +225,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses" data-filter-type="nurses-created">
                                         <span class="fs-4 fw-bold text-primary stats-nurses-created"></span>
                                         <small class="text-muted">Nurses</small>
                                     </div>
@@ -234,7 +234,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses" data-filter-type="non-nurses-created">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-created"></span>
                                         <small class="text-muted">Non Nurses</small>
                                     </div>
@@ -243,7 +243,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="callbacks">
+                                    <div class="d-flex flex-column justify-content-center" data-type="callbacks">
                                         <span class="fs-4 fw-bold text-primary stats-callbacks-created"></span>
                                         <small class="text-muted">Callbacks</small>
                                     </div>
@@ -252,7 +252,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="not_interested">
+                                    <div class="d-flex flex-column justify-content-center" data-type="not_interested">
                                         <span class="fs-4 fw-bold text-primary stats-not-interested-created"></span>
                                         <small class="text-muted">Not Interested</small>
                                     </div>
@@ -265,7 +265,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses" data-filter-type="nurses-updated">
                                         <span class="fs-4 fw-bold text-primary stats-nurses-updated"></span>
                                         <small class="text-muted">Nurses</small>
                                     </div>
@@ -274,7 +274,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses" data-filter-type="non-nurses-updated">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-updated"></span>
                                         <small class="text-muted">Non Nurses</small>
                                     </div>
@@ -283,7 +283,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="callbacks">
+                                    <div class="d-flex flex-column justify-content-center" data-type="callbacks">
                                         <span class="fs-4 fw-bold text-primary stats-callbacks-updated"></span>
                                         <small class="text-muted">Callbacks</small>
                                     </div>
@@ -292,7 +292,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="not_interested">
+                                    <div class="d-flex flex-column justify-content-center" data-type="not_interested">
                                         <span class="fs-4 fw-bold text-primary stats-not-interested-updated"></span>
                                         <small class="text-muted">Not Interested</small>
                                     </div>
@@ -305,7 +305,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="open_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="open_sale">
                                         <span class="fs-4 fw-bold text-primary stats-open-created"></span>
                                         <small class="text-muted">Open</small>
                                     </div>
@@ -314,7 +314,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="close_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="close_sale">
                                         <span class="fs-4 fw-bold text-primary stats-close-created"></span>
                                         <small class="text-muted">Close</small>
                                     </div>
@@ -323,7 +323,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="pending_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="pending_sale">
                                         <span class="fs-4 fw-bold text-primary stats-pending-created"></span>
                                         <small class="text-muted">Pending</small>
                                     </div>
@@ -332,7 +332,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="rejected_sale">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-created"></span>
                                         <small class="text-muted">Rejected</small>
                                     </div>
@@ -347,12 +347,12 @@
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
                                     
                                     <div class="d-flex w-100">
-                                        <div class="d-flex flex-column justify-content-center stat-box border-end pe-3" data-type="open_sale_updated" style="flex: 1;">
+                                        <div class="d-flex flex-column justify-content-center border-end pe-3" data-type="open_sale_updated" style="flex: 1;">
                                             <span class="fs-4 fw-bold text-primary stats-open-updated">0</span>
                                             <small class="text-muted fw-semibold">Open</small>
                                         </div>
 
-                                        <div class="d-flex flex-column justify-content-center stat-box ps-3" data-type="reopen_sale_updated" style="flex: 1;">
+                                        <div class="d-flex flex-column justify-content-center ps-3" data-type="reopen_sale_updated" style="flex: 1;">
                                             <span class="fs-4 fw-bold text-primary stats-reopen-updated">0</span>
                                             <small class="text-muted fw-semibold">ReOpen</small>
                                         </div>
@@ -362,7 +362,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="close_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="close_sale">
                                         <span class="fs-4 fw-bold text-primary stats-close-updated"></span>
                                         <small class="text-muted">Close</small>
                                     </div>
@@ -371,7 +371,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="pending_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="pending_sale">
                                         <span class="fs-4 fw-bold text-primary stats-pending-updated"></span>
                                         <small class="text-muted">Pending</small>
                                     </div>
@@ -380,7 +380,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="rejected_sale">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-updated"></span>
                                         <small class="text-muted">Rejected</small>
                                     </div>
@@ -393,7 +393,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:clipboard-check-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="requested_cvs">
+                                    <div class="d-flex flex-column justify-content-center" data-type="requested_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-requested-cvs"></span>
                                         <small class="text-muted">Requested CVs</small>
                                     </div>
@@ -402,7 +402,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:folder-open-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="open_cvs">
+                                    <div class="d-flex flex-column justify-content-center" data-type="open_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-open-cvs"></span>
                                         <small class="text-muted">Open CVs</small>
                                     </div>
@@ -411,7 +411,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="rejected_cvs">
+                                    <div class="d-flex flex-column justify-content-center" data-type="rejected_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-cvs"></span>
                                         <small class="text-muted">Rejected CVs</small>
                                     </div>
@@ -420,7 +420,7 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:shield-check-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="cleared_sale">
+                                    <div class="d-flex flex-column justify-content-center" data-type="cleared_sale">
                                         <span class="fs-4 fw-bold text-primary stats-cleared-cvs"></span>
                                         <small class="text-muted">Cleared CVs</small>
                                     </div>
@@ -428,7 +428,6 @@
                             </div>
                         </div>
                     </div>
-                    
                 </div>
             </div>
             <div class="col-xl-5 col-lg-12">
@@ -761,9 +760,9 @@
 
         // When any stats box is clicked
         $(document).on('click', '.stat-box', function () {
-            const type = $(this).data('type');
+            const type = $(this).data('filter-type');
             if (!type) {
-                console.warn('⚠️ Missing data-type on this .stat-box element.');
+                console.warn('⚠️ Missing data-filter-type on this .stat-box element.');
                 return;
             }
 

@@ -1473,17 +1473,31 @@ class DashboardController extends Controller
         //     ->count();
 
         // Get the base query for Applicants filtered by date
-        $query = Applicant::query()
-            ->where('applicants.status', 1)
-            ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+        $query = Applicant::query();
+            
 
         // Filter by applicant type (based on clicked box)
         $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
 
-        if ($type === 'nurses' && $job_category_nurse) {
-            $query->where('applicants.job_category_id', $job_category_nurse->id);
-        } elseif ($type === 'non_nurses' && $job_category_nurse) {
-            $query->where('applicants.job_category_id', '!=', $job_category_nurse->id);
+        if($job_category_nurse){
+            switch($type){
+                case 'nurses-created':
+                    $query->where('applicants.job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+                case 'non-nurses-created':
+                    $query->where('applicants.job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+                case 'nurses-updated':
+                    $query->where('applicants.job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate]);
+                    break;
+                case 'non-nurses-updated':
+                    $query->where('applicants.job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate]);
+                    break;
+            }
         }
 
         // ✅ Group by job_type (regular / specialist)
