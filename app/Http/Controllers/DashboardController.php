@@ -339,8 +339,8 @@ class DashboardController extends Controller
                     })
                     ->where('sales.status', 3)
                     ->where('audits.user_id', $user_id)
-                    ->where('audits.message', 'sale-rejected')
-                    ->orWhere('audits.message', 'reject')
+                    // ->where('audits.message', 'sale-rejected')
+                    ->where('audits.message', 'reject')
                     ->whereBetween('audits.created_at', [$startDate, $endDate])
                     ->distinct('sales.id')
                     ->count('sales.id');
@@ -352,8 +352,8 @@ class DashboardController extends Controller
                     })
                     ->where('sales.status', 0)
                     ->where('audits.user_id', $user_id)
-                    ->where('audits.message', 'sale-closed')
-                    ->orWhere('audits.message', 'close')
+                    // ->where('audits.message', 'sale-closed')
+                    ->where('audits.message', 'close')
                     ->whereBetween('audits.created_at', [$startDate, $endDate])
                     ->distinct('sales.id')
                     ->count('sales.id');
