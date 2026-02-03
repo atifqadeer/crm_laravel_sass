@@ -1269,7 +1269,7 @@
                         notesHtml += renderSaleStatBlock(response.sales_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' || response.user_role_type === 'crm' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
+                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-4">Previous Month Stats</h6>';
                         notesHtml += renderQualityStatBlock(response.prev_user_stats, prevIcons, 'secondary');
                     }
