@@ -1524,7 +1524,218 @@ class DashboardController extends Controller
             ],
         ]);
     }
-    
+    public function getStatusDetails(Request $request)
+    {
+        $status = $request->status;
+        $range = $request->range;
+        $inputDate = $request->date_range;
+
+        /* -------------------------
+        DATE PARSING (CRITICAL)
+        --------------------------*/
+        if ($range == 'daily') {
+            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+            $displayDate = $startDate->format('jS M Y');
+        }
+
+        elseif (in_array($range, ['weekly', 'aggregate'])) {
+            [$start, $end] = explode(' to ', $inputDate);
+
+            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+            $displayDate = $startDate->format('jS M') . ' - ' . $endDate->format('jS M Y');
+        }
+
+        elseif ($range == 'monthly') {
+            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+            $displayDate = $startDate->format('M Y');
+        }
+
+        elseif ($range == 'yearly') {
+            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+            $displayDate = $startDate->format('Y');
+        }
+
+        $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        if (!$nurseCategory) {
+            return response()->json([
+                'title' => 'No Nurse Category Found',
+                'nurses' => 0,
+                'non_nurses' => 0
+            ]);
+        }
+
+        // Base applicant query
+        $applicantQuery = Applicant::query();
+
+        /**
+         * STATUS → QUERY MAPPING
+         */
+        switch ($status) {
+            case 'crm_sent':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'quality_cleared')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+
+            case 'crm_open_cvs':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'quality_cvs_hold')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+
+            case 'quality_revert':
+                $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
+                    $q->where('stage', 'quality_revert')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+           
+            case 'crm_rejected':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_reject')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_requested':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_request')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_request_rejected':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_request_reject')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_confirmed':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_request_confirm')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+
+            case 'crm_prestart_attended':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_interview_attended')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_rebook':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_rebook')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_not_attended':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_interview_not_attended')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_declined':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_declined')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_date_started':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->whereIn('sub_stage', [
+                        'crm_start_date',
+                        'crm_start_date_back'
+                    ])
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_start_date_held':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_start_date_hold')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_invoiced':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_invoice')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_disputed':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_dispute')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+           
+            case 'crm_paid':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_paid')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+            
+            case 'crm_revert':
+                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+                    $q->where('sub_stage', 'crm_revert')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
 
 
+            default:
+                return response()->json([
+                    'title' => ucfirst(str_replace('_', ' ', $status)),
+                    'nurses' => 0,
+                    'non_nurses' => 0
+                ]);
+        }
+
+
+        return response()->json([
+            'title' => ucfirst(str_replace('_', ' ', $status)) . " ({$displayDate})",
+
+            'nurses_regular' => (clone $applicantQuery)
+                ->where('job_category_id', $nurseCategory->id)
+                ->where('job_type', 'regular')
+                ->count(),
+
+            'nurses_specialist' => (clone $applicantQuery)
+                ->where('job_category_id', $nurseCategory->id)
+                ->where('job_type', 'specialist')
+                ->count(),
+
+            'non_nurses_regular' => (clone $applicantQuery)
+                ->where(function ($q) use ($nurseCategory) {
+                    $q->where('job_category_id', '!=', $nurseCategory->id)
+                    ->orWhereNull('job_category_id');
+                })
+                ->where('job_type', 'regular')
+                ->count(),
+
+            'non_nurses_specialist' => (clone $applicantQuery)
+                ->where(function ($q) use ($nurseCategory) {
+                    $q->where('job_category_id', '!=', $nurseCategory->id)
+                    ->orWhereNull('job_category_id');
+                })
+                ->where('job_type', 'specialist')
+                ->count(),
+        ]);
+    }
 }

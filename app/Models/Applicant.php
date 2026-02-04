@@ -217,6 +217,10 @@ class Applicant extends Model
     {
         return $this->hasMany(History::class, 'applicant_id');
     }
+    public function revertStages()
+    {
+        return $this->hasMany(RevertStage::class, 'applicant_id');
+    }
     public function crm_notes()
     {
         return $this->hasMany(CrmNote::class, 'applicant_id');

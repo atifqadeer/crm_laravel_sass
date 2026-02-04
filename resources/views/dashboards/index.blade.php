@@ -46,7 +46,10 @@
         .stat-box span:hover {
             color: var(--bs-info)   !important;
         }
-
+        #statusDetailsLabel {
+            font-size: 18px;
+            font-weight: 500;
+        }
     </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
@@ -622,6 +625,41 @@
         </div>
     </div>
 
+    <div class="modal fade" id="statusDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusDetailsLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row text-center g-3">
+                        
+                        <div class="col-md-3 col-6">
+                            <h6>Nurses (Regular)</h6>
+                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary">0</span>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <h6>Nurses (Specialist)</h6>
+                            <span id="nursesSpecialistCount" class="fs-3 fw-bold text-primary">0</span>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <h6>Non Nurses (Regular)</h6>
+                            <span id="nonNursesRegularCount" class="fs-3 fw-bold text-secondary">0</span>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <h6>Non Nurses (Specialist)</h6>
+                            <span id="nonNursesSpecialistCount" class="fs-3 fw-bold text-secondary">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('script')
@@ -839,11 +877,45 @@
             // Init calendar
             initFlatpickr('daily');
 
+            const chartStatusMap = {
+                0: 'crm_sent',
+                1: 'crm_open_cvs',
+                2: 'quality_cvs_rejected',
+                3: 'crm_requested',
+                4: 'crm_request_rejected',
+                5: 'crm_confirmed',
+                6: 'crm_rebook',
+                7: 'crm_prestart_attended',
+                8: 'crm_declined',
+                9: 'crm_not_attended',
+                10: 'crm_date_started',
+                11: 'crm_start_date_held',
+                12: 'crm_invoiced',
+                13: 'crm_disputed',
+                14: 'crm_paid',
+                15: 'crm_revert',
+                16: 'quality_revert'
+            };
+
+
             // Init chart
             chart = new ApexCharts(
                 document.querySelector("#statisticsChart"),
                 {
-                    chart: { type: 'donut', height: 720 },
+                    chart: { 
+                        type: 'donut', 
+                        height: 720,
+                        events: {
+                            dataPointSelection: function (event, chartContext, config) {
+                                const index = config.dataPointIndex;
+                                const statusKey = chartStatusMap[index];
+
+                                if (!statusKey) return;
+
+                                loadStatusDetails(statusKey);
+                            }
+                        }
+                    },
 
                     series: [],
                     labels: [],
@@ -895,6 +967,23 @@
             loadStatsBoxes(currentRange, currentDateRange);
             loadChartData(currentRange, currentDateRange);
         });
+
+        function loadStatusDetails(statusKey) {
+            $.get('/statistics/status-details', {
+                status: statusKey,
+                range: currentRange,
+                date_range: currentDateRange
+            }, function (resp) {
+
+                $('#statusDetailsLabel').text(resp.title.replace(/\b\w/g, char => char.toUpperCase()));
+                $('#nursesRegularCount').text(resp.nurses_regular);
+                $('#nursesSpecialistCount').text(resp.nurses_specialist);
+                $('#nonNursesRegularCount').text(resp.non_nurses_regular);
+                $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist);
+
+                $('#statusDetailsModal').modal('show');
+            });
+        }
 
         function initFlatpickr(mode) {
             if (fp) fp.destroy();
