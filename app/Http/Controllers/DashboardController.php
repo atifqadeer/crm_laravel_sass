@@ -1842,7 +1842,6 @@ class DashboardController extends Controller
                     ->groupBy('applicant_id', 'sale_id');
             });
 
-
         $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
             $q->selectRaw(1)
             ->from('history')
@@ -1862,6 +1861,49 @@ class DashboardController extends Controller
             $join->on('cv_notes.user_id', '=', 'users.id');
         });
 
+        if ($request->has('search.value')) { 
+            $searchTerm = (string) $request->input('search.value'); 
+            if (!empty($searchTerm)) { 
+                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
+                $query->where(function ($q) use ($lowerSearchTerm) { // Direct column searches with LOWER 
+                    $q->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
+                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    $q->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $q->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $q->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    // ✅ OFFICE NAME SEARCH (FIXED)
+
+                    $q->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                }); 
+            } 
+        }
+
+        // Sorting logic 
+        if ($request->has('order')) { 
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data'); 
+            $orderDirection = $request->input('order.0.dir', 'asc'); 
+            if ($orderColumn == 'job_source') { 
+                $query->orderBy('applicants.job_source_id', $orderDirection); 
+            } elseif ($orderColumn == 'job_category') { 
+                
+                $query->orderBy('applicants.job_category_id', $orderDirection);
+            } elseif ($orderColumn == 'job_title') { 
+                $query->orderBy('applicants.job_title_id', $orderDirection); 
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
+                $query->orderBy($orderColumn, $orderDirection); 
+            } else { 
+                $query->orderBy('applicants.created_at', 'desc'); 
+            } 
+        } else { 
+            $query->orderBy('applicants.created_at', 'desc'); 
+        }
+
 
         $query->select([
                 'applicants.id',
@@ -1879,6 +1921,7 @@ class DashboardController extends Controller
                 'applicants.job_title_id',
                 'applicants.job_source_id',
                 'applicants.job_type',
+                'applicants.created_at as applicant_created_at',
 
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
@@ -2062,7 +2105,7 @@ class DashboardController extends Controller
                     });
                 })
                 ->editColumn('history_created_at', function ($applicant) {
-                    return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
+                    return Carbon::parse($applicant->applicant_created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
