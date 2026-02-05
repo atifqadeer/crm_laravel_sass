@@ -1752,166 +1752,148 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Nurse category not found']);
         }
 
-         $query = Applicant::query()
-        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-        ->with(['jobTitle', 'jobCategory', 'jobSource']);
+         /* status filter - join history table */
+        $crmNoteMap = [
+            'crm_open_cvs' => 'quality_cvs_hold',
+            'quality_revert' => 'quality_revert',
+            'crm_revert' => 'crm_revert',
+            'crm_rejected' => ['cv_sent_reject', 'cv_sent_reject_no_job'],
+            'crm_requested' => ["cv_sent_request", "request_save"],
+            'crm_request_rejected' => ['request_reject', 'request_no_job_reject'],
+            'crm_confirmed' => [
+                        'request_confirm',
+                        'request_no_job_confirm'
+                    ],
+            'crm_prestart_attended' => ["interview_attended", "prestart_save"],
+            'crm_rebook' => ["rebook", "rebook_save"],
+            'crm_not_attended' =>  ["interview_not_attended"],
+            'crm_declined' => 'crm_declined',
+            'crm_date_started' =>  ["start_date", "start_date_save", "start_date_back"],
+            'crm_start_date_hold' => ["start_date_hold", "start_date_hold_save"],
+            'crm_invoiced' => ["invoice", "final_save"],
+            'crm_disputed' => ['dispute'],
+            'crm_paid' => ['paid'],
+            'crm_sent' => ['cv_sent', 'cv_sent_saved'],
+        ];
 
-    // Filter by category
-    if ($category === 'nurses' && $nurseCategory) {
-        $query->where('applicants.job_category_id', $nurseCategory->id);
-    } elseif ($category === 'non_nurses') {
-        $query->where(function($q) use ($nurseCategory) {
-            $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
-              ->orWhereNull('applicants.job_category_id');
-        });
-    }
+        $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
 
-    // Filter by type
-    if ($type) {
-        $query->where('applicants.job_type', $type);
-    }
+        /* status filter - join history table */
+        $map = [
+            'crm_open_cvs' => 'quality_cvs_hold',
+            'quality_revert' => 'quality_revert',
+            'crm_revert' => 'crm_revert',
+            'crm_rejected' => 'crm_reject',
+            'crm_requested' => 'crm_request',
+            'crm_request_rejected' => 'crm_request_reject',
+            'crm_confirmed' => 'crm_request_confirm',
+            'crm_prestart_attended' => 'crm_interview_attended',
+            'crm_rebook' => 'crm_rebook',
+            'crm_not_attended' => 'crm_interview_not_attended',
+            'crm_declined' => 'crm_declined',
+            'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
+            'crm_start_date_hold' => 'crm_start_date_hold',
+            'crm_invoiced' => 'crm_invoice',
+            'crm_disputed' => 'crm_dispute',
+            'crm_paid' => 'crm_paid',
+            'crm_sent' => 'quality_cleared',
+        ];
 
-    // Derived table for the latest cv_notes
-    $latestCv = DB::table('cv_notes')
-        ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
-        ->whereIn('id', function ($sub) {
-            $sub->select(DB::raw('MAX(id)'))
-                ->from('cv_notes')
-                ->groupBy('applicant_id', 'sale_id');
-        });
+        $subStages = $map[$status] ?? 'quality_cleared';
 
-    // Derived table for the latest crm_notes
-    $latestCrm = DB::table('crm_notes')
-        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereIn('id', function ($sub) use ($startDate, $endDate) {
-            $sub->select(DB::raw('MAX(id)'))
-                ->from('crm_notes')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->groupBy('applicant_id', 'sale_id');
-        });
+        $query = Applicant::query()
+            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->with(['jobTitle', 'jobCategory', 'jobSource']);
 
-    // Filtering by status - join history table
-    $crmNoteMap = [
-        'crm_open_cvs' => 'quality_cvs_hold',
-        'quality_revert' => 'quality_revert',
-        'crm_revert' => 'crm_revert',
-        'crm_rejected' => ['cv_sent_reject', 'cv_sent_reject_no_job'],
-        'crm_requested' => ["cv_sent_request", "request_save"],
-        'crm_request_rejected' => ['request_reject', 'request_no_job_reject'],
-        'crm_confirmed' => ['request_confirm', 'request_no_job_confirm'],
-        'crm_prestart_attended' => ["interview_attended", "prestart_save"],
-        'crm_rebook' => ["rebook", "rebook_save"],
-        'crm_not_attended' => ["interview_not_attended"],
-        'crm_declined' => 'crm_declined',
-        'crm_date_started' => ["start_date", "start_date_save", "start_date_back"],
-        'crm_start_date_hold' => ["start_date_hold", "start_date_hold_save"],
-        'crm_invoiced' => ["invoice", "final_save"],
-        'crm_disputed' => ['dispute'],
-        'crm_paid' => ['paid'],
-        'crm_sent' => ['cv_sent', 'cv_sent_saved'],
-    ];
-
-    $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
-    $map = [
-        'crm_open_cvs' => 'quality_cvs_hold',
-        'quality_revert' => 'quality_revert',
-        'crm_revert' => 'crm_revert',
-        'crm_rejected' => 'crm_reject',
-        'crm_requested' => 'crm_request',
-        'crm_request_rejected' => 'crm_request_reject',
-        'crm_confirmed' => 'crm_request_confirm',
-        'crm_prestart_attended' => 'crm_interview_attended',
-        'crm_rebook' => 'crm_rebook',
-        'crm_not_attended' => 'crm_interview_not_attended',
-        'crm_declined' => 'crm_declined',
-        'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
-        'crm_start_date_hold' => 'crm_start_date_hold',
-        'crm_invoiced' => 'crm_invoice',
-        'crm_disputed' => 'crm_dispute',
-        'crm_paid' => 'crm_paid',
-        'crm_sent' => 'quality_cleared',
-    ];
-
-    $subStages = $map[$status] ?? 'quality_cleared';
-
-    // Ensure no duplicate records by properly joining latest crm_notes and cv_notes
-    $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
-        $q->selectRaw(1)
-            ->from('history')
-            ->whereColumn('history.applicant_id', 'applicants.id')
-            ->whereIn('history.sub_stage', (array) $subStages)
-            ->whereBetween('history.created_at', [$startDate, $endDate]);
-    })
-    ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
-        $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-            ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
-    })
-    ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
-        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
-        $join->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-    })
-    ->leftJoin('users', function ($join) {
-        $join->on('cv_notes.user_id', '=', 'users.id');
-    });
-
-    // Apply DISTINCT on applicant_id and sale_id to ensure unique records
-    $query->distinct('applicants.id', 'crm_notes.sale_id'); 
-
-    // Apply filters and search
-    if ($request->has('search.value')) {
-        $searchTerm = (string) $request->input('search.value');
-        if (!empty($searchTerm)) {
-            $lowerSearchTerm = strtolower($searchTerm);
-            $query->where(function ($q) use ($lowerSearchTerm) {
-                $q->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
-                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"])
-                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"])
-                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]);
+        // Filter by category
+        if ($category === 'nurses' && $nurseCategory) {
+            $query->where('applicants.job_category_id', $nurseCategory->id);
+        } elseif ($category === 'non_nurses') {
+            $query->where(function($q) use ($nurseCategory) {
+                if ($nurseCategory) {
+                    $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
+                        ->orWhereNull('applicants.job_category_id');
+                }
             });
         }
-    }
 
-    // Handle sorting
-    if ($request->has('order')) { 
-        $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data'); 
-        $orderDirection = $request->input('order.0.dir', 'asc'); 
-        if ($orderColumn == 'job_source') { 
-            $query->orderBy('applicants.job_source_id', $orderDirection); 
-        } elseif ($orderColumn == 'job_category') { 
-            
-            $query->orderBy('applicants.job_category_id', $orderDirection);
-        } elseif ($orderColumn == 'job_title') { 
-            $query->orderBy('applicants.job_title_id', $orderDirection); 
-        } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
-            $query->orderBy($orderColumn, $orderDirection); 
-        } else { 
-            $query->orderBy('applicants.created_at', 'desc'); 
-        } 
-    } else { 
-        $query->orderBy('applicants.created_at', 'desc'); 
-    }
+        // Filter by title if it's not empty
+        if (!empty($titleFilters)) {
+            $query->whereIn('job_title_id', $titleFilters);
+        }
 
-    // Selecting columns
-    $query->select([
-        'applicants.id',
-        'applicants.applicant_name',
-        'applicants.applicant_email',
-        'applicants.applicant_postcode',
-        'applicants.applicant_phone',
-        'job_titles.name as job_title_name',
-        'job_categories.name as job_category_name',
-        'job_sources.name as job_source_name',
-        'crm_notes.details as notes_details',
-        'crm_notes.created_at as notes_created_at',
-        'users.name as user_name'
-    ]);
+        if ($type) {
+            $query->where('applicants.job_type', $type);
+        }
 
-    if (!empty($titleFilters)) {
-        $query->whereIn('job_title_id', $titleFilters);
-    }
+        // Derived table for latest cv_notes (filter by max id to get only the latest entry)
+        $latestCv = DB::table('cv_notes')
+            ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
+            ->whereIn('id', function ($sub) {
+                $sub->select(DB::raw('MAX(id)'))
+                    ->from('cv_notes')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        // Derived table for latest crm_notes (filter by max id to get only the latest entry)
+        $latestCrm = DB::table('crm_notes')
+            ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('id', function ($sub) use ($startDate, $endDate) {
+                $sub->select(DB::raw('MAX(id)'))
+                    ->from('crm_notes')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
+            $q->selectRaw(1)
+                ->from('history')
+                ->whereColumn('history.applicant_id', 'applicants.id')
+                ->whereIn('history.sub_stage', (array) $subStages)
+                ->whereBetween('history.created_at', [$startDate, $endDate]);
+        })
+        ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
+            $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
+        })
+        ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
+            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
+            $join->on('crm_notes.sale_id', '=', 'cv_notes.applicant_id');
+        })
+        ->leftJoin('users', function ($join) {
+            $join->on('cv_notes.user_id', '=', 'users.id');
+        });
+
+        // Select distinct records
+        $query->distinct('applicants.id', 'crm_notes.sale_id') // Ensure uniqueness by applicant_id and sale_id
+            ->select([
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline',
+                'applicants.applicant_postcode',
+                'applicants.applicant_experience',
+                'applicants.applicant_notes',
+                'applicants.is_blocked',
+                'applicants.job_category_id',
+                'applicants.job_title_id',
+                'applicants.job_source_id',
+                'applicants.job_type',
+                'applicants.created_at as applicant_created_at',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
+                'crm_notes.details as notes_details',
+                'crm_notes.created_at as notes_created_at',
+                'users.name as user_name'
+            ]);
+
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
@@ -2079,7 +2061,7 @@ class DashboardController extends Controller
                     });
                 })
                 ->editColumn('history_created_at', function ($applicant) {
-                    return Carbon::parse($applicant->applicant_created_at)->format('d M Y, h:i A'); // Using accessor
+                    return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
