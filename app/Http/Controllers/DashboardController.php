@@ -1885,7 +1885,7 @@ class DashboardController extends Controller
                 'applicants.job_title_id',
                 'applicants.job_source_id',
                 'applicants.job_type',
-                'applicants.created_at as applicant_created_at',
+                'applicants.created_at',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
@@ -2060,8 +2060,8 @@ class DashboardController extends Controller
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
-                ->editColumn('history_created_at', function ($applicant) {
-                    return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
+                ->editColumn('created_at', function ($applicant) {
+                    return $applicant->formatted_created_at; // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
@@ -2127,7 +2127,7 @@ class DashboardController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['notes_details', 'user_name', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_details', 'created_at', 'applicant_name', 'user_name', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

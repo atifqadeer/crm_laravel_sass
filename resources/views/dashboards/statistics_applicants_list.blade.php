@@ -155,8 +155,8 @@
                     searchable: false
                 },
                 {
-                    data: 'history_created_at',
-                    name: 'history_created_at'
+                    data: 'created_at',
+                    name: 'applicants.created_at'
                 },
                 {
                     data: 'user_name',
