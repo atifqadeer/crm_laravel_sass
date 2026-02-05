@@ -1858,14 +1858,14 @@ class DashboardController extends Controller
         ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
             $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
-        })
-        ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
-            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
-            $join->on('crm_notes.sale_id', '=', 'cv_notes.applicant_id');
-        })
-        ->leftJoin('users', function ($join) {
-            $join->on('cv_notes.user_id', '=', 'users.id');
         });
+        // ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
+        //     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
+        //     $join->on('crm_notes.sale_id', '=', 'cv_notes.applicant_id');
+        // })
+        // ->leftJoin('users', function ($join) {
+        //     $join->on('cv_notes.user_id', '=', 'users.id');
+        // });
 
         // Select distinct records
         $query->distinct('applicants.id', 'crm_notes.sale_id') // Ensure uniqueness by applicant_id and sale_id
@@ -1891,7 +1891,7 @@ class DashboardController extends Controller
                 'job_sources.name as job_source_name',
                 'crm_notes.details as notes_details',
                 'crm_notes.created_at as notes_created_at',
-                'users.name as user_name'
+                // 'users.name as user_name'
             ]);
 
 
@@ -1910,7 +1910,8 @@ class DashboardController extends Controller
                     return $applicant->jobSource ? $applicant->jobSource->name : '-';
                 })
                 ->editColumn('user_name', function ($applicant) {
-                    return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
+                    // return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
+                    return '-';
                 })
                 ->editColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
