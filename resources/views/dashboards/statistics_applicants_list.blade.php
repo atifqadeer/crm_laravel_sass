@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' )  -> '. $date_range,  'subTitle' => 'Dashboard'])
+@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' )  -> '. \Carbon\Carbon::parse($date_range)->format('d M Y'),  'subTitle' => 'Dashboard'])
 @section('style')
     <style>
         .dropdown-toggle::after {
@@ -70,6 +70,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Date</th>
+                                    <th>Sent By</th>
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Title</th>
@@ -158,6 +159,10 @@
                     name: 'history_created_at'
                 },
                 {
+                    data: 'user_name',
+                    name: 'users.name'
+                },
+                {
                     data: 'applicant_name',
                     name: 'applicants.applicant_name'
                 },
@@ -202,20 +207,20 @@
             }
 
             columns.push({
-                data: 'applicant_experience',
-                name: 'applicants.applicant_experience'
-            }, {
-                data: 'job_source',
-                name: 'job_sources.name'
-            }, );
-            if (hasViewNotePermission || hasAddNotePermission) {
-                columns.push({
-                    data: 'applicant_notes',
-                    name: 'applicants.applicant_notes',
+                    data: 'applicant_experience',
+                    name: 'applicants.applicant_experience'
+                }, 
+                {
+                    data: 'job_source',
+                    name: 'job_sources.name'
+                },
+                {
+                    data: 'notes_details',
+                    name: 'notes_details',
                     orderable: false,
                     searchable: false
-                });
-            }
+                }
+            );
             columns.push({
                 data: 'action',
                 name: 'action',
