@@ -1861,6 +1861,8 @@ class DashboardController extends Controller
             $join->on('cv_notes.user_id', '=', 'users.id');
         });
 
+        $query->distinct('applicants.id');
+
         if ($request->has('search.value')) { 
             $searchTerm = (string) $request->input('search.value'); 
             if (!empty($searchTerm)) { 
@@ -1903,7 +1905,6 @@ class DashboardController extends Controller
         } else { 
             $query->orderBy('applicants.created_at', 'desc'); 
         }
-
 
         $query->select([
                 'applicants.id',
