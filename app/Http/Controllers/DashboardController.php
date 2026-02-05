@@ -1530,34 +1530,7 @@ class DashboardController extends Controller
         $range = $request->range;
         $inputDate = $request->date_range;
 
-        /* -------------------------
-        DATE PARSING (CRITICAL)
-        --------------------------*/
-        if ($range == 'daily') {
-            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
-            $displayDate = $startDate->format('jS M Y');
-        }
-
-        elseif (in_array($range, ['weekly', 'aggregate'])) {
-            [$start, $end] = explode(' to ', $inputDate);
-
-            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
-            $displayDate = $startDate->format('jS M') . ' - ' . $endDate->format('jS M Y');
-        }
-
-        elseif ($range == 'monthly') {
-            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
-            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
-            $displayDate = $startDate->format('M Y');
-        }
-
-        elseif ($range == 'yearly') {
-            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
-            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
-            $displayDate = $startDate->format('Y');
-        }
+        [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
 
         $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
 
@@ -1570,7 +1543,7 @@ class DashboardController extends Controller
         }
 
         // Base applicant query
-        $applicantQuery = Applicant::query();
+        $applicantQuery = Applicant::query()->with(['jobCategory', 'jobSource']);
 
         /**
          * STATUS → QUERY MAPPING
@@ -1663,7 +1636,7 @@ class DashboardController extends Controller
                 });
                 break;
             
-            case 'crm_start_date_held':
+            case 'crm_start_date_hold':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_start_date_hold')
                     ->whereBetween('created_at', [$startDate, $endDate]);
@@ -1707,9 +1680,16 @@ class DashboardController extends Controller
                 ]);
         }
 
+        $jobSourceStats = (clone $applicantQuery)
+            ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
+            ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
+            ->groupBy('job_sources.name')
+            ->orderByDesc('total')
+            ->get();
 
         return response()->json([
-            'title' => ucfirst(str_replace('_', ' ', $status)) . " ({$displayDate})",
+            'title' => Str::title(str_replace('_', ' ', $status)) . " ({$displayDate})",
+            'crm_status' => $status,
 
             'nurses_regular' => (clone $applicantQuery)
                 ->where('job_category_id', $nurseCategory->id)
@@ -1736,6 +1716,366 @@ class DashboardController extends Controller
                 })
                 ->where('job_type', 'specialist')
                 ->count(),
+
+            'job_sources' => $jobSourceStats,
         ]);
     }
+    public function statisticsReportIndex(Request $request)
+    {
+        $status = $request->input('status');
+        $category = $request->input('category'); // nurses / non_nurses
+        $type = $request->input('type');         // regular / specialist
+        $range = $request->input('range');
+        $date_range = $request->input('date_range');
+
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name')->get();
+
+        return view('dashboards.statistics_applicants_list', compact(
+            'jobTitles', 'status', 'category', 'type', 'range', 'date_range'
+        ));
+    }
+    public function getStatisticsApplicants(Request $request)
+    {
+        $titleFilters = $request->input('title_filters', ''); // Default is empty (no filter)
+        $range = $request->input('range', ''); // Default is empty (no filter)
+        $dateRange = $request->input('date_range', ''); // Default is empty (no filter)
+        $category = $request->input('category', ''); // Default is empty (no filter)
+        $status = $request->input('status', ''); // Default is empty (no filter)
+        $type = $request->input('type', ''); // Default is empty (no filter)
+        
+        // parse dates same as before
+        [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $dateRange);
+
+        $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        if (!$nurseCategory) {
+            return response()->json(['error' => 'Nurse category not found']);
+        }
+
+        $query = Applicant::query()
+            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->with(['jobTitle', 'jobCategory', 'jobSource']);
+
+        // Filter by category
+        if ($category === 'nurses' && $nurseCategory) {
+            $query->where('applicants.job_category_id', $nurseCategory->id);
+        } elseif ($category === 'non_nurses') {
+            $query->where(function($q) use ($nurseCategory) {
+                if ($nurseCategory) {
+                    $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
+                    ->orWhereNull('applicants.job_category_id');
+                }
+            });
+        }
+
+        if ($type) {
+            $query->where('applicants.job_type', $type);
+        }
+
+        /* status filter - join history table */
+        $map = [
+            'crm_open_cvs' => 'quality_cvs_hold',
+            'quality_revert' => 'quality_revert',
+            'crm_revert' => 'crm_revert',
+            'crm_rejected' => 'crm_reject',
+            'crm_requested' => 'crm_request',
+            'crm_request_rejected' => 'crm_request_reject',
+            'crm_confirmed' => 'crm_request_confirm',
+            'crm_prestart_attended' => 'crm_interview_attended',
+            'crm_rebook' => 'crm_rebook',
+            'crm_not_attended' => 'crm_interview_not_attended',
+            'crm_declined' => 'crm_declined',
+            'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
+            'crm_start_date_hold' => 'crm_start_date_hold',
+            'crm_invoiced' => 'crm_invoice',
+            'crm_disputed' => 'crm_dispute',
+            'crm_paid' => 'crm_paid',
+            'crm_sent' => 'quality_cleared',
+        ];
+
+        $subStages = $map[$status] ?? 'quality_cleared';
+
+        $query->rightJoin('history', 'history.applicant_id', '=', 'applicants.id')
+            ->whereIn('history.sub_stage', (array) $subStages)
+            ->whereBetween('history.created_at', [$startDate, $endDate]);
+        
+        $query->select([
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline',
+                'applicants.applicant_postcode',
+                'applicants.applicant_experience',
+                'applicants.is_blocked',
+                'applicants.job_category_id',
+                'applicants.job_title_id',
+                'applicants.job_source_id',
+                'applicants.job_type',
+
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
+
+
+            ]);
+
+        // Filter by type if it's not empty
+        if (!empty($titleFilters)) {
+            $query->whereIn('job_title_id', $titleFilters);
+        }
+
+        if ($request->ajax()) {
+            return DataTables::eloquent($query)
+                ->addIndexColumn() // This will automatically add a serial number to the rows
+                ->addColumn('job_title', function ($applicant) {
+                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
+                })
+                ->addColumn('job_category', function ($applicant) {
+                    $type = $applicant->job_type;
+                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    return $applicant->jobCategory ? $applicant->jobCategory->name . $stype : '-';
+                })
+                ->addColumn('job_source', function ($applicant) {
+                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                })
+                ->editColumn('applicant_name', function ($applicant) {
+                    return $applicant->formatted_applicant_name; // Using accessor
+                })
+                ->editColumn('applicant_experience', function ($applicant) {
+                    $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
+                    $full = e($applicant->applicant_experience);
+                    $id = 'exp-' . $applicant->id;
+
+                    return '
+                        <a href="#" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
+                        </a>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
+                })
+                ->editColumn('applicantEmail', function ($applicant) {
+                    $email = '';
+                    if ($applicant->is_blocked) {
+                        $email = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $email = $applicant->applicant_email;
+
+                        if ($applicant->applicant_email_secondary) {
+                            $email .= '<br>' . $applicant->applicant_email_secondary;
+                        }
+                    }
+                    
+                    return $email; // Using accessor
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = strtolower(trim($keyword));
+
+                    $query->where(function ($q) use ($keyword) {
+                        $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                    });
+                })
+                ->editColumn('applicant_postcode', function ($applicant) {
+                    if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+                        $button = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                    } else {
+                        $button = $applicant->formatted_postcode;
+                    }
+                    return $button;
+                })
+                ->editColumn('applicant_notes', function ($applicant) {
+                    // Convert new lines to <br> but DO NOT escape HTML tags
+                    $notes = nl2br($applicant->applicant_notes);
+
+                    $status_value = 'open';
+                    if ($applicant->paid_status == 'close') {
+                        $status_value = 'paid';
+                    } else {
+                        foreach ($applicant->cv_notes as $key => $value) {
+                            if ($value->status == 1) {
+                                $status_value = 'sent';
+                                break;
+                            } elseif ($value->status == 0) {
+                                $status_value = 'reject';
+                            }
+                        }
+                    }
+
+                    if ($status_value == 'open' || $status_value == 'reject') {
+                        return '
+                            <a href="#" class="active_postcode" title="Add Short Note"
+                            onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                                ' . $notes . '
+                            </a>
+                        ';
+                    } else {
+                        return $notes;
+                    }
+                })
+                ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
+
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
+                    }
+
+                    return $str;
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
+                })
+                ->editColumn('history_created_at', function ($applicant) {
+                    return Carbon::parse($applicant->history_date)->format('d M Y, h:i A'); // Using accessor
+                })
+                ->editColumn('updated_at', function ($applicant) {
+                    return $applicant->formatted_updated_at; // Using accessor
+                })
+                ->addColumn('applicant_resume', function ($applicant) {
+                    $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
+
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path); // direct public URL
+
+                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
+                                    </a>';
+                        }
+                    }
+
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
+                })
+                ->addColumn('crm_resume', function ($applicant) {
+                    $path = $applicant->updated_cv;
+
+                    if ($path && str_starts_with($path, 'uploads/')) {
+
+                        $fullPath = public_path($path);
+
+                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+                            $url = asset($path);
+
+                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
+                                    </a>';
+                        }
+                    }
+
+                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
+                })
+                ->addColumn('action', function ($applicant) {
+                    $html = '';
+                    $html .= '<div class="btn-group dropstart">
+                            <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                            </button>
+                            <ul class="dropdown-menu">';
+                    if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
+
+                    if (Gate::allows('applicant-view-history')) {
+                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
+                    }
+                    if (Gate::allows('applicant-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                    }
+                    $html .= '</ul>
+                        </div>';
+
+                    return $html;
+                })
+                ->rawColumns(['applicant_notes', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
+                ->make(true);
+        }
+    }
+    private function parseDateRange(string $range, string $inputDate): array
+    {
+        switch ($range) {
+            case 'daily':
+                $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+                $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+                $displayDate = $startDate->format('jS F Y');
+                break;
+
+            case 'weekly':
+            case 'aggregate':
+                [$start, $end] = explode(' to ', $inputDate);
+
+                $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+                $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+                $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+                break;
+
+            case 'monthly':
+                $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+                $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+                $displayDate = $startDate->format('F Y');
+                break;
+
+            case 'yearly':
+                $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+                $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+                $displayDate = $startDate->format('Y');
+                break;
+
+            default:
+                throw new \InvalidArgumentException('Invalid range');
+        }
+
+        // ✅ Return as numeric array so destructuring works
+        return [$startDate, $endDate, $displayDate];
+    }
+
 }

@@ -40,7 +40,7 @@
             }
         }
 
-        .stat-box:hover {
+        .stat-box:hover, .clickable:hover{
             cursor: pointer;
         }
         .stat-box span:hover {
@@ -629,32 +629,39 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="statusDetailsLabel"></h5>
+                    <h5 class="modal-title" id="statusDetailsLabel" data-crm-status=""></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
                     <div class="row text-center g-3">
-                        
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-3 col-6 mb-3">
                             <h6>Nurses (Regular)</h6>
-                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary">0</span>
+                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses" data-type="regular">0</span>
                         </div>
 
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-3 col-6 mb-3">
                             <h6>Nurses (Specialist)</h6>
-                            <span id="nursesSpecialistCount" class="fs-3 fw-bold text-primary">0</span>
+                            <span id="nursesSpecialistCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses" data-type="specialist">0</span>
                         </div>
 
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-3 col-6 mb-3">
                             <h6>Non Nurses (Regular)</h6>
-                            <span id="nonNursesRegularCount" class="fs-3 fw-bold text-secondary">0</span>
+                            <span id="nonNursesRegularCount" class="fs-3 fw-bold text-secondary clickable" data-category="non_nurses" data-type="regular">0</span>
                         </div>
 
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-3 col-6 mb-3">
                             <h6>Non Nurses (Specialist)</h6>
-                            <span id="nonNursesSpecialistCount" class="fs-3 fw-bold text-secondary">0</span>
+                            <span id="nonNursesSpecialistCount" class="fs-3 fw-bold text-secondary clickable" data-category="non_nurses" data-type="specialist">0</span>
                         </div>
+
+                    </div>
+                    <hr class="my-4">
+
+                    <h6 class="text-left mb-3">Job Sources</h6>
+
+                    <div class="row g-2" id="jobSourceStats">
+                        <!-- Filled dynamically -->
                     </div>
                 </div>
             </div>
@@ -975,15 +982,72 @@
                 date_range: currentDateRange
             }, function (resp) {
 
-                $('#statusDetailsLabel').text(resp.title.replace(/\b\w/g, char => char.toUpperCase()));
+                $('#statusDetailsLabel').text(resp.title);
+                $('#statusDetailsLabel').data('crm-status', resp.crm_status); // Store CRM status for later use
                 $('#nursesRegularCount').text(resp.nurses_regular);
                 $('#nursesSpecialistCount').text(resp.nurses_specialist);
                 $('#nonNursesRegularCount').text(resp.non_nurses_regular);
                 $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist);
 
+                // 🔥 Job Sources
+                let jobSourceHtml = '';
+
+               if (resp.job_sources && resp.job_sources.length) {
+                    jobSourceHtml += `
+                        <div class="row text-center">
+                            ${resp.job_sources.map(src => `
+                                <div class="col-md-3 col-6 mb-2">
+                                    <small class="text-muted d-block">${src.name}</small>
+                                    <span class="fw-bold fs-5">${src.total}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    jobSourceHtml = `
+                        <div class="col-12 text-center text-muted">
+                            No job source data
+                        </div>
+                    `;
+                }
+
+                $('#jobSourceStats').html(jobSourceHtml);
+
                 $('#statusDetailsModal').modal('show');
             });
         }
+
+        // Listen to clicks on counts
+        $(document).on('click', '.clickable', function() {
+            const category = $(this).data('category');  // nurses / non_nurses
+            const type = $(this).data('type');          // regular / specialist
+            const status = $('#statusDetailsLabel').data('crm-status'); // current status
+            const range = currentRange;
+            const date_range = currentDateRange;
+
+            // Create a form dynamically
+            const form = $('<form>', {
+                action: '/dashboard/statistics-report',
+                method: 'POST',
+                target: '_blank'
+            });
+
+            // Add CSRF token
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            form.append(`<input type="hidden" name="_token" value="${csrfToken}">`);
+
+            // Add filters as hidden inputs
+            form.append(`<input type="hidden" name="category" value="${category}">`);
+            form.append(`<input type="hidden" name="type" value="${type}">`);
+            form.append(`<input type="hidden" name="status" value="${status}">`);
+            form.append(`<input type="hidden" name="range" value="${range}">`);
+            form.append(`<input type="hidden" name="date_range" value="${date_range}">`);
+
+            // Append form to body, submit, then remove it
+            $('body').append(form);
+            form.submit();
+            form.remove();
+        });
 
         function initFlatpickr(mode) {
             if (fp) fp.destroy();

@@ -57,6 +57,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/dashboard/statistics-data', [DashboardController::class, 'getStats']);
     Route::get('/dashboard/statistics-details', [DashboardController::class, 'getStatisticsDetails']);
     Route::get('/statistics/status-details', [DashboardController::class, 'getStatusDetails']);
+    Route::post('/dashboard/statistics-report', [DashboardController::class, 'statisticsReportIndex'])->name('dashboard.report-applicants');
+    Route::get('getStatisticsApplicants', [DashboardController::class, 'getStatisticsApplicants'])->name('getStatisticsApplicants');
     Route::get('/statistics/chart-data', [DashboardController::class, 'getChartData']);
     
     Route::get('/notifications', [DashboardController::class, 'notificationsIndex'])->name('notifications.index');
