@@ -1752,7 +1752,37 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Nurse category not found']);
         }
 
-         /* status filter - join history table */
+        $query = Applicant::query()
+            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->with(['jobTitle', 'jobCategory', 'jobSource']);
+
+        // Filter by category
+        if ($category === 'nurses' && $nurseCategory) {
+            $query->where('applicants.job_category_id', $nurseCategory->id);
+        } elseif ($category === 'non_nurses') {
+            $query->where(function($q) use ($nurseCategory) {
+                if ($nurseCategory) {
+                    $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
+                    ->orWhereNull('applicants.job_category_id');
+                }
+            });
+        }
+
+        if ($type) {
+            $query->where('applicants.job_type', $type);
+        }
+        // Derived table for latest cv_notes (if needed for user_name)
+        $latestCv = DB::table('cv_notes')
+            ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
+            ->whereIn('id', function ($sub) {
+                $sub->select(DB::raw('MAX(id)'))
+                    ->from('cv_notes')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        /* status filter - join history table */
         $crmNoteMap = [
             'crm_open_cvs' => 'quality_cvs_hold',
             'quality_revert' => 'quality_revert',
@@ -1801,43 +1831,7 @@ class DashboardController extends Controller
 
         $subStages = $map[$status] ?? 'quality_cleared';
 
-        $query = Applicant::query()
-            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource']);
-
-        // Filter by category
-        if ($category === 'nurses' && $nurseCategory) {
-            $query->where('applicants.job_category_id', $nurseCategory->id);
-        } elseif ($category === 'non_nurses') {
-            $query->where(function($q) use ($nurseCategory) {
-                if ($nurseCategory) {
-                    $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
-                        ->orWhereNull('applicants.job_category_id');
-                }
-            });
-        }
-
-        // Filter by title if it's not empty
-        if (!empty($titleFilters)) {
-            $query->whereIn('job_title_id', $titleFilters);
-        }
-
-        if ($type) {
-            $query->where('applicants.job_type', $type);
-        }
-
-        // Derived table for latest cv_notes (filter by max id to get only the latest entry)
-        $latestCv = DB::table('cv_notes')
-            ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
-            ->whereIn('id', function ($sub) {
-                $sub->select(DB::raw('MAX(id)'))
-                    ->from('cv_notes')
-                    ->groupBy('applicant_id', 'sale_id');
-            });
-
-        // Derived table for latest crm_notes (filter by max id to get only the latest entry)
+        // Derived table for latest crm_notes
         $latestCrm = DB::table('crm_notes')
             ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -1850,15 +1844,15 @@ class DashboardController extends Controller
 
         $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
             $q->selectRaw(1)
-                ->from('history')
-                ->whereColumn('history.applicant_id', 'applicants.id')
-                ->whereIn('history.sub_stage', (array) $subStages)
-                ->whereBetween('history.created_at', [$startDate, $endDate]);
-        })
-        ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
-            $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
+            ->from('history')
+            ->whereColumn('history.applicant_id', 'applicants.id')
+            ->whereIn('history.sub_stage', (array) $subStages)
+            ->whereBetween('history.created_at', [$startDate, $endDate]);
         });
+        // ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
+        //     $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+        //         ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
+        // })
         // ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
         //     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
         //     $join->on('crm_notes.sale_id', '=', 'cv_notes.applicant_id');
@@ -1867,9 +1861,8 @@ class DashboardController extends Controller
         //     $join->on('cv_notes.user_id', '=', 'users.id');
         // });
 
-        // Select distinct records
-        $query->distinct('applicants.id', 'crm_notes.sale_id') // Ensure uniqueness by applicant_id and sale_id
-            ->select([
+
+        $query->select([
                 'applicants.id',
                 'applicants.applicant_name',
                 'applicants.applicant_email',
@@ -1885,15 +1878,23 @@ class DashboardController extends Controller
                 'applicants.job_title_id',
                 'applicants.job_source_id',
                 'applicants.job_type',
-                'applicants.created_at',
+                'applicants.created_at as applicant_created_at',
+
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
+
                 'crm_notes.details as notes_details',
                 'crm_notes.created_at as notes_created_at',
-                // 'users.name as user_name'
+
+                'users.name as user_name'
+
             ]);
 
+        // Filter by type if it's not empty
+        if (!empty($titleFilters)) {
+            $query->whereIn('job_title_id', $titleFilters);
+        }
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
@@ -1909,10 +1910,9 @@ class DashboardController extends Controller
                 ->addColumn('job_source', function ($applicant) {
                     return $applicant->jobSource ? $applicant->jobSource->name : '-';
                 })
-                ->editColumn('user_name', function ($applicant) {
-                    // return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
-                    return '-';
-                })
+                // ->editColumn('user_name', function ($applicant) {
+                //     return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
+                // })
                 ->editColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
@@ -1980,7 +1980,7 @@ class DashboardController extends Controller
                     return $button;
                 })
                 ->addColumn('notes_details', function ($applicant) {
-                    $notes_detail = strip_tags($applicant->notes_details);
+                    $notes_detail = strip_tags($applicant->applicant_notes);
                     $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
                     $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
@@ -2061,8 +2061,8 @@ class DashboardController extends Controller
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
-                ->editColumn('created_at', function ($applicant) {
-                    return $applicant->formatted_created_at; // Using accessor
+                ->editColumn('history_created_at', function ($applicant) {
+                    return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
@@ -2128,7 +2128,7 @@ class DashboardController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['notes_details', 'created_at', 'applicant_name', 'user_name', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_details', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
