@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' )  -> '. \Carbon\Carbon::parse($date_range)->format('d M Y'),  'subTitle' => 'Dashboard'])
+@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' ) -> '. $formatted_startDate . ($formatted_endDate ? ' to ' . $formatted_endDate : ''),  'subTitle' => 'Dashboard'])
 @section('style')
     <style>
         .dropdown-toggle::after {

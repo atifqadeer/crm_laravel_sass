@@ -1736,10 +1736,15 @@ class DashboardController extends Controller
         $range = $request->input('range');
         $date_range = $request->input('date_range');
 
+        [$startDate, $endDate] = $this->parseDateRange($range, $date_range);
+
+        $formatted_startDate = Carbon::parse($startDate)->format('d M Y');
+        $formatted_endDate = Carbon::parse($endDate)->format('d M Y');
+
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name')->get();
 
         return view('dashboards.statistics_applicants_list', compact(
-            'jobTitles', 'status', 'category', 'type', 'range', 'date_range'
+            'jobTitles', 'status', 'category', 'type', 'range', 'date_range', 'formatted_startDate', 'formatted_endDate'
         ));
     }
     public function getStatisticsApplicants(Request $request)
