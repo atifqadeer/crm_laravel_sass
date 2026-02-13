@@ -70,8 +70,8 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Date</th>
-                                    <th>Sent By</th>
-                                    <th>Name</th>
+                                    {{-- <th>Sent By</th> --}}
+                                    <th>Applicant Name</th>
                                     <th>Email</th>
                                     <th>Title</th>
                                     <th>Category</th>
@@ -158,10 +158,10 @@
                     data: 'created_at',
                     name: 'applicants.created_at'
                 },
-                {
-                    data: 'user_name',
-                    name: 'users.name'
-                },
+                // {
+                //     data: 'user_name',
+                //     name: 'users.name'
+                // },
                 {
                     data: 'applicant_name',
                     name: 'applicants.applicant_name'

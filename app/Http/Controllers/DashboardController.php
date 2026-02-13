@@ -1366,36 +1366,37 @@ class DashboardController extends Controller
             return response()->json(['error' => $validator->errors()->all()], 422);
         }
 
-        /* -------------------------
-        DATE PARSING (CRITICAL)
-        --------------------------*/
+        // /* -------------------------
+        // DATE PARSING (CRITICAL)
+        // --------------------------*/
 
-        if ($range === 'daily') {
-            $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
-            $displayDate = $startDate->format('jS F Y');
-        }
+        // if ($range === 'daily') {
+        //     $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
+        //     $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
+        //     $displayDate = $startDate->format('jS F Y');
+        // }
 
-        elseif (in_array($range, ['weekly', 'aggregate'])) {
-            [$start, $end] = explode(' to ', $inputDate);
+        // elseif (in_array($range, ['weekly', 'aggregate'])) {
+        //     [$start, $end] = explode(' to ', $inputDate);
 
-            $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
-            $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
-        }
+        //     $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
+        //     $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
+        //     $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
+        // }
 
-        elseif ($range === 'monthly') {
-            $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
-            $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
-            $displayDate = $startDate->format('F Y');
-        }
+        // elseif ($range === 'monthly') {
+        //     $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
+        //     $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
+        //     $displayDate = $startDate->format('F Y');
+        // }
 
-        elseif ($range === 'yearly') {
-            $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
-            $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
-            $displayDate = $startDate->format('Y');
-        }
+        // elseif ($range === 'yearly') {
+        //     $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
+        //     $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
+        //     $displayDate = $startDate->format('Y');
+        // }
 
+        [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
         /* -------------------------
         DATA QUERIES
         --------------------------*/
@@ -1403,28 +1404,29 @@ class DashboardController extends Controller
         $daily_data = [];
 
         /** QUALITY **/
-        $daily_data['quality_cvs'] = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
-        $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['quality_cvs_rejected'] = History::where([
-                'sub_stage' => 'quality_reject',
-                'status' => 'active'
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
+        // $daily_data['quality_cvs'] = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
 
         
+
+        // $daily_data['quality_cvs_rejected'] = History::where([
+        //         'sub_stage' => 'quality_reject',
+        //         'status' => 1
+        //     ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        // $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
+        //     ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+        // $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
+        //     ->whereBetween('created_at', [$startDate, $endDate])->count();
+        
         /** CRM **/
-        $daily_data['crm_sent'] = $daily_data['quality_cvs_cleared'];
-        $daily_data['crm_open_cvs'] = $daily_data['quality_cvs_hold'];
+        $daily_data['crm_sent'] = History::where('sub_stage', 'quality_cleared')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
+        $daily_data['crm_open_cvs'] = History::where('sub_stage', 'quality_cvs_hold')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();;
         $daily_data['crm_rejected'] = History::where([
                 'sub_stage' => 'crm_reject',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
@@ -1432,7 +1434,7 @@ class DashboardController extends Controller
 
         $daily_data['crm_request_rejected'] = History::where([
                 'sub_stage' => 'crm_request_reject',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
@@ -1446,12 +1448,12 @@ class DashboardController extends Controller
 
         $daily_data['crm_not_attended'] = History::where([
                 'sub_stage' => 'crm_interview_not_attended',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_declined'] = History::where([
                 'sub_stage' => 'crm_declined',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_date_started'] = History::whereIn('sub_stage', [
@@ -1459,9 +1461,9 @@ class DashboardController extends Controller
                 'crm_start_date_back'
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
-        $daily_data['crm_start_date_held'] = History::where([
+        $daily_data['crm_start_date_hold'] = History::where([
                 'sub_stage' => 'crm_start_date_hold',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
@@ -1469,13 +1471,15 @@ class DashboardController extends Controller
 
         $daily_data['crm_disputed'] = History::where([
                 'sub_stage' => 'crm_dispute',
-                'status' => 'active'
+                'status' => 1
             ])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')
             ->whereBetween('created_at', [$startDate, $endDate])->count();
 
         $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
+        $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
             ->whereBetween('created_at', [$startDate, $endDate])->count();
 
         /* -------------------------
@@ -1506,7 +1510,7 @@ class DashboardController extends Controller
             'series' => [
                 $daily_data['crm_sent'],
                 $daily_data['crm_open_cvs'],
-                $daily_data['quality_cvs_rejected'],
+                $daily_data['crm_rejected'],
                 $daily_data['crm_requested'],
                 $daily_data['crm_request_rejected'],
                 $daily_data['crm_confirmed'],
@@ -1515,7 +1519,7 @@ class DashboardController extends Controller
                 $daily_data['crm_declined'],
                 $daily_data['crm_not_attended'],
                 $daily_data['crm_date_started'],
-                $daily_data['crm_start_date_held'],
+                $daily_data['crm_start_date_hold'],
                 $daily_data['crm_invoiced'],
                 $daily_data['crm_disputed'],
                 $daily_data['crm_paid'],
@@ -1543,17 +1547,25 @@ class DashboardController extends Controller
         }
 
         // Base applicant query
-        $applicantQuery = Applicant::query()->with(['jobCategory', 'jobSource']);
+        $applicantQuery = Applicant::query()->with(['jobCategory', 'jobTitle', 'jobSource']);
 
         /**
          * STATUS → QUERY MAPPING
          */
         switch ($status) {
+            case 'quality_revert':
+                $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
+                    $q->where('stage', 'quality_revert')
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+                break;
+
             case 'crm_sent':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'quality_cleared')
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
+                return $applicantQuery->get();
                 break;
 
             case 'crm_open_cvs':
@@ -1563,16 +1575,10 @@ class DashboardController extends Controller
                 });
                 break;
 
-            case 'quality_revert':
-                $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
-                    $q->where('stage', 'quality_revert')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-           
             case 'crm_rejected':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_reject')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1587,6 +1593,7 @@ class DashboardController extends Controller
             case 'crm_request_rejected':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_request_reject')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1615,6 +1622,7 @@ class DashboardController extends Controller
             case 'crm_not_attended':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_interview_not_attended')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1622,6 +1630,7 @@ class DashboardController extends Controller
             case 'crm_declined':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_declined')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1639,6 +1648,7 @@ class DashboardController extends Controller
             case 'crm_start_date_hold':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_start_date_hold')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1653,6 +1663,7 @@ class DashboardController extends Controller
             case 'crm_disputed':
                 $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
                     $q->where('sub_stage', 'crm_dispute')
+                    ->where('status', 1)
                     ->whereBetween('created_at', [$startDate, $endDate]);
                 });
                 break;
@@ -1680,6 +1691,9 @@ class DashboardController extends Controller
                 ]);
         }
 
+       
+
+        // Getting job source stats
         $jobSourceStats = (clone $applicantQuery)
             ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
             ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
@@ -1702,18 +1716,12 @@ class DashboardController extends Controller
                 ->count(),
 
             'non_nurses_regular' => (clone $applicantQuery)
-                ->where(function ($q) use ($nurseCategory) {
-                    $q->where('job_category_id', '!=', $nurseCategory->id)
-                    ->orWhereNull('job_category_id');
-                })
+                ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
                 ->where('job_type', 'regular')
                 ->count(),
 
             'non_nurses_specialist' => (clone $applicantQuery)
-                ->where(function ($q) use ($nurseCategory) {
-                    $q->where('job_category_id', '!=', $nurseCategory->id)
-                    ->orWhereNull('job_category_id');
-                })
+                ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
                 ->where('job_type', 'specialist')
                 ->count(),
 
@@ -1787,22 +1795,19 @@ class DashboardController extends Controller
             'crm_open_cvs' => 'quality_cvs_hold',
             'quality_revert' => 'quality_revert',
             'crm_revert' => 'crm_revert',
-            'crm_rejected' => ['cv_sent_reject', 'cv_sent_reject_no_job'],
-            'crm_requested' => ["cv_sent_request", "request_save"],
-            'crm_request_rejected' => ['request_reject', 'request_no_job_reject'],
-            'crm_confirmed' => [
-                        'request_confirm',
-                        'request_no_job_confirm'
-                    ],
-            'crm_prestart_attended' => ["interview_attended", "prestart_save"],
-            'crm_rebook' => ["rebook", "rebook_save"],
-            'crm_not_attended' =>  ["interview_not_attended"],
+            'crm_rejected' => 'crm_reject',
+            'crm_requested' => 'crm_request',
+            'crm_request_rejected' => 'crm_request_reject',
+            'crm_confirmed' => 'crm_request_confirm',
+            'crm_prestart_attended' => 'crm_interview_attended',
+            'crm_rebook' => 'crm_rebook',
+            'crm_not_attended' => 'crm_interview_not_attended',
             'crm_declined' => 'crm_declined',
-            'crm_date_started' =>  ["start_date", "start_date_save", "start_date_back"],
-            'crm_start_date_hold' => ["start_date_hold", "start_date_hold_save"],
-            'crm_invoiced' => ["invoice", "final_save"],
-            'crm_disputed' => ['dispute'],
-            'crm_paid' => ['paid'],
+            'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
+            'crm_start_date_hold' => 'crm_start_date_hold',
+            'crm_invoiced' => 'crm_invoice',
+            'crm_disputed' => 'crm_dispute',
+            'crm_paid' => 'crm_paid',
             'crm_sent' => ['cv_sent', 'cv_sent_saved'],
         ];
 
@@ -1848,19 +1853,11 @@ class DashboardController extends Controller
             ->whereColumn('history.applicant_id', 'applicants.id')
             ->whereIn('history.sub_stage', (array) $subStages)
             ->whereBetween('history.created_at', [$startDate, $endDate]);
+        })
+        ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
+            $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
         });
-        // ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
-        //     $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-        //         ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
-        // })
-        // ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
-        //     $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id');
-        //     $join->on('crm_notes.sale_id', '=', 'cv_notes.applicant_id');
-        // })
-        // ->leftJoin('users', function ($join) {
-        //     $join->on('cv_notes.user_id', '=', 'users.id');
-        // });
-
 
         $query->select([
                 'applicants.id',
@@ -1872,22 +1869,19 @@ class DashboardController extends Controller
                 'applicants.applicant_landline',
                 'applicants.applicant_postcode',
                 'applicants.applicant_experience',
-                'applicants.applicant_notes',
                 'applicants.is_blocked',
                 'applicants.job_category_id',
                 'applicants.job_title_id',
                 'applicants.job_source_id',
                 'applicants.job_type',
-                'applicants.created_at as applicant_created_at',
+                'applicants.applicant_notes',
+                'applicants.created_at',
+
+                'crm_notes.details as notes_details',
 
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
-
-                'crm_notes.details as notes_details',
-                'crm_notes.created_at as notes_created_at',
-
-                'users.name as user_name'
 
             ]);
 
@@ -1910,9 +1904,6 @@ class DashboardController extends Controller
                 ->addColumn('job_source', function ($applicant) {
                     return $applicant->jobSource ? $applicant->jobSource->name : '-';
                 })
-                // ->editColumn('user_name', function ($applicant) {
-                //     return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
-                // })
                 ->editColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
@@ -1979,59 +1970,15 @@ class DashboardController extends Controller
                     }
                     return $button;
                 })
-                ->addColumn('notes_details', function ($applicant) {
-                    $notes_detail = strip_tags($applicant->applicant_notes);
-                    $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
-                    $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
+                ->editColumn('notes_details', function ($applicant) {
+                    $notes = '';
+                    if(!$applicant->notes_details){
+                        $notes = nl2br($applicant->applicant_notes);
+                    }else{
+                        $notes = nl2br($applicant->notes_details);
+                    }
 
-                    $short = Str::limit($notes, 150);
-                    $modalId = 'crm-' . $applicant->id . '-' . $applicant->sale_id;
-
-                    $name = e($applicant->applicant_name);
-                    $postcode = e($applicant->applicant_postcode);
-                    $notesEscaped = nl2br(e($notes_detail));
-                    $copyId = "stat-copy-notes-" . $applicant->id . '-' . $applicant->sale_id;
-
-                    return '
-                        <div>
-                            <a href="#" class="text-primary" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#' . $modalId . '">
-                                ' . $short . '
-                            </a>
-
-                            <!-- Hidden full notes for copy -->
-                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
-
-                            <!-- Copy button under short note -->
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-btn" data-copy-target="#' . $copyId . '">
-                                Copy Notes
-                            </button>
-                        </div>
-
-                        <!-- Modal -->
-                        <div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $modalId . '-label">Applicant\'s CRM Notes</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body modal-body-text-left">
-                                        <p><strong>Name:</strong> ' . $name . '</p>
-                                        <p><strong>Postcode:</strong> ' . $postcode . '</p>
-                                        <p><strong>Date:</strong> ' . $notes_created_at . '</p>
-                                        <p class="notes-content">
-                                            <strong>Notes Detail:</strong><br>' . $notesEscaped . '
-                                        </p>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ';
+                    return $notes;
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
                     $str = '';
@@ -2061,7 +2008,7 @@ class DashboardController extends Controller
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
-                ->editColumn('history_created_at', function ($applicant) {
+                ->editColumn('created_at', function ($applicant) {
                     return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
@@ -2128,7 +2075,7 @@ class DashboardController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['notes_details', 'history_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_details', 'created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

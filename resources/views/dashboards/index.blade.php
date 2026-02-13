@@ -887,7 +887,7 @@
             const chartStatusMap = {
                 0: 'crm_sent',
                 1: 'crm_open_cvs',
-                2: 'quality_cvs_rejected',
+                2: 'crm_rejected',
                 3: 'crm_requested',
                 4: 'crm_request_rejected',
                 5: 'crm_confirmed',

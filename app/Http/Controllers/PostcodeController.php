@@ -68,14 +68,27 @@ class PostcodeController extends Controller
         // if (!$job_result || !$isValidCoordinates($job_result->lat, $job_result->lng)) {
             // $job_result = Applicant::where('applicant_postcode', $postcode)
             //     ->first();
+            // $postcodeResult = DB::table('postcodes')->where('postcode', $postcode)->first();
 
-            $postcodeResult = DB::table('postcodes')->where('postcode', $postcode)->first();
+            // Normalize user input
+            $normalizedPostcode = strtolower(str_replace(' ', '', trim($postcode)));
+
+            $postcodeResult = DB::table('postcodes')
+                ->whereRaw(
+                    "REPLACE(LOWER(postcode), ' ', '') = ?",
+                    [$normalizedPostcode]
+                )
+                ->first();
             
             if(!$postcodeResult || !$isValidCoordinates($postcodeResult->lat, $postcodeResult->lng)){
-                $outcodeResult = DB::table('outcodepostcodes')->where('outcode', $postcode)->first();
+                $outcodeResult = DB::table('outcodepostcodes')->whereRaw(
+                                        "REPLACE(LOWER(outcode), ' ', '') = ?",
+                                        [$normalizedPostcode]
+                                    )->first();
+
                 if(!$outcodeResult || !$isValidCoordinates($outcodeResult->lat, $outcodeResult->lng)){
                     try {
-                        $result = $this->geocode($postcode);
+                        $result = $this->geocode($normalizedPostcode);
 
                         // If geocode fails, throw
                         if (!isset($result['lat']) || !isset($result['lng'])) {
