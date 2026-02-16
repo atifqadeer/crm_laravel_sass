@@ -1352,6 +1352,200 @@ class DashboardController extends Controller
         ]);
 
     }
+    // public function getChartData(Request $request)
+    // {
+    //     $range = $request->input('range');
+    //     $inputDate = $request->input('date_range');
+
+    //     $validator = Validator::make($request->all(), [
+    //         'range' => 'required',
+    //         'date_range' => 'required',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['error' => $validator->errors()->all()], 422);
+    //     }
+
+    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
+        
+    //     /* -------------------------
+    //     DATA QUERIES
+    //     --------------------------*/
+
+    //     $daily_data = [];
+        
+    //     /** CRM **/
+    //     $daily_data['crm_sent'] = History::where('sub_stage', 'quality_cleared')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+    //     $daily_data['crm_open_cvs'] = History::where('sub_stage', 'quality_cvs_hold')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();;
+    //     $daily_data['crm_rejected'] = History::where([
+    //             'sub_stage' => 'crm_reject',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_request_rejected'] = History::where([
+    //             'sub_stage' => 'crm_request_reject',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_prestart_attended'] = History::where('sub_stage', 'crm_interview_attended')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_rebook'] = History::where('sub_stage', 'crm_rebook')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_not_attended'] = History::where([
+    //             'sub_stage' => 'crm_interview_not_attended',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_declined'] = History::where([
+    //             'sub_stage' => 'crm_declined',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_date_started'] = History::whereIn('sub_stage', [
+    //             'crm_start_date',
+    //             'crm_start_date_back'
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_start_date_hold'] = History::where([
+    //             'sub_stage' => 'crm_start_date_hold',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_disputed'] = History::where([
+    //             'sub_stage' => 'crm_dispute',
+    //             'status' => 1
+    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+    //     $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
+    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
+
+    //     /* -------------------------
+    //     CHART RESPONSE
+    //     --------------------------*/
+
+    //     return response()->json([
+    //         'date' => $displayDate,
+    //         'labels' => [
+    //             'Sent CVs', 
+    //             'Open CVs', 
+    //             'Rejected CVs',
+    //             'Requested CVs', 
+    //             'Rejected By Request', 
+    //             'Confirmation', 
+    //             'Rebook', 
+    //             'Attended (Pre-Start)',
+    //             'Declined', 
+    //             'Not Attended',
+    //             'Start Date', 
+    //             'Start Date Hold', 
+    //             'Invoice', 
+    //             'Dispute',
+    //             'Paid', 
+    //             'Crm Revert', 
+    //             'Quality Revert', 
+    //         ],
+    //         'series' => [
+    //             $daily_data['crm_sent'],
+    //             $daily_data['crm_open_cvs'],
+    //             $daily_data['crm_rejected'],
+    //             $daily_data['crm_requested'],
+    //             $daily_data['crm_request_rejected'],
+    //             $daily_data['crm_confirmed'],
+    //             $daily_data['crm_rebook'],
+    //             $daily_data['crm_prestart_attended'],
+    //             $daily_data['crm_declined'],
+    //             $daily_data['crm_not_attended'],
+    //             $daily_data['crm_date_started'],
+    //             $daily_data['crm_start_date_hold'],
+    //             $daily_data['crm_invoiced'],
+    //             $daily_data['crm_disputed'],
+    //             $daily_data['crm_paid'],
+    //             $daily_data['crm_revert'],
+    //             $daily_data['quality_revert'],
+    //         ],
+    //     ]);
+    // }
+    /**
+     * Get a base query for applicants with optional joins and filters.
+     *
+     * @param string|null $subStage Optional History sub_stage filter
+     * @param string|null $revertStage Optional RevertStage stage filter
+     * @param string|null $crmSubStage Optional CRM Notes moved_tab_to filter
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    // Private function returning Builder
+    private function getStageQuery(
+        $historyStage = null,
+        $revertStage = null,
+        $crmStage = null,
+        $startDate = null,
+        $endDate = null,
+        $historyActive = null,
+        $revertActive = null
+    ) {
+        $query = Applicant::query();
+
+        if ($historyStage) {
+            $query->whereHas('history', function ($q) use ($historyStage, $startDate, $endDate, $historyActive) {
+                $q->whereIn('sub_stage', (array)$historyStage)
+                ->when($historyActive !== null, fn($q2) => $q2->where('status', $historyActive))
+                ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+            });
+        }
+
+        if ($revertStage) {
+            $query->whereHas('revertStages', function ($q) use ($revertStage, $startDate, $endDate, $revertActive) {
+                $q->whereIn('stage', (array)$revertStage)
+                ->when($revertActive !== null, fn($q2) => $q2->where('status', $revertActive))
+                ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+            });
+        }
+
+        if ($crmStage) {
+            $query->whereHas('crmNotes', function ($q) use ($crmStage, $startDate, $endDate) {
+                $q->whereIn('moved_tab_to', (array)$crmStage)
+                ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+            });
+        }
+
+        return $query; // This is **Eloquent Builder**, not count
+    }
+
+    // Private function returning integer count
+    private function getStageCount(
+        $historyStage = null,
+        $revertStage = null,
+        $crmStage = null,
+        $startDate = null,
+        $endDate = null,
+        $historyActive = null,
+        $revertActive = null
+    ) {
+        return (int) $this->getStageQuery(
+            $historyStage, $revertStage, $crmStage, $startDate, $endDate, $historyActive, $revertActive
+        )->distinct()->count('id');
+    }
+
     public function getChartData(Request $request)
     {
         $range = $request->input('range');
@@ -1366,173 +1560,145 @@ class DashboardController extends Controller
             return response()->json(['error' => $validator->errors()->all()], 422);
         }
 
-        // /* -------------------------
-        // DATE PARSING (CRITICAL)
-        // --------------------------*/
-
-        // if ($range === 'daily') {
-        //     $startDate = Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay();
-        //     $endDate   = Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay();
-        //     $displayDate = $startDate->format('jS F Y');
-        // }
-
-        // elseif (in_array($range, ['weekly', 'aggregate'])) {
-        //     [$start, $end] = explode(' to ', $inputDate);
-
-        //     $startDate = Carbon::createFromFormat('Y-m-d', trim($start))->startOfDay();
-        //     $endDate   = Carbon::createFromFormat('Y-m-d', trim($end))->endOfDay();
-        //     $displayDate = $startDate->format('jS F') . ' - ' . $endDate->format('jS F Y');
-        // }
-
-        // elseif ($range === 'monthly') {
-        //     $startDate = Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth();
-        //     $endDate   = Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth();
-        //     $displayDate = $startDate->format('F Y');
-        // }
-
-        // elseif ($range === 'yearly') {
-        //     $startDate = Carbon::createFromFormat('Y', $inputDate)->startOfYear();
-        //     $endDate   = Carbon::createFromFormat('Y', $inputDate)->endOfYear();
-        //     $displayDate = $startDate->format('Y');
-        // }
-
         [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
-        /* -------------------------
-        DATA QUERIES
-        --------------------------*/
 
         $daily_data = [];
 
-        /** QUALITY **/
-        // $daily_data['quality_cvs'] = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
+        // CRM counts
+        $daily_data['crm_sent_cvs'] = $this->getStageCount('quality_cleared', null, null, $startDate, $endDate);
+        $daily_data['crm_open_cvs'] = $this->getStageCount('quality_cvs_hold', null, null, $startDate, $endDate);
+        $daily_data['crm_rejected'] = $this->getStageCount('crm_reject', null, null, $startDate, $endDate, true);
+        $daily_data['crm_requested'] = $this->getStageCount('crm_request', null, null, $startDate, $endDate);
+        $daily_data['crm_request_rejected'] = $this->getStageCount('crm_request_reject', null, null, $startDate, $endDate, true);
+        $daily_data['crm_confirmed'] = $this->getStageCount('crm_request_confirm', null, null, $startDate, $endDate);
+        $daily_data['crm_rebook'] = $this->getStageCount('crm_rebook', null, null, $startDate, $endDate);
+        $daily_data['crm_prestart_attended'] = $this->getStageCount('crm_interview_attended', null, null, $startDate, $endDate);
+        $daily_data['crm_declined'] = $this->getStageCount('crm_declined', null, null, $startDate, $endDate, true);
+        $daily_data['crm_not_attended'] = $this->getStageCount('crm_interview_not_attended', null, null, $startDate, $endDate, true);
+        $daily_data['crm_date_started'] = $this->getStageCount(['crm_start_date','crm_start_date_back'], null, null, $startDate, $endDate);
+        $daily_data['crm_start_date_hold'] = $this->getStageCount('crm_start_date_hold', null, null, $startDate, $endDate, true);
+        $daily_data['crm_invoiced'] = $this->getStageCount('crm_invoice', null, null, $startDate, $endDate);
+        $daily_data['crm_disputed'] = $this->getStageCount('crm_dispute', null, null, $startDate, $endDate, true);
+        $daily_data['crm_paid'] = $this->getStageCount('crm_paid', null, null, $startDate, $endDate);
 
-        
+        // Revert counts
+        $daily_data['crm_revert'] = $this->getStageCount(null, 'crm_revert', null, $startDate, $endDate, null, true);
+        $daily_data['quality_revert'] = $this->getStageCount(null, 'quality_revert', null, $startDate, $endDate, null, true);
 
-        // $daily_data['quality_cvs_rejected'] = History::where([
-        //         'sub_stage' => 'quality_reject',
-        //         'status' => 1
-        //     ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        // $daily_data['quality_cvs_cleared'] = History::where('sub_stage', 'quality_cleared')
-        //     ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        // $daily_data['quality_cvs_hold'] = History::where('sub_stage', 'quality_cvs_hold')
-        //     ->whereBetween('created_at', [$startDate, $endDate])->count();
-        
-        /** CRM **/
-        $daily_data['crm_sent'] = History::where('sub_stage', 'quality_cleared')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-        $daily_data['crm_open_cvs'] = History::where('sub_stage', 'quality_cvs_hold')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();;
-        $daily_data['crm_rejected'] = History::where([
-                'sub_stage' => 'crm_reject',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_request_rejected'] = History::where([
-                'sub_stage' => 'crm_request_reject',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_prestart_attended'] = History::where('sub_stage', 'crm_interview_attended')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_rebook'] = History::where('sub_stage', 'crm_rebook')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_not_attended'] = History::where([
-                'sub_stage' => 'crm_interview_not_attended',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_declined'] = History::where([
-                'sub_stage' => 'crm_declined',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_date_started'] = History::whereIn('sub_stage', [
-                'crm_start_date',
-                'crm_start_date_back'
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_start_date_hold'] = History::where([
-                'sub_stage' => 'crm_start_date_hold',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_disputed'] = History::where([
-                'sub_stage' => 'crm_dispute',
-                'status' => 1
-            ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-        $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
-            ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-        /* -------------------------
-        CHART RESPONSE
-        --------------------------*/
-
+        // Chart response
         return response()->json([
             'date' => $displayDate,
             'labels' => [
                 'Sent CVs', 
                 'Open CVs', 
-                'Rejected CVs',
+                'Rejected CVs', 
                 'Requested CVs', 
-                'Rejected By Request', 
+                'Rejected By Request',
                 'Confirmation', 
                 'Rebook', 
-                'Attended (Pre-Start)',
+                'Attended (Pre-Start)', 
                 'Declined', 
                 'Not Attended',
                 'Start Date', 
                 'Start Date Hold', 
                 'Invoice', 
-                'Dispute',
-                'Paid', 
+                'Dispute', 
+                'Paid',
                 'Crm Revert', 
-                'Quality Revert', 
+                'Quality Revert'
             ],
-            'series' => [
-                $daily_data['crm_sent'],
-                $daily_data['crm_open_cvs'],
-                $daily_data['crm_rejected'],
-                $daily_data['crm_requested'],
-                $daily_data['crm_request_rejected'],
-                $daily_data['crm_confirmed'],
-                $daily_data['crm_rebook'],
-                $daily_data['crm_prestart_attended'],
-                $daily_data['crm_declined'],
-                $daily_data['crm_not_attended'],
-                $daily_data['crm_date_started'],
-                $daily_data['crm_start_date_hold'],
-                $daily_data['crm_invoiced'],
-                $daily_data['crm_disputed'],
-                $daily_data['crm_paid'],
-                $daily_data['crm_revert'],
-                $daily_data['quality_revert'],
-            ],
+            'series' => array_values($daily_data),
         ]);
     }
+
+    private function getStatusConfig($status)
+    {
+        return [
+
+            'crm_sent_cvs' => [
+                'history' => ['quality_cleared']
+            ],
+
+            'crm_open_cvs' => [
+                'history' => ['quality_cvs_hold']
+            ],
+
+            'crm_rejected' => [
+                'history' => ['crm_reject'],
+                'history_active' => 1
+            ],
+
+            'crm_requested' => [
+                'history' => ['crm_request']
+            ],
+
+            'crm_request_rejected' => [
+                'history' => ['crm_request_reject'],
+                'history_active' => 1
+            ],
+
+            'crm_confirmed' => [
+                'history' => ['crm_request_confirm']
+            ],
+
+            'crm_rebook' => [
+                'history' => ['crm_rebook']
+            ],
+
+            'crm_prestart_attended' => [
+                'history' => ['crm_interview_attended']
+            ],
+    
+            'crm_declined' => [
+                'history' => ['crm_declined'],
+                'history_active' => 1
+            ],
+
+            'crm_not_attended' => [
+                'history' => ['crm_interview_not_attended'],
+                'history_active' => 1
+            ],
+                
+            'crm_date_started' => [
+                'history' => ['crm_start_date', 'crm_start_date_back']
+            ],
+
+            'crm_start_date_hold' => [
+                'history' => ['crm_start_date_hold'],
+                'history_active' => 1
+            ],
+
+            'crm_invoiced' => [
+                'history' => ['crm_invoice']
+            ],
+
+            'crm_disputed' => [
+                'history' => ['crm_dispute'],
+                'history_active' => 1
+            ],
+
+            'crm_paid' => [
+                'history' => ['crm_paid']
+            ],
+
+            'crm_revert' => [
+                'revert' => ['crm_revert'],
+                'revert_active' => 1
+            ],
+
+            'quality_revert' => [
+                'revert' => ['quality_revert'],
+                'revert_active' => 1
+            ],
+
+        ][$status] ?? null;
+    }
+
     public function getStatusDetails(Request $request)
     {
-        $status = $request->status;
-        $range = $request->range;
-        $inputDate = $request->date_range;
+        $status = $request->input('status');
+        $range = $request->input('range');
+        $inputDate = $request->input('date_range');
 
         [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
 
@@ -1546,154 +1712,31 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Base applicant query
-        $applicantQuery = Applicant::query()->with(['jobCategory', 'jobTitle', 'jobSource']);
-
         /**
-         * STATUS → QUERY MAPPING
+         * SAME STATUS LOGIC AS getChartData()
          */
-        switch ($status) {
-            case 'quality_revert':
-                $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
-                    $q->where('stage', 'quality_revert')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
+        $config = $this->getStatusConfig($status);
 
-            case 'crm_sent':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'quality_cleared')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                return $applicantQuery->get();
-                break;
-
-            case 'crm_open_cvs':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'quality_cvs_hold')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-
-            case 'crm_rejected':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_reject')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_requested':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_request')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_request_rejected':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_request_reject')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_confirmed':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_request_confirm')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-
-            case 'crm_prestart_attended':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_interview_attended')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_rebook':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_rebook')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_not_attended':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_interview_not_attended')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_declined':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_declined')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_date_started':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->whereIn('sub_stage', [
-                        'crm_start_date',
-                        'crm_start_date_back'
-                    ])
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_start_date_hold':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_start_date_hold')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_invoiced':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_invoice')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_disputed':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_dispute')
-                    ->where('status', 1)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-           
-            case 'crm_paid':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_paid')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-            
-            case 'crm_revert':
-                $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-                    $q->where('sub_stage', 'crm_revert')
-                    ->whereBetween('created_at', [$startDate, $endDate]);
-                });
-                break;
-
-
-            default:
-                return response()->json([
-                    'title' => ucfirst(str_replace('_', ' ', $status)),
-                    'nurses' => 0,
-                    'non_nurses' => 0
-                ]);
+        if (!$config) {
+            return response()->json([
+                'title' => ucfirst(str_replace('_', ' ', $status)),
+                'nurses' => 0,
+                'non_nurses' => 0
+            ]);
         }
 
-       
+        // 🔥 Use your existing reusable function
+        $applicantQuery = $this->getStageQuery(
+            $config['history'] ?? null,
+            $config['revert'] ?? null,
+            null,
+            $startDate,
+            $endDate,
+            $config['history_active'] ?? null,
+            $config['revert_active'] ?? null
+        )->with(['jobCategory', 'jobTitle', 'jobSource']);
 
-        // Getting job source stats
+        // Job source stats
         $jobSourceStats = (clone $applicantQuery)
             ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
             ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
@@ -1708,26 +1751,347 @@ class DashboardController extends Controller
             'nurses_regular' => (clone $applicantQuery)
                 ->where('job_category_id', $nurseCategory->id)
                 ->where('job_type', 'regular')
-                ->count(),
+                ->distinct()
+                ->count('applicants.id'),
 
             'nurses_specialist' => (clone $applicantQuery)
                 ->where('job_category_id', $nurseCategory->id)
                 ->where('job_type', 'specialist')
-                ->count(),
+                ->distinct()
+                ->count('applicants.id'),
 
             'non_nurses_regular' => (clone $applicantQuery)
-                ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
+                ->whereNotIn('job_category_id', [$nurseCategory->id])
                 ->where('job_type', 'regular')
-                ->count(),
+                ->distinct()
+                ->count('applicants.id'),
 
             'non_nurses_specialist' => (clone $applicantQuery)
-                ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
+                ->whereNotIn('job_category_id', [$nurseCategory->id])
                 ->where('job_type', 'specialist')
-                ->count(),
+                ->distinct()
+                ->count('applicants.id'),
 
             'job_sources' => $jobSourceStats,
         ]);
     }
+
+    // public function getStatusDetails(Request $request)
+    // {
+    //     $status = $request->input('status');
+    //     $range = $request->input('range');
+    //     $inputDate = $request->input('date_range');
+
+    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
+
+    //     $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+    //     if (!$nurseCategory) {
+    //         return response()->json([
+    //             'title' => 'No Nurse Category Found',
+    //             'nurses' => 0,
+    //             'non_nurses' => 0
+    //         ]);
+    //     }
+
+    //     // Base applicant query
+    //     $applicantQuery = Applicant::query()->with(['jobCategory', 'jobTitle', 'jobSource']);
+
+    //     /**
+    //      * STATUS → QUERY MAPPING
+    //      */
+    //     switch ($status) {
+    //         case 'crm_sent_cvs':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'quality_cleared')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+
+    //         case 'crm_open_cvs':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'quality_cvs_hold')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+
+    //         case 'crm_rejected':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_reject')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_requested':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_request')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_request_rejected':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_request_reject')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_confirmed':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_request_confirm')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+
+    //         case 'crm_prestart_attended':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_interview_attended')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_rebook':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_rebook')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_not_attended':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_interview_not_attended')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_declined':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_declined')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_date_started':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->whereIn('sub_stage', [
+    //                     'crm_start_date',
+    //                     'crm_start_date_back'
+    //                 ])
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_start_date_hold':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_start_date_hold')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_invoiced':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_invoice')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_disputed':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_dispute')
+    //                 ->where('status', 1)
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+           
+    //         case 'crm_paid':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_paid')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+            
+    //         case 'crm_revert':
+    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('sub_stage', 'crm_revert')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+    //         case 'quality_revert':
+    //             $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
+    //                 $q->where('stage', 'quality_revert')
+    //                 ->whereBetween('created_at', [$startDate, $endDate]);
+    //             });
+    //             break;
+
+    //         default:
+    //             return response()->json([
+    //                 'title' => ucfirst(str_replace('_', ' ', $status)),
+    //                 'nurses' => 0,
+    //                 'non_nurses' => 0
+    //             ]);
+    //     }
+
+    //     // Getting job source stats
+    //     $jobSourceStats = (clone $applicantQuery)
+    //         ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
+    //         ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
+    //         ->groupBy('job_sources.name')
+    //         ->orderByDesc('total')
+    //         ->get();
+
+    //     return response()->json([
+    //         'title' => Str::title(str_replace('_', ' ', $status)) . " ({$displayDate})",
+    //         'crm_status' => $status,
+
+    //         'nurses_regular' => (clone $applicantQuery)
+    //             ->where('job_category_id', $nurseCategory->id)
+    //             ->where('job_type', 'regular')
+    //             ->count(),
+
+    //         'nurses_specialist' => (clone $applicantQuery)
+    //             ->where('job_category_id', $nurseCategory->id)
+    //             ->where('job_type', 'specialist')
+    //             ->count(),
+
+    //         'non_nurses_regular' => (clone $applicantQuery)
+    //             ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
+    //             ->where('job_type', 'regular')
+    //             ->count(),
+
+    //         'non_nurses_specialist' => (clone $applicantQuery)
+    //             ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
+    //             ->where('job_type', 'specialist')
+    //             ->count(),
+
+    //         'job_sources' => $jobSourceStats,
+    //     ]);
+    // }
+
+    // public function getStatusDetails(Request $request)
+    // {
+    //     $status = $request->status;
+    //     $range = $request->range;
+    //     $inputDate = $request->date_range;
+
+    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
+
+    //     $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+    //     if (!$nurseCategory) {
+    //         return response()->json([
+    //             'title' => 'No Nurse Category Found',
+    //             'nurses' => 0,
+    //             'non_nurses' => 0
+    //         ]);
+    //     }
+
+    //     // Map status to stages
+    //     $historyMap = [
+    //         'crm_sent_cvs' => ['quality_cleared'],
+    //         'crm_open_cvs' => ['quality_cvs_hold'],
+    //         'crm_rejected' => ['crm_reject'],
+    //         'crm_requested' => ['crm_request'],
+    //         'crm_request_rejected' => ['crm_request_reject'],
+    //         'crm_confirmed' => ['crm_request_confirm'],
+    //         'crm_prestart_attended' => ['crm_interview_attended'],
+    //         'crm_rebook' => ['crm_rebook'],
+    //         'crm_not_attended' => ['crm_interview_not_attended'],
+    //         'crm_declined' => ['crm_declined'],
+    //         'crm_date_started' => ['crm_start_date','crm_start_date_back'],
+    //         'crm_start_date_hold' => ['crm_start_date_hold'],
+    //         'crm_invoiced' => ['crm_invoice'],
+    //         'crm_disputed' => ['crm_dispute'],
+    //         'crm_paid' => ['crm_paid'],
+    //     ];
+
+    //     $revertMap = [
+    //         'quality_revert' => ['quality_revert'],
+    //         'crm_revert' => ['crm_revert'],
+    //     ];
+
+    //     // CRM moved tabs if needed
+    //     $crmMap = [
+    //         'crm_sent_cvs' => ['quality_cleared'],
+    //         'crm_open_cvs' => ['quality_cvs_hold'],
+    //         'crm_rejected' => ['crm_reject'],
+    //         'crm_requested' => ['crm_request'],
+    //         'crm_request_rejected' => ['crm_request_reject'],
+    //         'crm_confirmed' => ['crm_request_confirm'],
+    //         'crm_prestart_attended' => ['crm_interview_attended'],
+    //         'crm_rebook' => ['crm_rebook'],
+    //         'crm_not_attended' => ['crm_interview_not_attended'],
+    //         'crm_declined' => ['crm_declined'],
+    //         'crm_date_started' => ['crm_start_date','crm_start_date_back'],
+    //         'crm_start_date_hold' => ['crm_start_date_hold'],
+    //         'crm_invoiced' => ['crm_invoice'],
+    //         'crm_disputed' => ['crm_dispute'],
+    //         'crm_paid' => ['crm_paid'],
+    //     ];
+
+    //     $historyStage = $historyMap[$status] ?? null;
+    //     $revertStage = $revertMap[$status] ?? null;
+    //     $crmStage = $crmMap[$status] ?? null;
+
+    //     // Active status for history or revert
+    //     $historyActive = in_array($status, ['crm_rejected','crm_request_rejected','crm_not_attended','crm_declined','crm_start_date_hold','crm_disputed']) ? 1 : null;
+    //     $revertActive = 1;
+
+    //     // Get base query
+    //     $applicantQuery = $this->getStageQuery(
+    //         $historyStage,
+    //         $revertStage,
+    //         $crmStage,
+    //         $startDate,
+    //         $endDate,
+    //         $historyActive,
+    //         $revertActive
+    //     );
+
+    //     $nurses_regular = (clone $applicantQuery)
+    //         ->where('job_category_id', $nurseCategory->id)
+    //         ->where('job_type', 'regular')
+    //         ->count();
+
+    //     $nurses_specialist = (clone $applicantQuery)
+    //         ->where('job_category_id', $nurseCategory->id)
+    //         ->where('job_type', 'specialist')
+    //         ->count();
+
+    //     $non_nurses_regular = (clone $applicantQuery)
+    //         ->where('job_category_id', '!=', $nurseCategory->id)
+    //         ->where('job_type', 'regular')
+    //         ->count();
+
+    //     $non_nurses_specialist = (clone $applicantQuery)
+    //         ->where('job_category_id', '!=', $nurseCategory->id)
+    //         ->where('job_type', 'specialist')
+    //         ->count();
+
+
+    //     // Job source stats
+    //     $jobSourceStats = (clone $applicantQuery)
+    //         ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
+    //         ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
+    //         ->groupBy('job_sources.name')
+    //         ->orderByDesc('total')
+    //         ->get();
+
+    //     return response()->json([
+    //         'title' => Str::title(str_replace('_', ' ', $status)) . " ({$displayDate})",
+    //         'crm_status' => $status,
+    //         'nurses_regular' => $nurses_regular,
+    //         'nurses_specialist' => $nurses_specialist,
+    //         'non_nurses_regular' => $non_nurses_regular,
+    //         'non_nurses_specialist' => $non_nurses_specialist,
+    //         'job_sources' => $jobSourceStats,
+    //     ]);
+    // }
+
     public function statisticsReportIndex(Request $request)
     {
         $status = $request->input('status');
@@ -1798,6 +2162,7 @@ class DashboardController extends Controller
 
         /* status filter - join history table */
         $crmNoteMap = [
+            'crm_sent_cvs' => ['cv_sent', 'cv_sent_saved'],
             'crm_open_cvs' => 'quality_cvs_hold',
             'quality_revert' => 'quality_revert',
             'crm_revert' => 'crm_revert',
@@ -1814,13 +2179,13 @@ class DashboardController extends Controller
             'crm_invoiced' => 'crm_invoice',
             'crm_disputed' => 'crm_dispute',
             'crm_paid' => 'crm_paid',
-            'crm_sent' => ['cv_sent', 'cv_sent_saved'],
         ];
 
         $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
 
         /* status filter - join history table */
         $map = [
+            'crm_sent_cvs' => 'quality_cleared',
             'crm_open_cvs' => 'quality_cvs_hold',
             'quality_revert' => 'quality_revert',
             'crm_revert' => 'crm_revert',
@@ -1837,7 +2202,6 @@ class DashboardController extends Controller
             'crm_invoiced' => 'crm_invoice',
             'crm_disputed' => 'crm_dispute',
             'crm_paid' => 'crm_paid',
-            'crm_sent' => 'quality_cleared',
         ];
 
         $subStages = $map[$status] ?? 'quality_cleared';

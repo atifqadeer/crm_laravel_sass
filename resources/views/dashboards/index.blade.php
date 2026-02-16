@@ -885,7 +885,7 @@
             initFlatpickr('daily');
 
             const chartStatusMap = {
-                0: 'crm_sent',
+                0: 'crm_sent_cvs',
                 1: 'crm_open_cvs',
                 2: 'crm_rejected',
                 3: 'crm_requested',
@@ -896,7 +896,7 @@
                 8: 'crm_declined',
                 9: 'crm_not_attended',
                 10: 'crm_date_started',
-                11: 'crm_start_date_held',
+                11: 'crm_start_date_hold',
                 12: 'crm_invoiced',
                 13: 'crm_disputed',
                 14: 'crm_paid',
@@ -904,14 +904,13 @@
                 16: 'quality_revert'
             };
 
-
             // Init chart
             chart = new ApexCharts(
                 document.querySelector("#statisticsChart"),
                 {
                     chart: { 
                         type: 'donut', 
-                        height: 720,
+                        height: 680,
                         events: {
                             dataPointSelection: function (event, chartContext, config) {
                                 const index = config.dataPointIndex;
@@ -967,13 +966,59 @@
                 }
             );
 
-
             chart.render();
 
             // Load data with TODAY
             loadStatsBoxes(currentRange, currentDateRange);
             loadChartData(currentRange, currentDateRange);
         });
+
+        // function loadStatusDetails(statusKey) {
+        //     $.get('/statistics/status-details', {
+        //         status: statusKey,
+        //         range: currentRange,
+        //         date_range: currentDateRange
+        //     }, function (resp) {
+
+        //         $('#statusDetailsLabel').text(resp.title);
+        //         $('#statusDetailsLabel')
+        //             .text(resp.title)
+        //             .attr('data-crm-status', resp.crm_status);
+
+        //         $('#nursesRegularCount').text(resp.nurses_regular);
+        //         $('#nursesSpecialistCount').text(resp.nurses_specialist);
+        //         $('#nonNursesRegularCount').text(resp.non_nurses_regular);
+        //         $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist);
+
+        //         // 🔥 Job Sources
+        //         let jobSourceHtml = '';
+
+        //        if (resp.job_sources && resp.job_sources.length) {
+        //             jobSourceHtml += `
+        //                 <div class="row text-center">
+        //                     ${resp.job_sources.map(src => `
+        //                         <div class="col-md-3 col-6 mb-2">
+        //                             <small class="text-muted d-block">${src.name}</small>
+        //                             <span class="fw-bold fs-5">${src.total}</span>
+        //                         </div>
+        //                     `).join('')}
+        //                 </div>
+        //             `;
+        //         } else {
+        //             jobSourceHtml = `
+        //                 <div class="col-12 text-center text-muted">
+        //                     No job source data
+        //                 </div>
+        //             `;
+        //         }
+
+        //         $('#jobSourceStats').html(jobSourceHtml);
+
+        //         const modal = new bootstrap.Modal(document.getElementById('statusDetailsModal'));
+        //         modal.show();
+
+        //     });
+        // }
 
         function loadStatusDetails(statusKey) {
             $.get('/statistics/status-details', {
@@ -982,17 +1027,20 @@
                 date_range: currentDateRange
             }, function (resp) {
 
-                $('#statusDetailsLabel').text(resp.title);
-                $('#statusDetailsLabel').data('crm-status', resp.crm_status); // Store CRM status for later use
-                $('#nursesRegularCount').text(resp.nurses_regular);
-                $('#nursesSpecialistCount').text(resp.nurses_specialist);
-                $('#nonNursesRegularCount').text(resp.non_nurses_regular);
-                $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist);
+                console.log(resp); // DEBUG
 
-                // 🔥 Job Sources
+                $('#statusDetailsLabel')
+                    .text(resp.title)
+                    .attr('data-crm-status', resp.crm_status);
+
+                $('#nursesRegularCount').text(resp.nurses_regular ?? 0);
+                $('#nursesSpecialistCount').text(resp.nurses_specialist ?? 0);
+                $('#nonNursesRegularCount').text(resp.non_nurses_regular ?? 0);
+                $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist ?? 0);
+
                 let jobSourceHtml = '';
 
-               if (resp.job_sources && resp.job_sources.length) {
+                if (resp.job_sources && resp.job_sources.length) {
                     jobSourceHtml += `
                         <div class="row text-center">
                             ${resp.job_sources.map(src => `
@@ -1013,9 +1061,12 @@
 
                 $('#jobSourceStats').html(jobSourceHtml);
 
-                $('#statusDetailsModal').modal('show');
+                // Bootstrap 5 safe way
+                const modal = new bootstrap.Modal(document.getElementById('statusDetailsModal'));
+                modal.show();
             });
         }
+
 
         // Listen to clicks on counts
         $(document).on('click', '.clickable', function() {
