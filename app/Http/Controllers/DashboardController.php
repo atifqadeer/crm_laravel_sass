@@ -2170,10 +2170,10 @@ class DashboardController extends Controller
             'crm_requested' => 'crm_request',
             'crm_request_rejected' => 'crm_request_reject',
             'crm_confirmed' => 'crm_request_confirm',
-            'crm_prestart_attended' => 'crm_interview_attended',
             'crm_rebook' => 'crm_rebook',
-            'crm_not_attended' => 'crm_interview_not_attended',
+            'crm_prestart_attended' => 'crm_interview_attended',
             'crm_declined' => 'crm_declined',
+            'crm_not_attended' => 'crm_interview_not_attended',
             'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
             'crm_start_date_hold' => 'crm_start_date_hold',
             'crm_invoiced' => 'crm_invoice',
@@ -2193,10 +2193,10 @@ class DashboardController extends Controller
             'crm_requested' => 'crm_request',
             'crm_request_rejected' => 'crm_request_reject',
             'crm_confirmed' => 'crm_request_confirm',
-            'crm_prestart_attended' => 'crm_interview_attended',
             'crm_rebook' => 'crm_rebook',
-            'crm_not_attended' => 'crm_interview_not_attended',
+            'crm_prestart_attended' => 'crm_interview_attended',
             'crm_declined' => 'crm_declined',
+            'crm_not_attended' => 'crm_interview_not_attended',
             'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
             'crm_start_date_hold' => 'crm_start_date_hold',
             'crm_invoiced' => 'crm_invoice',
@@ -2234,7 +2234,6 @@ class DashboardController extends Controller
         })
         ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id');
 
-
         $query->select([
                 'applicants.id',
                 'applicants.applicant_name',
@@ -2253,7 +2252,8 @@ class DashboardController extends Controller
                 'applicants.applicant_notes',
                 'applicants.created_at',
 
-                'crm_notes.details as notes_details',
+                'crm_notes.details as notes_detail',
+                'crm_notes.created_at as notes_created_at',
 
                 'users.name as user_name',
 
@@ -2351,15 +2351,59 @@ class DashboardController extends Controller
                     }
                     return $button;
                 })
-                ->editColumn('notes_details', function ($applicant) {
-                    $notes = '';
-                    if(!$applicant->notes_details){
-                        $notes = nl2br($applicant->applicant_notes);
-                    }else{
-                        $notes = nl2br($applicant->notes_details);
-                    }
+                ->addColumn('notes_details', function ($applicant) {
+                    $notes_detail = strip_tags((string) ($applicant->notes_detail ?? $applicant->applicant_notes ?? ''));
+                    $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
+                    $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
-                    return $notes;
+                    $short = Str::limit($notes, 150);
+                    $modalId = 'crm-' . $applicant->id;
+
+                    $name = e($applicant->applicant_name);
+                    $postcode = e($applicant->applicant_postcode);
+                    $notesEscaped = nl2br(e($notes_detail));
+                    $copyId = "copy-notes-" . $applicant->id;
+
+                    return '
+                        <div>
+                            <a href="#" class="text-primary" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#' . $modalId . '">
+                                ' . $short . '
+                            </a>
+
+                            <!-- Hidden full notes for copy -->
+                            <div id="' . $copyId . '" class="d-none">' . $notesEscaped . '</div><br>
+
+                            <!-- Copy button under short note -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-btn" data-copy-target="#' . $copyId . '">
+                                Copy Notes
+                            </button>
+                        </div>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $modalId . '-label">Applicant\'s CRM Notes</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body modal-body-text-left">
+                                        <p><strong>Name:</strong> ' . $name . '</p>
+                                        <p><strong>Postcode:</strong> ' . $postcode . '</p>
+                                        <p><strong>Date:</strong> ' . $notes_created_at . '</p>
+                                        <p class="notes-content">
+                                            <strong>Notes Detail:</strong><br>' . $notesEscaped . '
+                                        </p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
                     $str = '';
@@ -2390,7 +2434,7 @@ class DashboardController extends Controller
                     });
                 })
                 ->editColumn('created_at', function ($applicant) {
-                    return Carbon::parse($applicant->created_at)->format('d M Y, h:i A'); // Using accessor
+                    return $applicant->formatted_created_at; // Using accessor
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
