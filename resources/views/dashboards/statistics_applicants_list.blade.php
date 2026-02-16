@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' - ' . ucwords($type) . ' ) -> '. $formatted_startDate . ($formatted_endDate ? ' to ' . $formatted_endDate : ''),  'subTitle' => 'Dashboard'])
+@extends('layouts.vertical', ['title' => ucwords(str_replace('_', ' ', $status)).' Details List - ( ' . ucwords(str_replace('_',' ',$category)) . ' - ' . ($type == 'specialist' ? ucwords($type) : '') . ' ) -> '. $formatted_startDate . ($formatted_endDate ? ' to ' . $formatted_endDate : ''),  'subTitle' => 'Dashboard'])
 @section('style')
     <style>
         .dropdown-toggle::after {
