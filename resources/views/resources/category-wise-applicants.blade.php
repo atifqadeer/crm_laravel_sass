@@ -179,7 +179,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th width="15%">Phone/Landline</th>
+                                    <th width="15%">Phone / Landline</th>
                                     <th>Applicant Resume</th>
                                     <th>CRM Resume</th>
                                     <th>Experience</th>
