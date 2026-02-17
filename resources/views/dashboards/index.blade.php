@@ -1033,6 +1033,7 @@
                     .text(resp.title)
                     .attr('data-crm-status', resp.crm_status);
 
+
                 $('#nursesRegularCount').text(resp.nurses_regular ?? 0);
                 $('#nursesSpecialistCount').text(resp.nurses_specialist ?? 0);
                 $('#nonNursesRegularCount').text(resp.non_nurses_regular ?? 0);
@@ -1067,12 +1068,11 @@
             });
         }
 
-
         // Listen to clicks on counts
         $(document).on('click', '.clickable', function() {
             const category = $(this).data('category');  // nurses / non_nurses
             const type = $(this).data('type');          // regular / specialist
-            const status = $('#statusDetailsLabel').data('crm-status'); // current status
+            const status = $('#statusDetailsLabel').attr('data-crm-status'); // current status
             const range = currentRange;
             const date_range = currentDateRange;
 
