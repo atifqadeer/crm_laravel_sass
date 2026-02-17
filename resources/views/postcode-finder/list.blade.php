@@ -266,7 +266,7 @@
                                         
                                             <a href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(document.getElementById('postcode').value)}&destination=${encodeURIComponent(result.sale_postcode)}&travelmode=best_driving" 
                                                 target="_blank"
-                                                class="route-btn ms-2 px-3" alt="Get Route">
+                                                class="route-btn ms-2 px-3" title="Get Route">
                                                     <iconify-icon icon="logos:google-maps" width="14"></iconify-icon>
                                             </a>
                                         </p>
