@@ -269,7 +269,7 @@ class ResourceController extends Controller
                 ->addColumn('sale_postcode', function ($sale) {
                     if ($sale->lat != null && $sale->lng != null) {
                         $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
-                        $button = '<a href="' . $url . '" style="color:blue;" target="_blank">' . $sale->formatted_postcode . '</a>'; // Using accessor
+                        $button = '<a href="' . $url . '" class="active_postcode" target="_blank">' . $sale->formatted_postcode . '</a>'; // Using accessor
                     } else {
                         $button = $sale->formatted_postcode;
                     }
@@ -647,7 +647,6 @@ class ResourceController extends Controller
             fn($q) => $q->orderBy('applicants.applicant_name', 'desc')
         );
 
-
         // Return DataTables response
         if ($request->ajax()) {
             return DataTables::of($query)
@@ -659,25 +658,39 @@ class ResourceController extends Controller
                     $statusValue = $this->getApplicantStatus($applicant);
                     $postcode = e(strtoupper($applicant->applicant_postcode ?? '-'));
                     return in_array($statusValue, ['open', 'reject'])
-                        ? '<a href="' . route('applicants.available_job', $applicant->id) . '">' . $postcode . '</a>'
+                        ? '<a href="' . route('applicants.available_job', $applicant->id) . '" class="active_postcode" target="_blank">' . $postcode . '</a>'
                         : $postcode;
                 })
                 ->addColumn('job_title', fn($applicant) => e($applicant->job_title_name ?? '-'))
                 ->addColumn('job_category', fn($applicant) => $applicant->job_category_name ? strtoupper($applicant->job_category_name) . ($applicant->job_type === 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '') : '-')
                 ->addColumn('job_source', fn($applicant) => strtoupper($applicant->job_source_name ?? '-'))
-                ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if ($applicant->applicant_landline) {
-                        $phone = '<strong>P:</strong> ' . $applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> ' . $applicant->applicant_landline;
+                ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone . '<br>' . $landline;
+                    if ($applicant->is_blocked) {
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
                     } else {
-                        $phone = '<strong>P:</strong> ' . $applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    return $strng;
+                    return $str;
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     if (empty($applicant->applicant_experience) || $applicant->applicant_experience === 'NULL') {
@@ -757,39 +770,28 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
                             </button>';
                 })
-                // ->addColumn('applicant_resume', function ($applicant) {
-                //     $filePath = $applicant->applicant_cv;
-                //     $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
-                // ->addColumn('crm_resume', function ($applicant) {
-                //     $filePath = $applicant->updated_cv;
-                //     $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
-                ->addColumn('applicant_email', function ($applicant) {
+                ->editColumn('applicantEmail', function ($applicant) {
                     $email = '';
-                    if ($applicant->applicant_email_secondary) {
-                        $email = $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    if ($applicant->is_blocked) {
+                        $email = "<span class='badge bg-dark'>Blocked</span>";
                     } else {
                         $email = $applicant->applicant_email;
-                    }
 
+                        if ($applicant->applicant_email_secondary) {
+                            $email .= '<br>' . $applicant->applicant_email_secondary;
+                        }
+                    }
+                    
                     return $email; // Using accessor
+                })
+                // In your DataTable or controller
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = strtolower(trim($keyword));
+
+                    $query->where(function ($q) use ($keyword) {
+                        $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                    });
                 })
                 ->addColumn('customStatus', function ($applicant) {
                     $statusValue = $this->getApplicantStatus($applicant);
@@ -830,7 +832,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_postcode', 'applicant_resume', 'applicant_email', 'applicant_phone', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
+                ->rawColumns(['applicant_postcode', 'applicant_resume', 'applicantEmail', 'applicantPhone', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
                 ->make(true);
         }
 

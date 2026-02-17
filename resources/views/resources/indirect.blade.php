@@ -146,7 +146,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th width="15%">Phone</th>
+                                    <th width="15%">Phone / Landline</th>
                                     @canany(['applicant-download-resume'])
                                         <th>Applicant Resume</th>
                                         <th>CRM Resume</th>
@@ -313,11 +313,11 @@
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'updated_at', name: 'applicants.updated_at' },
                     { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
+                    { data: 'applicantEmail', name: 'applicantEmail' },
                     { data: 'job_title', name: 'job_titles.name' },
                     { data: 'job_category', name: 'job_categories.name' },
                     { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'applicant_phone', name: 'applicants.applicant_phone' },
+                    { data: 'applicantPhone', name: 'applicantPhone' },
                     { data: 'applicant_resume', name:'applicants.applicant_cv', orderable: false, searchable: false },
                     { data: 'crm_resume', name:'applicants.updated_cv', orderable: false, searchable: false },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
