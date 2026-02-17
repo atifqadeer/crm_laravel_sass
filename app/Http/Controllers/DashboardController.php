@@ -2113,7 +2113,6 @@ class DashboardController extends Controller
     }
     public function getStatisticsApplicants(Request $request)
     {
-        $titleFilters = $request->input('title_filters', ''); // Default is empty (no filter)
         $range = $request->input('range', ''); // Default is empty (no filter)
         $dateRange = $request->input('date_range', ''); // Default is empty (no filter)
         $category = $request->input('category', ''); // Default is empty (no filter)
@@ -2164,8 +2163,6 @@ class DashboardController extends Controller
         $crmNoteMap = [
             'crm_sent_cvs' => ['cv_sent', 'cv_sent_saved'],
             'crm_open_cvs' => 'quality_cvs_hold',
-            'quality_revert' => 'quality_revert',
-            'crm_revert' => 'crm_revert',
             'crm_rejected' => 'crm_reject',
             'crm_requested' => 'crm_request',
             'crm_request_rejected' => 'crm_request_reject',
@@ -2179,7 +2176,9 @@ class DashboardController extends Controller
             'crm_invoiced' => 'crm_invoice',
             'crm_disputed' => 'crm_dispute',
             'crm_paid' => 'crm_paid',
-        ];
+            'crm_revert' => 'crm_revert',
+            'quality_revert' => 'quality_revert',
+            ];
 
         $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
 
@@ -2187,8 +2186,6 @@ class DashboardController extends Controller
         $map = [
             'crm_sent_cvs' => 'quality_cleared',
             'crm_open_cvs' => 'quality_cvs_hold',
-            'quality_revert' => 'quality_revert',
-            'crm_revert' => 'crm_revert',
             'crm_rejected' => 'crm_reject',
             'crm_requested' => 'crm_request',
             'crm_request_rejected' => 'crm_request_reject',
@@ -2202,6 +2199,8 @@ class DashboardController extends Controller
             'crm_invoiced' => 'crm_invoice',
             'crm_disputed' => 'crm_dispute',
             'crm_paid' => 'crm_paid',
+            'crm_revert' => 'crm_revert',
+            'quality_revert' => 'quality_revert',
         ];
 
         $subStages = $map[$status] ?? 'quality_cleared';
@@ -2235,38 +2234,33 @@ class DashboardController extends Controller
         ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id');
 
         $query->select([
-                'applicants.id',
-                'applicants.applicant_name',
-                'applicants.applicant_email',
-                'applicants.applicant_email_secondary',
-                'applicants.applicant_phone',
-                'applicants.applicant_phone_secondary',
-                'applicants.applicant_landline',
-                'applicants.applicant_postcode',
-                'applicants.applicant_experience',
-                'applicants.is_blocked',
-                'applicants.job_category_id',
-                'applicants.job_title_id',
-                'applicants.job_source_id',
-                'applicants.job_type',
-                'applicants.applicant_notes',
-                'applicants.created_at',
+            'applicants.id',
+            'applicants.applicant_name',
+            'applicants.applicant_email',
+            'applicants.applicant_email_secondary',
+            'applicants.applicant_phone',
+            'applicants.applicant_phone_secondary',
+            'applicants.applicant_landline',
+            'applicants.applicant_postcode',
+            'applicants.applicant_experience',
+            'applicants.is_blocked',
+            'applicants.job_category_id',
+            'applicants.job_title_id',
+            'applicants.job_source_id',
+            'applicants.job_type',
+            'applicants.applicant_notes',
+            'applicants.created_at',
 
-                'crm_notes.details as notes_detail',
-                'crm_notes.created_at as notes_created_at',
+            'crm_notes.details as notes_detail',
+            'crm_notes.created_at as notes_created_at',
 
-                'users.name as user_name',
+            'users.name as user_name',
 
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-                'job_sources.name as job_source_name',
+            'job_titles.name as job_title_name',
+            'job_categories.name as job_category_name',
+            'job_sources.name as job_source_name',
 
-            ]);
-
-        // Filter by type if it's not empty
-        if (!empty($titleFilters)) {
-            $query->whereIn('job_title_id', $titleFilters);
-        }
+        ]);
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)

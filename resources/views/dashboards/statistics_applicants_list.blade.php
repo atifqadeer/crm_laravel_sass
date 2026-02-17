@@ -11,54 +11,6 @@
     </style>
 @endsection
 @section('content')
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header border-0">
-                    <div class="row justify-content-between">
-                        <div class="col-lg-12">
-                            <div class="text-md-end mt-3">
-                                @canany(['applicant-filters'])
-                                     <!-- Title Filter Dropdown -->
-                                    <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                        </button>
-
-                                        <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButton2"
-                                            style="min-width: 250px;">
-                                            <!-- Search input -->
-                                            <input type="text" class="form-control mb-2" id="titleSearchInput"
-                                                placeholder="Search titles...">
-
-                                            <!-- Scrollable checkbox list -->
-                                            <div id="titleList">
-                                                <div class="form-check">
-                                                    <input class="form-check-input title-filter" type="checkbox" value=""
-                                                        id="all-titles" data-title-id="">
-                                                    <label class="form-check-label" for="all-titles">All Titles</label>
-                                                </div>
-                                                @foreach ($jobTitles as $title)
-                                                    <div class="form-check">
-                                                        <input class="form-check-input title-filter" type="checkbox"
-                                                            value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                            data-title-id="{{ $title->id }}">
-                                                        <label class="form-check-label"
-                                                            for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endcanany
-                            </div>
-                        </div><!-- end col-->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="row">
         <div class="col-xl-12">
@@ -133,7 +85,6 @@
         const hasAddNotePermission = @json(auth()->user()->can('applicant-add-note'));
 
         $(document).ready(function() {
-            let currentTitleFilters = [];
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -259,7 +210,6 @@
                         d.type = '{{ $type }}';
                         d.category = '{{ $category }}';
                         d.date_range = '{{ $date_range }}';
-                        d.title_filters = currentTitleFilters || [];
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -354,37 +304,6 @@
                 },
             });
 
-            /*** Title Filter Handler ***/
-            $('.title-filter').on('change', function() {
-                const id = $(this).data('title-id');
-
-                // Handle "All Titles"
-                if (id === '' || id === undefined) {
-                    currentTitleFilters = [];
-                    $('.title-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
-                    if (this.checked) {
-                        currentTitleFilters.push(id);
-                        // Uncheck "All Titles"
-                        $('.title-filter[data-title-id=""]').prop('checked', false);
-                    } else {
-                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
-                    }
-                }
-
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
-
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
-                    ')' : 'All Titles');
-
-                // Trigger DataTable reload with the selected filters
-                table.ajax.reload();
-            });
         });
 
         function goToPage(totalPages) {
