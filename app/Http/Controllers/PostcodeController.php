@@ -48,6 +48,7 @@ class PostcodeController extends Controller
         $postcode = $request->Input('postcode');
         $radius = $request->Input('radius');
         $job_category_id = $request->Input('job_category_id');
+        $is_specialist = $request->input('is_specialist', 0);
 
         $job_result = null;
         $lati = null;
@@ -123,7 +124,7 @@ class PostcodeController extends Controller
         $data['cordinate_results'] = [];
 
         // Get coordinate results based on distance and job category
-        $data['cordinate_results'] = $this->distance($lati, $longi, $radius, $job_category_id);
+        $data['cordinate_results'] = $this->distance($lati, $longi, $radius, $job_category_id, $is_specialist);
 
         if ($data['cordinate_results']->isNotEmpty()) {
             foreach ($data['cordinate_results'] as &$job) {
@@ -177,7 +178,7 @@ class PostcodeController extends Controller
             'job_category_id' => $job_category_id
         ]);
     }
-    function distance($lat, $lon, $radius, $job_category_id)
+    function distance($lat, $lon, $radius, $job_category_id, $is_specialist = null)
     {
         $location_distance = Sale::selectRaw("
             *, 
@@ -188,11 +189,15 @@ class PostcodeController extends Controller
         ->having("distance", "<", $radius)  // No need to convert radius anymore
         ->orderBy("distance")
         ->where("status", 1)
-        ->where("is_on_hold", 0)
-        ->where('job_category_id', $job_category_id)
-        ->get();
+        ->where("is_on_hold", 0);
 
-        return $location_distance;
+        if ($is_specialist) {
+            $location_distance = $location_distance->where('job_type', 'specialist');
+        }
+
+        $result = $location_distance->where('job_category_id', $job_category_id)->get();
+
+        return $result;
     }
 
 }

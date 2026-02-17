@@ -55,6 +55,24 @@
         }
 
     </style>
+    <style>
+        .route-btn {
+            padding: 7px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 14px;
+            background: #fff;
+            color: #4285F4;
+            border: 1px solid #4285F4;
+            transition: all 0.3s ease;
+        }
+
+        .route-btn:hover {
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25);
+        }
+
+    </style>
     <div class="row">
         <div class="col-xl-3 col-lg-3">
             <div class="card">
@@ -97,6 +115,14 @@
                                 @endforeach
                             </select>
                             <div class="invalid-feedback">Please select a job category</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_specialist" id="is_specialist" value="1">
+                                <label class="form-check-label" for="is_specialist">
+                                    Do you want to filter specialist?
+                                </label>
+                            </div>
                         </div>
                         <div class="card-footer bg-light-subtle">
                             <button type="submit" class="btn btn-primary w-100"><i class="ri-search-line me-1"></i> Find PostCode</button>
@@ -232,13 +258,18 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <p class="mt-1 mb-0">
+                                        <p class="mt-1 mb-0 d-flex flex-wrap align-items-center">
                                             <a href="${url}" class="location-btn">
                                                 <iconify-icon icon="solar:map-point-wave-bold-duotone" class="fs-20"></iconify-icon>
                                                 ${result.sale_postcode.toUpperCase()}
                                             </a>
+                                        
+                                            <a href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(document.getElementById('postcode').value)}&destination=${encodeURIComponent(result.sale_postcode)}&travelmode=best_driving" 
+                                                target="_blank"
+                                                class="route-btn ms-2 px-3" alt="Get Route">
+                                                    <iconify-icon icon="logos:google-maps" width="14"></iconify-icon>
+                                            </a>
                                         </p>
-
                                     </div>
                                 </div><hr> 
                                 <div class="row mt-1">
