@@ -116,46 +116,10 @@ class ResourceController extends Controller
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
-            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
-
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
-
-            if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
-                    $likeSearch = "%{$searchTerm}%";
-
-                    $query->whereRaw('LOWER(sales.sale_postcode) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.experience) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.timing) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.job_description) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.job_type) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.position_type) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.cv_limit) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.salary) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.benefits) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch]);
-
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($likeSearch) {
-                        $q->where('job_titles.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($likeSearch) {
-                        $q->where('job_categories.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('unit', function ($q) use ($likeSearch) {
-                        $q->where('units.unit_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('office', function ($q) use ($likeSearch) {
-                        $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
-                    });
-                });
-            }
-        }
-
+            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
+            ->where('sales.status', 1)
+            ->where('sales.is_on_hold', 0);
+        
         // Filter by type if it's not empty
         switch ($typeFilter) {
             case 'specialist':
@@ -174,7 +138,7 @@ class ResourceController extends Controller
             $model->whereBetween('sales.created_at', [$start_date, $end_date]);
         }
 
-        // Filter by category if it's not empty
+        // Filter by head office if it's not empty
         if ($officeFilter) {
             $model->whereIn('sales.office_id', $officeFilter);
         }
@@ -217,6 +181,44 @@ class ResourceController extends Controller
         // Filter by category if it's not empty
         if ($titleFilter) {
             $model->whereIn('sales.job_title_id', $titleFilter);
+        }
+
+        if ($request->has('search.value')) {
+            $searchTerm = (string) $request->input('search.value');
+
+            if (!empty($searchTerm)) {
+                $model->where(function ($query) use ($searchTerm) {
+                    $likeSearch = "%{$searchTerm}%";
+
+                    $query->whereRaw('LOWER(sales.sale_postcode) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.experience) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.timing) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.job_description) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.job_type) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.position_type) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.cv_limit) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.salary) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.benefits) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch]);
+
+                    // Relationship searches with explicit table names
+                    $query->orWhereHas('jobTitle', function ($q) use ($likeSearch) {
+                        $q->where('job_titles.name', 'LIKE', "%{$likeSearch}%");
+                    });
+
+                    $query->orWhereHas('jobCategory', function ($q) use ($likeSearch) {
+                        $q->where('job_categories.name', 'LIKE', "%{$likeSearch}%");
+                    });
+
+                    $query->orWhereHas('unit', function ($q) use ($likeSearch) {
+                        $q->where('units.unit_name', 'LIKE', "%{$likeSearch}%");
+                    });
+
+                    $query->orWhereHas('office', function ($q) use ($likeSearch) {
+                        $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
+                    });
+                });
+            }
         }
 
         // Sorting logic
@@ -461,7 +463,6 @@ class ResourceController extends Controller
 
                     return '<div class="btn-group dropstart">' . $action . '</div>';
                 })
-
                 ->rawColumns(['sale_notes', 'experience', 'salary', 'qualification', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
