@@ -435,12 +435,12 @@
             </div>
             <div class="col-xl-5 col-lg-12">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center pb-1">
-                        <div>
+                    <div class="card-header d-flex justify-content-between align-items-center py-3">
+                        <div class="pb-1">
                             <h4 class="card-title mb-0">CRM Statistics Chart</h4>
                         </div>
                     </div>
-                    <div class="card-body d-flex py-3"> <!-- fixed min-height -->
+                    <div class="card-body d-flex py-4"> <!-- fixed min-height -->
                         <div id="statisticsChart" style="flex: 1; min-width: 600px;"></div>
                     </div>
                 </div>
