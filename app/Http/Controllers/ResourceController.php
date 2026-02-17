@@ -476,7 +476,6 @@ class ResourceController extends Controller
 
         // --- Validation ---
         $validated = $request->validate([
-            'updated_sales_filter' => 'boolean',
             'category_filter' => 'nullable|array',
             'category_filter.*' => 'exists:job_categories,id',
             'status_filter' => 'nullable|in:all,interested,not interested',
@@ -484,7 +483,7 @@ class ResourceController extends Controller
         ]);
 
         // --- Extract filters ---
-        $filterByUpdatedSale = $validated['updated_sales_filter'] ?? false;
+        $filterByUpdatedSale = $request->updated_sales_filter ?? false;
         $categoryFilter = $validated['category_filter'] ?? [];
         $status = $validated['status_filter'] ?? 'all';
         $dateRange = $validated['date_range_filter']
