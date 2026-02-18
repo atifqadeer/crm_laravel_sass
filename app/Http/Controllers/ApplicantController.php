@@ -74,34 +74,60 @@ class ApplicantController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'job_category_id' => 'required|exists:job_categories,id',
-            'job_type' => ['required', Rule::in(['specialist', 'regular'])],
-            'job_title_id' => 'required|exists:job_titles,id',
-            'job_source_id' => 'required|exists:job_sources,id',
-            'applicant_name' => 'required|string|max:255',
-            'gender' => 'required',
-            'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
-            'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary',
-            'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'applicant_phone' => [
-                'required',
-                'string',
-                'max:11',
-                Rule::unique('applicants', 'applicant_phone'),
-                Rule::unique('applicants', 'applicant_phone_secondary'),
+                'job_category_id' => 'required|exists:job_categories,id',
+                'job_type' => ['required', Rule::in(['specialist', 'regular'])],
+                'job_title_id' => 'required|exists:job_titles,id',
+                'job_source_id' => 'required|exists:job_sources,id',
+                'applicant_name' => 'required|string|max:255',
+                'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
+                'applicant_email_secondary' => 'nullable|email|max:255|different:applicant_email|unique:applicants,applicant_email_secondary',
+                'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
+                'applicant_phone' => [
+                    'required',
+                    'string',
+                    'max:11',
+                    Rule::unique('applicants', 'applicant_phone'),            // DB uniqueness
+                    Rule::unique('applicants', 'applicant_phone_secondary'),
+                    Rule::unique('applicants', 'applicant_landline'),
+                ],
+                'applicant_phone_secondary' => [
+                    'nullable',
+                    'string',
+                    'max:11',
+                    'different:applicant_phone',    // must not match primary phone
+                    'different:applicant_landline', // must not match landline
+                    Rule::unique('applicants', 'applicant_phone'),
+                    Rule::unique('applicants', 'applicant_phone_secondary'),
+                    Rule::unique('applicants', 'applicant_landline'),
+                ],
+                'applicant_landline' => [
+                    'nullable',
+                    'string',
+                    'max:11',
+                    'different:applicant_phone',      // must not match primary phone
+                    'different:applicant_phone_secondary', // must not match secondary phone
+                    Rule::unique('applicants', 'applicant_phone'),
+                    Rule::unique('applicants', 'applicant_phone_secondary'),
+                    Rule::unique('applicants', 'applicant_landline'),
+                ],
+                'applicant_experience' => 'nullable|string',
+                'applicant_notes' => 'required|string|max:255',
+                'applicant_cv' => 'nullable|file|mimes:docx,doc,csv,pdf,txt|max:10000',
             ],
-            'applicant_phone_secondary' => [
-                'nullable',
-                'string',
-                'max:11',
-                Rule::unique('applicants', 'applicant_phone'),
-                Rule::unique('applicants', 'applicant_phone_secondary'),
-            ],
-            'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline',
-            'applicant_experience' => 'nullable|string',
-            'applicant_notes' => 'required|string|max:255',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:10000', // max 5mb
-        ]);
+            [
+                // Custom error messages
+                // Emails
+                'applicant_email_secondary.different' => 'Secondary email must be different from primary email.',
+                'applicant_email_secondary.email' => 'Secondary email must be a valid email address.',
+                'applicant_email_secondary.unique' => 'This secondary email is already taken.',
+                // Phones
+                'applicant_phone_secondary.different' => 'Secondary phone must be different from other phone numbers.',
+                'applicant_landline.different' => 'Landline must be different from other phone numbers.',
+                'applicant_phone.unique' => 'This phone number is already taken.',
+                'applicant_phone_secondary.unique' => 'This phone number is already taken.',
+                'applicant_landline.unique' => 'This phone number is already taken.',
+            ]
+        );
 
         $validator->sometimes('have_nursing_home_experience', 'required|boolean', function ($input) {
             $nurseCategory = JobCategory::where('name', 'nurse')->first();
@@ -158,34 +184,7 @@ class ApplicantController extends Controller
 
             $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
 
-            // if ($request->hasFile('applicant_cv')) {
-
-            //     // Get original filename and extension
-            //     $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
-            //     $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-            //     $extension = $request->file('applicant_cv')->getClientOriginalExtension();
-
-            //     // 🧹 Replace all spaces (and multiple spaces) with a single underscore
-            //     $filename = preg_replace('/\s+/', '_', trim($filename));
-
-            //     // Generate unique filename
-            //     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-
-            //     // Build dynamic directory path: uploads/resume/YYYY/MM/DD
-            //     $year = now()->year;
-            //     $month = now()->format('m');
-            //     $day = now()->format('d');
-            //     $directory = "uploads/resume/{$year}/{$month}/{$day}";
-
-            //     // Store the file in the "public" disk under that directory
-            //     $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
-
-            //     // Save file path in DB
-            //     $applicantData['applicant_cv'] = $path;
-            // }
-
             if ($request->hasFile('applicant_cv')) {
-
                 // Original name & extension
                 $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
                 $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
@@ -205,11 +204,6 @@ class ApplicantController extends Controller
                 $directory = "uploads/resume/{$year}/{$month}/{$day}";
                 $destinationPath = public_path($directory);
 
-                // Create directory if not exists
-                // if (!file_exists($destinationPath)) {
-                //     mkdir($destinationPath, 0777, true);
-                // }
-
                 if (!File::exists($destinationPath)) {
                     File::makeDirectory($destinationPath, 0755, true, true);
                 }
@@ -221,14 +215,15 @@ class ApplicantController extends Controller
                 $applicantData['applicant_cv'] = $directory . '/' . $fileNameToStore;
             }
 
-            $postcode = $request->applicant_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->applicant_postcode); // Remove spaces
+
             $postcode_query = strlen($postcode) < 6
-                ? DB::table('outcodepostcodes')->where('outcode', $postcode)->first()
-                : DB::table('postcodes')->where('postcode', $postcode)->first();
+                ? DB::table('outcodepostcodes')->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [strtolower($postcode)])->first()
+                : DB::table('postcodes')->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [strtolower($postcode)])->first();
 
             if (!$postcode_query) {
                 try {
-                    $result = $this->geocode($postcode);
+                    $result = $this->geocode($request->applicant_postcode);
                     // If geocode fails, throw
                     if (!isset($result['lat']) || !isset($result['lng'])) {
                         throw new \Exception('Geolocation failed. Latitude and longitude not found.');
@@ -391,32 +386,6 @@ class ApplicantController extends Controller
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
             ->with(['jobTitle', 'jobCategory', 'jobSource', 'crmHistory']);
 
-        /** Sorting logic */
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
-
-            // Handle special cases first
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
-                $model->orderBy('applicants.created_at', 'desc');
-            }
-        } else {
-            // Default sorting when no order is specified
-            $model->orderBy('applicants.created_at', 'desc');
-        }
-
         // if ($request->has('search.value')) { 
         //     $searchTerm = (string) $request->input('search.value'); 
         //     if (!empty($searchTerm)) { 
@@ -437,72 +406,8 @@ class ApplicantController extends Controller
         //     } 
         // }
 
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
-
-            if (!empty($searchTerm)) {
-                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
-
-                $model->where(function ($query) use ($lowerSearchTerm) {
-
-                    // Split the search term by spaces to get individual words
-                    $keywords = explode(' ', $lowerSearchTerm);
-
-                    // ✅ IMPROVED Name Search: Matches "Tenda Menda" if you search "Menda Tenda"
-                    $query->where(function ($nameQuery) use ($keywords) {
-                        foreach ($keywords as $word) {
-                            if (trim($word) !== '') {
-                                $nameQuery->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$word}%"]);
-                            }
-                        }
-                    });
-
-                    // ✅ Applicant name: allow partial matches
-                    $query->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
-                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
-
-                        // ✅ Postcode: exact match only
-                        ->orWhereRaw('LOWER(applicants.applicant_postcode) = ?', [$lowerSearchTerm])
-
-                        // ✅ Phones: partial matches allowed
-                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
-
-                        // ✅ Experience: partial matches allowed
-                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]);
-
-                    // ✅ Relationship searches (partial matches)
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                });
-            }
-        }
-
         // Filter by status if it's not empty
         switch ($statusFilter) {
-            // case 'active':
-            //     $model->where('applicants.status', 1)
-            //         ->where('applicants.is_no_job', false)
-            //         ->where('applicants.is_blocked', false)
-            //         ->where('applicants.is_temp_not_interested', false);
-            //     break;
-            // case 'inactive':
-            //     $model->where('applicants.status', 0)
-            //         ->where('applicants.is_no_job', false)
-            //         ->where('applicants.is_blocked', false)
-            //         ->where('applicants.is_temp_not_interested', false);
-            //     break;
             case 'crm active':
                 $model->whereHas('crmHistory')
                     ->where('applicants.is_blocked', false)
@@ -571,6 +476,84 @@ class ApplicantController extends Controller
         // Filter by type if it's not empty
         if ($titleFilters) {
             $model->whereIn('applicants.job_title_id', $titleFilters);
+        }
+
+        /** Sorting logic */
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            // Handle special cases first
+            if ($orderColumn === 'job_source') {
+                $model->orderBy('applicants.job_source_id', $orderDirection);
+            } elseif ($orderColumn === 'job_category') {
+                $model->orderBy('applicants.job_category_id', $orderDirection);
+            } elseif ($orderColumn === 'job_title') {
+                $model->orderBy('applicants.job_title_id', $orderDirection);
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
+                $model->orderBy('applicants.created_at', 'desc');
+            }
+        } else {
+            // Default sorting when no order is specified
+            $model->orderBy('applicants.created_at', 'desc');
+        }
+
+        if ($request->has('search.value')) {
+            $searchTerm = (string) $request->input('search.value');
+
+            if (!empty($searchTerm)) {
+                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
+
+                $model->where(function ($query) use ($lowerSearchTerm) {
+
+                    // Split the search term by spaces to get individual words
+                    $keywords = explode(' ', $lowerSearchTerm);
+
+                    // ✅ IMPROVED Name Search: Matches "Tenda Menda" if you search "Menda Tenda"
+                    $query->where(function ($nameQuery) use ($keywords) {
+                        foreach ($keywords as $word) {
+                            if (trim($word) !== '') {
+                                $nameQuery->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$word}%"]);
+                            }
+                        }
+                    });
+
+                    // ✅ Applicant name: allow partial matches
+                    $query->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
+
+                        // ✅ Postcode: exact match only
+                        ->orWhereRaw('LOWER(applicants.applicant_postcode) = ?', [$lowerSearchTerm])
+
+                        // ✅ Phones: partial matches allowed
+                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
+
+                        // ✅ Experience: partial matches allowed
+                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]);
+
+                    // ✅ Relationship searches (partial matches)
+                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                });
+            }
         }
 
         if ($request->ajax()) {
@@ -716,40 +699,6 @@ class ApplicantController extends Controller
                 ->editColumn('updated_at', function ($applicant) {
                     return $applicant->formatted_updated_at; // Using accessor
                 })
-                // ->addColumn('applicant_resume', function ($applicant) {
-                //     $path = $applicant->applicant_cv;
-
-                //     // ✅ Only proceed if path begins with "uploads/"
-                //     if ($path && str_starts_with($path, 'uploads/')) {
-                //         // ✅ Check if file exists on public disk
-                //         if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
-                //             // ✅ Correct URL (storage symlink points to storage/app/public)
-                //             $url = asset('storage/' . $path);
-
-                //             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                //                 '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
-                //         }
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
-                // ->addColumn('crm_resume', function ($applicant) {
-                //     $path = $applicant->updated_cv;
-
-                //     if ($path && str_starts_with($path, 'uploads/')) {
-                //         if (!$applicant->is_blocked && Storage::disk('public')->exists($path)) {
-
-                //             $url = asset('storage/' . $path);
-
-                //             return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                //                 '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
-                //         }
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
 
@@ -1128,53 +1077,81 @@ class ApplicantController extends Controller
     {
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'job_category_id' => 'required|exists:job_categories,id',
-            'job_type' => ['required', Rule::in(['specialist', 'regular'])],
-            'job_title_id' => 'required|exists:job_titles,id',
-            'job_source_id' => 'required|exists:job_sources,id',
-            'applicant_name' => 'required|string|max:255',
-            'gender' => 'required',
-            'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email,' . $request->input('applicant_id'), // Exclude current applicant's email
-            'applicant_email_secondary' => 'nullable|email|max:255|unique:applicants,applicant_email_secondary,' . $request->input('applicant_id'),
-            'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            // 'applicant_landline' => 'nullable|string|max:11|unique:applicants,applicant_landline,' . $request->input('applicant_id'),
-            'applicant_phone' => [
-                'required',
-                'string',
-                'max:11',
-                Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
-                Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
-                Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+                'job_category_id' => 'required|exists:job_categories,id',
+                'job_type' => ['required', Rule::in(['specialist', 'regular'])],
+                'job_title_id' => 'required|exists:job_titles,id',
+                'job_source_id' => 'required|exists:job_sources,id',
+                'applicant_name' => 'required|string|max:255',
+                'gender' => 'required',
+                
+                // Emails
+                'applicant_email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    Rule::unique('applicants', 'applicant_email')->ignore($request->input('applicant_id')),
+                ],
+                'applicant_email_secondary' => [
+                    'nullable',
+                    'email',
+                    'max:255',
+                    'different:applicant_email', // cannot be same as primary
+                    Rule::unique('applicants', 'applicant_email_secondary')->ignore($request->input('applicant_id')),
+                ],
+
+                // Postcode
+                'applicant_postcode' => [
+                    'required',
+                    'string',
+                    'min:2',
+                    'max:8',
+                    'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'
+                ],
+
+                // Phones
+                'applicant_phone' => [
+                    'required',
+                    'string',
+                    'max:11',
+                    Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+                ],
+                'applicant_phone_secondary' => [
+                    'nullable',
+                    'string',
+                    'max:11',
+                    'different:applicant_phone',
+                    'different:applicant_landline',
+                    Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+                ],
+                'applicant_landline' => [
+                    'nullable',
+                    'string',
+                    'max:11',
+                    'different:applicant_phone',
+                    'different:applicant_phone_secondary',
+                    Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
+                    Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
+                ],
+
+                // Other fields
+                'applicant_experience' => 'nullable|string',
+                'applicant_notes' => 'required|string|max:255',
+                'applicant_cv' => 'file|mimes:docx,doc,csv,pdf,txt|max:10000', // 10MB
             ],
-            'applicant_phone_secondary' => [
-                'nullable',
-                'string',
-                'max:11',
-                Rule::unique('applicants', 'applicant_phone')->ignore($request->input('applicant_id')),
-                Rule::unique('applicants', 'applicant_phone_secondary')->ignore($request->input('applicant_id')),
-                Rule::unique('applicants', 'applicant_landline')->ignore($request->input('applicant_id')),
-            ],
-            'applicant_landline' => [
-                'nullable',
-                'string',
-                'max:11',
-                function ($attribute, $value, $fail) use ($request) {
-                    if ($value) {
-                        $exists = Applicant::where('applicant_landline', $value)
-                            ->when($request->input('applicant_id'), function ($q) use ($request) {
-                                $q->where('id', '!=', $request->input('applicant_id'));
-                            })
-                            ->exists();
-                        if ($exists) {
-                            $fail('This landline already exists.');
-                        }
-                    }
-                },
-            ],
-            'applicant_experience' => 'nullable|string',
-            'applicant_notes' => 'required|string',
-            'applicant_cv' => 'nullable|mimes:docx,doc,csv,pdf,txt|max:10000', // 5mb
-        ]);
+            [
+                'applicant_email_secondary.different' => 'Secondary email must be different from primary email.',
+                'applicant_phone_secondary.different' => 'Secondary phone must be different from other phone numbers.',
+                'applicant_landline.different' => 'Landline must be different from other phone numbers.',
+                'applicant_phone.unique' => 'This phone number already exists.',
+                'applicant_phone_secondary.unique' => 'This phone number already exists.',
+                'applicant_landline.unique' => 'This phone number already exists.',
+            ]
+        );
 
         // Add conditionally required validation
         $validator->sometimes('have_nursing_home_experience', 'required|boolean', function ($input) {
@@ -1212,39 +1189,6 @@ class ApplicantController extends Controller
                 'gender'
             ]);
 
-            // Handle file upload if a CV is provided
-            // $path = null;
-            // if ($request->hasFile('applicant_cv')) {
-            //     // 🧹 Delete the old CV file if it exists
-            //     if (!empty($applicantData['applicant_cv']) && Storage::disk('public')->exists($applicantData['applicant_cv'])) {
-            //         Storage::disk('public')->delete($applicantData['applicant_cv']);
-            //     }
-
-            //     // 📅 Build dynamic directory path based on current date
-            //     $year = now()->year;
-            //     $month = now()->format('m');
-            //     $day = now()->format('d');
-
-            //     $directory = "uploads/resume/{$year}/{$month}/{$day}";
-
-            //     // 🧾 Get original filename and extension
-            //     $filenameWithExt = $request->file('applicant_cv')->getClientOriginalName();
-            //     $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-            //     $extension = $request->file('applicant_cv')->getClientOriginalExtension();
-
-            //     // 🔤 Replace all whitespaces (including multiple) with underscores
-            //     $filename = preg_replace('/\s+/', '_', trim($filename));
-
-            //     // 🕒 Generate unique filename
-            //     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-
-            //     // 💾 Store the file in the "public" disk under the dynamic path
-            //     $path = $request->file('applicant_cv')->storeAs($directory, $fileNameToStore, 'public');
-
-            //     // ✅ Save the new file path in the data array
-            //     $applicantData['applicant_cv'] = $path;
-            // }
-
             $path = null;
 
             if ($request->hasFile('applicant_cv')) {
@@ -1265,11 +1209,6 @@ class ApplicantController extends Controller
 
                 $directory = "uploads/resume/{$year}/{$month}/{$day}";
                 $destinationPath = public_path($directory);
-
-                // 📁 Create directory if not exists
-                // if (!file_exists($destinationPath)) {
-                //     mkdir($destinationPath, 0777, true);
-                // }
 
                 if (!File::exists($destinationPath)) {
                     File::makeDirectory($destinationPath, 0755, true, true);
@@ -1293,7 +1232,6 @@ class ApplicantController extends Controller
                 $path = $directory . '/' . $fileNameToStore;
                 $applicantData['applicant_cv'] = $path;
             }
-
 
             // Sanitize emails (trim spaces and lowercase)
             $applicantData['applicant_email'] = isset($applicantData['applicant_email'])
@@ -1341,16 +1279,15 @@ class ApplicantController extends Controller
 
             $applicantData['applicant_notes'] = $applicant_notes = $request->applicant_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
 
-            $postcode = $request->applicant_postcode;
-
-            if ($postcode != $applicant->applicant_postcode) {
+            $postcode = preg_replace('/\s+/', '', $request->applicant_postcode); // Remove spaces
+            if ($postcode != preg_replace('/\s+/', '', $applicant->applicant_postcode)) {
                 $postcode_query = strlen($postcode) < 6
-                    ? DB::table('outcodepostcodes')->where('outcode', $postcode)->first()
-                    : DB::table('postcodes')->where('postcode', $postcode)->first();
+                    ? DB::table('outcodepostcodes')->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [strtolower($postcode)])->first()
+                    : DB::table('postcodes')->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [strtolower($postcode)])->first();
 
                 if (!$postcode_query) {
                     try {
-                        $result = $this->geocode($postcode);
+                        $result = $this->geocode($request->applicant_postcode);
 
                         // If geocode fails, throw
                         if (!isset($result['lat']) || !isset($result['lng'])) {

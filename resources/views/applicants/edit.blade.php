@@ -163,17 +163,15 @@
                                 <div class="invalid-feedback">Please provide a nursing option</div>
                             </div>
                         </div>
-
-                        
-                        
                     </div>
                     
-                    <!--- <div class="card">
+                    <div class="card">
                         <div class="card-header">
                             <h4 class="card-title">Upload Documents</h4>
                         </div>
-                        
-                        <div id="applicantCvDropzone" class="dropzone">
+                    
+                        <!-- Dropzone -->
+                        <div id="applicantCvDropzone" class="dropzone dz-clickable">
                             <div class="dz-message needsclick">
                                 <i class="h1 ri-upload-cloud-2-line"></i>
                                 <h3>Drop files here or click to upload.</h3>
@@ -182,49 +180,45 @@
                                 </span>
                             </div>
                         </div>
-                    
-                        <div class="p-3" id="regularFileInput" style="display: none;">
-                            <label class="form-label">Or select file manually:</label>
-                            {{-- <input type="file" class="form-control" name="applicant_cv" id="applicant_cv"> --}}
-                        </div>
-                    
-                        <div class="text-center p-2">
-                            <button type="button" class="btn btn-sm btn-link" id="toggleUploadMethod">
-                                Switch to manual file selection
-                            </button>
-                        </div>
-                    
-                        <ul class="list-unstyled mb-0" id="dropzone-preview">
-                            <li class="mt-2" id="dropzone-preview-list">
+
+                        <!-- Hidden preview template -->
+                        <div id="dz-preview-template" style="display:none;">
+                            <li class="mt-2 dz-preview dz-file-preview">
                                 <div class="border rounded">
                                     <div class="d-flex p-2">
                                         <div class="flex-shrink-0 me-3">
-                                            <div class="avatar-sm bg-light rounded">
-                                                <img data-dz-thumbnail class="img-fluid rounded d-block" src="#" alt="Dropzone-Image" />
+                                            <div class="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
+                                                <div data-dz-thumbnail class="dz-iconify">
+                                                    <iconify-icon icon="solar:file-bold" class="fs-32 text-secondary"></iconify-icon>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="pt-1">
-                                                <h5 class="fs-14 mb-1" data-dz-name>&nbsp;</h5>
+                                                <h5 class="fs-14 mb-1" data-dz-name></h5>
                                                 <p class="fs-13 text-muted mb-0" data-dz-size></p>
                                                 <strong class="error text-danger" data-dz-errormessage></strong>
                                             </div>
                                         </div>
                                         <div class="flex-shrink-0 ms-3">
-                                            <button data-dz-remove class="btn btn-sm btn-transparent text-danger">
-                                                <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24"></iconify-icon>
+                                            <button data-dz-remove class="btn btn-sm btn-transparent text-danger" title="Remove file">
+                                                <iconify-icon icon="solar:trash-bin-minimalistic-bold" class="text-danger fs-24"></iconify-icon>
                                             </button>
                                         </div>
+
                                     </div>
                                 </div>
                             </li>
-                        </ul>
-                    </div>-->
-                    <div class="form-group">
+                        </div>
+
+                        <ul class="list-unstyled mb-0" id="dropzone-preview"></ul>
+
+                    </div>
+                    {{-- <div class="form-group">
                         <label for="applicant_cv">Upload CV</label>
                         <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
                         <small class="text-muted">Allowed file types: docx, doc, csv, pdf, txt (Max 5MB)</small>
-                    </div> 
+                    </div>  --}}
                     <div class="mb-3 rounded">
                         <div class="row justify-content-end g-2">
                             <div class="col-lg-2">
@@ -287,69 +281,6 @@
     })()
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Dropzone
-        Dropzone.autoDiscover = false;
-        const myDropzone = new Dropzone("#applicantCvDropzone", {
-            url: "/dummy-url",
-            paramName: "applicant_cv",
-            maxFiles: 1,
-            maxFilesize: 5,
-            acceptedFiles: '.docx,.doc,.csv,.pdf',
-            addRemoveLinks: true,
-            autoProcessQueue: false,
-            previewsContainer: "#dropzone-preview",
-            previewTemplate: document.querySelector('#dropzone-preview-list').innerHTML,
-            init: function() {
-                this.on("addedfile", function(file) {
-                    // Sync with regular file input when file is added to Dropzone
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    document.getElementById('applicant_cv').files = dataTransfer.files;
-                    
-                    // Hide regular input when using Dropzone
-                    document.getElementById('regularFileInput').style.display = 'none';
-                });
-                
-                this.on("removedfile", function(file) {
-                    // Clear regular input when file is removed from Dropzone
-                    document.getElementById('applicant_cv').value = '';
-                    document.getElementById('regularFileInput').style.display = 'block';
-                });
-            }
-        });
-
-        // Toggle between upload methods
-        document.getElementById('toggleUploadMethod').addEventListener('click', function() {
-            const dropzone = document.getElementById('applicantCvDropzone');
-            const regularInput = document.getElementById('regularFileInput');
-            
-            if (dropzone.style.display === 'none') {
-                // Switch to Dropzone
-                dropzone.style.display = 'block';
-                regularInput.style.display = 'none';
-                this.textContent = 'Switch to manual file selection';
-            } else {
-                // Switch to regular input
-                dropzone.style.display = 'none';
-                regularInput.style.display = 'block';
-                this.textContent = 'Switch to drag & drop';
-                
-                // Clear any Dropzone files
-                myDropzone.removeAllFiles(true);
-            }
-        });
-
-        // Handle regular file input changes
-        document.getElementById('applicant_cv').addEventListener('change', function() {
-            if (this.files.length > 0) {
-                // Add file to Dropzone if using regular input
-                myDropzone.removeAllFiles(true);
-                myDropzone.addFile(this.files[0]);
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
         // Handle form submission
         const form = document.getElementById('editApplicantForm');
         form.addEventListener('submit', function(e) {
@@ -369,6 +300,12 @@
 
             // Collect form data
             const formData = new FormData(form);
+
+            // Add Dropzone file data to FormData
+            const dropzoneFiles = Dropzone.instances[0].getAcceptedFiles();  // Assuming Dropzone instance is properly initialized
+            dropzoneFiles.forEach(function(file) {
+                formData.append('applicant_cv', file);
+            });
             
             // Add any additional data
             formData.append('job_title_id', document.getElementById('job_title').value);

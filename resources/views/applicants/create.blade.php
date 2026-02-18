@@ -97,6 +97,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                 <label for="applicant_email_secondary" class="form-label">Email <small class="text-info">(Secondary)</small></label>
                                 <input type="email" id="applicant_email_secondary" class="form-control" name="applicant_email_secondary" 
                                 value="{{ old('applicant_email_secondary') }}" placeholder="Enter Email">
+                                <div class="invalid-feedback">Please provide a valid email</div>
                             </div>
                         </div>
                         
@@ -120,8 +121,8 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                             <div class="mb-3">
                                 <label for="applicant_phone_secondary" class="form-label">Phone <small class="text-info">(Secondary)</small></label>
                                 <input type="tel" id="applicant_phone_secondary" class="form-control" name="applicant_phone_secondary" 
-                                value="{{ old('applicant_phone_secondary') }}" placeholder="Enter Phone Number" required>
-                                <div class="invalid-feedback">Please provide a phone number</div>
+                                value="{{ old('applicant_phone_secondary') }}" placeholder="Enter Phone Number">
+                                <div class="invalid-feedback">Please provide a secondary phone number</div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-4">
@@ -129,6 +130,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                 <label for="applicant_landline" class="form-label">Landline</label>
                                 <input type="tel" id="applicant_landline" class="form-control" name="applicant_landline" placeholder="Enter Landline Number"
                                value="{{ old('applicant_landline') }}">
+                               <div class="invalid-feedback">Please provide a landline number</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
@@ -183,75 +185,72 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
 
                     </div>
                     
-                        <!--   <div class="card">
-                            <div class="card-header">
-                                <h4 class="card-title">Upload Documents</h4>
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">Upload Documents</h4>
+                        </div>
+                    
+                        <!-- Dropzone -->
+                        <div id="applicantCvDropzone" class="dropzone dz-clickable">
+                            <div class="dz-message needsclick">
+                                <i class="h1 ri-upload-cloud-2-line"></i>
+                                <h3>Drop files here or click to upload.</h3>
+                                <span class="text-muted fs-13">
+                                    Allowed file types: docx, doc, csv, pdf (Max 5MB)
+                                </span>
                             </div>
-                            
-                            <div id="applicantCvDropzone" class="dropzone">
-                                <div class="dz-message needsclick">
-                                    <i class="h1 ri-upload-cloud-2-line"></i>
-                                    <h3>Drop files here or click to upload.</h3>
-                                    <span class="text-muted fs-13">
-                                        Allowed file types: docx, doc, csv, pdf (Max 5MB)
-                                    </span>
-                                </div>
-                            </div>
-                        
-                            <div class="p-3" id="regularFileInput" style="display: none;">
-                                <label class="form-label">Or select file manually:</label>
-                                {{-- <input type="file" class="form-control" name="applicant_cv" id="applicant_cv"> --}}
-                            </div>
-                        
-                            <div class="text-center p-2">
-                                <button type="button" class="btn btn-sm btn-link" id="toggleUploadMethod">
-                                    Switch to manual file selection
-                                </button>
-                            </div>
-                        
-                            <ul class="list-unstyled mb-0" id="dropzone-preview">
-                                <li class="mt-2" id="dropzone-preview-list">
-                                    <div class="border rounded">
-                                        <div class="d-flex p-2">
-                                            <div class="flex-shrink-0 me-3">
-                                                <div class="avatar-sm bg-light rounded">
-                                                    <img data-dz-thumbnail class="img-fluid rounded d-block" src="#" alt="Dropzone-Image" />
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="pt-1">
-                                                    <h5 class="fs-14 mb-1" data-dz-name>&nbsp;</h5>
-                                                    <p class="fs-13 text-muted mb-0" data-dz-size></p>
-                                                    <strong class="error text-danger" data-dz-errormessage></strong>
-                                                </div>
-                                            </div>
-                                            <div class="flex-shrink-0 ms-3">
-                                                <button data-dz-remove class="btn btn-sm btn-transparent text-danger">
-                                                    <iconify-icon icon="solar:trash-bin-trash-bold" class="align-middle fs-24"></iconify-icon>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div> -->
-                        <div class="form-group">
-                            <label for="applicant_cv">Upload CV</label>
-                            <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
-                            <small class="text-muted">Allowed file types: docx, doc, pdf, txt (Max 5MB)</small>
                         </div>
 
-                        <div class="mb-3 rounded">
-                            <div class="row justify-content-end g-2">
-                                <div class="col-lg-2">
-                                    <a href="{{ route('applicants.list') }}" class="btn btn-dark w-100">Cancel</a>
+                        <!-- Hidden preview template -->
+                        <div id="dz-preview-template" style="display:none;">
+                            <li class="mt-2 dz-preview dz-file-preview">
+                                <div class="border rounded">
+                                    <div class="d-flex p-2">
+                                        <div class="flex-shrink-0 me-3">
+                                            <div class="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
+                                                <div data-dz-thumbnail class="dz-iconify">
+                                                    <iconify-icon icon="solar:file-bold" class="fs-32 text-secondary"></iconify-icon>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="pt-1">
+                                                <h5 class="fs-14 mb-1" data-dz-name></h5>
+                                                <p class="fs-13 text-muted mb-0" data-dz-size></p>
+                                                <strong class="error text-danger" data-dz-errormessage></strong>
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 ms-3">
+                                            <button data-dz-remove class="btn btn-sm btn-transparent text-danger" title="Remove file">
+                                                <iconify-icon icon="solar:trash-bin-minimalistic-bold" class="text-danger fs-24"></iconify-icon>
+                                            </button>
+                                        </div>
+
+                                    </div>
                                 </div>
-                                <div class="col-lg-2">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        Save</button>
-                                </div>
+                            </li>
+                        </div>
+
+                        <ul class="list-unstyled mb-0" id="dropzone-preview"></ul>
+
+                    </div>
+                    {{-- <div class="form-group">
+                        <label for="applicant_cv">Upload CV</label>
+                        <input type="file" class="form-control" name="applicant_cv" id="applicant_cv" accept=".pdf,.doc,.docx,.txt">
+                        <small class="text-muted">Allowed file types: docx, doc, pdf, txt (Max 5MB)</small>
+                    </div> --}}
+
+                    <div class="mb-3 rounded">
+                        <div class="row justify-content-end g-2">
+                            <div class="col-lg-2">
+                                <a href="{{ route('applicants.list') }}" class="btn btn-dark w-100">Cancel</a>
+                            </div>
+                            <div class="col-lg-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Save</button>
                             </div>
                         </div>
+                    </div>
                 </div>
             </div>
         </form>
@@ -341,6 +340,79 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
     });
 
     document.addEventListener('DOMContentLoaded', function() {
+        // // Handle form submission
+        // const form = document.getElementById('createApplicantForm');
+        // form.addEventListener('submit', function(e) {
+        //     e.preventDefault();
+            
+        //     const submitBtn = form.querySelector('button[type="submit"]');
+        //     submitBtn.disabled = true;
+        //     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+        //     // Collect form data
+        //     const formData = new FormData(form);
+            
+        //     // Add any additional data
+        //     formData.append('job_type', document.getElementById('job_type').value);
+          
+        //     fetch(form.action, {
+        //         method: 'POST',
+        //         headers: {
+        //             'Accept': 'application/json',
+        //             'X-Requested-With': 'XMLHttpRequest'
+        //         },
+        //         body: formData
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) { 
+        //             toastr.success(data.message);
+        //             form.reset();
+        //             form.classList.remove('was-validated');
+                    
+        //             window.location.reload();
+        //         } else {
+        //             // Handle validation errors
+        //             submitBtn.disabled = false;
+        //             submitBtn.innerHTML = 'Save';
+                    
+        //             if (data.errors) {
+        //                 // Clear previous errors
+        //                 form.querySelectorAll('.is-invalid').forEach(el => {
+        //                     el.classList.remove('is-invalid');
+        //                 });
+        //                 form.querySelectorAll('.invalid-feedback').forEach(el => {
+        //                     el.textContent = '';
+        //                 });
+
+        //                 // Display new errors
+        //                 Object.entries(data.errors).forEach(([field, messages]) => {
+        //                     const input = form.querySelector(`[name="${field}"]`);
+        //                     const feedback = input?.closest('.mb-3')?.querySelector('.invalid-feedback');
+                            
+        //                     if (input && feedback) {
+        //                         input.classList.add('is-invalid');
+        //                         feedback.textContent = messages.join(' ');
+        //                     }
+        //                 });
+        //             } else {
+        //                 if (data.errors) {
+        //                     let errorMessages = Object.values(data.errors).flat().join('\n');
+        //                     toastr.error('Validation Errors:\n' + errorMessages);
+        //                 } else {
+        //                     toastr.error(data.message);
+        //                 }
+        //             }
+        //         }
+        //     })
+        //     .catch(error => {
+        //         submitBtn.disabled = false;
+        //         submitBtn.innerHTML = 'Save';
+        //         alert('An unexpected error occurred. Please try again.');
+        //         console.error('Error:', error);
+        //     });
+        // });
+        
         // Handle form submission
         const form = document.getElementById('createApplicantForm');
         form.addEventListener('submit', function(e) {
@@ -353,9 +425,13 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
             // Collect form data
             const formData = new FormData(form);
             
-            // Add any additional data
-            formData.append('job_type', document.getElementById('job_type').value);
-          
+            // Add Dropzone file data to FormData
+            const dropzoneFiles = Dropzone.instances[0].getAcceptedFiles();  // Assuming Dropzone instance is properly initialized
+            dropzoneFiles.forEach(function(file) {
+                formData.append('applicant_cv', file);
+            });
+
+            // Submit form data with the file attached
             fetch(form.action, {
                 method: 'POST',
                 headers: {
@@ -378,14 +454,9 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                     submitBtn.innerHTML = 'Save';
                     
                     if (data.errors) {
-                        // Clear previous errors
-                        form.querySelectorAll('.is-invalid').forEach(el => {
-                            el.classList.remove('is-invalid');
-                        });
-                        form.querySelectorAll('.invalid-feedback').forEach(el => {
-                            el.textContent = '';
-                        });
-
+                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                        form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                        
                         // Display new errors
                         Object.entries(data.errors).forEach(([field, messages]) => {
                             const input = form.querySelector(`[name="${field}"]`);
@@ -397,12 +468,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                             }
                         });
                     } else {
-                        if (data.errors) {
-                            let errorMessages = Object.values(data.errors).flat().join('\n');
-                            toastr.error('Validation Errors:\n' + errorMessages);
-                        } else {
-                            toastr.error(data.message);
-                        }
+                        toastr.error(data.message);
                     }
                 }
             })
@@ -461,8 +527,6 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                 this.value = value;
             });
         });
-
-        
     });
 
     // Fetch data and populate dropdown
