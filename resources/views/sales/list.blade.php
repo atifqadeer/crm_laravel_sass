@@ -7,8 +7,9 @@
     table.dataTable.no-footer {
         border-bottom: none !important;
     }
-    td {
-        border: none !important;
+    #sales_table td {
+        border: 1px solid #ffffff00;
+        border-bottom: 1px solid;
     }
 </style>
 @endsection
