@@ -176,7 +176,7 @@
                                 <i class="h1 ri-upload-cloud-2-line"></i>
                                 <h3>Drop files here or click to upload.</h3>
                                 <span class="text-muted fs-13">
-                                    Allowed file types: docx, doc, csv, pdf (Max 5MB)
+                                    Allowed file types: docx, doc, csv, pdf (Max 10MB)
                                 </span>
                             </div>
                         </div>
@@ -381,40 +381,38 @@
         });
 
         // Phone number formatting
-        ['applicant_phone', 'applicant_landline'].forEach(id => {
+        ['applicant_phone', 'applicant_landline', 'applicant_phone_secondary'].forEach(id => {
             const input = document.getElementById(id);
             if (!input) return;
 
             input.addEventListener('input', function () {
-                let value = this.value;
+                let value = this.value.trim();
 
-                // 0️⃣ Remove all whitespace first
-                value = value.replace(/\s+/g, '');
-
-                // 1️⃣ Remove all characters except digits and '+'
+                // 1️⃣ Allow only digits and '+'
                 value = value.replace(/[^0-9+]/g, '');
 
-                // 2️⃣ If number starts with +44, replace it with 0
+                // 2️⃣ Convert +44 to 0
                 if (value.startsWith('+44')) {
-                    value = '0' + value.slice(3); 
+                    value = '0' + value.slice(3);
                 }
 
-                // 3️⃣ If number doesn’t start with 0, add leading 0
+                // 3️⃣ Remove remaining '+'
+                value = value.replace(/\+/g, '');
+
+                // 4️⃣ If empty OR only "0", keep it empty
+                if (value === '' || value === '0') {
+                    this.value = '';
+                    return;
+                }
+
+                // 5️⃣ If digits exist and doesn't start with 0, add 0
                 if (!value.startsWith('0')) {
                     value = '0' + value;
                 }
 
-                // 4️⃣ Keep only digits (remove + now)
-                value = value.replace(/[^0-9]/g, '');
-
-                // 5️⃣ Limit to max 11 digits
+                // 6️⃣ Limit to 11 digits
                 if (value.length > 11) {
                     value = value.slice(0, 11);
-                }
-
-                // 6️⃣ Optional: Add space after 5 digits
-                if (value.length > 5) {
-                    value = value.replace(/(\d{5})(\d+)/, '$1 $2');
                 }
 
                 this.value = value;

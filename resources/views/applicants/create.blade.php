@@ -196,7 +196,7 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
                                 <i class="h1 ri-upload-cloud-2-line"></i>
                                 <h3>Drop files here or click to upload.</h3>
                                 <span class="text-muted fs-13">
-                                    Allowed file types: docx, doc, csv, pdf (Max 5MB)
+                                    Allowed file types: docx, doc, csv, pdf (Max 10MB)
                                 </span>
                             </div>
                         </div>
@@ -496,37 +496,75 @@ $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')
         });
 
         // Phone number formatting
+        // ['applicant_phone', 'applicant_landline', 'applicant_phone_secondary'].forEach(id => {
+        //     const input = document.getElementById(id);
+        //     if (!input) return;
+
+        //     input.addEventListener('input', function () {
+        //         let value = this.value;
+
+        //         // 1️⃣ Remove all characters except digits and '+'
+        //         value = value.replace(/[^0-9+]/g, '');
+
+        //         // 2️⃣ If number starts with +44, replace it with 0
+        //         if (value.startsWith('+44')) {
+        //             value = '0' + value.slice(3); // remove +44 and add leading 0
+        //         }
+
+        //         // 3️⃣ If number doesn’t start with 0, add 0 at the beginning
+        //         if (!value.startsWith('0')) {
+        //             value = '0' + value;
+        //         }
+
+        //         // 4️⃣ Keep only digits (no + allowed now)
+        //         value = value.replace(/[^0-9]/g, '');
+
+        //         // 5️⃣ Limit to 11 digits max
+        //         if (value.length > 11) {
+        //             value = value.slice(0, 11);
+        //         }
+
+        //         this.value = value;
+        //     });
+        // });
         ['applicant_phone', 'applicant_landline', 'applicant_phone_secondary'].forEach(id => {
-            const input = document.getElementById(id);
-            if (!input) return;
+    const input = document.getElementById(id);
+    if (!input) return;
 
-            input.addEventListener('input', function () {
-                let value = this.value;
+    input.addEventListener('input', function () {
+        let value = this.value.trim();
 
-                // 1️⃣ Remove all characters except digits and '+'
-                value = value.replace(/[^0-9+]/g, '');
+        // 1️⃣ Allow only digits and '+'
+        value = value.replace(/[^0-9+]/g, '');
 
-                // 2️⃣ If number starts with +44, replace it with 0
-                if (value.startsWith('+44')) {
-                    value = '0' + value.slice(3); // remove +44 and add leading 0
-                }
+        // 2️⃣ Convert +44 to 0
+        if (value.startsWith('+44')) {
+            value = '0' + value.slice(3);
+        }
 
-                // 3️⃣ If number doesn’t start with 0, add 0 at the beginning
-                if (!value.startsWith('0')) {
-                    value = '0' + value;
-                }
+        // 3️⃣ Remove remaining '+'
+        value = value.replace(/\+/g, '');
 
-                // 4️⃣ Keep only digits (no + allowed now)
-                value = value.replace(/[^0-9]/g, '');
+        // 4️⃣ If empty OR only "0", keep it empty
+        if (value === '' || value === '0') {
+            this.value = '';
+            return;
+        }
 
-                // 5️⃣ Limit to 11 digits max
-                if (value.length > 11) {
-                    value = value.slice(0, 11);
-                }
+        // 5️⃣ If digits exist and doesn't start with 0, add 0
+        if (!value.startsWith('0')) {
+            value = '0' + value;
+        }
 
-                this.value = value;
-            });
-        });
+        // 6️⃣ Limit to 11 digits
+        if (value.length > 11) {
+            value = value.slice(0, 11);
+        }
+
+        this.value = value;
+    });
+});
+
     });
 
     // Fetch data and populate dropdown
