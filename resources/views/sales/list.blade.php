@@ -7,7 +7,9 @@
     table.dataTable.no-footer {
         border-bottom: none !important;
     }
-
+    table td {
+        border: none !important;
+    }
 </style>
 @endsection
 @section('content')
