@@ -7,7 +7,7 @@
     table.dataTable.no-footer {
         border-bottom: none !important;
     }
-    table td {
+    td {
         border: none !important;
     }
 </style>
