@@ -25,7 +25,6 @@ class CreateApplicantsTable extends Migration
             $table->string('applicant_name', 255);
             $table->string('applicant_email', 255)->nullable();
             $table->string('applicant_email_secodary', 255)->nullable();
-            $table->enum('gender', ['m','f','u'])->nullable()->default('u');
             $table->date('date')->nullable();
             $table->string('applicant_postcode', 50)->nullable();
             $table->string('applicant_phone', 50);
