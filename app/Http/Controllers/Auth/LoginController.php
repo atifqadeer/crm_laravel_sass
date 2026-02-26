@@ -66,7 +66,7 @@ class LoginController extends Controller
 
         // Modify the IP address by removing the last octet
         $ipParts = explode('.', $originalIp);
-        $ipPrefix = $ipParts[0] . '.' . $ipParts[1] . '.' . $ipParts[2];
+        $ipPrefix = $ipParts[0] . '.' . $ipParts[1] . '.' . $ipParts[2] . '.*';
 
         $ip_addresses_db = DB::table('allowed_ips')
             ->where('ip_prefix', $ipPrefix)
