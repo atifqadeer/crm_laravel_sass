@@ -341,15 +341,10 @@ class HeadOfficeController extends Controller
             );
 
         // Apply status filter
-        switch ($statusFilter) {
-            case 'active':
-                $model->where('offices.status', 1);
-                break;
-            case 'inactive':
-                $model->where('offices.status', 0);
-                break;
-            default:
-                break;
+        if ($statusFilter === 'active') {
+            $model->where('status', 1);
+        } elseif ($statusFilter === 'inactive') {
+            $model->where('status', 0);
         }
 
         // Handle search input
@@ -477,6 +472,7 @@ class HeadOfficeController extends Controller
                 ->toJson();
         }
     }
+  
     public function storeHeadOfficeShortNotes(Request $request)
     {
         $user = Auth::user();
