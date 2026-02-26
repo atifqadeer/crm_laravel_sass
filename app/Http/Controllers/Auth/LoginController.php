@@ -61,6 +61,10 @@ class LoginController extends Controller
         //     ->exists();
 
         $originalIp = $request->getClientIp();
+
+        Log::info('Original IP: ' . $originalIp);
+
+        // Modify the IP address by removing the last octet
         $ipParts = explode('.', $originalIp);
         $ipPrefix = $ipParts[0] . '.' . $ipParts[1] . '.' . $ipParts[2];
 
