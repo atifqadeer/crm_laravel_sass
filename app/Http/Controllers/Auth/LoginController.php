@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Console\Kernel;
 use App\Helpers\PermissionHelper;
 use Illuminate\Support\Facades\Log;
+use App\Http\Middleware\TrustProxies;
 class LoginController extends Controller
 {
     /**
@@ -50,15 +51,22 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors($validator)->withInput();
         }
 
-        // Get the IP address of the incoming request
-        $originalIp = $request->ip();
+        // // Get the IP address of the incoming request
+        // $originalIp = $request->ip();
 
-        // Fetch the list of active IP addresses from the database using the query builder
-        $ip_addresses_db = DB::table('ip_addresses')
-            ->where('status', 1) // Ensure 'status' is '1' (active)
-            ->where('ip_address', $originalIp)
+        // // Fetch the list of active IP addresses from the database using the query builder
+        // $ip_addresses_db = DB::table('ip_addresses')
+        //     ->where('status', 1) // Ensure 'status' is '1' (active)
+        //     ->where('ip_address', $originalIp)
+        //     ->exists();
+
+        $originalIp = $request->getClientIp();
+        $ipParts = explode('.', $originalIp);
+        $ipPrefix = $ipParts[0] . '.' . $ipParts[1] . '.' . $ipParts[2];
+
+        $ip_addresses_db = DB::table('allowed_ips')
+            ->where('ip_prefix', $ipPrefix)
             ->exists();
-
 
         // Check if the modified IP exists in the database (after modification)
         if (!$ip_addresses_db) {
