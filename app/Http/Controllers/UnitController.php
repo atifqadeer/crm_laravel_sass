@@ -508,7 +508,8 @@ class UnitController extends Controller
                 $q->where('units.unit_name', 'LIKE', "%{$search}%")
                     ->orWhere('units.unit_postcode', 'LIKE', "%{$search}%")
                     ->orWhere('units.unit_website', 'LIKE', "%{$search}%")
-                    ->orWhere('units.unit_notes', 'LIKE', "%{$search}%");
+                    ->orWhere('units.unit_notes', 'LIKE', "%{$search}%")
+                    ->orWhere('office_name', 'LIKE', "%{$search}%");
             });
         }
 

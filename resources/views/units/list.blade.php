@@ -53,7 +53,7 @@
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> Filters
+                                        <i class="ri-filter-line me-1"></i> All
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                                         <a class="dropdown-item" href="#">All</a>
@@ -104,7 +104,8 @@
                         <thead class="bg-light-subtle">
                             <tr>
                                 <th>#</th>
-                                <th>Date</th>
+                                <th>Created Date</th>
+                                <th>Updated Date</th>
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
                                 <th>PostCode</th>
@@ -197,11 +198,12 @@
             let columns = [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'units.created_at' },
-                { data: 'office_name', name: 'offices.office_name' },
+                { data: 'updated_at', name: 'units.updated_at' },
+                { data: 'office_name', name: 'office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
                 { data: 'contact_email', name: 'contacts.contact_email'},                
-                { data: 'contact_phone', name: 'contacts.contact_phone'},                
+                { data: 'contact_phone', name: 'contacts.contact_phone', orderable: true, searchable: true},                
                 { data: 'contact_landline', name: 'contacts.contact_landline'},
             ];
 
