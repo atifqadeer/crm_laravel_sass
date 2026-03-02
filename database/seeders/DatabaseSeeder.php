@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             JobCategoriesSeeder::class,
             JobSourcesSeeder::class,
+            FactorySeeder::class,
         ]);
     }
 }

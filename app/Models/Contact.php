@@ -16,13 +16,9 @@ class Contact extends Model
         'contactable_id',
         'contactable_type'
     ];
-    public function office()
-    {
-        return $this->belongsTo(Office::class);
-    }
-    // public function unit()
+    // public function office()
     // {
-    //     return $this->belongsTo(Unit::class);
+    //     return $this->belongsTo(Office::class);
     // }
     public function contactable()
     {

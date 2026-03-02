@@ -24,7 +24,7 @@ class CreateApplicantsTable extends Migration
             $table->string('job_type')->nullable();
             $table->string('applicant_name', 255);
             $table->string('applicant_email', 255)->nullable();
-            $table->string('applicant_email_secondary', 255)->nullable();
+            $table->string('applicant_email_secodary', 255)->nullable();
             $table->date('date')->nullable();
             $table->string('applicant_postcode', 50)->nullable();
             $table->string('applicant_phone', 50);
