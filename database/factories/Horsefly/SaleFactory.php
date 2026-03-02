@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\Sale;
 use Horsefly\User;
@@ -16,20 +16,14 @@ class SaleFactory extends Factory
 
     public function definition()
     {
-        $user = User::factory()->create();
-        $office = Office::factory()->create(['user_id' => $user->id]);
-        $unit = Unit::factory()->for($office, 'office')->for($user, 'user')->create();
-        $jobCategory = JobCategory::factory()->create();
-        $jobTitle = JobTitle::factory()->for($jobCategory, 'job_category')->create();
-
         return [
             'sale_uid' => $this->faker->uuid(),
-            'user_id' => $user->id,
-            'office_id' => $office->id,
-            'unit_id' => $unit->id,
-            'job_category_id' => $jobCategory->id,
-            'job_title_id' => $jobTitle->id,
-            'sale_postcode' => $this->faker->postcode(),
+            'user_id' => User::factory(),
+            'office_id' => Office::factory(),
+            'unit_id' => Unit::factory(),
+            'job_category_id' => JobCategory::factory(),
+            'job_title_id' => JobTitle::factory(),
+            'sale_postcode' => strtoupper($this->faker->bothify('??## #??')),
             'position_type' => $this->faker->randomElement(['full-time', 'part-time', 'contract']),
             'job_type' => $this->faker->randomElement(['permanent','temporary','contract']),
             'timing' => $this->faker->optional()->sentence(),

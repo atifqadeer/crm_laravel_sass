@@ -18,7 +18,7 @@ class SaleObserver
         $jobTitle = JobTitle::find($sale->job_title_id);
 
         $sale->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $sale->toJson(),
             "message" => "Sale '{$jobTitle?->name}' has been created successfully at {$sale->created_at}",
         ]);
@@ -48,7 +48,7 @@ class SaleObserver
 
         // Create the audit log entry
         $sale->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $sale->toJson(),
             "message" => "Sale '{$jobTitle?->name}' has been updated successfully at {$updated_at}",
         ]);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\Contact;
 use Horsefly\Unit;

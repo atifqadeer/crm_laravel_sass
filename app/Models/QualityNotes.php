@@ -2,10 +2,12 @@
 
 namespace Horsefly;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class QualityNotes extends Model
 {
+    use HasFactory;
     protected $table = 'quality_notes';
     protected $fillable = [
         // 'id',

@@ -3,10 +3,12 @@
 namespace Horsefly;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Horsefly\Audit;
 
 class SaleNote extends Model
 {
+    use HasFactory;
     protected $table = 'sale_notes';
     protected $fillable = [
         // 'id',

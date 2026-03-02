@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\Applicant;
 use Horsefly\User;
@@ -24,15 +24,15 @@ class ApplicantFactory extends Factory
             'job_type' => $this->faker->randomElement(['full-time','part-time','contract']),
             'applicant_name' => $this->faker->name(),
             'applicant_email' => $this->faker->unique()->safeEmail(),
-            'applicant_email_secondary' => $this->faker->optional()->unique()->safeEmail(),
+            'applicant_email_secondary' => $this->faker->optional()->safeEmail(),
             'date' => $this->faker->date(),
-            'applicant_postcode' => $this->faker->postcode(),
+            'applicant_postcode' => strtoupper($this->faker->bothify('??## #??')),
             'applicant_phone' => $this->faker->phoneNumber(),
             'applicant_phone_secondary' => $this->faker->optional()->phoneNumber(),
             'applicant_landline' => $this->faker->optional()->phoneNumber(),
             'applicant_cv' => $this->faker->optional()->text(200),
             'updated_cv' => $this->faker->optional()->text(200),
-            'applicant_notes' => $this->faker->optional()->paragraph(),
+            'applicant_notes' => $this->faker->paragraph(),
             'applicant_experience' => $this->faker->optional()->paragraph(),
             'lat' => $this->faker->latitude(),
             'lng' => $this->faker->longitude(),

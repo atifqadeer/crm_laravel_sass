@@ -13,43 +13,108 @@ use Horsefly\Applicant;
 use Horsefly\ApplicantNote;
 use Horsefly\JobTitle;
 use Horsefly\SaleNote;
+use Horsefly\JobSource;
+use Horsefly\CrmNote;
+use Horsefly\History;
+use Horsefly\CVNote;
+use Horsefly\QualityNotes;
 
 class FactorySeeder extends Seeder
 {
     public function run(): void
     {
-        // Users with Offices, Units, Contacts, Applicants, ApplicantNotes
+        // 1. Seed base users
+        User::factory()->count(10)->create();
+
+        // 2. Seed job categories and titles
+        JobCategory::factory()
+            ->count(5)
+            ->has(JobTitle::factory()->count(3), 'jobTitles')
+            ->create();
+        
+        // 3. Seed job sources
+        JobSource::factory()->count(3)->create();
+
+        // 4. Seed with nested relationships
         User::factory()
-            ->count(10)
+            ->count(5)
             ->has(
                 Office::factory()
-                    ->count(2)
+                    ->count(1)
                     ->has(
                         Unit::factory()
-                            ->count(3)
-                            ->has(Contact::factory()->count(2), 'contacts'),
+                            ->count(2)
+                            ->has(Contact::factory()->count(1), 'contacts'),
                         'units'
                     ),
                 'offices'
             )
             ->has(
                 Applicant::factory()
-                    ->count(5)
-                    ->has(ApplicantNote::factory()->count(3), 'applicant_notes'),
+                    ->count(3)
+                    ->has(ApplicantNote::factory()->count(2), 'applicant_notes'),
                 'applicants'
             )
             ->create();
 
-        // Job Categories with Job Titles
-        JobCategory::factory()
-            ->count(5)
-            ->has(JobTitle::factory()->count(3), 'job_titles')
+        // 5. Seed separately defined sales
+        Sale::factory()
+            ->count(10)
+            ->has(SaleNote::factory()->count(1), 'saleNotes')
             ->create();
 
-        // Sales with Sale Notes
-        Sale::factory()
-            ->count(20)
-            ->has(SaleNote::factory()->count(2), 'sale_notes')
-            ->create();
+        // 6. Seed CRM Notes using each one picking a random existing ID
+        for ($i = 0; $i < 20; $i++) {
+            $user = User::inRandomOrder()->first();
+            $applicant = Applicant::inRandomOrder()->first();
+            $sale = Sale::inRandomOrder()->first();
+
+            if ($user && $applicant && $sale) {
+                CrmNote::factory()->create([
+                    'user_id' => $user->id,
+                    'applicant_id' => $applicant->id,
+                    'sale_id' => $sale->id,
+                ]);
+            }
+        }
+
+        // 7. Seed History
+        for ($i = 0; $i < 15; $i++) {
+            $user = User::inRandomOrder()->first();
+            $applicant = Applicant::inRandomOrder()->first();
+            if ($user && $applicant) {
+                History::factory()->create([
+                    'user_id' => $user->id,
+                    'applicant_id' => $applicant->id,
+                    'sale_id' => Sale::inRandomOrder()->first()?->id,
+                ]);
+            }
+        }
+
+        // 8. Seed CV Notes
+        for ($i = 0; $i < 15; $i++) {
+            $user = User::inRandomOrder()->first();
+            $applicant = Applicant::inRandomOrder()->first();
+            if ($user && $applicant) {
+                CVNote::factory()->create([
+                    'user_id' => $user->id,
+                    'applicant_id' => $applicant->id,
+                    'sale_id' => Sale::inRandomOrder()->first()?->id,
+                ]);
+            }
+        }
+
+        // 9. Seed Quality Notes
+        for ($i = 0; $i < 15; $i++) {
+            $user = User::inRandomOrder()->first();
+            $applicant = Applicant::inRandomOrder()->first();
+            if ($user && $applicant) {
+                QualityNotes::factory()->create([
+                    'user_id' => $user->id,
+                    'applicant_id' => $applicant->id,
+                    'sale_id' => Sale::inRandomOrder()->first()?->id,
+                ]);
+            }
+        }
     }
 }

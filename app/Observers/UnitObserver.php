@@ -13,7 +13,7 @@ class UnitObserver
     public function created(Unit $unit): void
     {
         $unit->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $unit->toJson(),
             "message" => "Unit '{$unit->unit_name}' has been created successfully at {$unit->created_at}",
         ]);
@@ -41,7 +41,7 @@ class UnitObserver
 
         // Create the audit log entry
         $unit->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $unit->toJson(),
             "message" => "Unit '{$unit->unit_name}' has been updated successfully at {$unit->updated_at}",
         ]);

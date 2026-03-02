@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\Office;
 use Horsefly\User;
@@ -16,9 +16,9 @@ class OfficeFactory extends Factory
             'office_uid' => $this->faker->uuid(),
             'user_id' => User::factory(), // link to a user
             'office_name' => $this->faker->company(),
-            'office_postcode' => $this->faker->postcode(),
+            'office_postcode' => strtoupper($this->faker->bothify('??## #??')),
             'office_website' => $this->faker->optional()->url(),
-            'office_notes' => $this->faker->optional()->paragraphs(2, true),
+            'office_notes' => $this->faker->paragraphs(2, true),
             'office_lat' => $this->faker->optional()->latitude(),
             'office_lng' => $this->faker->optional()->longitude(),
             'status' => $this->faker->randomElement([0,1]), // inactive or active

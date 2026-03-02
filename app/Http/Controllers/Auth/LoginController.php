@@ -53,6 +53,8 @@ class LoginController extends Controller
         // Get the IP address of the incoming request
         $originalIp = $request->ip();
 
+        Log::info('Requested IP Address: ' . $originalIp);
+
         // Fetch the list of active IP addresses from the database using the query builder
         $ip_addresses_db = DB::table('ip_addresses')
             ->where('status', 1) // Ensure 'status' is '1' (active)

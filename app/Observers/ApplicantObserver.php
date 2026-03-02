@@ -15,7 +15,7 @@ class ApplicantObserver
     {
         // Create the audit log entry
         $applicant->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $applicant->toJson(),
             "message" => "Applicant '{$applicant->applicant_name}' has been created successfully at {$applicant->created_at}",
         ]);
@@ -40,7 +40,7 @@ class ApplicantObserver
 
         // Create the audit log entry
         $applicant->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $applicant->toJson(),
             "message" => "Applicant '{$applicant->applicant_name}' has been updated successfully at {$applicant->updated_at}",
         ]);
@@ -74,7 +74,7 @@ class ApplicantObserver
     public function csvAudit($audit_data)
     {
         $audit = new Audit();
-        $audit->user_id = Auth::id();
+        $audit->user_id = Auth::id() ?? 1;
         $audit->data = json_decode(json_encode($audit_data, JSON_FORCE_OBJECT));
         $audit->message = "Applicants CSV file imported successfully at {$audit_data['created_at']}";
         $audit->auditable_id = $audit_data['id'];

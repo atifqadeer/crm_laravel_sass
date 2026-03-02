@@ -2,10 +2,12 @@
 
 namespace Horsefly;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CVNote extends Model
 {
+    use HasFactory;
     protected $table = 'cv_notes';
     protected $fillable = [
         // 'id',

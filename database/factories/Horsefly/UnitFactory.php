@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\Unit;
 use Horsefly\User;
@@ -13,17 +13,14 @@ class UnitFactory extends Factory
 
     public function definition()
     {
-        $office = Office::factory()->create(); // create a related office
-        $user = User::factory()->create();     // create a related user
-
         return [
             'unit_uid' => $this->faker->uuid(),
-            'user_id' => $user->id,
-            'office_id' => $office->id,
+            'user_id' => User::factory(),
+            'office_id' => Office::factory(),
             'unit_name' => $this->faker->company(),
-            'unit_postcode' => $this->faker->postcode(),
+            'unit_postcode' => strtoupper($this->faker->bothify('??## #??')),
             'unit_website' => $this->faker->optional()->url(),
-            'unit_notes' => $this->faker->optional()->paragraphs(2, true),
+            'unit_notes' => $this->faker->paragraphs(2, true),
             'lat' => $this->faker->optional()->latitude(),
             'lng' => $this->faker->optional()->longitude(),
             'status' => $this->faker->randomElement([0, 1]), // inactive or active

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Horsefly;
 
 use Horsefly\SaleNote;
 use Horsefly\Sale;
@@ -13,13 +13,10 @@ class SaleNoteFactory extends Factory
 
     public function definition()
     {
-        $user = User::factory()->create();
-        $sale = Sale::factory()->for($user, 'user')->create();
-
         return [
             'sales_notes_uid' => $this->faker->uuid(),
-            'sale_id' => $sale->id,
-            'user_id' => $user->id,
+            'sale_id' => Sale::factory(),
+            'user_id' => User::factory(),
             'sale_note' => $this->faker->paragraphs(2, true),
             'status' => $this->faker->randomElement([0,1]), // 0=inactive, 1=active
             'created_at' => now(),

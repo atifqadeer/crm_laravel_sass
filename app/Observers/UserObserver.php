@@ -15,7 +15,7 @@ class UserObserver
     public function created(User $user): void
     {
         $user->audits()->create([
-            "user_id" => Auth::user()->id,
+            "user_id" => Auth::id() ?? 1, // Fallback to 1 (admin) if none authenticated
             "data" => $user->toJson(),
             "message" => "User '{$user->name}' has been created successfully at {$user->created_at}",
         ]);

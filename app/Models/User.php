@@ -97,5 +97,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(Message::class, 'user_id');
     }
-
+    public function offices()
+    {
+        return $this->hasMany(Office::class, 'user_id');
+    }
+    public function applicants()
+    {
+        return $this->hasMany(Applicant::class, 'user_id');
+    }
+    public function sales()
+    {
+        return $this->hasMany(Sale::class, 'user_id');
+    }
 }

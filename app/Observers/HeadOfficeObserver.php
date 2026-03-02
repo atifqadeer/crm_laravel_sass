@@ -15,7 +15,7 @@ class HeadOfficeObserver
     {
         // Create the audit log entry
         $headOffice->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $headOffice->toJson(),
             "message" => "Head Office '{$headOffice->office_name}' has been created successfully at {$headOffice->created_at}",
         ]);
@@ -43,7 +43,7 @@ class HeadOfficeObserver
 
         // Create the audit log entry
         $headOffice->audits()->create([
-            "user_id" => Auth::id(),
+            "user_id" => Auth::id() ?? 1,
             "data" => $headOffice->toJson(),
             "message" => "Head Office '{$headOffice->office_name}' has been updated successfully at {$headOffice->updated_at}",
         ]);
