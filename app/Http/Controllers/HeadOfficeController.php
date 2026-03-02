@@ -330,21 +330,14 @@ class HeadOfficeController extends Controller
                     ->where('contacts.contactable_type', 'Horsefly\\Office');
             })
             ->select(
-                'offices.id',
-                'offices.office_name',
-                'offices.office_postcode',
-                'offices.office_type',
-                'offices.office_notes',
-                'offices.status',
-                'offices.created_at',
-                'offices.updated_at'
+                'offices.*'
             );
 
         // Apply status filter
         if ($statusFilter === 'active') {
-            $model->where('status', 1);
+            $model->where('offices.status', 1);
         } elseif ($statusFilter === 'inactive') {
-            $model->where('status', 0);
+            $model->where('offices.status', 0);
         }
 
         // Handle search input
