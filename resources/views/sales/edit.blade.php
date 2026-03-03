@@ -268,300 +268,262 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Summernote JS -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<script>
-    $(document).ready(function () {
-        $('.summernotee').summernote({
-            height: 100,
-            toolbar: [
-                ['style', ['bold', 'italic', 'underline', 'clear']],
-                ['font', ['strikethrough', 'superscript', 'subscript']],
-                ['fontsize', ['fontsize']],
-                ['color', []],
-                ['para', ['ul', 'ol', 'paragraph']],
-                ['insert', []],
-                ['view', []]
-            ]
-        });
-        $('.summernote').summernote({
-            height: 200,
-            toolbar: [
-                ['style', ['bold', 'italic', 'underline', 'clear']],
-                ['font', ['strikethrough', 'superscript', 'subscript']],
-                ['fontsize', ['fontsize']],
-                ['color', ['color']],
-                ['para', ['ul', 'ol', 'paragraph']],
-                ['insert', ['link', 'picture']],
-                ['view', []]
-            ]
-        });
-    });
-</script>
-<script>
-    // Form validation
-    (function () {
-        'use strict'
-        const forms = document.querySelectorAll('.needs-validation')
-        Array.from(forms).forEach(form => {
-            form.addEventListener('submit', event => {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
-                form.classList.add('was-validated')
-            }, false)
-        })
-    })()
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle form submission
-        const form = document.getElementById('editSaleForm');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-
-            // Collect form data
-            const formData = new FormData(form);
-          
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 on all select elements
+            $('select.form-select').select2({
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Choose an option';
                 },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    toastr.success(data.message);
-                    window.location.href = data.redirect;
-                } else {
-                    // Handle validation errors
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Save';
-                    
-                    if (data.errors) {
-                        // Clear previous errors
-                        form.querySelectorAll('.is-invalid').forEach(el => {
-                            el.classList.remove('is-invalid');
-                        });
-                        form.querySelectorAll('.invalid-feedback').forEach(el => {
-                            el.textContent = '';
-                        });
+                allowClear: true,
+                width: '100%'
+            });
 
-                        // Display new errors
-                        Object.entries(data.errors).forEach(([field, messages]) => {
-                            const input = form.querySelector(`[name="${field}"]`);
-                            const feedback = input?.closest('.mb-3')?.querySelector('.invalid-feedback');
-                            
-                            if (input && feedback) {
-                                input.classList.add('is-invalid');
-                                feedback.textContent = messages.join(' ');
-                            }
-                        });
-                    } else {
-                        if (data.errors) {
-                            let errorMessages = Object.values(data.errors).flat().join('\n');
-                            toastr.error('Validation Errors:\n' + errorMessages);
-                        } else {
-                            toastr.error(data.message);
-                        }
+            $('.summernotee').summernote({
+                height: 100,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+            $('.summernote').summernote({
+                height: 200,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture']],
+                    ['view', []]
+                ]
+            });
+        });
+    </script>
+    <script>
+        // Form validation
+        (function() {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
                     }
-                }
+                    form.classList.add('was-validated')
+                }, false)
             })
-            .catch(error => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Save';
-                toastr.error('An unexpected error occurred. Please try again.');
-                console.error('Error:', error);
+        })()
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle form submission
+            const form = document.getElementById('editSaleForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML =
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+                // Collect form data
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            toastr.success(data.message);
+                            window.location.href = data.redirect;
+                        } else {
+                            // Handle validation errors
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Update';
+
+                            if (data.errors) {
+                                // Clear previous errors
+                                form.querySelectorAll('.is-invalid').forEach(el => {
+                                    el.classList.remove('is-invalid');
+                                });
+                                form.querySelectorAll('.invalid-feedback').forEach(el => {
+                                    el.textContent = '';
+                                });
+
+                                // Display new errors
+                                Object.entries(data.errors).forEach(([field, messages]) => {
+                                    const input = form.querySelector(`[name="${field}"]`);
+                                    const feedback = input?.closest('.mb-3')?.querySelector(
+                                        '.invalid-feedback');
+
+                                    if (input && feedback) {
+                                        input.classList.add('is-invalid');
+                                        feedback.textContent = messages.join(' ');
+                                    }
+                                });
+                            } else {
+                                toastr.error(data.message);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Update';
+                        toastr.error('An unexpected error occurred. Please try again.');
+                        console.error('Error:', error);
+                    });
+            });
+
+            // Postcode formatting
+            document.getElementById('sale_postcode').addEventListener('input', function(e) {
+                const cursorPos = this.selectionStart;
+                let rawValue = this.value.replace(/[^a-z0-9\s]/gi, '');
+
+                let formattedValue = rawValue.length > 8 ?
+                    rawValue.substring(0, 8) :
+                    rawValue;
+
+                this.value = formattedValue.toUpperCase();
+
+                const newCursorPos = Math.min(cursorPos, this.value.length);
+                this.setSelectionRange(newCursorPos, newCursorPos);
             });
         });
 
-        // Postcode formatting
-        document.getElementById('sale_postcode').addEventListener('input', function(e) {
-            const cursorPos = this.selectionStart;
-            let rawValue = this.value.replace(/[^a-z0-9\s]/gi, '');
-            
-            let formattedValue = rawValue.length > 8 
-                ? rawValue.substring(0, 8) 
-                : rawValue;
-            
-            this.value = formattedValue.toUpperCase();
-            
-            const newCursorPos = Math.min(cursorPos, this.value.length);
-            this.setSelectionRange(newCursorPos, newCursorPos);
-        });
-    });
+        // Dynamic fetching logic with Select2 support
+        $(document).ready(function() {
+            const office_id = $('#office_id');
+            const unit_id = $('#unit_id');
+            const jobTitle = $('#job_title');
+            const jobCategory = $('#job_category');
+            const jobType = $('#job_type');
 
-    // to fetch units by head office id
-    document.addEventListener('DOMContentLoaded', function() {
-        const office_id = document.getElementById('office_id');
-        const unit_id = document.getElementById('unit_id');
-
-        if (!office_id || !unit_id) {
-            console.warn("One or more elements are missing: office_id, unit_id.");
-            return;
-        }
-
-        function fetchOfficeUnits() {
-            const officeId = office_id.value;
-
-            if (officeId) {
-                fetch(`/getOfficeUnits?office_id=${officeId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        unit_id.innerHTML = '<option value="">Choose a Unit</option>'; // Reset the options
-
-                        // Populate the unit dropdown
+            function fetchOfficeUnits() {
+                const officeId = office_id.val();
+                if (officeId) {
+                    $.getJSON(`/getOfficeUnits?office_id=${officeId}`, function(data) {
+                        unit_id.empty().append('<option value="">Choose a Unit</option>');
                         data.forEach(unit => {
-                            const option = document.createElement('option');
-                            option.value = unit.id;
-                            option.textContent = unit.unit_name;
-                            unit_id.appendChild(option);
+                            unit_id.append(new Option(unit.unit_name, unit.id));
                         });
-
-                        // Pre-select the unit if one is already selected
-                        const selectedUnitId = unit_id.getAttribute('data-selected-unit-id');
+                        const selectedUnitId = unit_id.data('selected-unit-id');
                         if (selectedUnitId) {
-                            const selectedOption = unit_id.querySelector(`option[value="${selectedUnitId}"]`);
-                            if (selectedOption) {
-                                selectedOption.selected = true;
-                            }
+                            unit_id.val(selectedUnitId).trigger('change');
+                        } else {
+                            unit_id.trigger('change');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching units:', error);
                     });
+                }
             }
-        }
 
-        // Listen for changes to the office ID to fetch units
-        office_id.addEventListener('change', fetchOfficeUnits);
-
-        // Set the selected unit ID from the backend (if any)
-        const selectedUnitId = '{{ old("unit_id", $sale->unit_id) }}';  // Make sure this value is correctly passed from the backend
-        unit_id.setAttribute('data-selected-unit-id', selectedUnitId);
-
-        // Optionally, call fetchOfficeUnits on page load if an office is already selected
-        if (office_id.value) {
-            fetchOfficeUnits();
-        }
-    });
-
-    // to fetch job titles by job category and type
-    document.addEventListener('DOMContentLoaded', function() {
-        const jobTitle = document.getElementById('job_title');
-        const jobCategory = document.getElementById('job_category');
-        const jobType = document.getElementById('job_type');
-
-        if (!jobTitle || !jobCategory || !jobType) {
-            console.warn("One or more elements are missing: job_title, job_category, or job_type.");
-            return;
-        }
-
-        function fetchJobTitles() {
-            const categoryId = jobCategory.value;
-            const type = jobType.value;
-
-            if (categoryId && type) {
-                fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        jobTitle.innerHTML = '<option value="">Choose a Job Title</option>';
+            function fetchJobTitles() {
+                const categoryId = jobCategory.val();
+                const type = jobType.val();
+                if (categoryId && type) {
+                    $.getJSON(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`, function(data) {
+                        jobTitle.empty().append('<option value="">Choose a Job Title</option>');
                         data.forEach(title => {
-                            const option = document.createElement('option');
-                            option.value = title.id;
-                            option.textContent = title.name.toUpperCase();
-                            jobTitle.appendChild(option);
+                            jobTitle.append(new Option(title.name.toUpperCase(), title.id));
                         });
-
-                        // Pre-select the job title if one is already selected
-                        const selectedJobTitleId = jobTitle.getAttribute('data-selected-job-title-id');
+                        const selectedJobTitleId = jobTitle.data('selected-job-title-id');
                         if (selectedJobTitleId) {
-                            const selectedOption = jobTitle.querySelector(`option[value="${selectedJobTitleId}"]`);
-                            if (selectedOption) {
-                                selectedOption.selected = true;
-                            }
+                            jobTitle.val(selectedJobTitleId).trigger('change');
+                        } else {
+                            jobTitle.trigger('change.select2');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching job titles:', error);
                     });
+                }
             }
-        }
 
-        // Add event listeners to dynamically load job titles when category/type change
-        jobCategory.addEventListener('change', fetchJobTitles);
-        jobType.addEventListener('change', fetchJobTitles);
+            // Event Bindings
+            office_id.on('change', fetchOfficeUnits);
+            jobCategory.on('change', fetchJobTitles);
+            jobType.on('change', fetchJobTitles);
 
-        // Pre-select the job title on page load
-        fetchJobTitles();
+            // Initial load
+            if (office_id.val()) {
+                const initialUnitId = '{{ old("unit_id", $sale->unit_id) }}';
+                unit_id.data('selected-unit-id', initialUnitId);
+                fetchOfficeUnits();
+            }
 
-        // Set the selected job title ID for use after fetching job titles
-        const selectedJobTitleId = '{{ old("job_title_id", $sale->job_title_id) }}';
-        jobTitle.setAttribute('data-selected-job-title-id', selectedJobTitleId);
-    });
+            if (jobCategory.val() && jobType.val()) {
+                const initialJobTitleId = '{{ old("job_title_id", $sale->job_title_id) }}';
+                jobTitle.data('selected-job-title-id', initialJobTitleId);
+                fetchJobTitles();
+            }
+        });
 
-    // delete file
-    document.addEventListener('DOMContentLoaded', function () {
-        const removeButtons = document.querySelectorAll('.remove-document-btn');
+        // delete file
+        document.addEventListener('DOMContentLoaded', function() {
+            const removeButtons = document.querySelectorAll('.remove-document-btn');
+            removeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const documentId = this.getAttribute('data-document-id');
+                    const listItem = this.closest('li');
 
-        removeButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const documentId = this.getAttribute('data-document-id');
-                const listItem = this.closest('li');
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'This file will be permanently deleted. Are you sure you want to continue?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                     customClass: {
-                        confirmButton: 'btn bg-danger text-white me-2 mt-2',
-                        cancelButton: 'btn btn-secondary mt-2'
-                    },
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`{{ route('sales.remove_document', ['id' => '__DOCUMENT_ID__']) }}`.replace('__DOCUMENT_ID__', documentId), {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                            },
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                toastr.success(data.message);
-                                listItem.remove();
-                            } else {
-                                toastr.error(data.message || 'Failed to remove the document.');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            toastr.error('An unexpected error occurred.');
-                        });
-                    }
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'This file will be permanently deleted. Are you sure you want to continue?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        customClass: {
+                            confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                            cancelButton: 'btn btn-secondary mt-2'
+                        },
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch(`{{ route('sales.remove_document', ['id' => '__DOCUMENT_ID__']) }}`
+                                .replace('__DOCUMENT_ID__', documentId), {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json',
+                                    },
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        toastr.success(data.message);
+                                        listItem.remove();
+                                    } else {
+                                        toastr.error(data.message ||
+                                            'Failed to remove the document.');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    toastr.error('An unexpected error occurred.');
+                                });
+                        }
+                    });
                 });
             });
         });
-    });
-
-</script>
+    </script>
 @endsection
 @section('script-bottom')
     @vite(['resources/js/components/form-fileupload.js'])
