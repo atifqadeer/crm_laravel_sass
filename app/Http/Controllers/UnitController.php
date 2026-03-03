@@ -565,14 +565,12 @@ class UnitController extends Controller
 
             ->addColumn('created_at', fn($u) => $u->formatted_created_at)
             ->addColumn('updated_at', fn($u) => $u->formatted_updated_at)
-
             ->addColumn(
                 'unit_notes',
                 fn($u) =>
                 '<a href="#" onclick="addShortNotesModal(' . (int)$u->id . ')">'
                     . nl2br(e($u->unit_notes)) . '</a>'
             )
-
             ->addColumn(
                 'status',
                 fn($u) =>
