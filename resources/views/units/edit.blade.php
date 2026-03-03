@@ -1,7 +1,8 @@
 @extends('layouts.vertical', ['title' => 'Edit Unit', 'subTitle' => 'Home'])
 
 @section('css')
-@vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 @endsection
 
 @section('content')
@@ -218,6 +219,17 @@
 
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+        <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#office_id').select2({
+                placeholder: 'Choose a Head Office',
+                allowClear: true,
+                width: '100%'
+            });
+        });
+    </script>
 
 <script>
     // Form validation
