@@ -81,7 +81,8 @@
                                 <div class="mb-3">
                                     <label for="cv_limit" class="form-label">CV Limit</label>
                                     <input type="number" id="cv_limit" class="form-control" name="cv_limit" 
-                                    value="{{ old('cv_limit') }}" placeholder="Enter Limit">
+                                    value="{{ old('cv_limit') }}" placeholder="Enter Limit" required>
+                                    <div class="invalid-feedback">Please provide cv limit</div>
                                 </div>
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">
@@ -100,7 +101,7 @@
                                     <label for="salary" class="form-label">Salary</label>
                                     <input type="text" id="salary" class="form-control" name="salary" 
                                     value="{{ old('salary') }}" placeholder="Enter Salary" required>
-                                    <div class="invalid-feedback">Please enter salary</div>
+                                    <div class="invalid-feedback">Please provide salary</div>
                                 </div>
                             </div>
                             <div class="col-lg-6">
@@ -231,256 +232,231 @@
 
 @endsection
 @section('script')
-  <!-- jQuery CDN -->
+    <!-- jQuery CDN -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Daterangepicker CSS/JS -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
-    <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <!-- Summernote CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
     <!-- Summernote JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
-<script>
-    $(document).ready(function () {
-        $('.summernotee').summernote({
-            height: 100,
-            toolbar: [
-                ['style', ['bold', 'italic', 'underline', 'clear']],
-                ['font', ['strikethrough', 'superscript', 'subscript']],
-                ['fontsize', ['fontsize']],
-                ['color', []],
-                ['para', ['ul', 'ol', 'paragraph']],
-                ['insert', []],
-                ['view', []]
-            ]
-        });
-        $('.summernote').summernote({
-            height: 200,
-            toolbar: [
-                ['style', ['bold', 'italic', 'underline', 'clear']],
-                ['font', ['strikethrough', 'superscript', 'subscript']],
-                ['fontsize', ['fontsize']],
-                ['color', ['color']],
-                ['para', ['ul', 'ol', 'paragraph']],
-                ['insert', ['link', 'picture']],
-                ['view', []]
-            ]
-        });
-    });
-</script>
 
-<script>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    // Form validation
-    (function () {
-        'use strict'
-        const forms = document.querySelectorAll('.needs-validation')
-        Array.from(forms).forEach(form => {
-            form.addEventListener('submit', event => {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
-                form.classList.add('was-validated')
-            }, false)
-        })
-    })()
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('createSaleForm');
-        if (!form) return;
-        
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Submit button loading state
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-
-            // Gather form data
-            const formData = new FormData(form);
-
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 on all select elements
+            $('select.form-select').select2({
+                placeholder: function() {
+                    return $(this).data('placeholder');
                 },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    toastr.success(data.message);
-                    form.reset();
-                    form.classList.remove('was-validated');
-                    window.location.reload();
-                } else {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Save';
+                allowClear: true,
+                width: '100%'
+            });
 
-                    // Handle validation errors
-                    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                    form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
-
-                    if (data.errors) {
-                        Object.entries(data.errors).forEach(([field, messages]) => {
-                            const input = form.querySelector(`[name="${field}"]`);
-                            const feedback = input?.closest('.mb-3')?.querySelector('.invalid-feedback');
-                            if (input && feedback) {
-                                input.classList.add('is-invalid');
-                                feedback.textContent = messages.join(' ');
-                            }
-                        });
-                    } else {
-                        toastr.error(data.message || 'Submission failed.');
+            $('.summernotee').summernote({
+                height: 100,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+            $('.summernote').summernote({
+                height: 200,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture']],
+                    ['view', []]
+                ]
+            });
+        });
+        
+        // Form validation
+        (function() {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
                     }
-                }
+                    form.classList.add('was-validated')
+                }, false)
             })
-            .catch(error => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Save';
-                toastr.error('An unexpected error occurred. Please try again.');
-                console.error('Error:', error);
-            });
-        });
+        })()
 
-        // Postcode formatting
-        const postcodeInput = document.getElementById('sale_postcode');
-        if (postcodeInput) {
-            postcodeInput.addEventListener('input', function(e) {
-                const cursorPos = this.selectionStart;
-                let rawValue = this.value.replace(/[^a-z0-9\s]/gi, '');
-                let formattedValue = rawValue.length > 8 ? rawValue.substring(0, 8) : rawValue;
-                this.value = formattedValue.toUpperCase();
-                const newCursorPos = Math.min(cursorPos, this.value.length);
-                this.setSelectionRange(newCursorPos, newCursorPos);
-            });
-        }
-    });
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('createSaleForm');
+            if (!form) return;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const jobTitle = document.getElementById('job_title');
-        const jobCategory = document.getElementById('job_category');
-        const jobType = document.getElementById('job_type');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
 
-        if (!jobTitle || !jobCategory || !jobType) {
-            console.warn("One or more elements are missing: job_title, job_category, or job_type.");
-            return;
-        }
+                // Submit button loading state
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML =
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
 
-        function fetchJobTitles() {
-            const categoryId = jobCategory.value;
-            const type = jobType.value;
+                // Gather form data
+                const formData = new FormData(form);
 
-            if (categoryId && type) {
-                fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
+                fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    })
                     .then(response => response.json())
                     .then(data => {
-                        jobTitle.innerHTML = '<option value="">Choose a Job Title</option>';
-                        data.forEach(title => {
-                            const option = document.createElement('option');
-                            option.value = title.id;
-                            option.textContent = title.name.toUpperCase();
-                            jobTitle.appendChild(option);
-                        });
+                        if (data.success) {
+                            toastr.success(data.message);
+                            form.reset();
+                            form.classList.remove('was-validated');
+                            window.location.reload();
+                        } else {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Save';
+
+                            // Handle validation errors
+                            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove(
+                                'is-invalid'));
+                            form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+
+                            if (data.errors) {
+                                Object.entries(data.errors).forEach(([field, messages]) => {
+                                    const input = form.querySelector(`[name="${field}"]`);
+                                    const feedback = input?.closest('.mb-3')?.querySelector(
+                                        '.invalid-feedback');
+                                    if (input && feedback) {
+                                        input.classList.add('is-invalid');
+                                        feedback.textContent = messages.join(' ');
+                                    }
+                                });
+                            } else {
+                                toastr.error(data.message || 'Submission failed.');
+                            }
+                        }
                     })
                     .catch(error => {
-                        console.error('Error fetching job titles:', error);
-                        // toastr.error('Failed to fetch job titles.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Save';
+                        toastr.error('An unexpected error occurred. Please try again.');
+                        console.error('Error:', error);
                     });
-            }
-        }
+            });
 
-        jobCategory.addEventListener('change', fetchJobTitles);
-        jobType.addEventListener('change', fetchJobTitles);
-    });
-   
-    document.addEventListener('DOMContentLoaded', function() {
-        const office_id = document.getElementById('office_id');
-        const unit_id = document.getElementById('unit_id');
-
-        if (!office_id) {
-            console.warn("The element is missing: Office ID.");
-            return;
-        }
-
-        function fetchOfficeUnits() {
-            const OfficeId = office_id.value;
-
-            if (OfficeId) {
-                fetch(`/getOfficeUnits?office_id=${OfficeId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        unit_id.innerHTML = '<option value="">Choose a Unit</option>';
-                        data.forEach(title => {
-                            const option = document.createElement('option');
-                            option.value = title.id;
-                            option.textContent = title.unit_name;
-                            unit_id.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error fetching units:', error);
-                    });
-            }
-        }
-
-        office_id.addEventListener('change', fetchOfficeUnits);
-    });
-
-    // Fetch data and populate dropdown
-    function fetchDataAndPopulateDropdown(url, dropdownId) {
-        fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const dropdown = document.getElementById(dropdownId);
-            if (dropdown && data.success && Array.isArray(data.items)) {
-                dropdown.innerHTML = '<option value="">Choose an option</option>';
-                data.items.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.name;
-                    dropdown.appendChild(option);
+            // Postcode formatting
+            const postcodeInput = document.getElementById('sale_postcode');
+            if (postcodeInput) {
+                postcodeInput.addEventListener('input', function(e) {
+                    const cursorPos = this.selectionStart;
+                    let rawValue = this.value.replace(/[^a-z0-9\s]/gi, '');
+                    let formattedValue = rawValue.length > 8 ? rawValue.substring(0, 8) : rawValue;
+                    this.value = formattedValue.toUpperCase();
+                    const newCursorPos = Math.min(cursorPos, this.value.length);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
                 });
-            } else {
-                console.error('Invalid data format or dropdown not found');
             }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
         });
-    }
 
-</script>
+        $(document).ready(function() {
+            const jobTitle = $('#job_title');
+            const jobCategory = $('#job_category');
+            const jobType = $('#job_type');
+
+            function fetchJobTitles() {
+                const categoryId = jobCategory.val();
+                const type = jobType.val();
+
+                if (categoryId && type) {
+                    fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            jobTitle.empty().append('<option value="">Choose a Job Title</option>');
+                            data.forEach(title => {
+                                const option = new Option(title.name.toUpperCase(), title.id, false,
+                                    false);
+                                jobTitle.append(option);
+                            });
+                            // Trigger select2 update
+                            jobTitle.trigger('change.select2');
+                        })
+                        .catch(error => {
+                            console.error('Error fetching job titles:', error);
+                        });
+                }
+            }
+
+            jobCategory.on('change', fetchJobTitles);
+            jobType.on('change', fetchJobTitles);
+        });
+
+        $(document).ready(function() {
+            const office_id = $('#office_id');
+            const unit_id = $('#unit_id');
+
+            function fetchOfficeUnits() {
+                const OfficeId = office_id.val();
+
+                if (OfficeId) {
+                    fetch(`/getOfficeUnits?office_id=${OfficeId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            unit_id.empty().append('<option value="">Choose a Unit</option>');
+                            data.forEach(unit => {
+                                const option = new Option(unit.unit_name, unit.id, false, false);
+                                unit_id.append(option);
+                            });
+                            // Trigger select2 update
+                            unit_id.trigger('change.select2');
+                        })
+                        .catch(error => {
+                            console.error('Error fetching units:', error);
+                        });
+                }
+            }
+
+            office_id.on('change', fetchOfficeUnits);
+        });
+    </script>
 @endsection
 @section('script-bottom')
     @vite(['resources/js/components/form-fileupload.js'])

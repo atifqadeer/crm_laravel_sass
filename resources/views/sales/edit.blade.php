@@ -83,7 +83,8 @@
                             <div class="mb-3">
                                 <label for="cv_limit" class="form-label">CV Limit</label>
                                 <input type="number" id="cv_limit" class="form-control" name="cv_limit" 
-                                value="{{ old('cv_limit', $sale->cv_limit) }}" placeholder="Enter Limit">
+                                value="{{ old('cv_limit', $sale->cv_limit) }}" placeholder="Enter Limit" required>
+                                <div class="invalid-feedback">Please provide cv limit</div>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-4 col-sm-12">
@@ -102,7 +103,7 @@
                                 <label for="salary" class="form-label">Salary</label>
                                 <input type="text" id="salary" class="form-control" name="salary" 
                                 value="{{ old('salary', $sale->salary) }}" placeholder="Enter Salary" required>
-                                 <div class="invalid-feedback">Please enter salary</div>
+                                 <div class="invalid-feedback">Please provide salary</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
@@ -269,6 +270,12 @@
     <!-- Summernote JS -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     $(document).ready(function () {
         $('.summernotee').summernote({
