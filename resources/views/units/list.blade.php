@@ -199,7 +199,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'units.created_at' },
                 { data: 'updated_at', name: 'units.updated_at' },
-                { data: 'office_name', name: 'office_name' },
+                { data: 'office_name', name: 'offices.office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
                 { data: 'contact_email', name: 'contacts.contact_email'},                
@@ -443,7 +443,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-top">' +
+                        '<div class="modal-dialog modal-dialog-centered">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes</h5>' +
@@ -488,7 +488,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-centered">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
@@ -583,7 +583,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-centered">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Details</h5>' +
@@ -638,7 +638,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes History</h5>' +
@@ -717,7 +717,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Manager Details</h5>' +

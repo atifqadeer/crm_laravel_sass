@@ -579,7 +579,7 @@ class ApplicantController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -587,7 +587,7 @@ class ApplicantController extends Controller
 
                         <!-- Modal -->
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
@@ -656,7 +656,7 @@ class ApplicantController extends Controller
 
                     if ($status_value == 'open' || $status_value == 'reject') {
                         return '
-                            <a href="#" class="active_postcode" title="Add Short Note"
+                            <a href="javascript:void(0);" class="active_postcode" title="Add Short Note"
                             onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                                 ' . $notes . '
                             </a>
@@ -815,7 +815,7 @@ class ApplicantController extends Controller
                         $html .= '<li><a class="dropdown-item" href="' . route('applicants.edit', ['id' => (int)$applicant->id]) . '">Edit</a></li>';
                     }
                     if (Gate::allows('applicant-view')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                         ' . (int)$applicant->id . ',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                         \'' . addslashes(htmlspecialchars($emailstatus)) . '\',
@@ -830,18 +830,18 @@ class ApplicantController extends Controller
                                     )">View</a></li>';
                     }
                     if (Gate::allows('applicant-add-note')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
                     }
                     if (Gate::allows('applicant-upload-resume')) {
                         $html .= '<li>
-                                        <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                     </li>';
                     }
                     if (Gate::allows('applicant-upload-crm-resume')) {
                         $html .= '<li>
-                                        <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                     </li>';
@@ -855,7 +855,7 @@ class ApplicantController extends Controller
                         $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
                     }
                     if (Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
                     }
                     $html .= '</ul>
                         </div>';

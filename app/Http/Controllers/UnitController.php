@@ -568,7 +568,7 @@ class UnitController extends Controller
             ->addColumn(
                 'unit_notes',
                 fn($u) =>
-                '<a href="#" onclick="addShortNotesModal(' . (int)$u->id . ')">'
+                '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int)$u->id . ')">'
                     . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn(
@@ -595,7 +595,7 @@ class UnitController extends Controller
                     $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
                 }
                 if (Gate::allows('unit-view')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
+                    $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="showDetailsModal('
                         . (int)$u->id . ', '
                         . '\'' . e($office_name) . '\', '
                         . '\'' . e($u->unit_name) . '\', '
@@ -606,10 +606,10 @@ class UnitController extends Controller
                     $html .= '<li><hr class="dropdown-divider"></li>';
                 }
                 if (Gate::allows('unit-view-notes-history')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $u->id . ')">Notes History</a></li>';
+                    $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewNotesHistory(' . $u->id . ')">Notes History</a></li>';
                 }
                 if (Gate::allows('unit-view-manager-details')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $u->id . ')">Manager Details</a></li>';
+                    $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewManagerDetails(' . $u->id . ')">Manager Details</a></li>';
                 }
 
                 $html .= '</ul></div>';
