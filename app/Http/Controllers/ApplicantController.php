@@ -379,12 +379,14 @@ class ApplicantController extends Controller
                 'applicants.*',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
-                'job_sources.name as job_source_name'
+                'job_sources.name as job_source_name',
+                'users.name as user_name',
             ])
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource', 'crmHistory']);
+            ->leftJoin('users', 'applicants.user_id', '=', 'users.id')
+            ->with(['jobTitle', 'jobCategory', 'jobSource', 'crmHistory', 'user']);
 
         // if ($request->has('search.value')) { 
         //     $searchTerm = (string) $request->input('search.value'); 
@@ -511,11 +513,10 @@ class ApplicantController extends Controller
                 $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
 
                 $model->where(function ($query) use ($lowerSearchTerm) {
-
                     // Split the search term by spaces to get individual words
                     $keywords = explode(' ', $lowerSearchTerm);
 
-                    // ✅ IMPROVED Name Search: Matches "Tenda Menda" if you search "Menda Tenda"
+                    // ✅ Improved name search: matches "Tenda Menda" if you search "Menda Tenda"
                     $query->where(function ($nameQuery) use ($keywords) {
                         foreach ($keywords as $word) {
                             if (trim($word) !== '') {
@@ -524,34 +525,22 @@ class ApplicantController extends Controller
                         }
                     });
 
-                    // ✅ Applicant name: allow partial matches
+                    // Direct column searches on already-joined tables to avoid extra subqueries
                     $query->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
                         ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
-
-                        // ✅ Postcode: exact match only
+                        // Postcode: exact match only
                         ->orWhereRaw('LOWER(applicants.applicant_postcode) = ?', [$lowerSearchTerm])
-
-                        // ✅ Phones: partial matches allowed
+                        // Phones: partial matches allowed
                         ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
                         ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
                         ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
-
-                        // ✅ Experience: partial matches allowed
-                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]);
-
-                    // ✅ Relationship searches (partial matches)
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
+                        // Experience: partial matches allowed
+                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        // Related tables (already joined above)
+                        ->orWhereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
                 });
             }
         }
@@ -2339,14 +2328,10 @@ class ApplicantController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn('office_name', function ($sale) {
-                    $office_id = $sale->office_id;
-                    $office = Office::find($office_id);
-                    return $office ? $office->office_name : '-';
+                    return $sale->office_name ?? ($sale->office ? $sale->office->office_name : '-');
                 })
                 ->addColumn('unit_name', function ($sale) {
-                    $unit_id = $sale->unit_id;
-                    $unit = Unit::find($unit_id);
-                    return $unit ? $unit->unit_name : '-';
+                    return $sale->unit_name ?? ($sale->unit ? $sale->unit->unit_name : '-');
                 })
                 ->addColumn('cv_limit', function ($sale) {
                     $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
@@ -2706,8 +2691,9 @@ class ApplicantController extends Controller
 
             if (!empty($searchTerm)) {
                 $model->where(function ($query) use ($searchTerm) {
-                    $likeSearch = "%{$searchTerm}%";
+                    $likeSearch = '%' . strtolower($searchTerm) . '%';
 
+                    // Direct column searches on already-joined tables (no extra EXISTS subqueries)
                     $query->whereRaw('LOWER(sales.sale_postcode) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.experience) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.timing) LIKE ?', [$likeSearch])
@@ -2717,28 +2703,12 @@ class ApplicantController extends Controller
                         ->orWhereRaw('LOWER(sales.cv_limit) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.salary) LIKE ?', [$likeSearch])
                         ->orWhereRaw('LOWER(sales.benefits) LIKE ?', [$likeSearch])
-                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch]);
-
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($likeSearch) {
-                        $q->where('job_titles.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($likeSearch) {
-                        $q->where('job_categories.name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('unit', function ($q) use ($likeSearch) {
-                        $q->where('units.unit_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('office', function ($q) use ($likeSearch) {
-                        $q->where('offices.office_name', 'LIKE', "%{$likeSearch}%");
-                    });
-
-                    $query->orWhereHas('user', function ($q) use ($likeSearch) {
-                        $q->where('users.name', 'LIKE', "%{$likeSearch}%");
-                    });
+                        ->orWhereRaw('LOWER(sales.qualification) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(job_titles.name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(job_categories.name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(units.unit_name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(offices.office_name) LIKE ?', [$likeSearch])
+                        ->orWhereRaw('LOWER(users.name) LIKE ?', [$likeSearch]);
                 });
             }
         }
