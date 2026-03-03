@@ -604,6 +604,15 @@ class UnitController extends Controller
                         . '\'' . e($postcode) . '\', '
                         . '\'' . e($status) . '\')">View</a></li>';
                 }
+                if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
+                    $html .= '<li><hr class="dropdown-divider"></li>';
+                }
+                if (Gate::allows('unit-view-notes-history')) {
+                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $u->id . ')">Notes History</a></li>';
+                }
+                if (Gate::allows('unit-view-manager-details')) {
+                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $u->id . ')">Manager Details</a></li>';
+                }
 
                 $html .= '</ul></div>';
 
