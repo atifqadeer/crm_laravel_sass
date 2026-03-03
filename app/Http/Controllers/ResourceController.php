@@ -2657,6 +2657,7 @@ class ResourceController extends Controller
 
 
         $model = Applicant::query()
+            ->with(['module_note', 'applicant_notes', 'jobTitle', 'jobCategory', 'jobSource', 'cv_notes'])
             ->select([
                 'applicants.id',
                 'applicants.applicant_name',
@@ -2676,6 +2677,7 @@ class ResourceController extends Controller
                 'applicants.updated_at',
                 'applicants.is_job_within_radius',
                 'applicants.applicant_experience',
+                'applicants.applicant_notes',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
@@ -2852,7 +2854,10 @@ class ResourceController extends Controller
                         $q->where('users.name', 'LIKE', "%{$searchTerm}%");
                     });
                     $query->orWhereHas('module_note', function ($q) use ($searchTerm) {
-                        $q->where('latest_module_note.latest_note_created', 'LIKE', "%{$searchTerm}%");
+                        $q->where('details', 'LIKE', "%{$searchTerm}%");
+                    });
+                    $query->orWhereHas('applicant_notes', function ($q) use ($searchTerm) {
+                        $q->where('details', 'LIKE', "%{$searchTerm}%");
                     });
                 });
             }

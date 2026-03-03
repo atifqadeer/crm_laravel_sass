@@ -289,7 +289,7 @@
                     { data: 'crm_resume', name:'applicants.updated_cv', orderable: false, searchable: false },
                     { data: 'applicant_experience', name: 'applicants.applicant_experience' },
                     { data: 'job_source', name: 'job_sources.name' },
-                    { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
+                    { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: true },
                     { data: 'customStatus', name: 'customStatus', orderable: false, searchable: false },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
