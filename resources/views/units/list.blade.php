@@ -199,7 +199,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'units.created_at' },
                 { data: 'updated_at', name: 'units.updated_at' },
-                { data: 'office_name', name: 'offices.office_name' },
+                { data: 'office_name', name: 'office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
                 { data: 'contact_email', name: 'contacts.contact_email'},                
