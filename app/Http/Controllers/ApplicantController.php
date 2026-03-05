@@ -377,17 +377,27 @@ class ApplicantController extends Controller
         // 1. SELECT only necessary columns for the list (avoiding big text blobs unless needed)
         $model = Applicant::query()
             ->select([
-                'applicants.id', 'applicants.applicant_name', 'applicants.applicant_email', 'applicants.applicant_email_secondary',
-                'applicants.applicant_postcode', 'applicants.applicant_phone', 'applicants.applicant_phone_secondary',
-                'applicants.applicant_landline', 'applicants.is_blocked', 'applicants.status', 'applicants.job_title_id',
-                'applicants.job_category_id', 'applicants.job_source_id', 'applicants.created_at', 'applicants.updated_at',
-                'applicants.applicant_cv', 'applicants.updated_cv', 'applicants.paid_status', 'applicants.job_type',
+                'applicants.id', 'applicants.applicant_name', 
+                'applicants.applicant_email', 'applicants.applicant_email_secondary',
+                'applicants.applicant_postcode', 'applicants.applicant_phone', 
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline', 'applicants.is_blocked', 'applicants.status', 
+                'applicants.job_title_id',
+                'applicants.job_category_id', 'applicants.job_source_id', 'applicants.created_at', 
+                'applicants.updated_at',
+                'applicants.applicant_cv', 'applicants.updated_cv', 'applicants.paid_status', 
+                'applicants.job_type',
                 'applicants.applicant_notes',
-                'applicants.is_no_job', 'applicants.is_circuit_busy', 'applicants.is_no_response', 'applicants.is_temp_not_interested',
-                'applicants.is_cv_in_quality_clear', 'applicants.is_interview_confirm', 'applicants.is_interview_attend',
-                'applicants.is_in_crm_request', 'applicants.is_crm_request_confirm', 'applicants.is_crm_interview_attended',
-                'applicants.is_in_crm_start_date', 'applicants.is_in_crm_invoice', 'applicants.is_in_crm_invoice_sent',
-                'applicants.is_in_crm_start_date_hold', 'applicants.is_in_crm_paid', 'applicants.lat', 'applicants.lng',
+                'applicants.is_no_job', 'applicants.is_circuit_busy', 'applicants.is_no_response', 
+                'applicants.is_temp_not_interested',
+                'applicants.is_cv_in_quality_clear', 'applicants.is_interview_confirm',
+                 'applicants.is_interview_attend',
+                'applicants.is_in_crm_request', 'applicants.is_crm_request_confirm', 
+                'applicants.is_crm_interview_attended',
+                'applicants.is_in_crm_start_date', 'applicants.is_in_crm_invoice', 
+                'applicants.is_in_crm_invoice_sent',
+                'applicants.is_in_crm_start_date_hold', 'applicants.is_in_crm_paid', 
+                'applicants.lat', 'applicants.lng',
                 // Keep the joined names for DataTables search/sort
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
@@ -424,30 +434,27 @@ class ApplicantController extends Controller
         // Filter by status if it's not empty
         switch ($statusFilter) {
             case 'crm active':
-                $model->whereExists(function ($query) {
+                $model->where(function ($q) {
+                    $q->where('applicants.is_cv_in_quality_clear', 1)
+                      ->orWhere('applicants.is_interview_confirm', 1)
+                      ->orWhere('applicants.is_interview_attend', 1)
+                      ->orWhere('applicants.is_in_crm_request', 1)
+                      ->orWhere('applicants.is_crm_request_confirm', 1)
+                      ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
+                      ->orWhere('applicants.is_in_crm_start_date', 1)
+                      ->orWhere('applicants.is_in_crm_invoice', 1)
+                      ->orWhere('applicants.is_in_crm_invoice_sent', 1)
+                      ->orWhere('applicants.is_in_crm_start_date_hold', 1)
+                      ->orWhere('applicants.is_in_crm_paid', 1);
+                })
+                ->where('applicants.is_blocked', false)
+                ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
                         ->from('histories')
                         ->whereRaw('histories.applicant_id = applicants.id')
                         ->where('histories.stage', 'crm')
-                        ->where('histories.status', 1);
-                })
-                    ->where('applicants.is_blocked', false)
-                    ->where('applicants.is_no_job', false)
-                    ->where('applicants.is_circuit_busy', false)
-                    ->where('applicants.is_temp_not_interested', false)
-                    ->where(function ($q) {
-                        $q->where('applicants.is_cv_in_quality_clear', 1)
-                            ->orWhere('applicants.is_interview_confirm', 1)
-                            ->orWhere('applicants.is_interview_attend', 1)
-                            ->orWhere('applicants.is_in_crm_request', 1)
-                            ->orWhere('applicants.is_crm_request_confirm', 1)
-                            ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
-                            ->orWhere('applicants.is_in_crm_start_date', 1)
-                            ->orWhere('applicants.is_in_crm_invoice', 1)
-                            ->orWhere('applicants.is_in_crm_invoice_sent', 1)
-                            ->orWhere('applicants.is_in_crm_start_date_hold', 1)
-                            ->orWhere('applicants.is_in_crm_paid', 1);
-                    });
+                        ->limit(1);
+                });
                 break;
 
             case 'blocked':
@@ -527,23 +534,25 @@ class ApplicantController extends Controller
             $search = trim($request->input('search.value'));
             
             $model->where(function ($q) use ($search) {
-                // 1. Check for Exact Match First (Fastest - uses primary/unique indexes)
+                // 1. Check for distinctive patterns first
                 if (filter_var($search, FILTER_VALIDATE_EMAIL)) {
-                    $q->where('applicants.applicant_email', $search);
-                } elseif (preg_match('/^[A-Z]{1,2}[0-9][A-Z0-9]? [0-9][ABD-HJLNP-UW-Z]{2}$/i', $search)) {
-                    // Exact Postcode Match
-                    $q->where('applicants.applicant_postcode', $search);
-                } elseif (preg_match('/^[0-9]{10,13}$/', $search)) {
-                    // Exact Phone Match
-                    $q->where('applicants.applicant_phone', $search);
+                    $q->where('applicants.applicant_email', 'LIKE', "{$search}%")
+                      ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$search}%");
+                } elseif (preg_match('/^[0-9+]{4,}$/', $search)) {
+                    // Mobile/Phone prefix search
+                    $q->where('applicants.applicant_phone', 'LIKE', "{$search}%")
+                      ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$search}%");
+                } elseif (preg_match('/^[A-Z0-9 ]{3,8}$/i', $search)) {
+                    // Possible Postcode
+                    $q->where('applicants.applicant_postcode', 'LIKE', "{$search}%");
+                    $q->orWhere('applicants.applicant_name', 'LIKE', "{$search}%");
                 } else {
-                    // 2. Fallback to Prefix Match (Fast - uses B-Tree)
+                    // Default Name Search
                     $q->where('applicants.applicant_name', 'LIKE', "{$search}%");
                     
-                    // Only search joined tables if the search term is long enough
                     if (strlen($search) > 3) {
                         $q->orWhere('job_titles.name', 'LIKE', "{$search}%")
-                          ->orWhere('applicants.applicant_postcode', 'LIKE', "{$search}%");
+                          ->orWhere('applicants.applicant_notes', 'LIKE', "%{$search}%");
                     }
                 }
             });
@@ -642,9 +651,14 @@ class ApplicantController extends Controller
                 })
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword);
-                    $query->where('applicants.applicant_phone', 'LIKE', "{$clean}%")
+                    $query->where(function ($q) use ($clean) {
+                        $q->where('applicants.applicant_phone', 'LIKE', "{$clean}%")
                           ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$clean}%")
                           ->orWhere('applicants.applicant_landline', 'LIKE', "{$clean}%");
+                    });
+                })
+                ->filterColumn('applicant_notes', function ($query, $keyword) {
+                    $query->where('applicants.applicant_notes', 'LIKE', "%" . trim($keyword) . "%");
                 })
                 ->filterColumn('applicants.applicant_experience', function ($query, $keyword) {
                     $query->where('applicants.applicant_experience', 'LIKE', "%" . trim($keyword) . "%");
