@@ -549,8 +549,8 @@ class ApplicantController extends Controller
                     $q->orWhere('applicants.applicant_name', 'LIKE', "{$search}%");
                 } else {
                     // Default Name Search
-                    $q->where('applicants.applicant_name', 'LIKE', "{$search}%");
-                    
+                    $q->where('applicants.applicant_name', 'LIKE', "%{$search}%");
+
                     if (strlen($search) > 3) {
                         $q->orWhere('job_titles.name', 'LIKE', "{$search}%")
                           ->orWhere('applicants.applicant_notes', 'LIKE', "%{$search}%");
