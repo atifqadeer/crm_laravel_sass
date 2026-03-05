@@ -459,13 +459,10 @@ class ApplicantController extends Controller
         }
 
         // Filter by type if it's not empty
-        switch ($typeFilter) {
-            case 'specialist':
-                $model->where('applicants.job_type', 'specialist');
-                break;
-            case 'regular':
-                $model->where('applicants.job_type', 'regular');
-                break;
+        if ($typeFilter == 'specialist') {
+            $model->where('applicants.job_type', 'specialist');
+        } elseif ($typeFilter == 'regular') {
+            $model->where('applicants.job_type', 'regular');
         }
 
         // Filter by type if it's not empty
@@ -504,56 +501,32 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
+        // ─── Global Search Optimization (Indexed-Friendly) ─────────────────────
+        if ($request->filled('search.value')) {
+            $search = trim($request->input('search.value'));
+            $words  = array_filter(explode(' ', $search), fn($w) => $w !== '');
 
-            if (!empty($searchTerm)) {
-                $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase
-
-                $model->where(function ($query) use ($lowerSearchTerm) {
-
-                    // Split the search term by spaces to get individual words
-                    $keywords = explode(' ', $lowerSearchTerm);
-
-                    // ✅ IMPROVED Name Search: Matches "Tenda Menda" if you search "Menda Tenda"
-                    $query->where(function ($nameQuery) use ($keywords) {
-                        foreach ($keywords as $word) {
-                            if (trim($word) !== '') {
-                                $nameQuery->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$word}%"]);
-                            }
-                        }
-                    });
-
-                    // ✅ Applicant name: allow partial matches
-                    $query->orWhereRaw('LOWER(applicants.applicant_email) = ?', [$lowerSearchTerm])
-                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) = ?', [$lowerSearchTerm])
-
-                        // ✅ Postcode: exact match only
-                        ->orWhereRaw('LOWER(applicants.applicant_postcode) = ?', [$lowerSearchTerm])
-
-                        // ✅ Phones: partial matches allowed
-                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
-
-                        // ✅ Experience: partial matches allowed
-                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]);
-
-                    // ✅ Relationship searches (partial matches)
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
-                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
-                    });
+            $model->where(function ($q) use ($search, $words) {
+                // Name search: Efficient word-matching (multi-word support)
+                $q->where(function ($nameQ) use ($words) {
+                    foreach ($words as $word) {
+                        $nameQ->where('applicants.applicant_name', 'LIKE', "%{$word}%");
+                    }
                 });
-            }
+
+                // Other fields: Exact or Prefix matching (uses B-tree indexes)
+                $q->orWhere('applicants.applicant_email',           '=',    $search)
+                  ->orWhere('applicants.applicant_email_secondary',  '=',    $search)
+                  ->orWhere('applicants.applicant_postcode',         '=',    $search)
+                  ->orWhere('applicants.applicant_phone',            'LIKE', "{$search}%")
+                  ->orWhere('applicants.applicant_phone_secondary',  'LIKE', "{$search}%")
+                  ->orWhere('applicants.applicant_landline',         'LIKE', "{$search}%")
+                  ->orWhere('applicants.applicant_experience',       'LIKE', "%{$search}%")
+                  // Use joined tables directly (faster than orWhereHas)
+                  ->orWhere('job_titles.name',      'LIKE', "{$search}%")
+                  ->orWhere('job_categories.name',  'LIKE', "{$search}%")
+                  ->orWhere('job_sources.name',     'LIKE', "{$search}%");
+            });
         }
 
         if ($request->ajax()) {
@@ -578,7 +551,8 @@ class ApplicantController extends Controller
                     $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
 
-                    return '
+                    if($short){
+                        $html = '
                         <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
@@ -586,23 +560,27 @@ class ApplicantController extends Controller
                         </a>
 
                         <!-- Modal -->
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . nl2br($full) . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="' . $id . '-label">Applicant Experience</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            ' . nl2br($full) . '
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ';
+                        ';
+                    }else{
+                        $html = '-';
+                    }
+                    return $html;
                 })
                 ->editColumn('applicantEmail', function ($applicant) {
                     $email = '';
@@ -618,27 +596,69 @@ class ApplicantController extends Controller
                     
                     return $email; // Using accessor
                 })
-                // In your DataTable or controller
-                ->filterColumn('applicantEmail', function ($query, $keyword) {
-                    $keyword = strtolower(trim($keyword));
-
-                    $query->where(function ($q) use ($keyword) {
-                        $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                // ─── Per-Column Search Handlers (Optimized) ───────────────────────
+                ->filterColumn('applicant_name', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $words   = array_filter(explode(' ', $keyword), fn($w) => $w !== '');
+                    $query->where(function($q) use ($words, $keyword) {
+                        if (count($words) > 1) {
+                            foreach ($words as $word) { $q->where('applicants.applicant_name', 'LIKE', "%{$word}%"); }
+                        } else { $q->where('applicants.applicant_name', 'LIKE', "{$keyword}%"); }
                     });
                 })
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                          ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                    });
+                })
+                ->filterColumn('applicants.applicant_postcode', function ($query, $keyword) {
+                    $query->where('applicants.applicant_postcode', '=', trim($keyword));
+                })
+                ->filterColumn('job_titles.name', function ($query, $keyword) {
+                    $query->where('job_titles.name', 'LIKE', "{$keyword}%");
+                })
+                ->filterColumn('job_categories.name', function ($query, $keyword) {
+                    $query->where('job_categories.name', 'LIKE', "{$keyword}%");
+                })
+                ->filterColumn('job_sources.name', function ($query, $keyword) {
+                    $query->where('job_sources.name', 'LIKE', "{$keyword}%");
+                })
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('applicants.applicant_phone', 'LIKE', "{$keyword}%")
+                          ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$keyword}%")
+                          ->orWhere('applicants.applicant_landline', 'LIKE', "{$keyword}%");
+                    });
+                })
+                ->filterColumn('applicants.applicant_experience', function ($query, $keyword) {
+                    $query->where('applicants.applicant_experience', 'LIKE', "%{$keyword}%");
+                })
+                // ───────────────────────────────────────────────────────────────────
                 ->editColumn('applicant_postcode', function ($applicant) {
+                    $rawPostcode = trim($applicant->applicant_postcode);
+                    if (empty($rawPostcode)) return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $applicant->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
                     if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
                     } else {
-                        $button = $applicant->formatted_postcode;
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
-                    return $button;
                 })
                 ->editColumn('applicant_notes', function ($applicant) {
                     // Convert new lines to <br> but DO NOT escape HTML tags
-                    $notes = nl2br($applicant->applicant_notes);
+                    $rawNotes = trim($applicant->applicant_notes);
+                    $notes = !empty($rawNotes) ? nl2br($rawNotes) : '-';
 
                     $status_value = 'open';
                     if ($applicant->paid_status == 'close') {
@@ -656,7 +676,7 @@ class ApplicantController extends Controller
 
                     if ($status_value == 'open' || $status_value == 'reject') {
                         return '
-                            <a href="javascript:void(0);" class="active_postcode" title="Add Short Note"
+                            <a href="javascript:void(0);" class="active_postcode" title="Add/Edit Note"
                             onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                                 ' . $notes . '
                             </a>
@@ -669,19 +689,21 @@ class ApplicantController extends Controller
                     $str = '';
 
                     if ($applicant->is_blocked) {
-                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     } else {
-                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+                        $items = [];
+                        if (!empty(trim($applicant->applicant_phone))) {
+                            $items[] = '<strong>P:</strong> ' . $applicant->applicant_phone;
+                        }
+                        if (!empty(trim($applicant->applicant_phone_secondary))) {
+                            $items[] = '<strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if (!empty(trim($applicant->applicant_landline))) {
+                            $items[] = '<strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
 
-                        if ($applicant->applicant_phone_secondary) {
-                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
-                        }
-                        if ($applicant->applicant_landline) {
-                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
-                        }
+                        return !empty($items) ? implode('<br>', $items) : '-';
                     }
-
-                    return $str;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -1356,64 +1378,6 @@ class ApplicantController extends Controller
         $applicant = Applicant::findOrFail($id);
         return view('applicants.show', compact('applicant'));
     }
-    // public function uploadCv(Request $request)
-    // {
-    //     // Validate the request
-    //     // $validator = Validator::make($request->all(), [
-    //     //     'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
-    //     //     'applicant_id' => 'required|integer|exists:applicants,id',
-    //     // ]);
-
-    //     // if ($validator->fails()) {
-    //     //     return response()->json([
-    //     //         'success' => false,
-    //     //         'message' => $validator->errors()->first(),
-    //     //         'errors'  => $validator->errors(),
-    //     //     ], 422);
-    //     // }
-    //     // Get file and applicant data
-    //     $file = $request->file('resume');
-    //     $applicantId = $request->input('applicant_id');
-
-    //     // Fetch applicant
-    //     $applicant = Applicant::findOrFail($applicantId);
-
-    //     // ✅ Delete old CV file if it exists
-    //     if (!empty($applicant->applicant_cv) && Storage::disk('public')->exists($applicant->applicant_cv)) {
-    //         Storage::disk('public')->delete($applicant->applicant_cv);
-    //     }
-
-    //     // Generate directory structure based on current date
-    //     $year = now()->year;
-    //     $month = now()->month;
-    //     $day = now()->day;
-
-    //     // Create storage path
-    //     $directory = "uploads/resume/{$year}/{$month}/{$day}";
-    //     $storagePath = "public/{$directory}";
-
-    //     // Ensure directory exists
-    //     if (!Storage::exists($storagePath)) {
-    //         Storage::makeDirectory($storagePath, 0755, true); // recursive creation
-    //     }
-
-    //     // Generate unique filename
-    //     $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
-
-    //     // Store the file
-    //     $filePath = $file->storeAs($directory, $fileName, 'public');
-
-    //     // Update applicant record
-    //     $applicant->update(['applicant_cv' => $filePath]);
-
-    //     // Return response
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'File uploaded successfully',
-    //         'file_path' => $filePath,
-    //         'file_url' => Storage::url($filePath),
-    //     ]);
-    // }
     public function uploadCv(Request $request)
     {
         // Get file and applicant data
@@ -1432,9 +1396,9 @@ class ApplicantController extends Controller
         }
 
         // Directory structure
-        $year  = now()->year;
-        $month = now()->month;
-        $day   = now()->day;
+        $year = now()->year;
+        $month = now()->format('m');
+        $day = now()->format('d');
 
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
         $publicPath = public_path($directory);
@@ -1469,57 +1433,6 @@ class ApplicantController extends Controller
             'file_url' => asset($filePath),
         ]);
     }
-
-    // public function crmuploadCv(Request $request)
-    // {
-    //     // Validate the request
-    //     $request->validate([
-    //         'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
-    //         'applicant_id' => 'required|integer|exists:applicants,id',
-    //     ]);
-
-    //     $file = $request->file('resume');
-    //     $applicantId = $request->input('applicant_id');
-
-    //     // Retrieve applicant
-    //     $applicant = Applicant::findOrFail($applicantId);
-
-    //     // ✅ Delete old "updated_cv" file if it exists
-    //     if (!empty($applicant->updated_cv) && Storage::disk('public')->exists($applicant->updated_cv)) {
-    //         Storage::disk('public')->delete($applicant->updated_cv);
-    //     }
-
-    //     // Generate directory structure based on current date
-    //     $year = now()->year;
-    //     $month = now()->month;
-    //     $day = now()->day;
-
-    //     // Create storage path
-    //     $directory = "uploads/resume/{$year}/{$month}/{$day}";
-    //     $storagePath = "public/{$directory}";
-
-    //     // Ensure directory exists
-    //     if (!Storage::exists($storagePath)) {
-    //         Storage::makeDirectory($storagePath, 0755, true);
-    //     }
-
-    //     // Generate unique filename
-    //     $fileName = $applicantId . '_' . now()->timestamp . '.' . $file->getClientOriginalExtension();
-
-    //     // Store file in 'public' disk
-    //     $filePath = $file->storeAs($directory, $fileName, 'public');
-
-    //     // Update applicant record with new "updated_cv" path
-    //     $applicant->update(['updated_cv' => $filePath]);
-
-    //     // Return response
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'File uploaded successfully',
-    //         'file_path' => $filePath,
-    //         'file_url' => Storage::url($filePath),
-    //     ]);
-    // }
     public function crmuploadCv(Request $request)
     {
         // ✅ Validate request
@@ -1544,9 +1457,9 @@ class ApplicantController extends Controller
         }
 
         // 📅 Date-based directory
-        $year  = now()->year;
+        $year = now()->year;
         $month = now()->format('m');
-        $day   = now()->format('d');
+        $day = now()->format('d');
 
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
         $destinationPath = public_path($directory);
@@ -1579,7 +1492,6 @@ class ApplicantController extends Controller
             'file_url'  => asset($relativePath),
         ]);
     }
-
     public function export(Request $request)
     {
         $type = $request->query('type', 'all'); // Default to 'all' if not provided
@@ -1833,7 +1745,6 @@ class ApplicantController extends Controller
                 ->make(true);
         }
     }
-
     private function generateJobDetailsModal($data)
     {
         $modalId = 'jobDetailsModal_' . $data->sale_id;  // Unique modal ID for each applicant's job details

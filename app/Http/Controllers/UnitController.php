@@ -539,14 +539,25 @@ class UnitController extends Controller
 
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
-        $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
-        foreach ($words as $word) {
-            $query->where('offices.office_name', 'LIKE', "%{$word}%");
-        }
-    })
+                $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
+                foreach ($words as $word) {
+                    $query->where('offices.office_name', 'LIKE', "%{$word}%");
+                }
+            })
             ->addColumn('unit_name', fn($u) => $u->formatted_unit_name)
             ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
+            ->editColumn('unit_postcode', function ($u) {
+                $rawPostcode = trim($u->formatted_postcode);
+                if (empty($rawPostcode)) return '<div class="text-center w-100">-</div>';
 
+                $postcode = $u->formatted_postcode;
+                $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                data-postcode="' . e($u->formatted_postcode) . '" title="Copy Postcode">
+                                <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                            </button>';
+
+                return '<div class="d-flex align-items-center justify-content-between">' . $postcode . $copyBtn . '</div>';
+            })
             ->addColumn(
                 'contact_email',
                 fn($u) =>
@@ -626,6 +637,7 @@ class UnitController extends Controller
                 'office_name',
                 'unit_name',
                 'action',
+                'unit_postcode'
             ])
             ->make(true);
     }

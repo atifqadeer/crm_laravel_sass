@@ -77,7 +77,7 @@
                                 <th>Updated Date</th>
                                 <th>Name</th>
                                 <th>Type</th>
-                                <th>PostCode</th>
+                                <th width="8%">PostCode</th>
                                 <th>Contact Email</th>
                                 <th>Contact Phone</th>
                                 <th>Contact Landline</th>
@@ -856,4 +856,4 @@
     </script>
     
 @endsection
-@endsection                        
+@endsection

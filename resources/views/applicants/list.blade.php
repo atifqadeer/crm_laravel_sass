@@ -176,8 +176,8 @@
                                     <th>Email</th>
                                     <th>Title</th>
                                     <th>Category</th>
-                                    <th>PostCode</th>
-                                    <th width="15%">Phone / Landline</th>
+                                    <th width="8%">PostCode</th>
+                                    <th width="10%">Phone / Landline</th>
                                     @canany(['applicant-download-resume'])
                                         <th>Applicant Resume</th>
                                         <th>CRM Resume</th>
@@ -185,7 +185,7 @@
                                     <th>Experience</th>
                                     <th>Source</th>
                                     @canany(['applicant-view-note', 'applicant-add-note'])
-                                        <th width="25%">Notes</th>
+                                        <th width="10%">Notes</th>
                                     @endcanany
                                     <th>Status</th>
                                     <th>Action</th>
@@ -376,7 +376,7 @@
                     data: 'applicant_notes',
                     name: 'applicants.applicant_notes',
                     orderable: false,
-                    searchable: false
+                    searchable: true
                 });
             }
             columns.push({

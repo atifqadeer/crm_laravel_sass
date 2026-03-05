@@ -389,8 +389,23 @@ class HeadOfficeController extends Controller
                 ->addColumn('office_name', function ($office) {
                     return $office->formatted_office_name;
                 })
-                ->addColumn('office_postcode', function ($office) {
-                    return $office->formatted_postcode;
+                ->editColumn('office_postcode', function ($office) {
+                    $rawPostcode = trim($office->formatted_postcode);
+                    if (empty($rawPostcode)) return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $office->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($office->formatted_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    if ($office->lat != null && $office->lng != null && !$office->is_blocked) {
+                        $url = route('applicants.available_job', ['id' => $office->id, 'radius' => 15]);
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+                    } else {
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
+                    }
                 })
                 ->addColumn('office_type', function ($office) {
                     return ucwords(str_replace('_', ' ', $office->office_type));
@@ -461,7 +476,7 @@ class HeadOfficeController extends Controller
                     $html .= '</ul></div>';
                     return $html;
                 })
-                ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
+                ->rawColumns(['office_notes', 'contact_email', 'office_postcode', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
                 ->toJson();
         }
     }

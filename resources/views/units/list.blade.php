@@ -108,12 +108,12 @@
                                 <th>Updated Date</th>
                                 <th>Head Office</th>
                                 <th>Unit Name</th>
-                                <th>PostCode</th>
+                                <th width="8%">PostCode</th>
                                 <th>Contact Email</th>
                                 <th>Contact Phone</th>
                                 <th>Contact Landline</th>
                                 @canany(['unit-view-note', 'unit-add-note'])
-                                <th width="20%">Notes</th>
+                                <th width="10%">Notes</th>
                                 @endcanany
                                 <th>Status</th>
                                 <th>Action</th>
@@ -906,4 +906,4 @@
     </script>
     
 @endsection
-@endsection                        
+@endsection
