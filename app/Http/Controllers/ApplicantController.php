@@ -553,15 +553,18 @@ class ApplicantController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
+                    if (!$applicant->jobTitle) return '-';
+                    return  e($applicant->jobTitle->name);
                 })
                 ->addColumn('job_category', function ($applicant) {
                     $type = $applicant->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $applicant->jobCategory ? $applicant->jobCategory->name . $stype : '-';
+                    $stype = $type && $type == 'specialist' ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size: 10px;">' . ucwords('Specialist') . '</span>' : '';
+                    if (!$applicant->jobCategory) return '-';
+                    return e($applicant->jobCategory->name);
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                    if (!$applicant->jobSource) return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
                 })
                 ->editColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
