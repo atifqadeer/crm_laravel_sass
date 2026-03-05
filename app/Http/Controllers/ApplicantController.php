@@ -541,7 +541,8 @@ class ApplicantController extends Controller
                 } elseif (preg_match('/^[0-9+]{4,}$/', $search)) {
                     // Mobile/Phone prefix search
                     $q->where('applicants.applicant_phone', 'LIKE', "{$search}%")
-                      ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$search}%");
+                      ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$search}%")
+                      ->orWhere('applicants.applicant_landline', 'LIKE', "{$search}%");
                 } elseif (preg_match('/^[A-Z0-9 ]{3,8}$/i', $search)) {
                     // Possible Postcode
                     $q->where('applicants.applicant_postcode', 'LIKE', "{$search}%");
