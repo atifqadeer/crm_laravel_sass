@@ -181,7 +181,7 @@
             }
         });
     }
-    // ─── Copy Postcode Handler ───────────────────────────────────────────
+    // ─── Copy Postcode Handler (with Robust Fallback) ────────────────────
     $(document).on('click', '.copy-postcode', function() {
         const postcode = $(this).data('postcode');
         const $btn = $(this);
@@ -189,33 +189,41 @@
 
         if (!postcode) return;
 
-        navigator.clipboard.writeText(postcode).then(() => {
-            // Change icon to check
+        const showFeedback = (isManual = false) => {
             $icon.attr('icon', 'solar:check-read-linear').addClass('text-success');
-
-            // Revert after 2 seconds
             setTimeout(() => {
                 $icon.attr('icon', 'solar:copy-linear').removeClass('text-success');
             }, 2000);
+            toastr.success(`Postcode copied${isManual ? ' (fallback)' : ''}: ` + postcode);
+        };
 
-            // Show toastr success
-            toastr.success('Postcode copied to clipboard: ' + postcode);
-        }).catch(err => {
-            console.error('Copy failed:', err);
-            
-            // Fallback for older browsers or insecure contexts
+        const manualCopy = () => {
             const textArea = document.createElement("textarea");
             textArea.value = postcode;
+            textArea.style.position = "fixed"; 
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
             document.body.appendChild(textArea);
+            textArea.focus();
             textArea.select();
             try {
-                document.execCommand('copy');
-                toastr.success('Postcode copied (fallback): ' + postcode);
+                if (document.execCommand('copy')) showFeedback(true);
+                else toastr.error('Copy failed');
             } catch (err) {
+                console.error('Manual fallback failed:', err);
                 toastr.error('Copy failed');
             }
             document.body.removeChild(textArea);
-        });
+        };
+
+        // Check for Clipboard API and Secure context
+        if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+            navigator.clipboard.writeText(postcode)
+                .then(() => showFeedback(false))
+                .catch(manualCopy);
+        } else {
+            manualCopy(); // Direct fallback for non-secure or unsupported browsers
+        }
     });
 
 </script>
