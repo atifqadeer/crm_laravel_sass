@@ -855,13 +855,18 @@ class SaleController extends Controller
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($sale->formatted_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
                     if($sale->lat != null && $sale->lng != null){
                         $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
                         $button = '<a target="_blank" href="'. $url .'" class="active_postcode">'. $sale->formatted_postcode .'</a>'; // Using accessor
+                        return '<div class="d-flex align-items-center justify-content-between">' . $button . $copyBtn . '</div>';
                     }else{
-                        $button = $sale->formatted_postcode;
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $sale->formatted_postcode . '</span>' . $copyBtn . '</div>';
                     }
-                    return $button;
                 })
                 ->addColumn('qualification', function ($sale) {
                     $fullHtml = $sale->qualification; // HTML from Summernote
@@ -1052,6 +1057,9 @@ class SaleController extends Controller
                         $notesIndex = $sale->latest_note;
                     }
 
+                    preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
+                    $url = $matches[0] ?? null;
+
                     $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
                     // $notes = $notes ? $notes : 'N/A';
                     $shortNotes = Str::limit(trim($notes), 80);
@@ -1062,9 +1070,17 @@ class SaleController extends Controller
                     $unit_name = $unit ? ucwords($unit->unit_name) : '-';
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                   
+                    if ($url) {
+                        return '<a href="'.$url.'" target="_blank" class="btn btn-sm btn-info rounded-pill px-3">
+                                    <iconify-icon icon="mdi:paperclip" class="me-1"></iconify-icon>
+                                    URL
+                                </a>';
+                    }else{
+                         return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                ' . $shortNotes . '
                             </a>';
+                    }
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';

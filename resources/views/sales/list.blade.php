@@ -235,15 +235,15 @@
                                     <th>Agent</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>
-                                    <th>PostCode</th>
+                                    <th width="8%">PostCode</th>
                                     <th>Position Type</th>
                                     <th>Title</th>
                                     <th>Category</th>
-                                    <th>Experience</th>
-                                    <th>Qualification</th>
-                                    <th>Salary</th>
-                                    <th>CV Limit</th>
-                                    <th>Notes</th>
+                                    <th width="8%">Experience</th>
+                                    <th width="8%">Qualification</th>
+                                    <th width="8%">Salary</th>
+                                    <th width="8%">CV Limit</th>
+                                    <th width="8%">Notes</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
