@@ -32,14 +32,18 @@
                                             <!-- Search input -->
                                             <input type="text" class="form-control mb-2" id="userSearchInput"
                                                 placeholder="Search user...">
-
+                                            <!-- Select/Deselect All -->
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="userToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".user-filter" data-exclude="[data-user-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".user-filter" data-exclude="[data-user-id='']" style="display:none">Deselect All</a>
+                                            </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="usersList">
-                                                <div class="form-check">
+                                                <!-- <div class="form-check">
                                                     <input class="form-check-input user-filter" type="checkbox" value=""
                                                         id="all-Users" data-title-id="">
                                                     <label class="form-check-label" for="all-Users">All Users</label>
-                                                </div>
+                                                </div> -->
 
                                                 @foreach($users as $user)
                                                     <div class="form-check">
@@ -63,14 +67,18 @@
                                             <!-- Search input -->
                                             <input type="text" class="form-control mb-2" id="officeSearchInput"
                                                 placeholder="Search office...">
-
+                                            <!-- Select/Deselect All -->
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="officeToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".office-filter" data-exclude="[data-office-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".office-filter" data-exclude="[data-office-id='']" style="display:none">Deselect All</a>
+                                            </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="officesList">
-                                                <div class="form-check">
+                                                <!-- <div class="form-check">
                                                     <input class="form-check-input office-filter" type="checkbox" value=""
                                                         id="all-offices" data-title-id="">
                                                     <label class="form-check-label" for="all-offices">All Head Office</label>
-                                                </div>
+                                                </div> -->
 
                                                 @foreach($offices as $office)
                                                     <div class="form-check">
@@ -94,14 +102,18 @@
                                             <!-- Search input -->
                                             <input type="text" class="form-control mb-2" id="categorySearchInput"
                                                 placeholder="Search category...">
-
+                                            <!-- Select/Deselect All -->
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".category-filter" data-exclude="[data-category-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".category-filter" data-exclude="[data-category-id='']" style="display:none">Deselect All</a>
+                                            </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="categoryList">
-                                                <div class="form-check">
+                                                <!-- <div class="form-check">
                                                     <input class="form-check-input category-filter" type="checkbox" value=""
                                                         id="all-categories" data-title-id="">
                                                     <label class="form-check-label" for="all-categories">All Category</label>
-                                                </div>
+                                                </div> -->
 
                                                 @foreach($jobCategories as $category)
                                                     <div class="form-check">
@@ -138,14 +150,18 @@
                                             <!-- Search input -->
                                             <input type="text" class="form-control mb-2" id="titleSearchInput"
                                                 placeholder="Search titles...">
-
+                                            <!-- Select/Deselect All -->
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".title-filter" data-exclude="[data-title-id='']" style="display:none">Deselect All</a>
+                                            </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="titleList">
-                                                <div class="form-check">
+                                                <!-- <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox" value=""
                                                         id="all-titles" data-title-id="">
                                                     <label class="form-check-label" for="all-titles">All Titles</label>
-                                                </div>
+                                                </div> -->
                                                 @foreach ($jobTitles as $title)
                                                     <div class="form-check">
                                                         <input class="form-check-input title-filter" type="checkbox"
@@ -368,9 +384,9 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'sales.created_at' },
-                    { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'open_date', name: 'audits.created_at' },
+                    { data: 'created_at', name: 'sales.created_at', searchable: false },
+                    { data: 'updated_at', name: 'sales.updated_at', searchable: false },
+                    { data: 'open_date', name: 'audit_logs.audit_created_at', searchable: false },
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },
@@ -381,10 +397,10 @@
                     { data: 'experience', name: 'sales.experience' },
                     { data: 'qualification', name: 'sales.qualification' },
                     { data: 'salary', name: 'sales.salary' },
-                    { data: 'cv_limit', name: 'sales.cv_limit' },
-                    { data: 'sale_notes', name: 'sales.sale_notes', orderable: false },
-                    { data: 'status', name: 'sales.status', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                    { data: 'cv_limit', name: 'sales.cv_limit', searchable: false },
+                    { data: 'sale_notes', name: 'sales.sale_notes', orderable: false, searchable: false },
+                    { data: 'status', name: 'sales.status', orderable: false, searchable: false },
+                    { data: 'action', name: 'action', orderable: false, searchable: false }
                 ],
                 columnDefs: [
                     {
@@ -549,18 +565,20 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.category-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
-
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
-                    ')' : 'All Categories');
+                // Update dropdown display text and toggle visibility
+                const total = $('.category-filter').not('[data-category-id=""]').length;
+                const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
+                
+                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` : 'All Category');
+                
+                const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** Title Filter Handler ***/
             $('.title-filter').on('change', function() {
                 const id = $(this).data('title-id');
@@ -580,18 +598,20 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.title-filter').not('[data-title-id=""]').length;
+                const checked = $('.title-filter:checked').not('[data-title-id=""]').length;
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
-                    ')' : 'All Titles');
+                $('#showFilterTitle').text(checked > 0 ? `Selected Titles (${checked})` : 'All Titles');
+
+                const container = $('#titleToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** User Filter Handler ***/
             $('.user-filter').on('change', function() {
                 const id = $(this).data('user-id');
@@ -611,18 +631,20 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.user-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.user-filter').not('[data-user-id=""]').length;
+                const checked = $('.user-filter:checked').not('[data-user-id=""]').length;
 
-                $('#showFilterUser').text(selectedLabels.length ? 'Selected Users (' + selectedLabels.length +
-                    ')' : 'All Users');
+                $('#showFilterUser').text(checked > 0 ? `Selected Users (${checked})` : 'All Users');
+
+                const container = $('#userToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** Office Filter Handler ***/
             $('.office-filter').on('change', function() {
                 const id = $(this).data('office-id');
@@ -642,17 +664,44 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.office-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.office-filter').not('[data-office-id=""]').length;
+                const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
 
-                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
-                    ')' : 'All Offices');
+                $('#showFilterOffice').text(checked > 0 ? `Selected Offices (${checked})` : 'All Head Office');
+
+                const container = $('#officeToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+
+            /*** Dropdown Select All Action ***/
+            $(document).on('click', '.filter-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
+                $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
+            });
+
+            /*** Dropdown Deselect All Action ***/
+            $(document).on('click', '.filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
+            });
+
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
             });
         });
 
