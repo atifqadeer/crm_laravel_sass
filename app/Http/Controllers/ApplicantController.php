@@ -411,26 +411,6 @@ class ApplicantController extends Controller
             // Eager load only needed columns from relations
             ->with(['jobTitle:id,name', 'jobCategory:id,name', 'jobSource:id,name', 'cv_notes:id,applicant_id,status']);
 
-        // if ($request->has('search.value')) { 
-        //     $searchTerm = (string) $request->input('search.value'); 
-        //     if (!empty($searchTerm)) { 
-        //         $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
-        //         $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
-        //             $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-        //             ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
-        //             $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-        //             $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-        //             $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-        //             $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); }); 
-        //     } 
-        // }
-
         // Filter by status if it's not empty
         switch ($statusFilter) {
             case 'crm active':
@@ -531,32 +511,15 @@ class ApplicantController extends Controller
 
         // ─── Turbo Search Optimization (B-Tree Priority) ────────────────────────
         if ($request->filled('search.value')) {
-            $search = trim($request->input('search.value'));
-            
-            $model->where(function ($q) use ($search) {
-                // 1. Check for distinctive patterns first
-                if (filter_var($search, FILTER_VALIDATE_EMAIL)) {
-                    $q->where('applicants.applicant_email', 'LIKE', "{$search}%")
-                      ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$search}%");
-                } elseif (preg_match('/^[0-9+]{4,}$/', $search)) {
-                    // Mobile/Phone prefix search
-                    $q->where('applicants.applicant_phone', 'LIKE', "{$search}%")
-                      ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$search}%")
-                      ->orWhere('applicants.applicant_landline', 'LIKE', "{$search}%");
-                } elseif (preg_match('/^[A-Z0-9 ]{3,8}$/i', $search)) {
-                    // Possible Postcode
-                    $q->where('applicants.applicant_postcode', 'LIKE', "{$search}%");
-                    $q->orWhere('applicants.applicant_name', 'LIKE', "{$search}%");
-                } else {
-                    // Default Name Search
-                    $q->where('applicants.applicant_name', 'LIKE', "%{$search}%");
+            $searchTerm = trim($request->input('search.value'));
+            // Use Scout search to get IDs, then filter our main query
+            $ids = Applicant::search($searchTerm)->keys()->toArray();
 
-                    if (strlen($search) > 3) {
-                        $q->orWhere('job_titles.name', 'LIKE', "{$search}%")
-                          ->orWhere('applicants.applicant_notes', 'LIKE', "%{$search}%");
-                    }
-                }
-            });
+            if (!empty($ids)) {
+                $model->whereIn('applicants.id', $ids);
+            } else {
+                $model->whereRaw('1 = 0');
+            }
         }
 
         if ($request->ajax()) {
