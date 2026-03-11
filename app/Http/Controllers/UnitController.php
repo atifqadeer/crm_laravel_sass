@@ -172,121 +172,9 @@ class UnitController extends Controller
             ], 500);
         }
     }
-    
-    // public function getUnits(Request $request)
-    // {
-    //     $statusFilter = $request->input('status_filter', '');
-    //     $query = Unit::query();
-
-    //     // Apply status filter if needed
-    //     if ($statusFilter) {
-    //         $query->where('status', $statusFilter === 'active' ? 1 : 0);
-    //     }
-
-    //     // Sorting (keep your existing logic, but consider moving join inside if needed)
-    //     $orderColumnIndex = $request->input('order.0.column', 0);
-    //     $orderColumn = $request->input("columns.$orderColumnIndex.data", 'created_at');
-    //     $orderDir = $request->input('order.0.dir', 'desc');
-
-    //     // Handling sorting by `office_name`
-    //     if ($orderColumn === 'office_name') {
-    //         $query->join('offices', 'units.office_id', '=', 'offices.id')
-    //             ->orderBy('offices.office_name', $orderDir);
-
-    //     // Handle sorting by `contact_*` fields (e.g., contact_landline, contact_phone, etc.)
-    //     } elseif (in_array($orderColumn, ['contact_landline', 'contact_phone', 'contact_email'])) {
-    //         // Join contacts table when sorting by contact fields
-    //         $query->join('contacts as c', function ($join) {
-    //             $join->on('c.contactable_id', '=', 'units.id')
-    //                 ->where('c.contactable_type', '=', 'Horsefly\\Unit');
-    //         });
-
-    //         // Order by the contact field
-    //         $query->orderBy("c.$orderColumn", $orderDir);
-
-    //     // Handle sorting by unit fields
-    //     } elseif (in_array($orderColumn, ['unit_name', 'unit_postcode', 'unit_website', 'unit_notes', 'status', 'created_at'])) {
-    //         $query->orderBy($orderColumn, $orderDir);
-
-    //     // Default ordering
-    //     } else {
-    //         $query->orderBy('units.created_at', 'desc');
-    //     }
-
-    //     // Efficient search with office_name inclusion
-    //     $searchTerm = $request->input('search.value', '');
-    //     if ($searchTerm) {
-    //         $words = array_filter(explode(' ', trim($searchTerm)));
-    //         $query->where(function ($q) use ($words) {
-    //             foreach ($words as $word) {
-    //                 // Searching in unit's columns and office_name
-    //                 $q->where('unit_name', 'LIKE', "%{$word}%")
-    //                     ->orWhere('unit_postcode', 'LIKE', "%{$word}%")
-    //                     ->orWhere('unit_website', 'LIKE', "%{$word}%")
-    //                     ->orWhere('unit_notes', 'LIKE', "%{$word}%")
-    //                     ->orWhereHas('contacts', function ($c) use ($word) {
-    //                         $c->where('contact_email', 'LIKE', "%{$word}%")
-    //                             ->orWhere('contact_phone', 'LIKE', "%{$word}%")
-    //                             ->orWhere('contact_landline', 'LIKE', "%{$word}%");
-    //                     })
-    //                     ->orWhereHas('office', function ($o) use ($word) {
-    //                         $o->where('office_name', 'LIKE', "%{$word}%");
-    //                     });
-    //             }
-    //         });
-    //     }
-
-    //     if ($request->ajax()) {
-    //         return DataTables::eloquent($query)
-    //             ->addIndexColumn()
-    //             ->addColumn('office_name', fn($unit) => $unit->office?->office_name ?? '-')
-    //             ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
-    //             ->addColumn('unit_name', fn($unit) => $unit->formatted_unit_name)
-    //             ->addColumn('unit_postcode', fn($unit) => $unit->formatted_postcode)
-    //             ->addColumn('contact_email', fn($unit) => $unit->contacts->pluck('contact_email')->filter()->implode('<br>') ?: '-')
-    //             ->addColumn('contact_phone', fn($unit) => $unit->contacts->pluck('contact_phone')->filter()->implode('<br>') ?: '-')
-    //             ->addColumn('contact_landline', fn($unit) => $unit->contacts->pluck('contact_landline')->filter()->implode('<br>') ?: '-')
-    //             ->addColumn('created_at', fn($unit) => $unit->formatted_created_at)
-    //             ->addColumn('updated_at', fn($unit) => $unit->formatted_updated_at)
-    //             ->addColumn('unit_notes', fn($unit) => '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(' . (int)$unit->id . ')">' . nl2br(e($unit->unit_notes)) . '</a>')
-    //             ->addColumn('status', fn($unit) => $unit->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>')
-    //             ->addColumn('action', function ($unit) {
-    //                 $postcode = $unit->formatted_postcode;
-    //                 $office_name = $unit->offices->office_name ?? '-';
-    //                 $status = $unit->status
-    //                     ? '<span class="badge bg-success">Active</span>'
-    //                     : '<span class="badge bg-secondary">Inactive</span>';
-
-    //                 $html = '<div class="btn-group dropstart">
-    //                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-    //                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-    //                             </button>
-    //                             <ul class="dropdown-menu">';
-    //                 if (Gate::allows('unit-edit')) {
-    //                     $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $unit->id]) . '">Edit</a></li>';
-    //                 }
-    //                 if (Gate::allows('unit-view')) {
-    //                     $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal('
-    //                         . (int)$unit->id . ', '
-    //                         . '\'' . e($office_name) . '\', '
-    //                         . '\'' . e($unit->unit_name) . '\', '
-    //                         . '\'' . e($postcode) . '\', '
-    //                         . '\'' . e($status) . '\')">View</a></li>';
-    //                 }
-    //                 $html .= '</ul></div>';
-
-    //                 return $html;
-    //             })
-    //             // Keep your custom office_name filter (for individual column search)
-    //             ->filterColumn('office_name', fn($q, $keyword) => $q->whereHas('office', fn($o) => $o->where('office_name', 'LIKE', "%{$keyword}%")))
-    //             ->rawColumns(['unit_notes', 'unit_name', 'contact_email', 'contact_landline', 'contact_phone', 'office_name', 'status', 'action'])
-    //             ->make(true);
-    //     }
-    // }
     public function getUnits(Request $request)
     {
         $statusFilter = $request->input('status_filter');
-        $searchTerm   = trim($request->input('search.value', ''));
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
@@ -309,38 +197,27 @@ class UnitController extends Controller
         // ─── Turbo Search Optimization (Units + Contacts) ───────────────────
         if ($request->filled('search.value')) {
             $search = trim($request->input('search.value'));
-            $query->where(function ($q) use ($search) {
-                // Determine search pattern
-                if (filter_var($search, FILTER_VALIDATE_EMAIL)) {
-                    // 1. Email Specialized Search
-                    $q->whereExists(function ($cq) use ($search) {
-                        $cq->select(DB::raw(1))
-                           ->from('contacts')
-                           ->whereColumn('contacts.contactable_id', 'units.id')
-                           ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                           ->where('contact_email', 'LIKE', "{$search}%");
-                    });
-                } elseif (preg_match('/^[0-9+]{4,}$/', $search)) {
-                    // 2. Phone Specialized Search
-                    $q->where(function($phoneQ) use ($search) {
-                        $phoneQ->whereExists(function ($cq) use ($search) {
-                                   $cq->select(DB::raw(1))
-                                      ->from('contacts')
-                                      ->whereColumn('contacts.contactable_id', 'units.id')
-                                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                                      ->where(function($qq) use ($search) {
-                                          $qq->where('contact_phone', 'LIKE', "{$search}%")
-                                             ->orWhere('contact_landline', 'LIKE', "{$search}%");
-                                      });
-                               });
-                    });
-                } else {
-                    // 3. Generic Path (Units, Offices, Postcode, Notes, Contacts)
-                    $q->where('units.unit_name', 'LIKE', "%{$search}%")
-                      ->orWhere('offices.office_name', 'LIKE', "%{$search}%")
-                      ->orWhere('units.unit_postcode', 'LIKE', "{$search}%");
-                }
-            });
+
+            if (strlen($search) >= 2) {
+                // 1. Scout search matches unit_name, etc.
+                $unitIdsFromElastic = Unit::search($search)->keys()->toArray();
+
+                // 2. Search for Units via Office (Scout search on Office model)
+                $officeIds = Office::search($search)->keys()->toArray();
+                $unitIdsByOffice = Unit::whereIn('office_id', $officeIds)->pluck('id')->toArray();
+
+                // 3. Still do the Contact SQL check
+                $contactIds = Contact::where('contactable_id', '>', 0)
+                    ->where('contactable_type', 'Horsefly\\Unit')
+                    ->where(function ($q) use ($search) {
+                        $q->where('contact_email', 'LIKE', "%{$search}%")
+                        ->orWhere('contact_phone', 'LIKE', "%{$search}%");
+                    })->pluck('contactable_id')->toArray();
+
+                $allIds = array_unique(array_merge($unitIdsFromElastic, $unitIdsByOffice, $contactIds));
+
+                $query->whereIn('units.id', $allIds);
+            }
         }
 
         // Sorting logic

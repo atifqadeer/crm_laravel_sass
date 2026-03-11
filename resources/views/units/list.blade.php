@@ -16,7 +16,18 @@
         <div class="card">
             <div class="card-header border-0">
                 <div class="row justify-content-between">
-                    <div class="col-lg-12">
+                    <div class="col-lg-3">
+                        <div class="text-md-start mt-3 pt-1">
+                            <div class="input-group">
+                                <div class="position-relative flex-grow-1" style="display: flex;">
+                                    <input type="text" id="customSearchInput" class="form-control w-100" placeholder="Search ...">
+                                    <button class="d-none" id="customClearBtn" type="button" title="Clear"><i class="ri-close-line"></i></button>
+                                </div>
+                                <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-9">
                         <div class="text-md-end mt-3">
                             <!-- head office Filter Dropdown -->
                             <div class="dropdown d-inline">
@@ -29,11 +40,17 @@
                                     <input type="text" class="form-control mb-2" id="officeSearchInput"
                                         placeholder="Search office...">
 
+                                    <!-- Select/Deselect All -->
+                                    <div class="d-flex justify-content-end px-1 mb-1" id="officeToggleContainer">
+                                        <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".office-filter" data-exclude="[data-office-id='']">Select All</a>
+                                        <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".office-filter" data-exclude="[data-office-id='']" style="display:none">Deselect All</a>
+                                    </div>
+
                                     <!-- Scrollable checkbox list -->
                                     <div id="officesList">
                                         <div class="form-check">
                                             <input class="form-check-input office-filter" type="checkbox" value=""
-                                                id="all-offices" data-title-id="">
+                                                id="all-offices" data-office-id="">
                                             <label class="form-check-label" for="all-offices">All Head Offices</label>
                                         </div>
 
@@ -199,11 +216,11 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'created_at', name: 'units.created_at' },
                 { data: 'updated_at', name: 'units.updated_at' },
-                { data: 'office_name', name: 'office_name' },
+                { data: 'office_name', name: 'offices.office_name' },
                 { data: 'unit_name', name: 'units.unit_name'  },
                 { data: 'unit_postcode', name: 'units.unit_postcode' },
                 { data: 'contact_email', name: 'contacts.contact_email'},                
-                { data: 'contact_phone', name: 'contacts.contact_phone', orderable: true, searchable: true},                
+                { data: 'contact_phone', name: 'contacts.contact_phone'},                
                 { data: 'contact_landline', name: 'contacts.contact_landline'},
             ];
 
@@ -277,7 +294,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -355,6 +372,40 @@
                 },
             });
 
+             // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
+
             /*** Office Filter Handler ***/
             $('.office-filter').on('change', function() {
                 const id = $(this).data('office-id');
@@ -374,14 +425,15 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.office-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.office-filter').not('[data-office-id=""]').length;
+                const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
 
-                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
-                    ')' : 'All Head Offices');
+                $('#showFilterOffice').text(checked > 0 ? `Selected Offices (${checked})` : 'All Head Offices');
+
+                const container = $('#officeToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
@@ -394,6 +446,32 @@
 
                 // Update the DataTable request with the selected filter
                 table.ajax.reload();  // Reload the table with the new filter
+            });
+
+            /*** Dropdown Select All Action ***/
+            $(document).on('click', '.filter-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
+                $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
+            });
+
+            /*** Dropdown Deselect All Action ***/
+            $(document).on('click', '.filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
+            });
+
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
             });
         });
 

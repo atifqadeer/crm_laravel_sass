@@ -18,7 +18,7 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-4">
+                        <div class="col-lg-3">
                             <div class="text-md-start mt-3 pt-1">
                                 <div class="input-group">
                                     <!-- Use padding-right to prevent text from overlapping the clear icon -->
@@ -31,7 +31,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-8">
+                        <div class="col-lg-9">
                             <!-- Custom Search Bar -->
                             <div class="text-md-end mt-3">
                                 @canany(['applicant-filters'])
