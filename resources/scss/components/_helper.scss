@@ -57,3 +57,30 @@ $value in $theme-colors {
 .border-transparent {
     --#{$prefix}border-color: transparent !important;
 }
+
+
+#customClearBtn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none !important;
+    border-color: transparent !important;
+    background: transparent;
+    z-index: 100;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+#customClearBtn i {
+    color: #1d79eb !important;
+    font-size: 20px;
+    font-weight: 900;
+}
+
+#customSearchInput {
+    padding-right: 35px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}

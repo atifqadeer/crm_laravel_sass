@@ -14,7 +14,7 @@ class Applicant extends Model
 
     protected $table = 'applicants';
     protected $fillable = [
-        'id',
+        // 'id',
         'applicant_uid',
         'user_id',
         'job_source_id',
@@ -70,8 +70,8 @@ class Applicant extends Model
         'paid_status',
         'paid_timestamp',
         'deleted_at',
-        'created_at',
-        'updated_at'
+        // 'created_at',
+        // 'updated_at'
     ];
     protected $casts = [
         'is_blocked' => 'boolean',
@@ -143,7 +143,7 @@ class Applicant extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id' => (int) $this->id,
+            'id' => (int)$this->id,
             'applicant_name' => $this->applicant_name,
             'applicant_email' => $this->applicant_email,
             'applicant_email_secondary' => $this->applicant_email_secondary,
