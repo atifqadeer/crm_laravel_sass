@@ -512,13 +512,16 @@ class ApplicantController extends Controller
         // ─── Turbo Search Optimization (B-Tree Priority) ────────────────────────
         if ($request->filled('search.value')) {
             $searchTerm = trim($request->input('search.value'));
-            // Use Scout search to get IDs, then filter our main query
-            $ids = Applicant::search($searchTerm)->keys()->toArray();
+            
+            if (strlen($searchTerm) >= 2) {
+                // Use Scout search to get IDs
+                $ids = Applicant::search($searchTerm)->keys()->toArray();
 
-            if (!empty($ids)) {
-                $model->whereIn('applicants.id', $ids);
-            } else {
-                $model->whereRaw('1 = 0');
+                if (!empty($ids)) {
+                    $model->whereIn('applicants.id', $ids);
+                } else {
+                    $model->whereRaw('1 = 0');
+                }
             }
         }
 

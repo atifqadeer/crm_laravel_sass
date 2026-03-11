@@ -143,23 +143,18 @@ class Applicant extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id' => $this->id,
+            'id' => (int) $this->id,
             'applicant_name' => $this->applicant_name,
             'applicant_email' => $this->applicant_email,
             'applicant_email_secondary' => $this->applicant_email_secondary,
+            'applicant_postcode' => $this->applicant_postcode,
             'applicant_phone' => $this->applicant_phone,
             'applicant_phone_secondary' => $this->applicant_phone_secondary,
             'applicant_landline' => $this->applicant_landline,
-            'applicant_postcode' => $this->applicant_postcode,
             'applicant_notes' => $this->applicant_notes,
             'applicant_experience' => $this->applicant_experience,
-            // Include related names for better searchability
-            'job_title_id' => $this->jobTitle?->id,
-            'job_category_id' => $this->jobCategory?->id,
-            'job_source_id' => $this->jobSource?->id,
         ];
     }
-
     public function scopeStatusWise($query, $status)
     {
         return $query->where('status', $status);

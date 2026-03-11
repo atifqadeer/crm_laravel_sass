@@ -165,6 +165,15 @@
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-body p-3">
+                    <!-- Custom Search Bar -->
+                    <div class="row mb-3 justify-content-end">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <input type="text" id="customSearchInput" class="form-control" placeholder="Search ...">
+                                <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
@@ -440,7 +449,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id;
                 },
-                dom: 'flrtip',
+                dom: 'lrtip',
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -518,6 +527,18 @@
                         </div>`;
                     pagination.html(paginationHtml);
                 },
+            });
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                table.search($('#customSearchInput').val()).draw();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    table.search($(this).val()).draw();
+                }
             });
 
             /*** Type filter dropdown handler ***/
