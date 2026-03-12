@@ -66,19 +66,29 @@ class SaleController extends Controller
         preg_match('/https?:\/\/[^\s]+/', $normalizedText, $matches);
         $url = $matches[0] ?? null;
 
-        // 6. Limit preview characters
-        $preview = Str::limit(trim($normalizedText), 80);
+        // 6. Remove the URL from the text if present to avoid showing long links in preview
+        $textForPreview = $url ? str_replace($url, '', $normalizedText) : $normalizedText;
 
-        // 7. Convert newlines to <br>
+        // 7. Limit preview characters
+        $preview = Str::limit(trim($textForPreview), 80);
+
+        // 8. Convert newlines to <br>
         $shortText = nl2br($preview);
 
         $id = $idPrefix . '-' . $saleId;
 
         $urlCTA = '';
+        $modalBody = $fullHtml;
         if ($url) {
             $urlCTA = '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link">
                         <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
                        </a>';
+
+            // Generate a larger CTA button for the modal view
+            $modalCTA = '<div class="my-2"><a href="' . $url . '" target="_blank" class="btn btn-sm btn-info rounded-pill px-3 py-1 d-inline-flex align-items-center shadow-sm" title="Open Link">
+                            <iconify-icon icon="mdi:link-variant" class="me-2"></iconify-icon> Click to Open Link
+                         </a></div>';
+            $modalBody = str_replace($url, $modalCTA, $fullHtml);
         }
 
         return '<div class="d-flex flex-column align-items-start">
@@ -92,7 +102,7 @@ class SaleController extends Controller
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                ' . $fullHtml . '
+                                ' . $modalBody . '
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
@@ -947,23 +957,26 @@ class SaleController extends Controller
                 $notesValue = $url ? str_replace($url, '', $notesIndex) : $notesIndex;
                 $shortNotes = Str::limit(trim(strip_tags($notesValue)), 80);
 
-                $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
-                    $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
-                    $office_name = ucwords($sale->office_name ?? '-');
-                    $unit_name = ucwords($sale->unit_name ?? '-');
-
                 $urlCTA = '';
+                $escapedNotes = htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8');
                     if ($url) {
                     $urlCTA = '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link">
-                                    <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
-                                   </a>';
+                                            <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
+                                       </a>';
                     }
 
+                $notes = nl2br($escapedNotes);
+                $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
+                $office_name = ucwords($sale->office_name ?? '-');
+                $unit_name = ucwords($sale->unit_name ?? '-');
+
                 return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                    ' . $shortNotes . '
-                                </a>' . $urlCTA . '
+                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                        ' . $shortNotes . '
+                                    </a>
+                                </div>' . $urlCTA . '
                             </div>';
+                            
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1330,8 +1343,7 @@ class SaleController extends Controller
                     return $sale->open_date ? Carbon::parse($sale->open_date)->format('d M Y, h:i A') : '-'; // Using accessor
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notes = nl2br(htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8'));
-                    $notes = $notes ? $notes : 'N/A';
+                $escapedNotes = htmlspecialchars($sale->sale_notes, ENT_QUOTES, 'UTF-8');
                     $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
                     $unit = Unit::find($sale->unit_id);
                     $unit_name = $unit ? ucwords($unit->unit_name) : '-';
@@ -1345,9 +1357,17 @@ class SaleController extends Controller
                     $urlCTA = '<a href="' . $url . '" target="_blank" title="Open Link" class="ms-1">
                                     <iconify-icon icon="mdi:link-variant" class="text-info fs-24"></iconify-icon>
                                    </a>';
+
+                    // Replace naked URL in modal with a CTA button
+                    $modalCTA = '<div class="my-2"><a href="' . $url . '" target="_blank" class="btn btn-sm btn-info rounded-pill px-3 py-1 d-inline-flex align-items-center shadow-sm" title="Open Link">
+                                        <iconify-icon icon="mdi:link-variant" class="me-2"></iconify-icon> Click to Open Link
+                                     </a></div>';
+                    $escapedUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+                    $escapedNotes = str_replace($escapedUrl, $modalCTA, $escapedNotes);
                 }
 
-                // Tooltip content with additional data-bs-placement and title
+                $notes = nl2br($escapedNotes);
+
                 return '<div class="d-flex flex-column align-items-start">
                                 <div class="d-flex align-items-center">
                                     <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">

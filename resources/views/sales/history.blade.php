@@ -17,16 +17,16 @@
                                     <li><strong>PostCode:</strong> {{ $postcode ?? 'N/A' }}</li>
                                     <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                     <li><strong>Title:</strong> {{ $jobTitle ? strtoupper($jobTitle->name) : 'N/A' }}</li>
-                                    <li><strong>Qualification:</strong> {{ $sale->qualification }}</li>
+                                    <li><strong>Qualification:</strong> {!! $sale->qualification !!}</li>
                                 </ul>
                             </div>
                             <div class="col-md-6 col-xs-12 mb-3">
                                 <ul class="list-unstyled mb-0">
                                     <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
                                     <li><strong>Position Type:</strong> {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}</li>
-                                    <li><strong>Salary:</strong> {{ $sale->salary }}</li>
-                                    <li><strong>Timing:</strong> {{ $sale->timing }}</li>
-                                    <li><strong>Experience:</strong> {{ $sale->experience }}</li>
+                                    <li><strong>Salary:</strong> {!! $sale->salary !!}</li>
+                                    <li><strong>Timing:</strong> {!! $sale->timing !!}</li>
+                                    <li><strong>Experience:</strong> {!! $sale->experience !!}</li>
                                     <li><strong>Status:</strong>
                                         @php
                                             $status = $sale->status;
