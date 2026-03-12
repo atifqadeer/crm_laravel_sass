@@ -5,14 +5,15 @@ namespace Horsefly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class Sale extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'sales';
     protected $fillable = [
-        'id',
+        // 'id',
         'sale_uid',
         'user_id',
         'office_id',
@@ -35,9 +36,25 @@ class Sale extends Model
         'status',
         'is_on_hold',
         'is_re_open',
-        'created_at',
-        'updated_at'
+        // 'created_at',
+        // 'updated_at'
     ];
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id'             => (int)$this->id,
+            'sale_uid'       => $this->sale_uid,
+            'sale_postcode'  => $this->sale_postcode,
+            'experience'     => strip_tags($this->experience),
+            'timing'         => $this->timing,
+            'job_type'       => $this->job_type,
+            'position_type'  => $this->position_type,
+            'salary'         => strip_tags($this->salary),
+            'qualification'  => strip_tags($this->qualification),
+            'cv_limit'       => $this->cv_limit,
+        ];
+    }
 
     public function getFormattedPostcodeAttribute()
     {
@@ -87,16 +104,7 @@ class Sale extends Model
     {
         return $this->hasMany(CVNote::class, 'sale_id', 'id')->where('status', 1);
     }
-    // public function updated_by_audits()
-    // {
-    //     return $this->morphMany(Audit::class, 'auditable')->with('user')
-    //         ->where('message', 'like', '%has been updated%');
-    // }
-    // public function created_by_audit()
-    // {
-    //     return $this->morphOne(Audit::class, 'auditable')->with('user')
-    //         ->where('message', 'like', '%has been created%');
-    // }
+
     public function updated_by_audits()
     {
         return $this->morphMany(Audit::class, 'auditable')
