@@ -39,6 +39,68 @@ class SaleController extends Controller
     {
         //
     }
+
+    private function formatWithUrlCTA($fullHtml, $idPrefix, $saleId, $modalTitle)
+    {
+        // 0. Remove inline styles and <span> tags (to avoid affecting layout)
+        $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
+        $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+
+        // 1. Convert block-level and <br> tags into \n
+        $withBreaks = preg_replace(
+            '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+            "\n",
+            $cleanedHtml
+        );
+
+        // 2. Remove all other HTML tags except basic formatting tags
+        $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+
+        // 3. Decode HTML entities
+        $decodedText = html_entity_decode($plainText);
+
+        // 4. Normalize multiple newlines
+        $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+
+        // 5. Detect URL in the plain text
+        preg_match('/https?:\/\/[^\s]+/', $normalizedText, $matches);
+        $url = $matches[0] ?? null;
+
+        // 6. Limit preview characters
+        $preview = Str::limit(trim($normalizedText), 80);
+
+        // 7. Convert newlines to <br>
+        $shortText = nl2br($preview);
+
+        $id = $idPrefix . '-' . $saleId;
+
+        $urlCTA = '';
+        if ($url) {
+            $urlCTA = '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link">
+                        <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
+                       </a>';
+        }
+
+        return '<div class="d-flex flex-column align-items-start">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>' . $urlCTA . '
+                </div>
+                <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="' . $id . '-label">' . $modalTitle . '</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ' . $fullHtml . '
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>';
+    }
     /**
      * Display a listing of the applicants.
      *
@@ -849,166 +911,13 @@ class SaleController extends Controller
                     }
                 })
                 ->addColumn('qualification', function ($sale) {
-                    $fullHtml = $sale->qualification; // HTML from Summernote
-                    $id = 'qua-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 80);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
-
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
+                return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
                 })
                 ->addColumn('experience', function ($sale) {
-                    $fullHtml = $sale->experience; // HTML from Summernote
-                    $id = 'exp-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 80);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
-
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
+                return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
                 })
                 ->addColumn('salary', function ($sale) {
-                    $fullHtml = $sale->salary; // HTML from Summernote
-                    $id = 'slry-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 80);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
-
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale`s Salary</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
+                return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale`s Salary');
                 })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
@@ -1030,31 +939,31 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notesIndex = '-'; 
-                    if(!empty($sale->sale_notes)){
-                        $notesIndex = $sale->sale_notes;
-                    }else{
-                        $notesIndex = $sale->latest_note;
-                    }
+                $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
 
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
                     $url = $matches[0] ?? null;
 
-                    $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
-                    $shortNotes = Str::limit(trim($notes), 80);
+                $notesValue = $url ? str_replace($url, '', $notesIndex) : $notesIndex;
+                $shortNotes = Str::limit(trim(strip_tags($notesValue)), 80);
+
+                $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
                     $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
                     $office_name = ucwords($sale->office_name ?? '-');
                     $unit_name = ucwords($sale->unit_name ?? '-');
+
+                $urlCTA = '';
                     if ($url) {
-                        return '<a href="'.$url.'" target="_blank" class="btn btn-sm btn-info rounded-pill px-3">
-                                    <iconify-icon icon="mdi:paperclip" class="me-1"></iconify-icon>
-                                    URL
-                                </a>';
-                    }else{
-                         return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                               ' . $shortNotes . '
-                            </a>';
+                    $urlCTA = '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link">
+                                    <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
+                                   </a>';
                     }
+
+                return '<div class="d-flex flex-column align-items-start">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                    ' . $shortNotes . '
+                                </a>' . $urlCTA . '
+                            </div>';
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1429,13 +1338,26 @@ class SaleController extends Controller
                     $office = Office::find($sale->office_id);
                     $office_name = $office ? ucwords($office->office_name) : '-';
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-                                <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
-                            </a>
-                            <a href="#" title="Add Short Note" onclick="addNotesModal(\'' . (int)$sale->id . '\')">
-                                <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                            </a>';
+                preg_match('/https?:\/\/[^\s]+/', $sale->sale_notes, $matches);
+                $url = $matches[0] ?? null;
+                $urlCTA = '';
+                if ($url) {
+                    $urlCTA = '<a href="' . $url . '" target="_blank" title="Open Link" class="ms-1">
+                                    <iconify-icon icon="mdi:link-variant" class="text-info fs-24"></iconify-icon>
+                                   </a>';
+                }
+
+                // Tooltip content with additional data-bs-placement and title
+                return '<div class="d-flex flex-column align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\', \'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                        <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
+                                    </a>
+                                    <a href="#" title="Add Short Note" onclick="addNotesModal(\'' . (int)$sale->id . '\')" class="mx-1">
+                                        <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
+                                    </a>
+                                </div>' . $urlCTA . '
+                            </div>';
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1456,112 +1378,10 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->addColumn('qualification', function ($sale) {
-                    $fullHtml = $sale->qualification; // HTML from Summernote
-                    $id = 'qua-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 80);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
-
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale Qualification</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
+                return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
                 })
                 ->addColumn('experience', function ($sale) {
-                    $fullHtml = $sale->experience; // HTML from Summernote
-                    $id = 'exp-' . $sale->id;
-
-                    // 0. Remove inline styles and <span> tags (to avoid affecting layout)
-                    $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
-                    $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                    // 1. Convert block-level and <br> tags into \n
-                    $withBreaks = preg_replace(
-                        '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                        "\n",
-                        $cleanedHtml
-                    );
-
-                    // 2. Remove all other HTML tags except basic formatting tags
-                    $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                    // 3. Decode HTML entities
-                    $decodedText = html_entity_decode($plainText);
-
-                    // 4. Normalize multiple newlines
-                    $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                    // 5. Limit preview characters
-                    $preview = Str::limit(trim($normalizedText), 80);
-
-                    // 6. Convert newlines to <br>
-                    $shortText = nl2br($preview);
-
-                    return '
-                        <a href="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#' . $id . '">'
-                        . $shortText . '
-                        </a>
-
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="' . $id . '-label">Sale Experience</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
+                return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
                 })
                 ->addColumn('position_type', function ($sale) {
                     $status = '-';
