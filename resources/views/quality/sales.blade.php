@@ -39,11 +39,17 @@
                                         <input type="text" class="form-control mb-2" id="officeSearchInput"
                                             placeholder="Search office...">
 
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="officeToggleContainer">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".office-filter" data-exclude="[data-office-id='']">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".office-filter" data-exclude="[data-office-id='']" style="display:none">Deselect All</a>
+                                        </div>
+
                                         <!-- Scrollable checkbox list -->
                                         <div id="officesList">
                                             <div class="form-check">
                                                 <input class="form-check-input office-filter" type="checkbox" value=""
-                                                    id="all-offices" data-title-id="">
+                                                    id="all-offices" data-office-id="">
                                                 <label class="form-check-label" for="all-offices">All Head Office</label>
                                             </div>
 
@@ -70,11 +76,17 @@
                                         <input type="text" class="form-control mb-2" id="categorySearchInput"
                                             placeholder="Search category...">
 
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".category-filter" data-exclude="[data-category-id='']">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".category-filter" data-exclude="[data-category-id='']" style="display:none">Deselect All</a>
+                                        </div>
+
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
                                             <div class="form-check">
                                                 <input class="form-check-input category-filter" type="checkbox" value=""
-                                                    id="all-categories" data-title-id="">
+                                                    id="all-categories" data-category-id="">
                                                 <label class="form-check-label" for="all-categories">All Category</label>
                                             </div>
 
@@ -113,6 +125,12 @@
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="titleSearchInput"
                                             placeholder="Search titles...">
+
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".title-filter" data-exclude="[data-title-id='']" style="display:none">Deselect All</a>
+                                        </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
@@ -456,96 +474,107 @@
                 table.ajax.reload(); // Reload with updated status filter
             });
             /*** Category filter handler ***/
-            $('.category-filter').on('click', function() {
+            $('.category-filter').on('change', function() {
                 const id = $(this).data('category-id');
-                // Handle "All Titles"
+                const total = $('.category-filter').not('[data-category-id=""]').length;
+                const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
+
                 if (id === '' || id === undefined) {
-                    currentCategoryFilters = [];
-                    $('.category-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
                     if (this.checked) {
-                        currentCategoryFilters.push(id);
-                        // Uncheck "All Titles"
+                        $('.category-filter').not(this).prop('checked', false);
+                        currentCategoryFilters = [];
+                    }
+                } else {
+                    if (this.checked) {
                         $('.category-filter[data-category-id=""]').prop('checked', false);
+                        if (!currentCategoryFilters.includes(id)) currentCategoryFilters.push(id);
                     } else {
                         currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.category-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` : 'All Category');
+                
+                const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
-                    ')' : 'All Categories');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** Title Filter Handler ***/
             $('.title-filter').on('change', function() {
                 const id = $(this).data('title-id');
+                const total = $('.title-filter').not('[data-title-id=""]').length;
+                const checked = $('.title-filter:checked').not('[data-title-id=""]').length;
 
-                // Handle "All Titles"
                 if (id === '' || id === undefined) {
-                    currentTitleFilters = [];
-                    $('.title-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
                     if (this.checked) {
-                        currentTitleFilters.push(id);
-                        // Uncheck "All Titles"
+                        $('.title-filter').not(this).prop('checked', false);
+                        currentTitleFilters = [];
+                    }
+                } else {
+                    if (this.checked) {
                         $('.title-filter[data-title-id=""]').prop('checked', false);
+                        if (!currentTitleFilters.includes(id)) currentTitleFilters.push(id);
                     } else {
                         currentTitleFilters = currentTitleFilters.filter(x => x !== id);
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                $('#showFilterTitle').text(checked > 0 ? `Selected Title (${checked})` : 'All Titles');
+                
+                const container = $('#titleToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
-                    ')' : 'All Titles');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
+
             /*** Office Filter Handler ***/
             $('.office-filter').on('change', function() {
                 const id = $(this).data('office-id');
+                const total = $('.office-filter').not('[data-office-id=""]').length;
+                const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
 
-                // Handle "All Titles"
                 if (id === '' || id === undefined) {
-                    currentOfficeFilters = [];
-                    $('.office-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
                     if (this.checked) {
-                        currentOfficeFilters.push(id);
-                        // Uncheck "All Titles"
+                        $('.office-filter').not(this).prop('checked', false);
+                        currentOfficeFilters = [];
+                    }
+                } else {
+                    if (this.checked) {
                         $('.office-filter[data-office-id=""]').prop('checked', false);
+                        if (!currentOfficeFilters.includes(id)) currentOfficeFilters.push(id);
                     } else {
                         currentOfficeFilters = currentOfficeFilters.filter(x => x !== id);
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.office-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                $('#showFilterOffice').text(checked > 0 ? `Selected Office (${checked})` : 'All Head Office');
+                
+                const container = $('#officeToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
-                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
-                    ')' : 'All Offices');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+
+            // Handle Select All / Deselect All
+            $(document).on('click', '.filter-select-all, .filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isSelectAll = $(this).hasClass('filter-select-all');
+                const targetSelector = $(this).data('target');
+                const excludeSelector = $(this).data('exclude');
+                const checkboxes = $(targetSelector).not(excludeSelector);
+
+                checkboxes.prop('checked', isSelectAll).trigger('change');
+            });
+
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
             });
         });
 
