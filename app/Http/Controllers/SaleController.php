@@ -276,9 +276,17 @@ class SaleController extends Controller
             ]);
 
             $postcode = $request->sale_postcode;
-            $postcode_query = strlen($postcode) < 6
-                ? DB::table('outcodepostcodes')->where('outcode', $postcode)->first()
-                : DB::table('postcodes')->where('postcode', $postcode)->first();
+            // 1. Try to find a match in the full postcodes table first
+            $postcode_query = DB::table('postcodes')
+                ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                ->first();
+
+            // 2. Fallback: If not found in full postcodes, check outcodes
+            if (!$postcode_query) {
+                $postcode_query = DB::table('outcodepostcodes')
+                    ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                    ->first();
+            }
 
             if (!$postcode_query) {
                 try {
@@ -523,9 +531,17 @@ class SaleController extends Controller
 
             $postcode = $request->sale_postcode;
             if ($postcode != $sale->sale_postcode) {
-                $postcode_query = strlen($postcode) < 6
-                    ? DB::table('outcodepostcodes')->where('outcode', $postcode)->first()
-                    : DB::table('postcodes')->where('postcode', $postcode)->first();
+                // 1. Try to find a match in the full postcodes table first
+                $postcode_query = DB::table('postcodes')
+                    ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                    ->first();
+
+                // 2. Fallback: If not found in full postcodes, check outcodes
+                if (!$postcode_query) {
+                    $postcode_query = DB::table('outcodepostcodes')
+                        ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                        ->first();
+                }
 
                 if (!$postcode_query) {
                     try {

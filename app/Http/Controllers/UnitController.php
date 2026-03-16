@@ -93,9 +93,17 @@ class UnitController extends Controller
             $unitData['user_id'] = Auth::id();
 
             $postcode = $request->unit_postcode;
-            $postcode_query = strlen($postcode) < 6
-                ? DB::table('outcodepostcodes')->where('outcode', $postcode)->first()
-                : DB::table('postcodes')->where('postcode', $postcode)->first();
+            // 1. Try to find a match in the full postcodes table first
+            $postcode_query = DB::table('postcodes')
+                ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                ->first();
+
+            // 2. Fallback: If not found in full postcodes, check outcodes
+            if (!$postcode_query) {
+                $postcode_query = DB::table('outcodepostcodes')
+                    ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                    ->first();
+            }
 
             if (!$postcode_query) {
                 try {
@@ -491,15 +499,36 @@ class UnitController extends Controller
             $postcode = $request->unit_postcode;
 
             if ($postcode != $unit->unit_postcode) {
-                if (strlen($postcode) < 6) {
-                    // Search in 'outpostcodes' table
-                    $postcode_query = DB::table('outcodepostcodes')->where('outcode', $postcode)->first();
-                } else {
-                    // Search in 'postcodes' table
-                    $postcode_query = DB::table('postcodes')->where('postcode', $postcode)->first();
+                // 1. Try to find a match in the full postcodes table first
+                $postcode_query = DB::table('postcodes')
+                    ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                    ->first();
+
+                // 2. Fallback: If not found in full postcodes, check outcodes
+                if (!$postcode_query) {
+                    $postcode_query = DB::table('outcodepostcodes')
+                        ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                        ->first();
                 }
 
-                if ($postcode_query) {
+                if (!$postcode_query) {
+                    try {
+                        $result = $this->geocode($postcode);
+
+                        // If geocode fails, throw
+                        if (!isset($result['lat']) || !isset($result['lng'])) {
+                            throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        }
+
+                        $unitData['lat'] = $result['lat'];
+                        $unitData['lng'] = $result['lng'];
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Unable to locate address: ' . $e->getMessage()
+                        ], 400);
+                    }
+                } else {
                     $unitData['lat'] = $postcode_query->lat;
                     $unitData['lng'] = $postcode_query->lng;
                 }
