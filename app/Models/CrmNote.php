@@ -4,10 +4,11 @@ namespace Horsefly;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Scout\Searchable;
 
 class CrmNote extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $table = 'crm_notes';
     protected $fillable = [
@@ -22,6 +23,21 @@ class CrmNote extends Model
         'created_at',
         'updated_at'
     ];
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'user_id' => $this->user_id,
+            'applicant_id' => $this->applicant_id,
+            'sale_id' => $this->sale_id,
+            'details' => $this->details,
+            'moved_tab_to' => $this->moved_tab_to,
+            'status' => $this->status,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
 
     public function getFormattedCreatedAtAttribute()
     {

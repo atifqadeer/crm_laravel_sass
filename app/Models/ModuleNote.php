@@ -3,9 +3,12 @@
 namespace Horsefly;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
 class ModuleNote extends Model
 {
+    use Searchable;
+
     protected $table = 'module_notes';
     protected $fillable = [
         // 'id',
@@ -21,6 +24,19 @@ class ModuleNote extends Model
     public function module_noteable()
     {
         return $this->morphTo();
+    }
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'user_id' => $this->user_id,
+            'module_noteable_id' => $this->module_noteable_id,
+            'module_noteable_type' => $this->module_noteable_type,
+            'details' => $this->details,
+            'status' => $this->status,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
     // protected static function boot()
     // {
