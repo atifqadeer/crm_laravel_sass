@@ -15,18 +15,7 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-3">
-                            <div class="text-md-start mt-3 pt-1">
-                                <div class="input-group">
-                                    <div class="position-relative flex-grow-1" style="display: flex;">
-                                        <input type="text" id="customSearchInput" class="form-control w-100" placeholder="Search ...">
-                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i class="ri-close-line"></i></button>
-                                    </div>
-                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-9">
+                        <div class="col-lg-12">
                             <div class="text-md-end mt-3">
                                 @canany(['sale-filters'])
                                     <!-- user Filter Dropdown -->
@@ -238,6 +227,19 @@
                             </div>
                         </div><!-- end col-->
                     </div>
+                    <div class="row justify-content-between">
+                         <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <div class="position-relative flex-grow-1" style="display: flex;">
+                                        <input type="text" id="customSearchInput" class="form-control w-100" placeholder="Search ...">
+                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i class="ri-close-line"></i></button>
+                                    </div>
+                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -393,7 +395,7 @@
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'created_at', name: 'sales.created_at', searchable: false },
                     { data: 'updated_at', name: 'sales.updated_at', searchable: false },
-                    { data: 'open_date', name: 'audit_logs.audit_created_at', searchable: false },
+                    { data: 'open_date', name: 'open_date', searchable: false },
                     { data: 'user_name', name: 'users.name'},
                     { data: 'office_name', name: 'offices.office_name'},
                     { data: 'unit_name', name: 'units.unit_name'  },

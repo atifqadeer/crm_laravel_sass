@@ -148,9 +148,11 @@
                                         <a class="sub-nav-link" href="{{ route('sales.closed')}}">Closed Sales</a>
                                    </li>
                                    @endcanany
+                                   @canany(['sale-rejected-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('sales.rejected')}}">Rejected Sales</a>
                                    </li>
+                                   @endcanany
                                    @canany(['sale-hold-index'])
                                    <li class="sub-nav-item">
                                         <a class="sub-nav-link" href="{{ route('sales.on-hold')}}">On Hold Sales</a>

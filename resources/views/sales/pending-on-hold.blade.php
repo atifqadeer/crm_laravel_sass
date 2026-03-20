@@ -16,7 +16,18 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <div class="position-relative flex-grow-1" style="display: flex;">
+                                        <input type="text" id="customSearchInput" class="form-control w-100" placeholder="Search ...">
+                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i class="ri-close-line"></i></button>
+                                    </div>
+                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- user Filter Dropdown -->
                                 <div class="dropdown d-inline">
@@ -31,11 +42,15 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="usersList">
-                                            <div class="form-check">
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="userToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".user-filter" data-exclude="[data-user-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".user-filter" data-exclude="[data-user-id='']" style="display:none">Deselect All</a>
+                                            </div>
+                                            <!-- <div class="form-check">
                                                 <input class="form-check-input user-filter" type="checkbox" value=""
                                                     id="all-Users" data-title-id="">
                                                 <label class="form-check-label" for="all-Users">All Users</label>
-                                            </div>
+                                            </div> -->
 
                                             @foreach($users as $user)
                                                 <div class="form-check">
@@ -62,11 +77,15 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="officesList">
-                                            <div class="form-check">
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="officeToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".office-filter" data-exclude="[data-office-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".office-filter" data-exclude="[data-office-id='']" style="display:none">Deselect All</a>
+                                            </div>
+                                            <!-- <div class="form-check">
                                                 <input class="form-check-input office-filter" type="checkbox" value=""
                                                     id="all-offices" data-title-id="">
                                                 <label class="form-check-label" for="all-offices">All Head Office</label>
-                                            </div>
+                                            </div> -->
 
                                             @foreach($offices as $office)
                                                 <div class="form-check">
@@ -93,11 +112,15 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
-                                            <div class="form-check">
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".category-filter" data-exclude="[data-category-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".category-filter" data-exclude="[data-category-id='']" style="display:none">Deselect All</a>
+                                            </div>
+                                            <!-- <div class="form-check">
                                                 <input class="form-check-input category-filter" type="checkbox" value=""
                                                     id="all-categories" data-title-id="">
                                                 <label class="form-check-label" for="all-categories">All Category</label>
-                                            </div>
+                                            </div> -->
 
                                             @foreach($jobCategories as $category)
                                                 <div class="form-check">
@@ -137,11 +160,15 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
-                                            <div class="form-check">
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".title-filter" data-exclude="[data-title-id='']" style="display:none">Deselect All</a>
+                                            </div>
+                                            <!-- <div class="form-check">
                                                 <input class="form-check-input title-filter" type="checkbox" value=""
                                                     id="all-titles" data-title-id="">
                                                 <label class="form-check-label" for="all-titles">All Titles</label>
-                                            </div>
+                                            </div> -->
                                             @foreach ($jobTitles as $title)
                                                 <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox"
@@ -188,7 +215,7 @@
                                     <th>Agent Name</th>
                                     <th>Head Office</th>
                                     <th>Unit Name</th>
-                                    <th>PostCode</th>
+                                    <th width="8%">PostCode</th>
                                     <th>Position Type</th>
                                     <th>Title</th>
                                     <th>Category</th>
@@ -354,7 +381,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -431,6 +458,39 @@
                     pagination.html(paginationHtml);
                 },
             });
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
             // Type filter dropdown handler
             $('.type-filter').on('click', function () {
                 currentTypeFilter = $(this).text().toLowerCase();
@@ -457,8 +517,13 @@
                 $('#showFilterCvLimit').html(formattedText);
                 table.ajax.reload(); // Reload with updated status filter
             });
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
+            });
+
             /*** Category filter handler ***/
-            $('.category-filter').on('click', function() {
+            $('.category-filter').on('change', function() {
                 const id = $(this).data('category-id');
                 // Handle "All Titles"
                 if (id === '' || id === undefined) {
@@ -475,14 +540,16 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.category-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.category-filter').not('[data-category-id=""]').length;
+                const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
-                    ')' : 'All Categories');
+                $('#showFilterCategory').text(checked > 0 ? 'Selected Categories (' + checked +
+                    ')' : 'All Category');
+
+                const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
@@ -506,14 +573,16 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.title-filter').not('[data-title-id=""]').length;
+                const checked = $('.title-filter:checked').not('[data-title-id=""]').length;
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
+                $('#showFilterTitle').text(checked > 0 ? 'Selected Titles (' + checked +
                     ')' : 'All Titles');
+
+                const container = $('#titleToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
@@ -537,14 +606,16 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.user-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.user-filter').not('[data-user-id=""]').length;
+                const checked = $('.user-filter:checked').not('[data-user-id=""]').length;
 
-                $('#showFilterUser').text(selectedLabels.length ? 'Selected Users (' + selectedLabels.length +
+                $('#showFilterUser').text(checked > 0 ? 'Selected Users (' + checked +
                     ')' : 'All Users');
+
+                const container = $('#userToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
@@ -568,17 +639,40 @@
                     }
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.office-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Update dropdown display text and toggle visibility
+                const total = $('.office-filter').not('[data-office-id=""]').length;
+                const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
 
-                $('#showFilterOffice').text(selectedLabels.length ? 'Selected Offices (' + selectedLabels.length +
-                    ')' : 'All Offices');
+                $('#showFilterOffice').text(checked > 0 ? 'Selected Offices (' + checked +
+                    ')' : 'All Head Office');
+
+                const container = $('#officeToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+
+            /*** Dropdown Select All Action ***/
+            $(document).on('click', '.filter-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
+                $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
+            });
+
+            /*** Dropdown Deselect All Action ***/
+            $(document).on('click', '.filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                
+                $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
             });
         });
 
