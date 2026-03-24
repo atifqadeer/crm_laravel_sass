@@ -275,7 +275,7 @@ class SaleController extends Controller
                 'job_description',
             ]);
 
-            $postcode = $request->sale_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->sale_postcode);
             // 1. Try to find a match in the full postcodes table first
             $postcode_query = DB::table('postcodes')
                 ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
@@ -529,8 +529,9 @@ class SaleController extends Controller
                 throw new \Exception("Sale not found with ID: " . $id);
             }
 
-            $postcode = $request->sale_postcode;
-            if ($postcode != $sale->sale_postcode) {
+            $postcode = preg_replace('/\s+/', '', $request->sale_postcode);
+            
+            if ($postcode != preg_replace('/\s+/', '', $sale->sale_postcode)) {
                 // 1. Try to find a match in the full postcodes table first
                 $postcode_query = DB::table('postcodes')
                     ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
