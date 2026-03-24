@@ -2157,14 +2157,15 @@ class SaleController extends Controller
             ->groupBy('sale_id');
 
         $model = Sale::query()
-            ->select([    'sales.*',
-            'job_titles.name as job_title_name',
-            'job_categories.name as job_category_name',
-            'offices.office_name as office_name',
-            'units.unit_name as unit_name',
-            'users.name as user_name',    'audits.created_at as open_date',
-            DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv')
-        ])
+            ->select([    
+                'sales.*',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'offices.office_name as office_name',
+                'units.unit_name as unit_name',
+                'users.name as user_name',    'audits.created_at as open_date',
+                DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv')
+            ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
@@ -2188,6 +2189,32 @@ class SaleController extends Controller
                     ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
             });
+        }
+
+        // Sorting logic
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            // Handle special cases first
+            if ($orderColumn === 'job_source') {
+                $model->orderBy('sales.job_source_id', $orderDirection);
+            } elseif ($orderColumn === 'job_category') {
+                $model->orderBy('sales.job_category_id', $orderDirection);
+            } elseif ($orderColumn === 'job_title') {
+                $model->orderBy('sales.job_title_id', $orderDirection);
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
+                $model->orderBy('sales.updated_at', 'desc');
+            }
+        } else {
+            // Default sorting when no order is specified
+            $model->orderBy('sales.updated_at', 'desc');
         }
 
         // 3. Filters
