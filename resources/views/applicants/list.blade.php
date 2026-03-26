@@ -219,7 +219,7 @@
 
     <!-- Import PDF Modal -->
     <div class="modal fade" id="pdfImportModal" tabindex="-1" aria-labelledby="pdfImportLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-top">
             <form id="pdfImportForm" enctype="multipart/form-data">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -247,7 +247,7 @@
     
     <!-- Import CSV Modal -->
     <div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-top">
             <form id="csvImportForm" enctype="multipart/form-data">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -747,7 +747,7 @@
             // Modal HTML with spinner loader and unique ID
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-md">
+                    <div class="modal-dialog modal-dialog-top modal-md">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Applicant Notes</h5>
@@ -795,7 +795,7 @@
             // Create modal with loader
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg">
+                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Applicant Notes History</h5>
@@ -874,7 +874,7 @@
             // Modal HTML with unique ID
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
@@ -1009,7 +1009,7 @@
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label" aria-hidden="true">' +
-                    '<div class="modal-dialog modal-lg modal-dialog-centered">' +
+                    '<div class="modal-dialog modal-lg modal-dialog-top">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
@@ -1224,7 +1224,7 @@
             // Modal HTML with loader and placeholder body
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Applicant Details</h5>
@@ -1285,7 +1285,7 @@
             // Append the modal HTML to the body
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-dialog modal-lg modal-dialog-top">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Change Applicant Status</h5>
