@@ -140,9 +140,15 @@ class Applicant extends Model
      *
      * @return array<string, mixed>
      */
+    /**
+     * Get the indexable data array for the model.
+     *
+     * @return array<string, mixed>
+     */
     public function toSearchableArray(): array
     {
-        return [
+        // Default searchable columns (must exist in the table for the 'database' engine)
+        $array = [
             'id' => (int)$this->id,
             'applicant_name' => $this->applicant_name,
             'applicant_email' => $this->applicant_email,
@@ -151,9 +157,11 @@ class Applicant extends Model
             'applicant_phone' => $this->applicant_phone,
             'applicant_phone_secondary' => $this->applicant_phone_secondary,
             'applicant_landline' => $this->applicant_landline,
-            'applicant_notes' => $this->applicant_notes,
-            'applicant_experience' => $this->applicant_experience,
+            'applicant_notes' => strip_tags($this->applicant_notes),
+            'applicant_experience' => strip_tags($this->applicant_experience),
         ];
+
+        return $array;
     }
     public function scopeStatusWise($query, $status)
     {

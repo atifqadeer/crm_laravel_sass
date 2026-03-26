@@ -89,7 +89,7 @@ class PostcodeController extends Controller
 
                 if(!$outcodeResult || !$isValidCoordinates($outcodeResult->lat, $outcodeResult->lng)){
                     try {
-                        $result = $this->geocode($normalizedPostcode);
+                        $result = $this->geocode($postcode);
 
                         // If geocode fails, throw
                         if (!isset($result['lat']) || !isset($result['lng'])) {

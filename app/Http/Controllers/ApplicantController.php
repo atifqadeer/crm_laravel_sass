@@ -351,7 +351,7 @@ class ApplicantController extends Controller
                 $newPhrase = str_replace($prev_val, $replace, $sms_template);
                 $formattedMessage = nl2br($newPhrase);
 
-                $is_save = $this->saveSMSDB($sms_to, $formattedMessage, $applicant->id);
+                $is_save = $this->saveSMSDB($sms_to, $formattedMessage, Applicant::class, $applicant->id);
                 if (!$is_save) {
                     // Optional: throw or log
                     Log::warning('SMS saved to DB failed for applicant ID: ' . $applicant->id);
@@ -406,6 +406,7 @@ class ApplicantController extends Controller
                 'applicants.is_in_crm_invoice_sent',
                 'applicants.is_in_crm_start_date_hold', 'applicants.is_in_crm_paid', 
                 'applicants.lat', 'applicants.lng',
+                'applicants.applicant_experience',
                 // Keep the joined names for DataTables search/sort
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
@@ -520,10 +521,34 @@ class ApplicantController extends Controller
         // ─── Turbo Search Optimization (B-Tree Priority) ────────────────────────
         if ($request->filled('search.value')) {
             $searchTerm = trim($request->input('search.value'));
-            
+
             if (strlen($searchTerm) >= 2) {
-                // Use Scout search to get IDs
+                // Use Scout search to get IDs from indexed fields
                 $ids = Applicant::search($searchTerm)->keys()->toArray();
+
+                // Also allow fallback direct table and relationship search so postcode/other fields are never skipped
+                $directIds = Applicant::where(function ($q) use ($searchTerm) {
+                    $q->where('applicant_name', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_email', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_postcode', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_phone', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_landline', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_notes', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('applicant_experience', 'LIKE', "%{$searchTerm}%");
+                })->pluck('id')->toArray();
+
+                $relationIds = Applicant::where(function ($q) use ($searchTerm) {
+                    $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
+                        ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
+                        ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
+                        ->orWhereHas('user', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
+                        ->orWhereHas('module_note', fn($q) => $q->where('details', 'LIKE', "%{$searchTerm}%"))
+                        ->orWhereHas('applicant_notes', fn($q) => $q->where('details', 'LIKE', "%{$searchTerm}%"));
+                })->pluck('id')->toArray();
+
+                $ids = array_unique(array_merge($ids, $directIds, $relationIds));
 
                 if (!empty($ids)) {
                     $model->whereIn('applicants.id', $ids);
