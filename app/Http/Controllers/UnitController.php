@@ -92,7 +92,7 @@ class UnitController extends Controller
             // Format data for office
             $unitData['user_id'] = Auth::id();
 
-            $postcode = $request->unit_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->unit_postcode);
             // 1. Try to find a match in the full postcodes table first
             $postcode_query = DB::table('postcodes')
                 ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
@@ -496,9 +496,9 @@ class UnitController extends Controller
                 throw new \Exception("Unit not found with ID: " . $id);
             }
 
-            $postcode = $request->unit_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->unit_postcode);
 
-            if ($postcode != $unit->unit_postcode) {
+            if ($postcode != preg_replace('/\s+/', '', $unit->unit_postcode)) {
                 // 1. Try to find a match in the full postcodes table first
                 $postcode_query = DB::table('postcodes')
                     ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])

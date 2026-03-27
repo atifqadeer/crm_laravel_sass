@@ -88,7 +88,7 @@ class HeadOfficeController extends Controller
                 'office_notes',
             ]);
 
-            $postcode = $request->office_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->office_postcode);
             // 1. Try to find a match in the full postcodes table first
             $postcode_query = DB::table('postcodes')
                 ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
@@ -616,9 +616,9 @@ class HeadOfficeController extends Controller
 
             $officeData['office_notes'] = $office_notes = $request->office_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
 
-            $postcode = $request->office_postcode;
+            $postcode = preg_replace('/\s+/', '', $request->office_postcode);
 
-            if ($postcode != $office->office_postcode) {
+            if ($postcode != preg_replace('/\s+/', '', $office->office_postcode)) {
                 // 1. Try to find a match in the full postcodes table first
                 $postcode_query = DB::table('postcodes')
                     ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
