@@ -34,13 +34,15 @@
                                    placeholder="Enter your email">
                         </div>
                         <div class="mb-3">
-                            {{-- <a href="{{ route('second', ['auth', 'password'])}}"
-                               class="float-end text-muted text-unline-dashed ms-1">Reset
-                                password</a> --}}
                             <label class="form-label" for="example-password">Password</label>
-                            <input type="password" id="example-password"
-                                   class="form-control bg-light bg-opacity-50 border-light py-2"
-                                   placeholder="Enter your password" name="password">
+                            <div class="input-group">
+                                <input type="password" id="example-password"
+                                       class="form-control bg-light bg-opacity-50 border-light py-2"
+                                       placeholder="Enter your password" name="password">
+                                <button class="btn btn-light bg-opacity-50 border-light" type="button" id="togglePassword">
+                                    <i class="ri-eye-line"></i>
+                                </button>
+                            </div>
                         </div>
                         {{-- <div class="mb-3">
                             <div class="form-check">
@@ -58,4 +60,29 @@
         </div> <!-- end card -->
     </p>
 </div>
+@endsection
+@section('script-bottom')
+<script>
+    (function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            var toggleBtn = document.getElementById('togglePassword');
+            var passwordInput = document.getElementById('example-password');
+            
+            if (toggleBtn && passwordInput) {
+                toggleBtn.addEventListener('click', function() {
+                    var icon = this.querySelector('i');
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.classList.remove('ri-eye-line');
+                        icon.classList.add('ri-eye-off-line');
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.classList.remove('ri-eye-off-line');
+                        icon.classList.add('ri-eye-line');
+                    }
+                });
+            }
+        });
+    })();
+</script>
 @endsection
