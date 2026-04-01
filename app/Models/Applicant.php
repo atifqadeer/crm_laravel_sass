@@ -201,19 +201,19 @@ class Applicant extends Model
     }
     public function user()
     {
-        return $this->belongsTo(User::class , 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
     public function jobSource()
     {
-        return $this->belongsTo(JobSource::class , 'job_source_id');
+        return $this->belongsTo(JobSource::class, 'job_source_id');
     }
     public function jobCategory()
     {
-        return $this->belongsTo(JobCategory::class , 'job_category_id');
+        return $this->belongsTo(JobCategory::class, 'job_category_id');
     }
     public function jobTitle()
     {
-        return $this->belongsTo(JobTitle::class , 'job_title_id');
+        return $this->belongsTo(JobTitle::class, 'job_title_id');
     }
     public function getJobTitleName()
     {
@@ -229,15 +229,15 @@ class Applicant extends Model
     }
     public function audits()
     {
-        return $this->morphMany(Audit::class , 'auditable');
+        return $this->morphMany(Audit::class, 'auditable');
     }
     public function module_note()
     {
-        return $this->morphMany(ModuleNote::class , 'module_noteable');
+        return $this->morphMany(ModuleNote::class, 'module_noteable');
     }
     public function crmNotes()
     {
-        return $this->hasMany(CrmNote::class , 'applicant_id');
+        return $this->hasMany(CrmNote::class, 'applicant_id');
     }
     public function crmHistory()
     {
@@ -245,15 +245,15 @@ class Applicant extends Model
     }
     public function history()
     {
-        return $this->hasMany(History::class , 'applicant_id');
+        return $this->hasMany(History::class, 'applicant_id');
     }
     public function revertStages()
     {
-        return $this->hasMany(RevertStage::class , 'applicant_id');
+        return $this->hasMany(RevertStage::class, 'applicant_id');
     }
     public function crm_notes()
     {
-        return $this->hasMany(CrmNote::class , 'applicant_id');
+        return $this->hasMany(CrmNote::class, 'applicant_id');
     }
     public function callback_notes()
     {
@@ -269,41 +269,41 @@ class Applicant extends Model
     }
     public function cv_notes()
     {
-        return $this->hasMany(CVNote::class , 'applicant_id', 'id');
+        return $this->hasMany(CVNote::class, 'applicant_id', 'id');
     }
     public function pivotSales()
     {
-        return $this->hasMany(ApplicantPivotSale::class , 'applicant_id');
+        return $this->hasMany(ApplicantPivotSale::class, 'applicant_id');
     }
     public function history_request_nojob()
     {
-        return $this->hasMany(History::class , 'applicant_id', 'id')
+        return $this->hasMany(History::class, 'applicant_id', 'id')
             ->whereIn('sub_stage', ['quality_cleared_no_job', 'crm_no_job_request']); // Limit to 1 result
     }
     public function applicant_notes()
     {
-        return $this->hasMany(ApplicantNote::class , 'applicant_id');
+        return $this->hasMany(ApplicantNote::class, 'applicant_id');
     }
     public function updated_by_audits()
     {
-        return $this->morphMany(Audit::class , 'auditable')
+        return $this->morphMany(Audit::class, 'auditable')
             ->where('message', 'like', '%has been updated%')
             ->with('user');
     }
 
     public function created_by_audit()
     {
-        return $this->morphOne(Audit::class , 'auditable')
+        return $this->morphOne(Audit::class, 'auditable')
             ->where('message', 'like', '%has been created%')
             ->with('user');
     }
     public function messages()
     {
-        return $this->hasMany(Message::class , 'module_id')
+        return $this->hasMany(Message::class, 'module_id')
             ->where('module_type', 'Horsefly\\Applicant');
     }
     public function qualityNotes()
     {
-        return $this->hasMany(QualityNotes::class , 'applicant_id', 'id');
+        return $this->hasMany(QualityNotes::class, 'applicant_id', 'id');
     }
 }

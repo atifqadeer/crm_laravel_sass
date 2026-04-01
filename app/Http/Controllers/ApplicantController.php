@@ -53,6 +53,17 @@ class ApplicantController extends Controller
     {
         //
     }
+
+    /**
+     * Normalize postcode for searching by removing spaces and dashes
+     * @param string $postcode
+     * @return string
+     */
+    private static function normalizePostcode($postcode)
+    {
+        return strtoupper(preg_replace('/[\s\-]/', '', trim($postcode)));
+    }
+
     /**
      * Display a listing of the applicants.
      *
@@ -73,7 +84,9 @@ class ApplicantController extends Controller
     }
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(
+            $request->all(),
+            [
                 'job_category_id' => 'required|exists:job_categories,id',
                 'job_type' => ['required', Rule::in(['specialist', 'regular'])],
                 'job_title_id' => 'required|exists:job_titles,id',
@@ -385,27 +398,43 @@ class ApplicantController extends Controller
         // 1. SELECT only necessary columns for the list (avoiding big text blobs unless needed)
         $model = Applicant::query()
             ->select([
-                'applicants.id', 'applicants.applicant_name', 
-                'applicants.applicant_email', 'applicants.applicant_email_secondary',
-                'applicants.applicant_postcode', 'applicants.applicant_phone', 
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_postcode',
+                'applicants.applicant_phone',
                 'applicants.applicant_phone_secondary',
-                'applicants.applicant_landline', 'applicants.is_blocked', 'applicants.status', 
+                'applicants.applicant_landline',
+                'applicants.is_blocked',
+                'applicants.status',
                 'applicants.job_title_id',
-                'applicants.job_category_id', 'applicants.job_source_id', 'applicants.created_at', 
+                'applicants.job_category_id',
+                'applicants.job_source_id',
+                'applicants.created_at',
                 'applicants.updated_at',
-                'applicants.applicant_cv', 'applicants.updated_cv', 'applicants.paid_status', 
+                'applicants.applicant_cv',
+                'applicants.updated_cv',
+                'applicants.paid_status',
                 'applicants.job_type',
                 'applicants.applicant_notes',
-                'applicants.is_no_job', 'applicants.is_circuit_busy', 'applicants.is_no_response', 
+                'applicants.is_no_job',
+                'applicants.is_circuit_busy',
+                'applicants.is_no_response',
                 'applicants.is_temp_not_interested',
-                'applicants.is_cv_in_quality_clear', 'applicants.is_interview_confirm',
-                 'applicants.is_interview_attend',
-                'applicants.is_in_crm_request', 'applicants.is_crm_request_confirm', 
+                'applicants.is_cv_in_quality_clear',
+                'applicants.is_interview_confirm',
+                'applicants.is_interview_attend',
+                'applicants.is_in_crm_request',
+                'applicants.is_crm_request_confirm',
                 'applicants.is_crm_interview_attended',
-                'applicants.is_in_crm_start_date', 'applicants.is_in_crm_invoice', 
+                'applicants.is_in_crm_start_date',
+                'applicants.is_in_crm_invoice',
                 'applicants.is_in_crm_invoice_sent',
-                'applicants.is_in_crm_start_date_hold', 'applicants.is_in_crm_paid', 
-                'applicants.lat', 'applicants.lng',
+                'applicants.is_in_crm_start_date_hold',
+                'applicants.is_in_crm_paid',
+                'applicants.lat',
+                'applicants.lng',
                 'applicants.applicant_experience',
                 // Keep the joined names for DataTables search/sort
                 'job_titles.name as job_title_name',
@@ -425,25 +454,25 @@ class ApplicantController extends Controller
             case 'crm active':
                 $model->where(function ($q) {
                     $q->where('applicants.is_cv_in_quality_clear', 1)
-                      ->orWhere('applicants.is_interview_confirm', 1)
-                      ->orWhere('applicants.is_interview_attend', 1)
-                      ->orWhere('applicants.is_in_crm_request', 1)
-                      ->orWhere('applicants.is_crm_request_confirm', 1)
-                      ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
-                      ->orWhere('applicants.is_in_crm_start_date', 1)
-                      ->orWhere('applicants.is_in_crm_invoice', 1)
-                      ->orWhere('applicants.is_in_crm_invoice_sent', 1)
-                      ->orWhere('applicants.is_in_crm_start_date_hold', 1)
-                      ->orWhere('applicants.is_in_crm_paid', 1);
+                        ->orWhere('applicants.is_interview_confirm', 1)
+                        ->orWhere('applicants.is_interview_attend', 1)
+                        ->orWhere('applicants.is_in_crm_request', 1)
+                        ->orWhere('applicants.is_crm_request_confirm', 1)
+                        ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
+                        ->orWhere('applicants.is_in_crm_start_date', 1)
+                        ->orWhere('applicants.is_in_crm_invoice', 1)
+                        ->orWhere('applicants.is_in_crm_invoice_sent', 1)
+                        ->orWhere('applicants.is_in_crm_start_date_hold', 1)
+                        ->orWhere('applicants.is_in_crm_paid', 1);
                 })
-                ->where('applicants.is_blocked', false)
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('histories')
-                        ->whereRaw('histories.applicant_id = applicants.id')
-                        ->where('histories.stage', 'crm')
-                        ->limit(1);
-                });
+                    ->where('applicants.is_blocked', false)
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('histories')
+                            ->whereRaw('histories.applicant_id = applicants.id')
+                            ->where('histories.stage', 'crm')
+                            ->limit(1);
+                    });
                 break;
 
             case 'blocked':
@@ -518,42 +547,46 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        // ─── Turbo Search Optimization (B-Tree Priority) ────────────────────────
+        // ─── Ultra-Fast Search (Optimized Performance) ────────────────────────────
         if ($request->filled('search.value')) {
             $searchTerm = trim($request->input('search.value'));
 
             if (strlen($searchTerm) >= 2) {
-                // Use Scout search to get IDs from indexed fields
-                $ids = Applicant::search($searchTerm)->keys()->toArray();
+                $firstWord = explode(' ', $searchTerm)[0]; // Only use first word for speed
+                $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
+                $isDigitSearch = !empty($cleanDigits) && strlen($cleanDigits) >= 2;
 
-                // Also allow fallback direct table and relationship search so postcode/other fields are never skipped
-                $directIds = Applicant::where(function ($q) use ($searchTerm) {
-                    $q->where('applicant_name', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_phone', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_landline', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_notes', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicant_experience', 'LIKE', "%{$searchTerm}%");
-                })->pluck('id')->toArray();
-
-                $relationIds = Applicant::where(function ($q) use ($searchTerm) {
-                    $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
-                        ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
-                        ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
-                        ->orWhereHas('user', fn($q) => $q->where('name', 'LIKE', "%{$searchTerm}%"))
-                        ->orWhereHas('module_note', fn($q) => $q->where('details', 'LIKE', "%{$searchTerm}%"))
-                        ->orWhereHas('applicant_notes', fn($q) => $q->where('details', 'LIKE', "%{$searchTerm}%"));
-                })->pluck('id')->toArray();
-
-                $ids = array_unique(array_merge($ids, $directIds, $relationIds));
-
-                if (!empty($ids)) {
-                    $model->whereIn('applicants.id', $ids);
+                // Pure digit searches (fast query on phone/postcode)
+                if ($isDigitSearch && strlen($searchTerm) === strlen($cleanDigits)) {
+                    $model->where(function ($q) use ($cleanDigits) {
+                        $q->whereRaw('applicants.applicant_phone LIKE ?', [$cleanDigits . '%'])
+                            ->orWhereRaw('applicants.applicant_phone_secondary LIKE ?', [$cleanDigits . '%'])
+                            ->orWhereRaw('applicants.applicant_landline LIKE ?', [$cleanDigits . '%']);
+                    });
                 } else {
-                    $model->whereRaw('1 = 0');
+                    // Text search: use first word only for maximum speed
+                    $model->where(function ($q) use ($firstWord) {
+                        // Name: simple prefix match (uses index)
+                        $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
+                            // Email: simple prefix match
+                            ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
+                            ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
+                            // Postcode: simple prefix match
+                            ->orWhere('applicants.applicant_postcode', 'LIKE', $firstWord . '%')
+                            // Phone with minimal processing
+                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                            // Notes search: match word anywhere in notes
+                            ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+                    });
+
+                    // Relationship search: only first word, skip if search is too generic
+                    if (strlen($firstWord) >= 3) {
+                        $model->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+                            ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+                            ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+                    }
                 }
             }
         }
@@ -583,7 +616,7 @@ class ApplicantController extends Controller
                     $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
 
-                    if($short){
+                    if ($short) {
                         $html = '
                         <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
@@ -609,7 +642,7 @@ class ApplicantController extends Controller
                                 </div>
                             </div>
                         ';
-                    }else{
+                    } else {
                         $html = '-';
                     }
                     return $html;
@@ -625,7 +658,7 @@ class ApplicantController extends Controller
                             $email .= '<br>' . $applicant->applicant_email_secondary;
                         }
                     }
-                    
+
                     return $email; // Using accessor
                 })
                 // ─── Per-Column Search Handlers (Optimized) ───────────────────────
@@ -635,10 +668,12 @@ class ApplicantController extends Controller
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
                     $keyword = trim($keyword);
                     $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
-                          ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
                 })
                 ->filterColumn('applicants.applicant_postcode', function ($query, $keyword) {
-                    $query->where('applicants.applicant_postcode', 'LIKE', trim($keyword) . "%");
+                    // Normalize postcode search by removing spaces and dashes
+                    $normalizedKeyword = self::normalizePostcode($keyword);
+                    $query->whereRaw('REPLACE(REPLACE(UPPER(applicants.applicant_postcode), " ", ""), "-", "") LIKE ?', ["%{$normalizedKeyword}%"]);
                 })
                 ->filterColumn('job_titles.name', function ($query, $keyword) {
                     $query->where('job_titles.name', 'LIKE', trim($keyword) . "%");
@@ -653,8 +688,8 @@ class ApplicantController extends Controller
                     $clean = preg_replace('/[^0-9]/', '', $keyword);
                     $query->where(function ($q) use ($clean) {
                         $q->where('applicants.applicant_phone', 'LIKE', "{$clean}%")
-                          ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$clean}%")
-                          ->orWhere('applicants.applicant_landline', 'LIKE', "{$clean}%");
+                            ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$clean}%")
+                            ->orWhere('applicants.applicant_landline', 'LIKE', "{$clean}%");
                     });
                 })
                 ->filterColumn('applicant_notes', function ($query, $keyword) {
@@ -1125,14 +1160,16 @@ class ApplicantController extends Controller
     public function update(Request $request)
     {
         // Validate the incoming request
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(
+            $request->all(),
+            [
                 'job_category_id' => 'required|exists:job_categories,id',
                 'job_type' => ['required', Rule::in(['specialist', 'regular'])],
                 'job_title_id' => 'required|exists:job_titles,id',
                 'job_source_id' => 'required|exists:job_sources,id',
                 'applicant_name' => 'required|string|max:255',
                 'gender' => 'required',
-                
+
                 // Emails
                 'applicant_email' => [
                     'required',
@@ -1464,7 +1501,7 @@ class ApplicantController extends Controller
         return response()->json([
             'success'   => true,
             'message'   => 'File uploaded successfully',
-            'file_path'=> $filePath,
+            'file_path' => $filePath,
             'file_url' => asset($filePath),
         ]);
     }
@@ -1600,8 +1637,8 @@ class ApplicantController extends Controller
 
         // Join with the latest CRM notes using alias 'latest_crm'
         $model->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                $join->on('latest_crm.applicant_id', '=', 'applicants.id');
-            })
+            $join->on('latest_crm.applicant_id', '=', 'applicants.id');
+        })
             ->join('sales', 'sales.id', '=', 'latest_crm.sale_id')
             ->join('offices', 'offices.id', '=', 'sales.office_id')
             ->join('units', 'units.id', '=', 'sales.unit_id')
@@ -1766,7 +1803,7 @@ class ApplicantController extends Controller
                         . '<iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>'
                         . '</a>' . $modalHtml;
                 })
-                
+
                 ->addColumn('job_category', function ($row) {
                     $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
@@ -1776,7 +1813,7 @@ class ApplicantController extends Controller
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
-                ->rawColumns(['history_created_at','details','job_category','job_title','job_details','action','sub_stage'])
+                ->rawColumns(['history_created_at', 'details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
                 ->make(true);
         }
     }
@@ -1848,7 +1885,7 @@ class ApplicantController extends Controller
                     ->toArray();
 
                 $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
-                
+
                 // ✅ Check if job titles match
                 if (!in_array((int) $applicant->job_title_id, $jobTitleIds, true)) {
                     throw new Exception("CV can't be sent - job titles don't match.");
@@ -2472,11 +2509,11 @@ class ApplicantController extends Controller
 
                     return '<span class="badge ' . $status_clr . '">' . $status_value . '</span>';
                 })
-                 ->addColumn('position_type', function ($sale) {
+                ->addColumn('position_type', function ($sale) {
                     $status = '-';
-                    if($sale->position_type == 'full time'){
+                    if ($sale->position_type == 'full time') {
                         $status = "<span class='badge w-100 bg-primary'>" . ucwords($sale->position_type) . "</span>";
-                    }elseif($sale->position_type == 'part time'){
+                    } elseif ($sale->position_type == 'part time') {
                         $status = "<span class='badge w-100 bg-info'>" . ucwords($sale->position_type) . "</span>";
                     }
                     return $status;
@@ -2516,22 +2553,22 @@ class ApplicantController extends Controller
                             $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
-                        if($sale->is_on_hold != 0){
+                        if ($sale->is_on_hold != 0) {
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
                                         <span><small class="text-danger">(Sale On Hold)</small></span></a></li>';
-                        }elseif($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit && $sale->is_on_hold == 0){
+                        } elseif ($sale_cv_counts == $sale->cv_limit || $sale_cv_counts > $sale->cv_limit && $sale->is_on_hold == 0) {
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
                                         <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
-                        }else{
+                        } else {
                             $html .= '<li>
                                             <a href="#"
                                             class="dropdown-item"
                                             onclick="sendCVModal('
-                                                . (int) $applicant->id . ','
-                                                . (int) $sale->id . ','
-                                                . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
-                                                . (int) $applicant->have_nursing_home_experience .
-                                            ')">
+                                . (int) $applicant->id . ','
+                                . (int) $sale->id . ','
+                                . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
+                                . (int) $applicant->have_nursing_home_experience .
+                                ')">
                                                 <span>Send CV</span>
                                             </a>
                                         </li>';
