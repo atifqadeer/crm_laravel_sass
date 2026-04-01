@@ -548,44 +548,98 @@ class ApplicantController extends Controller
         }
 
         // ─── Ultra-Fast Search (Optimized Performance) ────────────────────────────
+        // if ($request->filled('search.value')) {
+        //     $searchTerm = trim($request->input('search.value'));
+
+        //     // Text search: use first word only for maximum speed
+        //     $model->where(function ($q) use ($searchTerm) {
+        //         // Name: simple prefix match (uses index)
+        //         $q->where('applicants.applicant_postcode', 'LIKE', $searchTerm . '%');
+        //     });
+
+        //     if (strlen($searchTerm) >= 2) {
+        //         $firstWord = explode(' ', $searchTerm)[0]; // Only use first word for speed
+        //         $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
+        //         $isDigitSearch = !empty($cleanDigits) && strlen($cleanDigits) >= 2;
+
+        //         // Pure digit searches (fast query on phone/postcode)
+        //         if ($isDigitSearch && strlen($searchTerm) === strlen($cleanDigits)) {
+        //             $model->where(function ($q) use ($cleanDigits) {
+        //                 $q->whereRaw('applicants.applicant_phone LIKE ?', [$cleanDigits . '%'])
+        //                     ->orWhereRaw('applicants.applicant_phone_secondary LIKE ?', [$cleanDigits . '%'])
+        //                     ->orWhereRaw('applicants.applicant_landline LIKE ?', [$cleanDigits . '%']);
+        //             });
+        //         } else {
+        //             // Text search: use first word only for maximum speed
+        //             $model->where(function ($q) use ($firstWord) {
+        //                 // Name: simple prefix match (uses index)
+        //                 $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
+        //                     // Email: simple prefix match
+        //                     ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
+        //                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
+        //                     // Phone with minimal processing
+        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                     // Notes search: match word anywhere in notes
+        //                     ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+        //             });
+
+        //             // Relationship search: only first word, skip if search is too generic
+        //             if (strlen($firstWord) >= 3) {
+        //                 $model->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+        //                     ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+        //                     ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+        //             }
+        //         }
+        //     }
+        // }
         if ($request->filled('search.value')) {
-            $searchTerm = trim($request->input('search.value'));
+            $searchTerm  = trim($request->input('search.value'));
+            $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
+            $isDigitOnly = ! empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
 
             if (strlen($searchTerm) >= 2) {
-                $firstWord = explode(' ', $searchTerm)[0]; // Only use first word for speed
-                $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
-                $isDigitSearch = !empty($cleanDigits) && strlen($cleanDigits) >= 2;
+                $firstWord = explode(' ', $searchTerm)[0];
 
-                // Pure digit searches (fast query on phone/postcode)
-                if ($isDigitSearch && strlen($searchTerm) === strlen($cleanDigits)) {
+                // ---------------------------------------------------------------
+                // DIGIT ONLY — phone / postcode number search
+                // ---------------------------------------------------------------
+                if ($isDigitOnly && strlen($cleanDigits) >= 2) {
                     $model->where(function ($q) use ($cleanDigits) {
-                        $q->whereRaw('applicants.applicant_phone LIKE ?', [$cleanDigits . '%'])
+                        $q->whereRaw('applicants.applicant_phone LIKE ?',           [$cleanDigits . '%'])
                             ->orWhereRaw('applicants.applicant_phone_secondary LIKE ?', [$cleanDigits . '%'])
-                            ->orWhereRaw('applicants.applicant_landline LIKE ?', [$cleanDigits . '%']);
+                            ->orWhereRaw('applicants.applicant_landline LIKE ?',        [$cleanDigits . '%']);
                     });
+
+                    // ---------------------------------------------------------------
+                    // POSTCODE — exact match only (e.g. "SW1A 1AA" or "SW1A")
+                    // Detects postcode pattern: letters + digits + optional space + letters
+                    // ---------------------------------------------------------------
+                } elseif (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
+                    $model->where(function ($q) use ($searchTerm) {
+                        $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%']);
+                    });
+
+                    // ---------------------------------------------------------------
+                    // TEXT — name, email, phone, notes search
+                    // ---------------------------------------------------------------
                 } else {
-                    // Text search: use first word only for maximum speed
                     $model->where(function ($q) use ($firstWord) {
-                        // Name: simple prefix match (uses index)
-                        $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
-                            // Email: simple prefix match
-                            ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
+                        $q->where('applicants.applicant_name',            'LIKE', $firstWord . '%')
+                            ->orWhere('applicants.applicant_email',         'LIKE', $firstWord . '%')
                             ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
-                            // Postcode: simple prefix match
-                            ->orWhere('applicants.applicant_postcode', 'LIKE', $firstWord . '%')
-                            // Phone with minimal processing
-                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?',           [$firstWord . '%'])
                             ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-                            // Notes search: match word anywhere in notes
+                            ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?',        [$firstWord . '%'])
                             ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
                     });
 
-                    // Relationship search: only first word, skip if search is too generic
+                    // Relationship search — only if 3+ chars
                     if (strlen($firstWord) >= 3) {
-                        $model->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+                        $model->orWhereHas('jobTitle',    fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
                             ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-                            ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+                            ->orWhereHas('jobSource',   fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
                     }
                 }
             }
