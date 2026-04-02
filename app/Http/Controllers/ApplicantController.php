@@ -601,11 +601,11 @@ class ApplicantController extends Controller
             if (strlen($searchTerm) >= 2) {
 
                 // Check for exact applicant_name match
-                $exactNameCount = Applicant::where('applicant_name', $searchTerm)->count();
+                $exactNameCount = Applicant::where('applicant_name', 'LIKE', '%' . $searchTerm . '%')->count();
 
                 if ($exactNameCount > 0) {
                     // Exact name match
-                    $model->where('applicants.applicant_name', $searchTerm);
+                    $model->where('applicants.applicant_name', 'LIKE', '%' . $searchTerm . '%');
                 } else {
 
                     // DIGIT SEARCH (PHONE)
@@ -677,6 +677,7 @@ class ApplicantController extends Controller
                 }
             }
         }
+
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
