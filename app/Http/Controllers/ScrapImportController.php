@@ -210,7 +210,7 @@ class ScrapImportController extends Controller
                 // ===============================
                 $jobTypes = $job['jobType'] ?? [];
                 $timing = count($jobTypes) ? implode(', ', $jobTypes) : 'Not specified';
-                $vacancies = $job['numOfCandidates'] ?? 2;
+                $vacancies = $job['numOfCandidates'] ?? 2; // set default 2 as per requirement
                 $benefits = isset($job['benefits']) ? implode(', ', $job['benefits']) : 'None';
 
                 // ===============================
