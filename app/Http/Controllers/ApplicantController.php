@@ -550,49 +550,43 @@ class ApplicantController extends Controller
         // if ($request->filled('search.value')) {
         //     $searchTerm  = trim($request->input('search.value'));
         //     $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
-        //     $isDigitOnly = ! empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
+        //     $isDigitOnly = !empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
 
         //     if (strlen($searchTerm) >= 2) {
         //         $firstWord = explode(' ', $searchTerm)[0];
 
-        //         // ---------------------------------------------------------------
-        //         // DIGIT ONLY — phone / postcode number search
-        //         // ---------------------------------------------------------------
-        //         if ($isDigitOnly && strlen($cleanDigits) >= 2) {
-        //             $model->where(function ($q) use ($cleanDigits) {
-        //                 $q->whereRaw('applicants.applicant_phone LIKE ?',           [$cleanDigits . '%'])
-        //                     ->orWhereRaw('applicants.applicant_phone_secondary LIKE ?', [$cleanDigits . '%'])
-        //                     ->orWhereRaw('applicants.applicant_landline LIKE ?',        [$cleanDigits . '%']);
-        //             });
+        //         // Check for exact applicant_name match
+        //         $exactNameCount = Applicant::where('applicant_name', $searchTerm)->count();
 
-        //             // ---------------------------------------------------------------
-        //             // POSTCODE — exact match only (e.g. "SW1A 1AA" or "SW1A")
-        //             // Detects postcode pattern: letters + digits + optional space + letters
-        //             // ---------------------------------------------------------------
-        //         } elseif (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
-        //             $model->where(function ($q) use ($searchTerm) {
-        //                 $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%']);
-        //             });
-
-        //             // ---------------------------------------------------------------
-        //             // TEXT — name, email, phone, notes search
-        //             // ---------------------------------------------------------------
+        //         if ($exactNameCount > 0) {
+        //             // If exact match exists, filter only for those
+        //             $model->where('applicants.applicant_name', $searchTerm);
         //         } else {
-        //             $model->where(function ($q) use ($firstWord) {
-        //                 $q->where('applicants.applicant_name',            'LIKE', $firstWord . '%')
-        //                     ->orWhere('applicants.applicant_email',         'LIKE', $firstWord . '%')
-        //                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
-        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?',           [$firstWord . '%'])
-        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-        //                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?',        [$firstWord . '%'])
-        //                     ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
-        //             });
+        //             // Proceed with existing closest match logic
 
-        //             // Relationship search — only if 3+ chars
-        //             if (strlen($firstWord) >= 3) {
-        //                 $model->orWhereHas('jobTitle',    fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-        //                     ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-        //                     ->orWhereHas('jobSource',   fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+        //             // Check if the search term looks like a postcode
+        //             if (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
+        //                 $model->where(function ($q) use ($searchTerm) {
+        //                     $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%']);
+        //                 });
+        //             } else {
+        //                 // Search for name or email variants
+        //                 $model->where(function ($q) use ($firstWord) {
+        //                     $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
+        //                         ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
+        //                         ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
+        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+        //                         ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+
+        //                     // Relationship search — only if 3+ chars
+        //                     if (strlen($firstWord) >= 3) {
+        //                         $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+        //                             ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+        //                             ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+        //                     }
+        //                 });
         //             }
         //         }
         //     }
@@ -602,40 +596,81 @@ class ApplicantController extends Controller
             $searchTerm  = trim($request->input('search.value'));
             $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
             $isDigitOnly = !empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
+            $firstWord = explode(' ', $searchTerm)[0];
 
             if (strlen($searchTerm) >= 2) {
-                $firstWord = explode(' ', $searchTerm)[0];
 
                 // Check for exact applicant_name match
                 $exactNameCount = Applicant::where('applicant_name', $searchTerm)->count();
 
                 if ($exactNameCount > 0) {
-                    // If exact match exists, filter only for those
+                    // Exact name match
                     $model->where('applicants.applicant_name', $searchTerm);
                 } else {
-                    // Proceed with existing closest match logic
 
-                    // Check if the search term looks like a postcode
-                    if (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
-                        $model->where(function ($q) use ($searchTerm) {
-                            $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%']);
+                    // DIGIT SEARCH (PHONE)
+                    if ($isDigitOnly && strlen($cleanDigits) >= 2) {
+                        $model->where(function ($q) use ($cleanDigits) {
+                            // Normalize phone numbers: remove spaces and dashes
+                            $q->whereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%']);
+
+                            // If search does NOT start with 0, also try prepending 0
+                            if ($cleanDigits[0] !== '0') {
+                                $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%']);
+                            }
                         });
-                    } else {
-                        // Search for name or email variants
-                        $model->where(function ($q) use ($firstWord) {
-                            $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
-                                ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
-                                ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
-                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-                                ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+                    }
+                    // POSTCODE SEARCH
+                    elseif (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
+                        $model->where(function ($q) use ($searchTerm) {
+                            $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%']);
+                        });
+                    }
+                    // TEXT SEARCH (NAME / EMAIL / NOTES / RELATIONSHIPS)
+                    else {
+                        // Check if the search term is a single word (no spaces)
+                        $isSingleWord = (strpos($searchTerm, ' ') === false);
 
-                            // Relationship search — only if 3+ chars
-                            if (strlen($firstWord) >= 3) {
-                                $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-                                    ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-                                    ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+                        $model->where(function ($q) use ($firstWord, $searchTerm, $isSingleWord) {
+                            if ($isSingleWord) {
+                                // If single word, check for exact match first
+                                $q->where('applicants.applicant_name', 'LIKE', $firstWord)
+                                    ->orWhere('applicants.applicant_email', 'LIKE', $firstWord)
+                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord)
+                                    ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+
+                                // PHONE SEARCH FOR TEXT TERM
+                                $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%']);
+
+                                // If no exact name match, fallback to partial name match (name contains the word)
+                                $q->orWhere('applicants.applicant_name', 'LIKE', '%' . $firstWord . '%');
+                            } else {
+                                // Multiple words: search for name or email containing the first word
+                                $q->where('applicants.applicant_name', 'LIKE', '%' . $firstWord . '%')
+                                    ->orWhere('applicants.applicant_email', 'LIKE', '%' . $firstWord . '%')
+                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', '%' . $firstWord . '%')
+                                    ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+
+                                // PHONE SEARCH FOR TEXT TERM
+                                $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
+                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%']);
+
+                                // Relationship search — only if 3+ chars
+                                if (strlen($firstWord) >= 3) {
+                                    $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+                                        ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
+                                        ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
+                                }
                             }
                         });
                     }
