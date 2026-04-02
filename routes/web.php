@@ -22,6 +22,7 @@ use App\Http\Controllers\RegionController;
 use App\Http\Controllers\FreePBXController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\ScrapImportController;
 use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 use App\Http\Middleware\IPAddress;
 
@@ -226,6 +227,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
 
     Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
+    Route::get('scrap/import', [ScrapImportController::class, 'importIndex'])->name('scrap.import.index');
+    Route::post('scrap/import', [ScrapImportController::class, 'importJobs'])->name('scrap.import');
     Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
     Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
     Route::post('applicants/process-file', [ImportController::class, 'applicantsProcessFile'])->name('process.file');
@@ -455,6 +458,9 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('save-sms-settings', [SettingController::class, 'saveSmsSettings'])->name('settings.sms.save');
     Route::post('save-google-settings', [SettingController::class, 'saveGoogleSettings'])->name('settings.google.save');
     Route::post('save-notification-settings', [SettingController::class, 'saveNotificationSettings'])->name('settings.notification.save');
+    Route::post('save-scraper-settings', [SettingController::class, 'saveScraperSettings'])->name('settings.scraper.save');
+    Route::delete('delete-scraper-actor/{key}', [SettingController::class, 'deleteScraperActor'])->name('settings.scraper.delete');
+    Route::post('run-scraper-actor/{key}', [SettingController::class, 'runScraperActor'])->name('settings.scraper.run');
     Route::post('save-smtp-settings', [SettingController::class, 'saveSmtpSettings'])->name('settings.smtp.save');
     Route::post('delete-smtp-settings', [SettingController::class, 'deleteSmtp'])->name('settings.smtp.delete');
 

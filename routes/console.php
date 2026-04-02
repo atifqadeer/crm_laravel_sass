@@ -38,3 +38,15 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('Update to the job availability command failed.');
                 });
+
+     Schedule::command('scrapper:import --all')
+                ->name('scrap-scheduled-import')
+                ->dailyAt('03:00')
+                ->withoutOverlapping()
+                ->onSuccess(function () {
+                    Log::info('Scrap scheduled import completed successfully.');
+                })
+                ->onFailure(function () {
+                    Log::error('Scrap scheduled import failed.');
+                });
+

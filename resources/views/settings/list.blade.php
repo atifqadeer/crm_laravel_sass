@@ -47,6 +47,7 @@
                         <button class="list-group-item list-group-item-action" data-target="#form-notifications" type="button" id="menu-notifications" aria-controls="form-notifications">Notification Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-sms" type="button" id="menu-sms" aria-controls="form-sms">SMS Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-smtp" type="button" id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button" id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
                     </div>
                 </div>
             </div>
@@ -211,6 +212,80 @@
                                 </div>
                             </form>
                         </section>
+                        <!-- Scraper Settings Form -->
+                        <section id="form-scraper" class="settings-form-section">
+                            <form id="scraperSettingsForm" data-type="scraper">
+                                @csrf
+                                <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0">Scraper Actors</h5>
+                                        <small class="text-muted">Add one or more actor configurations for Scrap or other providers.</small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary" id="addScraperCardBtn">
+                                        <i class="ri-add-line"></i> Add Actor Card
+                                    </button>
+                                </div>
+                                <div id="scraperCards"></div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-muted small"></div>
+                                    <button type="submit" class="btn btn-success">Save Scraper Settings</button>
+                                </div>
+                            </form>
+                        </section>
+                        <template id="scraperCardTemplate">
+                            <div class="card mb-3 scraper-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-title mb-0">Actor Configuration</h6>
+                                        <div class="d-flex align-items-center scraper-actions">
+                                            <span class="card-scraper-status small me-2"></span>
+                                            <button type="button" class="btn btn-success btn-sm run-scraper-actor me-2">
+                                                <i class="ri-play-line"></i> Run
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-scraper-card me-3">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Provider</label>
+                                            <select class="form-select scraper-provider" name="actors[__INDEX__][provider]">
+                                                <option value="apify">Apify</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Scrap Source</label>
+                                            <select class="form-select scraper-source" name="actors[__INDEX__][source]">
+                                                <option value="indeed">Indeed</option>
+                                                <option value="totaljob">TotalJob</option>
+                                                <option value="reed">Reed</option>
+                                                <option value="monster">Monster</option>
+                                                <option value="cvlibrary">CV Library</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Actor ID</label>
+                                            <input type="text" class="form-control scraper-actor-id" name="actors[__INDEX__][actor_id]" value="">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Token</label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control scraper-token" name="actors[__INDEX__][token]" value="">
+                                                <button class="btn btn-outline-secondary toggle-token" type="button">
+                                                    <i class="ri-eye-line"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Base URL</label>
+                                            <input type="text" class="form-control scraper-base-url" name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -257,6 +332,8 @@
 
             // Store the initial SMTP entry template
             const $smtpTemplate = $('.smtp-entry').first().clone();
+            const scraperCardTemplateHtml = $('#scraperCardTemplate').html();
+            const $scraperCards = $('#scraperCards');
 
             // Debugging: Log available sections and initial state
             console.log('Available form sections:', $formSections.length, $formSections);
@@ -290,6 +367,26 @@
                         $('#google_api_url').val(data.google_maps.google_map_api_url || '');
                         $('#google_api_key').val(data.google_maps.google_map_api_key || '');
                     }
+
+                    // Scraper Settings
+                    let scraperActors = [];
+                    if (data.scraper) {
+                        Object.keys(data.scraper).forEach(key => {
+                            if (key.startsWith('scrap_') && typeof data.scraper[key] === 'object' && data.scraper[key] !== null) {
+                                scraperActors.push({ ...data.scraper[key], _key: key });
+                            }
+                        });
+                    }
+                    if (scraperActors.length === 0) {
+                        scraperActors = [{
+                            provider: 'apify',
+                            source: 'indeed',
+                            actor_id: '',
+                            token: '',
+                            base_url: 'https://api.apify.com/v2'
+                        }];
+                    }
+                    renderScraperCards(scraperActors);
 
                     // Notification Settings
                     if (data.notifications) {
@@ -487,6 +584,173 @@
                 $('#removeSmtpBtn').toggleClass('d-none', $('.smtp-entry').length <= 1);
             }
 
+            let scraperCardCounter = 0;
+
+            function createScraperCard(actor = {}) {
+                const providerValue = actor.provider || 'apify';
+                const $card = $(scraperCardTemplateHtml);
+                const uniqueId = 'scraper-card-' + (++scraperCardCounter);
+                
+                $card.attr('id', uniqueId);
+                $card.attr('data-key', actor._key || '');
+                
+                $card.find('.scraper-provider').val(providerValue);
+                $card.find('.scraper-source').val(actor.source || 'indeed');
+                $card.find('.scraper-actor-id').val(actor.actor_id || '');
+                $card.find('.scraper-token').val(actor.token || '');
+                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2');
+                
+                toggleCardFields($card);
+                return $card;
+            }
+
+            function toggleCardFields($card) {
+                const provider = $card.find('.scraper-provider').val();
+                if (provider === 'scrap' || provider === 'apify') {
+                    $card.find('.scrap-only').removeClass('d-none');
+                } else {
+                    $card.find('.scrap-only').addClass('d-none');
+                }
+            }
+
+            function updateScraperRemoveButtons() {
+                const count = $scraperCards.find('.scraper-card').length;
+                $scraperCards.find('.remove-scraper-card').toggleClass('d-none', count <= 1);
+            }
+
+            function renderScraperCards(actors) {
+                $scraperCards.empty();
+                if (!Array.isArray(actors) || actors.length === 0) {
+                    actors = [{}];
+                }
+                actors.forEach(function(actor) {
+                    $scraperCards.append(createScraperCard(actor));
+                });
+                updateScraperRemoveButtons();
+            }
+
+            $('#addScraperCardBtn').on('click', function() {
+                $scraperCards.append(createScraperCard({}));
+                updateScraperRemoveButtons();
+            });
+
+            $scraperCards.on('change', '.scraper-provider', function() {
+                toggleCardFields($(this).closest('.scraper-card'));
+            });
+
+            // Toggle show/hide token
+            $scraperCards.on('click', '.toggle-token', function() {
+                const $btn = $(this);
+                const $input = $btn.closest('.input-group').find('.scraper-token');
+                const $icon = $btn.find('i');
+
+                if ($input.attr('type') === 'password') {
+                    $input.attr('type', 'text');
+                    $icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    $input.attr('type', 'password');
+                    $icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+
+            $scraperCards.on('click', '.run-scraper-actor', function() {
+                const $btn = $(this);
+                const $card = $btn.closest('.scraper-card');
+                const $cardStatus = $card.find('.card-scraper-status');
+                
+                // Get key from attribute for reliability
+                const key = $card.attr('data-key');
+                
+                if (!key || key === '') {
+                    $cardStatus.html('<span class="text-warning">Please save settings first</span>');
+                    $('#scraperStatus').html('<span class="text-warning">Actor not saved yet. Please save settings first.</span>');
+                    return;
+                }
+
+                // Highlight only this card
+                $card.addClass('border-primary shadow-sm');
+                $cardStatus.html('<span class="spinner-border spinner-border-sm text-info"></span> <span class="ms-1">Running...</span>');
+                $('#scraperStatus').html('<span class="text-info">Running specific scraper...</span>');
+                
+                const originalBtnHtml = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+                $.ajax({
+                    url: '{{ route("settings.scraper.run", ":key") }}'.replace(':key', key),
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            const fetched = response.fetched || 0;
+                            const imported = response.imported || 0;
+                            const skipped = response.skipped || 0;
+                            const resText = `Total:${fetched} Imported:${imported} Skipped:${skipped}`;
+                            
+                            $cardStatus.html(`<span class="text-success fw-bold ms-1" title="Fetched: ${fetched}, Imported: ${imported}, Skipped: ${skipped}">${resText}</span>`);
+                            $('#scraperStatus').html(`<span class="text-success">Import success: ${resText}</span>`);
+                            toastr.success(`Run completed: ${resText}`);
+                        } else {
+                            $cardStatus.html('<span class="text-danger ms-1">Failed</span>');
+                            $('#scraperStatus').html('<span class="text-danger">Error: ' + response.message + '</span>');
+                        }
+                    },
+                    error: function(xhr) {
+                        $cardStatus.html('<span class="text-danger ms-1">Error</span>');
+                        $('#scraperStatus').html('<span class="text-danger">Error running scraper.</span>');
+                        toastr.error('Connection error running scraper.');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).html(originalBtnHtml);
+                        setTimeout(() => {
+                           $card.removeClass('border-primary shadow-sm');
+                        }, 2000);
+                    }
+                });
+            });
+
+            $scraperCards.on('click', '.remove-scraper-card', function() {
+                const $card = $(this).closest('.scraper-card');
+                const key = $card.data('key');
+                if (key) {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'This will permanently delete this scraper actor from the database.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: '{{ route("settings.scraper.delete", ":key") }}'.replace(':key', key),
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $card.remove();
+                                        updateScraperRemoveButtons();
+                                        toastr.success(response.message);
+                                    } else {
+                                        toastr.error(response.message);
+                                    }
+                                },
+                                error: function(xhr) {
+                                    toastr.error('Error deleting scraper actor.');
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    $card.remove();
+                    updateScraperRemoveButtons();
+                }
+            });
+
             // Handle form submissions
             $formSections.find('form').submit(function(e) {
                 e.preventDefault();
@@ -652,7 +916,35 @@
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'sms') {
+                }else if (formType === 'scraper') {
+                    const formData = new FormData(this);
+
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+                    );
+
+                    $.ajax({
+                        url: '{{ route("settings.scraper.save") }}',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                toastr.success(response.message);
+                            } else {
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error('Error saving scraper settings:', xhr.responseText);
+                            toastr.error('Failed to save scraper settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                        },
+                        complete: function() {
+                            $btn.prop('disabled', false).html(originalText);
+                        }
+                    });
+                } else if (formType === 'sms') {
                     const formData = new FormData(this);
 
                     // disable + show loader

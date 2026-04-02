@@ -12,16 +12,19 @@ use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Horsefly\User;
 use Horsefly\SmsTemplate;
+use Illuminate\Support\Str;
 use Horsefly\SmtpSetting;
 use Horsefly\Setting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Services\ScrapService;
 
 class SettingController extends Controller
 {
@@ -1308,6 +1311,85 @@ class SettingController extends Controller
             ], 500);
         }
     }
+    public function saveScraperSettings(Request $request)
+    {
+        try {
+            // ---------------------------------------------------------------
+            // 1. VALIDATE
+            // ---------------------------------------------------------------
+            $validator = Validator::make($request->all(), [
+                'actors'            => 'required|array|min:1',
+                'actors.*.provider' => 'required|string|in:scrap,apify,other',
+                'actors.*.source'   => 'required|string',
+                'actors.*.actor_id' => 'nullable|string',
+                'actors.*.token'    => 'nullable|string',
+                'actors.*.base_url' => 'nullable|url',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors'  => $validator->errors()
+                ], 422);
+            }
+
+            // ---------------------------------------------------------------
+            // 2. FILTER EMPTY ROWS
+            // ---------------------------------------------------------------
+            $actors = array_values(array_filter(
+                $request->input('actors', []),
+                fn ($a) => is_array($a) && collect($a)->contains(fn ($v) => trim((string) $v) !== '')
+            ));
+
+            if (empty($actors)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'At least one valid scraper actor must be provided.',
+                ], 422);
+            }
+
+            // ---------------------------------------------------------------
+            // 3. SAVE ONE ROW PER ACTOR (provider + source = unique key)
+            // ---------------------------------------------------------------
+            foreach ($actors as $actor) {
+                $provider  = trim($actor['provider'] ?? '') ?: 'scrap';
+                $source    = trim($actor['source']   ?? '') ?: 'source';
+                $sourceKey = Str::slug($source, '_');
+
+                // e.g. scrap_apify_indeed | scrap_apify_totaljobs | scrap_scrap_reed
+                $key = "scrap_{$provider}_{$sourceKey}";
+
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    [
+                        'value' => json_encode([
+                            'provider' => $provider,
+                            'source'   => $source,
+                            'token'    => trim($actor['token']    ?? ''),
+                            'base_url' => trim($actor['base_url'] ?? '')
+                                            ?: config('services.scrap.base_url', 'https://api.apify.com/v2'),
+                            'actor_id' => trim($actor['actor_id'] ?? ''),
+                        ]),
+                        'group' => 'scraper',
+                        'type'  => 'json',
+                    ]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Scraper settings saved successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
     public function saveSmsSettings(Request $request)
     {
         try {
@@ -1404,6 +1486,129 @@ class SettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting the SMTP setting. Please try again.'
+            ], 500);
+        }
+    }
+
+    public function runScraperActor(string $key)
+    {
+        try {
+            $settings = Setting::where('key', $key)
+                            ->where('group', 'scraper')
+                            ->first();
+
+            if (! $settings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Scraper actor [{$key}] not found.",
+                ], 404);
+            }
+
+            $actor = json_decode($settings->value, true);
+
+            if (empty($actor) || ! is_array($actor)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid actor configuration.',
+                ], 400);
+            }
+
+            if (empty($actor['base_url'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing base URL in actor configuration.',
+                ], 400);
+            }
+
+            // 1. Fetch jobs from the scraper API
+            $service = new ScrapService();
+            $jobs    = $service->runConfig($actor, []);
+
+            $fetched = is_array($jobs) ? count($jobs) : 0;
+
+            if ($fetched === 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Scraper ran successfully but returned no jobs.',
+                    'fetched' => 0,
+                    'imported'=> 0,
+                ]);
+            }
+
+            // 2. Import fetched jobs into the DB
+            $user = User::first();
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No users found in the database. Cannot import.',
+                ], 400);
+            }
+
+            $controller = new \App\Http\Controllers\ScrapImportController();
+            $imported   = $controller->persistJobs($jobs, $user);
+            $skipped    = $fetched - $imported;
+
+            Log::info('[Scraper] runScraperActor completed', [
+                'key'      => $key,
+                'fetched'  => $fetched,
+                'imported' => $imported,
+                'skipped'  => $skipped,
+            ]);
+
+            return response()->json([
+                'success'  => true,
+                'message'  => "Scraper ran successfully. Fetched {$fetched} job(s), imported {$imported} new job(s), skipped {$skipped}.",
+                'fetched'  => $fetched,
+                'imported' => $imported,
+                'skipped'  => $skipped,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('[Scraper] runScraperActor failed', [
+                'key'   => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error running scraper actor.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function deleteScraperActor(string $key)
+    {
+        try {
+            $setting = Setting::where('key', $key)
+                              ->where('group', 'scraper')
+                              ->first();
+
+            if (! $setting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Scraper actor [{$key}] not found.",
+                ], 404);
+            }
+
+            $setting->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Scraper actor [{$key}] deleted successfully.",
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('[Scraper] deleteScraperActor failed', [
+                'key'   => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting scraper actor.',
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
