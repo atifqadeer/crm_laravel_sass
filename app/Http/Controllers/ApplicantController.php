@@ -643,8 +643,8 @@ class ApplicantController extends Controller
                                 // If single word, check for exact match first
                                 $q->where('applicants.applicant_name', 'LIKE', $firstWord)
                                     ->orWhere('applicants.applicant_email', 'LIKE', $firstWord)
-                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord)
-                                    ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord);
+                                // ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
 
                                 // PHONE SEARCH FOR TEXT TERM
                                 $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
@@ -657,8 +657,8 @@ class ApplicantController extends Controller
                                 // Multiple words: search for name or email containing the first word
                                 $q->where('applicants.applicant_name', 'LIKE', '%' . $firstWord . '%')
                                     ->orWhere('applicants.applicant_email', 'LIKE', '%' . $firstWord . '%')
-                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', '%' . $firstWord . '%')
-                                    ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
+                                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', '%' . $firstWord . '%');
+                                // ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
 
                                 // PHONE SEARCH FOR TEXT TERM
                                 $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
