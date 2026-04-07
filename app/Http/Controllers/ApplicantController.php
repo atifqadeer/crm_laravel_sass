@@ -612,16 +612,9 @@ class ApplicantController extends Controller
                     if ($isDigitOnly && strlen($cleanDigits) >= 2) {
                         $model->where(function ($q) use ($cleanDigits) {
                             // Normalize phone numbers: remove spaces and dashes
-                            $q->whereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%'])
-                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%'])
-                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$cleanDigits . '%']);
-
-                            // If search does NOT start with 0, also try prepending 0
-                            if ($cleanDigits[0] !== '0') {
-                                $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%'])
-                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%'])
-                                    ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', ['0' . $cleanDigits . '%']);
-                            }
+                            $q->whereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['%' . $cleanDigits . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', ['%' . $cleanDigits . '%'])
+                                ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', ['%' . $cleanDigits . '%']);
                         });
                     }
                     // POSTCODE SEARCH
@@ -641,24 +634,17 @@ class ApplicantController extends Controller
                         $model->where(function ($q) use ($firstWord, $searchTerm, $isSingleWord) {
                             if ($isSingleWord) {
                                 // If single word, check for exact match first
-                                $q->where('applicants.applicant_name', 'LIKE', $firstWord)
-                                    ->orWhere('applicants.applicant_email', 'LIKE', $firstWord)
+                                $q->where('applicants.applicant_email', 'LIKE', $firstWord)
                                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord);
-                                // ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
 
                                 // PHONE SEARCH FOR TEXT TERM
                                 $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
                                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
                                     ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%']);
-
-                                // If no exact name match, fallback to partial name match (name contains the word)
-                                $q->orWhere('applicants.applicant_name', 'LIKE', '%' . $firstWord . '%');
                             } else {
                                 // Multiple words: search for name or email containing the first word
-                                $q->where('applicants.applicant_name', 'LIKE', '%' . $firstWord . '%')
-                                    ->orWhere('applicants.applicant_email', 'LIKE', '%' . $firstWord . '%')
+                                $q->where('applicants.applicant_email', 'LIKE', '%' . $firstWord . '%')
                                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', '%' . $firstWord . '%');
-                                // ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
 
                                 // PHONE SEARCH FOR TEXT TERM
                                 $q->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', ['%' . $searchTerm . '%'])
@@ -677,7 +663,6 @@ class ApplicantController extends Controller
                 }
             }
         }
-
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)

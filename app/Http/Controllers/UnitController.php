@@ -36,7 +36,7 @@ class UnitController extends Controller
      */
     public function index()
     {
-        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
         return view('units.list', compact('offices'));
     }
     public function create()
@@ -219,7 +219,7 @@ class UnitController extends Controller
                     ->where('contactable_type', 'Horsefly\\Unit')
                     ->where(function ($q) use ($search) {
                         $q->where('contact_email', 'LIKE', "%{$search}%")
-                        ->orWhere('contact_phone', 'LIKE', "%{$search}%");
+                            ->orWhere('contact_phone', 'LIKE', "%{$search}%");
                     })->pluck('contactable_id')->toArray();
 
                 $allIds = array_unique(array_merge($unitIdsFromElastic, $unitIdsByOffice, $contactIds));
@@ -263,7 +263,8 @@ class UnitController extends Controller
             ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
             ->editColumn('unit_postcode', function ($u) {
                 $rawPostcode = trim($u->formatted_postcode);
-                if (empty($rawPostcode)) return '<div class="text-center w-100">-</div>';
+                if (empty($rawPostcode))
+                    return '<div class="text-center w-100">-</div>';
 
                 $postcode = $u->formatted_postcode;
                 $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
@@ -292,30 +293,30 @@ class UnitController extends Controller
                 $keyword = trim($keyword);
                 $query->whereExists(function ($q) use ($keyword) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_email', 'LIKE', "{$keyword}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_email', 'LIKE', "{$keyword}%");
                 });
             })
             ->filterColumn('contact_phone', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
                 $query->whereExists(function ($q) use ($clean) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_phone', 'LIKE', "{$clean}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_phone', 'LIKE', "{$clean}%");
                 });
             })
             ->filterColumn('contact_landline', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
                 $query->whereExists(function ($q) use ($clean) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_landline', 'LIKE', "{$clean}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_landline', 'LIKE', "{$clean}%");
                 });
             })
 
@@ -324,20 +325,20 @@ class UnitController extends Controller
             ->addColumn(
                 'unit_notes',
                 fn($u) =>
-                '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int)$u->id . ')">'
-                    . nl2br(e($u->unit_notes)) . '</a>'
+                '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
+                . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn(
                 'status',
                 fn($u) =>
                 $u->status
-                    ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-secondary">Inactive</span>'
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-secondary">Inactive</span>'
             )
             ->addColumn('action', function ($u) {
-                $postcode    = $u->formatted_postcode;
+                $postcode = $u->formatted_postcode;
                 $office_name = $u->office?->office_name ?? '-';
-                $status      = $u->status
+                $status = $u->status
                     ? '<span class="badge bg-success">Active</span>'
                     : '<span class="badge bg-secondary">Inactive</span>';
 
@@ -352,7 +353,7 @@ class UnitController extends Controller
                 }
                 if (Gate::allows('unit-view')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="showDetailsModal('
-                        . (int)$u->id . ', '
+                        . (int) $u->id . ', '
                         . '\'' . e($office_name) . '\', '
                         . '\'' . e($u->unit_name) . '\', '
                         . '\'' . e($postcode) . '\', '
@@ -430,15 +431,22 @@ class UnitController extends Controller
         $unit = Unit::findOrFail($id);
         return view('units.details', compact('unit'));
     }
-    public function edit($id)
+    public function edit($id, Request $request)
     {
-        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
         $unit = Unit::find($id);
+        if ($unit->status == 4) {
+            $offices = Office::where('status', 4)->select('id', 'office_name')->get();
+        } else {
+            $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+        }
+
         $contacts = Contact::where('contactable_id', $unit->id)
             ->where('contactable_type', 'Horsefly\Unit')
             ->get();
 
-        return view('units.edit', compact('offices', 'unit', 'contacts'));
+        $redirect_url = $request->input('redirect_url', route('units.list'));
+
+        return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url'));
     }
     public function update(Request $request)
     {
@@ -494,6 +502,13 @@ class UnitController extends Controller
             // If the applicant doesn't exist, throw an exception
             if (!$unit) {
                 throw new \Exception("Unit not found with ID: " . $id);
+            }
+
+            if ($unit->status == 4 && $request->status != 4) {
+                Office::where('id', $unit->office_id)->where('status', 4)->update([
+                    'status' => 1,
+                    'office_notes' => 'unit has been approved'
+                ]);
             }
 
             $postcode = preg_replace('/\s+/', '', $request->unit_postcode);
@@ -581,7 +596,7 @@ class UnitController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Unit updated successfully',
-                'redirect' => route('units.list')
+                'redirect' => $request->input('redirect_url', route('units.list'))
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating unit: ' . $e->getMessage());

@@ -10,8 +10,11 @@ use Horsefly\Sale;
 use Horsefly\CVNote;
 use Horsefly\SaleNote;
 use Horsefly\Applicant;
+use Horsefly\Contact;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;
+use Horsefly\EmailTemplate;
+use Horsefly\Setting;
 use Horsefly\SaleDocument;
 use Horsefly\ModuleNote;
 use App\Observers\ActionObserver;
@@ -30,10 +33,11 @@ use Illuminate\Support\Str;
 use League\Csv\Reader;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
+use App\Traits\SendEmails;
 
 class SaleController extends Controller
 {
-    use Geocode;
+    use Geocode, SendEmails;
 
     public function __construct()
     {
@@ -233,7 +237,7 @@ class SaleController extends Controller
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_type' => 'required',
-            'position_type' => 'required',
+            'position_type' => 'required|array',
             'cv_limit' => 'required',
             'timing' => 'required',
             'experience' => 'required',
@@ -274,6 +278,10 @@ class SaleController extends Controller
                 'sale_notes',
                 'job_description',
             ]);
+
+            if (isset($saleData['position_type']) && is_array($saleData['position_type'])) {
+                $saleData['position_type'] = implode(', ', $saleData['position_type']);
+            }
 
             $postcode = preg_replace('/\s+/', '', $request->sale_postcode);
             // 1. Try to find a match in the full postcodes table first
@@ -377,8 +385,8 @@ class SaleController extends Controller
 
                     // Original file info
                     $originalName = $attachment->getClientOriginalName();
-                    $size         = $attachment->getSize();
-                    $extension    = $attachment->getClientOriginalExtension();
+                    $size = $attachment->getSize();
+                    $extension = $attachment->getClientOriginalExtension();
 
                     // Filename without extension
                     $filename = pathinfo($originalName, PATHINFO_FILENAME);
@@ -390,7 +398,7 @@ class SaleController extends Controller
                     $fileNameToStore = $filename . '_' . time() . '.' . $extension;
 
                     // 📁 Target directory inside public
-                    $directory  = 'uploads/docs';
+                    $directory = 'uploads/docs';
                     $publicPath = public_path($directory);
 
                     // Ensure directory exists
@@ -406,11 +414,11 @@ class SaleController extends Controller
 
                     // 💾 Save document record
                     SaleDocument::create([
-                        'sale_id'            => $sale->id,
-                        'document_name'      => $fileNameToStore,
-                        'document_path'      => $path, // e.g. uploads/docs/file.pdf
+                        'sale_id' => $sale->id,
+                        'document_name' => $fileNameToStore,
+                        'document_path' => $path, // e.g. uploads/docs/file.pdf
                         'document_extension' => $extension,
-                        'document_size'      => $size,
+                        'document_size' => $size,
                     ]);
                 }
             }
@@ -429,14 +437,21 @@ class SaleController extends Controller
             ], 500);
         }
     }
-    public function edit($id)
+    public function edit($id, Request $request)
     {
-        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+        $sale = Sale::with('documents')->find($id);
+        if ($sale->status == 4) {
+            $offices = Office::where('status', 4)->select('id', 'office_name')->get();
+        } else {
+            $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+        }
+
         $jobCategories = JobCategory::where('is_active', 1)->get();
         $jobTitles = JobTitle::where('is_active', 1)->get();
 
-        $sale = Sale::with('documents')->find($id);
-        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles'));
+        $redirect_url = $request->input('redirect_url', route('sales.list'));
+
+        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url'));
     }
     public function update(Request $request)
     {
@@ -461,7 +476,7 @@ class SaleController extends Controller
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_type' => 'required',
-            'position_type' => 'required',
+            'position_type' => 'required|array',
             'cv_limit' => 'required',
             'timing' => 'required',
             'experience' => 'required',
@@ -503,6 +518,10 @@ class SaleController extends Controller
                 'job_description',
             ]);
 
+            if (isset($saleData['position_type']) && is_array($saleData['position_type'])) {
+                $saleData['position_type'] = implode(', ', $saleData['position_type']);
+            }
+
             $id = $request->input('sale_id');
 
             // Check for existing sale with the same critical fields (e.g., office_id, unit_id, sale_postcode, job_title_id)
@@ -523,6 +542,18 @@ class SaleController extends Controller
 
             // Retrieve the office record
             $sale = Sale::find($id);
+
+            if ($sale->status == 4 && $request->status != 4) {
+                Office::where('id', $sale->office_id)->where('status', 4)->update([
+                    'status' => 1,
+                    'office_notes' => 'sale has been approved'
+                ]);
+
+                Unit::where('id', $sale->unit_id)->where('status', 4)->update([
+                    'status' => 1,
+                    'unit_notes' => 'sale has been approved'
+                ]);
+            }
 
             // If the applicant doesn't exist, throw an exception
             if (!$sale) {
@@ -573,6 +604,7 @@ class SaleController extends Controller
             // Update the applicant with the validated and formatted data
             $sale->update($saleData);
 
+
             ModuleNote::where([
                 'module_noteable_id' => $id,
                 'module_noteable_type' => 'Horsefly\Sale'
@@ -591,47 +623,14 @@ class SaleController extends Controller
                 'module_note_uid' => md5($moduleNote->id)
             ]);
 
-            // Handle attachments if provided
-            // if ($request->hasFile('attachments')) {
-            //     $attachments = $request->file('attachments');
-
-            //     foreach ($attachments as $attachment) {
-            //         // Get the original filename
-            //         $filenameWithExt = $attachment->getClientOriginalName();
-            //         $size = $attachment->getSize();
-
-            //         // Get just the filename without extension
-            //         $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-
-            //         // Get just the extension
-            //         $extension = $attachment->getClientOriginalExtension();
-
-            //         // Create a new filename with timestamp
-            //         $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-
-            //         // Upload file to public/uploads directory
-            //         $path = $attachment->storeAs('sale_docs', $fileNameToStore, 'public');
-
-            //         // Save document details in sale_documents table
-            //         SaleDocument::create([
-            //             'sale_id' => $id,
-            //             'user_id' => $user->id,
-            //             'document_name' => $fileNameToStore,
-            //             'document_path' => $path,
-            //             'document_extension' => $extension,
-            //             'document_size' => $size
-            //         ]);
-            //     }
-            // }
-
             if ($request->hasFile('attachments')) {
 
                 foreach ($request->file('attachments') as $attachment) {
 
                     // Original file info
                     $originalName = $attachment->getClientOriginalName();
-                    $size         = $attachment->getSize();
-                    $extension    = $attachment->getClientOriginalExtension();
+                    $size = $attachment->getSize();
+                    $extension = $attachment->getClientOriginalExtension();
 
                     // Filename without extension
                     $filename = pathinfo($originalName, PATHINFO_FILENAME);
@@ -659,16 +658,15 @@ class SaleController extends Controller
 
                     // 💾 Save document details
                     SaleDocument::create([
-                        'sale_id'            => $id,
-                        'user_id'            => $user->id,
-                        'document_name'      => $fileNameToStore,
-                        'document_path'      => $path, // e.g. sale_docs/file.pdf
+                        'sale_id' => $id,
+                        'user_id' => $user->id,
+                        'document_name' => $fileNameToStore,
+                        'document_path' => $path, // e.g. sale_docs/file.pdf
                         'document_extension' => $extension,
-                        'document_size'      => $size,
+                        'document_size' => $size,
                     ]);
                 }
             }
-
 
             if ($request->has('sale_notes')) {
                 $sale_note = SaleNote::create([
@@ -683,7 +681,7 @@ class SaleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Sale updated successfully',
-                'redirect' => route('sales.list')
+                'redirect' => $request->input('redirect_url', route('sales.list'))
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating sale: ' . $e->getMessage());
@@ -769,7 +767,7 @@ class SaleController extends Controller
             ->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id');
 
         if ($request->filled('search.value')) {
-            $searchTerm = (string)$request->input('search.value');
+            $searchTerm = (string) $request->input('search.value');
 
             // 1. Get Matching IDs from Scout (searches internal Sale columns like postcode, UID, etc.)
             $saleIds = Sale::search($searchTerm)->keys()->toArray();
@@ -999,7 +997,7 @@ class SaleController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('position_type', function ($sale) {
@@ -1007,24 +1005,24 @@ class SaleController extends Controller
                         return '-';
                     }
 
-                    // Split by comma and create badges for each type
-                    $types = array_map('trim', explode(',', $sale->position_type));
-                    $badges = [];
+                    $colors = [
+                        'full time' => 'bg-primary',
+                        'part time' => 'bg-info',
+                        'permanent' => 'bg-success',
+                        'temporary' => 'bg-warning',
+                    ];
 
+                    $types = array_filter(array_map('trim', explode(',', $sale->position_type)));
+
+                    $badges = '';
                     foreach ($types as $type) {
-                        // Replace hyphens with spaces
-                        $type = str_replace('-', ' ', $type);
-
-                        if ($type === 'full time') {
-                            $badges[] = "<span class='badge bg-primary'>" . ucwords($type) . "</span>";
-                        } elseif ($type === 'part time') {
-                            $badges[] = "<span class='badge bg-info'>" . ucwords($type) . "</span>";
-                        } else {
-                            $badges[] = "<span class='badge bg-secondary'>" . ucwords($type) . "</span>";
-                        }
+                        $key = strtolower(str_replace(' ', '-', $type));
+                        $color = $colors[$key] ?? 'bg-secondary'; // fallback color
+                        $label = ucwords(str_replace('-', ' ', strtolower($type)));
+                        $badges .= "<span class='badge {$color} me-1'>{$label}</span>";
                     }
 
-                    return implode(' ', $badges) ?: '-';
+                    return $badges;
                 })
                 ->addColumn('sale_notes', function ($sale) {
                     $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
@@ -1049,11 +1047,12 @@ class SaleController extends Controller
                     $unit_name = ucwords($sale->unit_name ?? '-');
 
                     return '<div class="d-flex flex-column align-items-start">
-                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                         ' . $shortNotes . '
                                     </a>
                                 </div>' . $urlCTA . '
                             </div>';
+
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1123,7 +1122,7 @@ class SaleController extends Controller
                                     <ul class="dropdown-menu">';
 
                     if (Gate::allows('sale-edit')) {
-                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int)$sale->id]) . '">Edit</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int) $sale->id]) . '">Edit</a></li>';
                     }
 
                     if (Gate::allows('sale-view')) {
@@ -1146,486 +1145,46 @@ class SaleController extends Controller
                     }
 
                     if (Gate::allows('sale-add-note')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int)$sale->id . ')">Add Note</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int) $sale->id . ')">Add Note</a></li>';
                     }
 
                     if (Gate::allows('sale-change-status')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int) $sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
                     }
 
                     if (Gate::allows('sale-mark-on-hold')) {
                         if ($sale->status == 1 && $sale->is_on_hold == 0) {
-                            $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
+                            $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . (int) $sale->id . ', 2)">Mark as On Hold</a></li>';
                         }
                     }
 
                     $action .= '<li><hr class="dropdown-divider"></li>';
 
                     if (Gate::allows('sale-view-documents')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int) $sale->id . ')">View Documents</a></li>';
                     }
 
-                    $url = route('sales.history', ['id' => (int)$sale->id]);
+                    $url = route('sales.history', ['id' => (int) $sale->id]);
                     if (Gate::allows('sale-view-history')) {
                         $action .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">View History</a></li>';
                     }
 
                     if (Gate::allows('sale-view-notes-history')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int) $sale->id . ')">Notes History</a></li>';
                     }
 
                     if (Gate::allows('sale-view-manager-details')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->unit_id . ')">Manager Details</a></li>';
                     }
 
                     $action .= '</ul></div>';
 
                     return $action;
+
                 })
                 ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
-    }
-    // public function getSalesNew(Request $request)
-    // {
-    //     $statusFilter = $request->input('status_filter', '');
-    //     $typeFilter = $request->input('type_filter', '');
-    //     $categoryFilter = $request->input('category_filter', '');
-    //     $titleFilter = $request->input('title_filter', '');
-    //     $limitCountFilter = $request->input('cv_limit_filter', '');
-    //     $officeFilter = $request->input('office_filter', '');
-    //     $userFilter = $request->input('user_filter', '');
-
-    //     // Subquery: cv_notes count per sale
-    //     $cvCountSub = DB::table('cv_notes')
-    //         ->selectRaw('sale_id, COUNT(*) as cv_count')
-    //         ->where('status', 1)
-    //         ->groupBy('sale_id');
-
-    //     $model = Sale::select([
-    //         'sales.id',
-    //         'sales.sale_uid',
-    //         'sales.office_id',
-    //         'sales.unit_id',
-    //         'sales.user_id',
-    //         'sales.job_category_id',
-    //         'sales.job_title_id',
-    //         'sales.job_type',
-    //         'sales.position_type',
-    //         'sales.sale_postcode',
-    //         'sales.cv_limit',
-    //         'sales.timing',
-    //         'sales.status',
-    //         'sales.is_on_hold',
-    //         'sales.is_re_open',
-    //         'sales.lat',
-    //         'sales.lng',
-    //         'sales.sale_notes',
-    //         'sales.created_at',
-    //         'sales.updated_at',
-    //         'sales.experience',
-    //         'sales.salary',
-    //         'sales.qualification',
-    //         'sales.benefits',
-    //         'job_titles.name as job_title_name',
-    //         'job_categories.name as job_category_name',
-    //         'offices.office_name as office_name',
-    //         'units.unit_name as unit_name',
-    //         'users.name as user_name',
-    //         'updated_notes.sale_note as latest_note',
-    //         'open_audits.created_at as open_date',
-    //         DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv'),
-    //     ])
-    //         ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
-    //         ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
-    //         ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
-    //         ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
-    //         ->leftJoin('users', 'sales.user_id', '=', 'users.id');
-
-    //     // Latest note subquery
-    //     $latestNoteSub = DB::table('sale_notes')
-    //         ->selectRaw('sale_id, MAX(id) as latest_id')
-    //         ->groupBy('sale_id');
-
-    //     $model->leftJoinSub($latestNoteSub, 'latest_notes', 'sales.id', '=', 'latest_notes.sale_id')
-    //         ->leftJoin('sale_notes as updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id');
-
-    //     // CV count join
-    //     $model->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id');
-
-    //     // Search logic
-    //     if ($request->filled('search.value')) {
-    //         $searchTerm = trim($request->input('search.value'));
-    //         $model->where(function ($query) use ($searchTerm) {
-    //             $query->where('sales.sale_uid', 'LIKE', "%{$searchTerm}%")
-    //                 ->orWhere('offices.office_name', 'LIKE', "%{$searchTerm}%")
-    //                 ->orWhere('units.unit_name', 'LIKE', "%{$searchTerm}%")
-    //                 ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
-    //                 ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
-    //                 ->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
-    //         });
-    //     }
-
-    //     // Helper closure for latest audit message filtering
-    //     $applyLatestAuditMessage = function ($query, $messages) {
-    //         return $query->leftJoinSub(
-    //             DB::table('audits')
-    //                 ->selectRaw('MAX(id) as id, auditable_id')
-    //                 ->where('auditable_type', 'Horsefly\\Sale')
-    //                 ->whereIn('message', $messages)
-    //                 ->groupBy('auditable_id'),
-    //             'latest_open_audit_ids',
-    //             'latest_open_audit_ids.auditable_id',
-    //             '=',
-    //             'sales.id'
-    //         )->leftJoin('audits as open_audits', 'open_audits.id', '=', 'latest_open_audit_ids.id');
-    //     };
-
-    //     // Apply filters based on status
-    //     switch ($statusFilter) {
-    //         case 'closed':
-    //             $model = $applyLatestAuditMessage($model, ['close', 'sale-closed'])
-    //                 ->where('sales.status', 0)
-    //                 ->where('sales.is_on_hold', 0);
-    //             break;
-    //         case 'pending':
-    //             $model = $applyLatestAuditMessage($model, ['open', 'sale-opened'])
-    //                 ->where('sales.status', 2);
-    //             break;
-    //         case 'rejected':
-    //             $model = $applyLatestAuditMessage($model, ['reject', 'sale-rejected'])
-    //                 ->where('sales.status', 3);
-    //             break;
-    //         case 'on hold':
-    //             $model = $applyLatestAuditMessage($model, ['close', 'sale-closed'])
-    //                 ->where('sales.is_on_hold', true);
-    //             break;
-    //         case 'open':
-    //         default:
-    //             $model = $applyLatestAuditMessage($model, ['open', 'sale-opened'])
-    //                 ->where('sales.status', 1)
-    //                 ->where('sales.is_on_hold', 0);
-    //             break;
-    //     }
-
-    //     // Filter by type
-    //     if ($typeFilter == 'specialist') {
-    //         $model->where('sales.job_type', 'specialist');
-    //     } elseif ($typeFilter == 'regular') {
-    //         $model->where('sales.job_type', 'regular');
-    //     }
-
-    //     // Filter by office
-    //     if ($officeFilter) {
-    //         $model->whereIn('sales.office_id', $officeFilter);
-    //     }
-
-    //     // Filter by category
-    //     if ($categoryFilter) {
-    //         $model->whereIn('sales.job_category_id', $categoryFilter);
-    //     }
-
-    //     // Filter by title
-    //     if ($titleFilter) {
-    //         $model->whereIn('sales.job_title_id', $titleFilter);
-    //     }
-
-    //     // Filter by user
-    //     if ($userFilter) {
-    //         $model->whereIn('sales.user_id', $userFilter);
-    //     }
-
-    //     // CV limit filters
-    //     switch ($limitCountFilter) {
-    //         case 'max':
-    //             $model->havingRaw('COALESCE(cv_counts.cv_count, 0) >= sales.cv_limit');
-    //             break;
-    //         case 'not max':
-    //             $model->havingRaw('COALESCE(cv_counts.cv_count, 0) > 0 AND COALESCE(cv_counts.cv_count, 0) < sales.cv_limit');
-    //             break;
-    //         case 'zero':
-    //             $model->havingRaw('COALESCE(cv_counts.cv_count, 0) = 0');
-    //             break;
-    //     }
-
-    //     // Sorting
-    //     if ($request->has('order')) {
-    //         $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-    //         $orderDirection = $request->input('order.0.dir', 'asc');
-
-    //         switch ($orderColumn) {
-    //             case 'job_source':
-    //                 $model->orderBy('sales.job_source_id', $orderDirection);
-    //                 break;
-    //             case 'job_category':
-    //                 $model->orderBy('sales.job_category_id', $orderDirection);
-    //                 break;
-    //             case 'job_title':
-    //                 $model->orderBy('sales.job_title_id', $orderDirection);
-    //                 break;
-    //             default:
-    //                 if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-    //                     $model->orderBy($orderColumn, $orderDirection);
-    //                 } else {
-    //                     $model->orderBy('sales.updated_at', 'desc');
-    //                 }
-    //         }
-    //     } else {
-    //         $model->orderBy('sales.updated_at', 'desc');
-    //     }
-
-    //     // Returning DataTable with eager loading to avoid N+1
-    //     if ($request->ajax()) {
-    //         return DataTables::eloquent($model)
-    //             ->addIndexColumn() // This will automatically add a serial number to the rows
-    //             ->addColumn('office_name', function ($sale) {
-    //                 return $sale->office_name ? ucwords($sale->office_name) : '-';
-    //             })
-    //             ->addColumn('unit_name', function ($sale) {
-    //                 return $sale->unit_name ? ucwords($sale->unit_name) : '-';
-    //             })
-    //             ->addColumn('job_title', function ($sale) {
-    //                 return $sale->job_title_name ? strtoupper($sale->job_title_name) : '-';
-    //             })
-    //             ->addColumn('open_date', function ($sale) {
-    //                 return $sale->open_date ? Carbon::parse($sale->open_date)->format('d M Y, h:i A') : '-';
-    //             })
-    //             ->addColumn('job_category', function ($sale) {
-    //                 $stype = $sale->job_type == 'specialist' ? '<br>(Specialist)' : '';
-    //                 return $sale->job_category_name ? ucwords($sale->job_category_name) . $stype : '-';
-    //             })
-    //             ->addColumn('sale_postcode', function ($sale) {
-    //                 $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
-    //                                 data-postcode="' . e($sale->formatted_postcode) . '" title="Copy Postcode">
-    //                                 <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
-    //                             </button>';
-
-    //                 if ($sale->lat != null && $sale->lng != null) {
-    //                     $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
-    //                     $button = '<a target="_blank" href="' . $url . '" class="active_postcode">' . $sale->formatted_postcode . '</a>'; // Using accessor
-    //                     return '<div class="d-flex align-items-center justify-content-between">' . $button . $copyBtn . '</div>';
-    //                 } else {
-    //                     return '<div class="d-flex align-items-center justify-content-between"><span>' . $sale->formatted_postcode . '</span>' . $copyBtn . '</div>';
-    //                 }
-    //             })
-    //             ->addColumn('qualification', function ($sale) {
-    //                 return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
-    //             })
-    //             ->addColumn('experience', function ($sale) {
-    //                 return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
-    //             })
-    //             ->addColumn('salary', function ($sale) {
-    //                 return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale`s Salary');
-    //             })
-    //             ->addColumn('created_at', function ($sale) {
-    //                 return $sale->formatted_created_at; // Using accessor
-    //             })
-    //             ->addColumn('updated_at', function ($sale) {
-    //                 return $sale->formatted_updated_at; // Using accessor
-    //             })
-    //             ->addColumn('cv_limit', function ($sale) {
-    //                 $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
-    //                 return $status;
-    //             })
-    //             ->addColumn('position_type', function ($sale) {
-    //                 if (empty($sale->position_type)) {
-    //                     return '-';
-    //                 }
-
-    //                 // Split by comma and create badges for each type
-    //                 $types = array_map('trim', explode(',', $sale->position_type));
-    //                 $badges = [];
-
-    //                 foreach ($types as $type) {
-    //                     // Replace hyphens with spaces
-    //                     $type = str_replace('-', ' ', $type);
-
-    //                     if ($type === 'full time') {
-    //                         $badges[] = "<span class='badge bg-primary'>" . ucwords($type) . "</span>";
-    //                     } elseif ($type === 'part time') {
-    //                         $badges[] = "<span class='badge bg-info'>" . ucwords($type) . "</span>";
-    //                     } else {
-    //                         $badges[] = "<span class='badge bg-secondary'>" . ucwords($type) . "</span>";
-    //                     }
-    //                 }
-
-    //                 return implode(' ', $badges) ?: '-';
-    //             })
-    //             ->addColumn('sale_notes', function ($sale) {
-    //                 $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
-
-    //                 preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
-    //                 $url = $matches[0] ?? null;
-
-    //                 $notesValue = $url ? str_replace($url, '', $notesIndex) : $notesIndex;
-    //                 $shortNotes = Str::limit(trim(strip_tags($notesValue)), 80);
-
-    //                 $urlCTA = '';
-    //                 $escapedNotes = htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8');
-    //                 if ($url) {
-    //                     $urlCTA = '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link">
-    //                                                 <iconify-icon icon="mdi:link-variant"></iconify-icon> URL
-    //                                         </a>';
-    //                 }
-
-    //                 $notes = nl2br($escapedNotes);
-    //                 $postcode = htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8');
-    //                 $office_name = ucwords($sale->office_name ?? '-');
-    //                 $unit_name = ucwords($sale->unit_name ?? '-');
-
-    //                 return '<div class="d-flex flex-column align-items-start">
-    //                                 <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
-    //                                     ' . $shortNotes . '
-    //                                 </a>
-    //                             </div>' . $urlCTA . '
-    //                         </div>';
-    //             })
-    //             ->addColumn('status', function ($sale) {
-    //                 $status = '';
-
-    //                 // PRIORITY 1 — Check main status first
-    //                 if ($sale->status == 0) {
-    //                     return '<span class="badge bg-danger">Closed</span>';
-    //                 }
-
-    //                 if ($sale->status == 2) {
-    //                     return '<span class="badge bg-warning">Pending</span>';
-    //                 }
-
-    //                 if ($sale->status == 3) {
-    //                     return '<span class="badge bg-danger">Rejected</span>';
-    //                 }
-
-    //                 // PRIORITY 2 — Status = 1 (Open) — Now check sub-status
-    //                 if ($sale->status == 1) {
-
-    //                     if ($sale->is_on_hold == 1) {
-    //                         return '<span class="badge bg-warning">On Hold</span>';
-    //                     }
-
-    //                     if ($sale->is_re_open == 1) {
-    //                         return '<span class="badge bg-dark">Re-Open</span>';
-    //                     }
-
-    //                     return '<span class="badge bg-success">Open</span>';
-    //                 }
-
-    //                 return $status;
-    //             })
-    //             ->addColumn('action', function ($sale) {
-    //                 $postcode = strtoupper($sale->sale_postcode ?? '-');
-    //                 $posted_date = $sale->formatted_created_at;
-    //                 $office_name = ucwords($sale->office_name ?? '-');
-    //                 $unit_name = ucwords($sale->unit_name ?? '-');
-    //                 $jobTitle = strtoupper($sale->job_title_name ?? '-');
-    //                 $stype = $sale->job_type == 'specialist' ? ' (Specialist)' : '';
-    //                 $jobCategory = ucwords(($sale->job_category_name ?? '-') . $stype);
-
-    //                 // Status badge
-    //                 $status_badge = '';
-    //                 if ($sale->status == 1 && $sale->is_on_hold == 1) {
-    //                     $status_badge = '<span class="badge bg-warning">On Hold</span>';
-    //                 } elseif ($sale->status == 1 && $sale->is_re_open == 1) {
-    //                     $status_badge = '<span class="badge bg-dark">Re-Open</span>';
-    //                 } elseif ($sale->status == 0) {
-    //                     $status_badge = '<span class="badge bg-danger">Closed</span>';
-    //                 } elseif ($sale->status == 1) {
-    //                     $status_badge = '<span class="badge bg-success">Open</span>';
-    //                 } elseif ($sale->status == 2) {
-    //                     $status_badge = '<span class="badge bg-warning">Pending</span>';
-    //                 } elseif ($sale->status == 3) {
-    //                     $status_badge = '<span class="badge bg-danger">Rejected</span>';
-    //                 }
-
-    //                 $pos = strtoupper(str_replace('-', ' ', $sale->position_type ?? ''));
-    //                 $position = '<span class="badge bg-primary">' . e($pos) . '</span>';
-
-    //                 $action = '';
-    //                 $action .= '<div class="btn-group dropstart">
-    //                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-    //                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-    //                             </button>
-    //                                 <ul class="dropdown-menu">';
-
-    //                 if (Gate::allows('sale-edit')) {
-    //                     $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int)$sale->id]) . '">Edit</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-view')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
-    //                         ' . $sale->id . ',
-    //                         \'' . e($posted_date) . '\',
-    //                         \'' . e($office_name) . '\',
-    //                         \'' . e($unit_name) . '\',
-    //                         \'' . e($postcode) . '\',
-    //                         \'' . e(strip_tags($jobCategory)) . '\',
-    //                         \'' . e(strip_tags($jobTitle)) . '\',
-    //                         \'' . e($status_badge) . '\',
-    //                         \'' . e($sale->timing) . '\',
-    //                         \'' . e(htmlspecialchars($sale->experience, ENT_QUOTES, 'UTF-8')) . '\',
-    //                         \'' . e($sale->salary) . '\',
-    //                         \'' . e(strip_tags($position)) . '\',
-    //                         \'' . e($sale->qualification) . '\',
-    //                         \'' . e($sale->benefits) . '\'
-    //                     )">View</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-add-note')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int)$sale->id . ')">Add Note</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-change-status')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int)$sale->id . ',' . $sale->status . ')">Mark As Open/Close</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-mark-on-hold')) {
-    //                     if ($sale->status == 1 && $sale->is_on_hold == 0) {
-    //                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
-    //                     }
-    //                 }
-
-    //                 $action .= '<li><hr class="dropdown-divider"></li>';
-
-    //                 if (Gate::allows('sale-view-documents')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>';
-    //                 }
-
-    //                 $url = route('sales.history', ['id' => (int)$sale->id]);
-    //                 if (Gate::allows('sale-view-history')) {
-    //                     $action .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">View History</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-view-notes-history')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>';
-    //                 }
-
-    //                 if (Gate::allows('sale-view-manager-details')) {
-    //                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>';
-    //                 }
-
-    //                 $action .= '</ul></div>';
-
-    //                 return $action;
-    //             })
-    //             ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action', 'statusFilter'])
-    //             ->make(true);
-    //     }
-    // }
-
-    // Helper method
-    protected function applyLatestAuditMessage($query, array $messages)
-    {
-        return $query->leftJoinSub(
-            DB::table('audits')
-                ->selectRaw('MAX(id) as id, auditable_id')
-                ->where('auditable_type', 'Horsefly\\Sale')
-                ->whereIn('message', $messages)
-                ->groupBy('auditable_id'),
-            'latest_open_audit_ids',
-            'latest_open_audit_ids.auditable_id',
-            '=',
-            'sales.id'
-        )->leftJoin('audits as open_audits', 'open_audits.id', '=', 'latest_open_audit_ids.id');
     }
     public function getDirectSales(Request $request)
     {
@@ -1738,8 +1297,7 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -1747,8 +1305,7 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -1757,8 +1314,7 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -1831,12 +1387,12 @@ class SaleController extends Controller
                     return $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
@@ -1898,7 +1454,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -1924,7 +1480,7 @@ class SaleController extends Controller
                     $status_badge = '';
                     $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
@@ -1951,7 +1507,7 @@ class SaleController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
-                                    ' . (int)$sale->id . ',
+                                    ' . (int) $sale->id . ',
                                     \'' . e($posted_date) . '\',
                                     \'' . e($office_name) . '\',
                                     \'' . e($unit_name) . '\',
@@ -1967,19 +1523,19 @@ class SaleController extends Controller
                                     \'' . e($sale->benefits) . '\'
                                 )">View</a></li>';
                     if ($sale->status == 1) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int)$sale->id . ', 0)">Mark as Close</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int) $sale->id . ', 0)">Mark as Close</a></li>';
                     } else {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int)$sale->id . ', 1)">Mark as Open</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatusModal(' . (int) $sale->id . ', 1)">Mark as Open</a></li>';
                     }
                     if ($sale->status == 1 && $sale->is_on_hold == 0) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . (int)$sale->id . ', 2)">Mark as On Hold</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . (int) $sale->id . ', 2)">Mark as On Hold</a></li>';
                     }
-                    $url = route('sales.history', ['id' => (int)$sale->id]);
+                    $url = route('sales.history', ['id' => (int) $sale->id]);
                     $action .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int) $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="' . $url . '">View History</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int) $sale->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
 
@@ -2086,8 +1642,7 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -2095,8 +1650,7 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -2105,8 +1659,7 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -2203,7 +1756,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
@@ -2221,7 +1774,7 @@ class SaleController extends Controller
                     }
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('created_at', function ($sale) {
@@ -2248,7 +1801,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -2292,7 +1845,7 @@ class SaleController extends Controller
                     $status_badge = '';
                     $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
                     $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
@@ -2402,7 +1955,7 @@ class SaleController extends Controller
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user']);
 
         if ($request->filled('search.value')) {
-            $searchTerm = (string)$request->input('search.value');
+            $searchTerm = (string) $request->input('search.value');
             $saleIds = Sale::search($searchTerm)->keys()->toArray();
             $model->where(function ($query) use ($searchTerm, $saleIds) {
                 if (!empty($saleIds)) {
@@ -2423,16 +1976,16 @@ class SaleController extends Controller
         }
 
         if ($userFilter) {
-            $model->whereIn('sales.user_id', (array)$userFilter);
+            $model->whereIn('sales.user_id', (array) $userFilter);
         }
         if ($officeFilter) {
-            $model->whereIn('sales.office_id', (array)$officeFilter);
+            $model->whereIn('sales.office_id', (array) $officeFilter);
         }
         if ($categoryFilter) {
-            $model->whereIn('sales.job_category_id', (array)$categoryFilter);
+            $model->whereIn('sales.job_category_id', (array) $categoryFilter);
         }
         if ($titleFilter) {
-            $model->whereIn('sales.job_title_id', (array)$titleFilter);
+            $model->whereIn('sales.job_title_id', (array) $titleFilter);
         }
 
         switch ($limitCountFilter) {
@@ -2511,7 +2064,7 @@ class SaleController extends Controller
                 ->addColumn('cv_limit', function ($sale) {
                     return $sale->no_of_sent_cv == $sale->cv_limit
                         ? '<span class="badge w-100 bg-danger" style="font-size:90%">0/' . $sale->cv_limit . '<br>Limit Reached</span>'
-                        : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv) . '/' . (int)$sale->cv_limit . "<br>Limit Remains</span>";
+                        : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv) . '/' . (int) $sale->cv_limit . "<br>Limit Remains</span>";
                 })->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at;
                 })
@@ -2532,7 +2085,7 @@ class SaleController extends Controller
                     $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
                     $shortNotes = Str::limit(trim($notes), 80);
                     if (!empty($notes)) {
-                        return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . ucwords($sale->office_name) . '\', \'' . ucwords($sale->unit_name) . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                        return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . $notes . '\', \'' . ucwords($sale->office_name) . '\', \'' . ucwords($sale->unit_name) . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                ' . $shortNotes . '
                             </a>';
                     }
@@ -2607,7 +2160,7 @@ class SaleController extends Controller
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="' . $url . '" target="_blank">View History</a></li>
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
                     return $action;
@@ -2702,13 +2255,13 @@ class SaleController extends Controller
         if ($typeFilter)
             $model->where('sales.job_type', $typeFilter);
         if ($officeFilter)
-            $model->whereIn('sales.office_id', (array)$officeFilter);
+            $model->whereIn('sales.office_id', (array) $officeFilter);
         if ($categoryFilter)
-            $model->whereIn('sales.job_category_id', (array)$categoryFilter);
+            $model->whereIn('sales.job_category_id', (array) $categoryFilter);
         if ($titleFilter)
-            $model->whereIn('sales.job_title_id', (array)$titleFilter);
+            $model->whereIn('sales.job_title_id', (array) $titleFilter);
         if ($userFilter)
-            $model->whereIn('sales.user_id', (array)$userFilter);
+            $model->whereIn('sales.user_id', (array) $userFilter);
 
         switch ($limitCountFilter) {
             case 'max':
@@ -2775,7 +2328,7 @@ class SaleController extends Controller
                 ->addColumn('cv_limit', function ($sale) {
                     return $sale->no_of_sent_cv == $sale->cv_limit
                         ? '<span class="badge w-100 bg-danger" style="font-size:90%">0/' . $sale->cv_limit . '<br>Limit Reached</span>'
-                        : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv) . '/' . (int)$sale->cv_limit . "<br>Limit Remains</span>";
+                        : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv) . '/' . (int) $sale->cv_limit . "<br>Limit Remains</span>";
                 })->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at;
                 })
@@ -2800,7 +2353,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -2870,7 +2423,7 @@ class SaleController extends Controller
                                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="' . $url . '" target="_blank">View History</a></li>
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
                     return $action;
@@ -2978,8 +2531,7 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -2987,8 +2539,7 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -2997,8 +2548,7 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -3108,7 +2658,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
@@ -3132,7 +2682,7 @@ class SaleController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('status', function ($sale) {
@@ -3171,7 +2721,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -3197,7 +2747,7 @@ class SaleController extends Controller
                     $status_badge = '';
                     $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
                     $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
@@ -3345,8 +2895,7 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -3354,8 +2903,7 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -3364,8 +2912,7 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw(
-                        'count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -3432,7 +2979,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
@@ -3456,7 +3003,7 @@ class SaleController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })->addColumn('qualification', function ($sale) {
                     return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
@@ -3476,7 +3023,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -3520,7 +3067,7 @@ class SaleController extends Controller
                     $status_badge = '';
                     $jobTitle = $sale->jobTitle ? strtoupper($sale->jobTitle->name) : '-';
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords($type) . ')' : '';
                     $jobCategory = $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
 
                     $position_type = strtoupper(str_replace('-', ' ', $sale->position_type));
@@ -3683,13 +3230,13 @@ class SaleController extends Controller
                                 ->where("is_callback_enable", true);
                         })
                             ->orWhere(function ($subQuery) {
-                                $subQuery->where("is_temp_not_interested", true)
-                                    ->where("is_callback_enable", true);
-                            })
+                            $subQuery->where("is_temp_not_interested", true)
+                                ->where("is_callback_enable", true);
+                        })
                             ->orWhere(function ($subQuery) {
-                                $subQuery->where("is_temp_not_interested", false)
-                                    ->where("is_callback_enable", false);
-                            })
+                            $subQuery->where("is_temp_not_interested", false)
+                                ->where("is_callback_enable", false);
+                        })
                         ;
                     })
                     ->where(function ($query) {
@@ -3752,6 +3299,7 @@ class SaleController extends Controller
                             ->take(1);
                     });
                 break;
+
         }
 
         if ($request->has('search.value')) {
@@ -3796,7 +3344,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
@@ -3858,7 +3406,7 @@ class SaleController extends Controller
                 ->addColumn('applicant_notes', function ($applicant) {
                     $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
                     return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int) $applicant->id . '\')">
                             ' . $notes . '
                         </a>
                     ';
@@ -3884,7 +3432,7 @@ class SaleController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-
+    
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -3899,7 +3447,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-
+    
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -3907,7 +3455,7 @@ class SaleController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-
+    
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -3972,7 +3520,7 @@ class SaleController extends Controller
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
                             if ($value['sale_id'] == $sale_id) {
-                                if ($value['status'] == 1) { //active
+                                if ($value['status'] == 1) {//active
                                     $status_value = 'sent';
                                     $color_class = 'bg-success';
                                     break;
@@ -3980,7 +3528,7 @@ class SaleController extends Controller
                                     $status_value = 'reject_job';
                                     $color_class = 'bg-danger';
                                     break;
-                                } elseif ($value['status'] == 0) { //disable
+                                } elseif ($value['status'] == 0) {//disable
                                     $status_value = 'reject';
                                     $color_class = 'bg-danger';
                                 } elseif ($value['status'] == 2) {
@@ -4051,6 +3599,7 @@ class SaleController extends Controller
                                                 <span>Send CV</span>
                                             </a>
                                         </li>';
+
                         }
                         $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale_id . ')">Mark Callback</a></li>';
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
@@ -4270,10 +3819,19 @@ class SaleController extends Controller
     }
     public function getOfficeUnits(Request $request)
     {
-        $units = Unit::where('office_id', $request->input('office_id'))
-            ->where('status', 1)
-            ->select('id', 'unit_name')
-            ->get();
+        $office = Office::find($request->input('office_id'));
+
+        if ($office->status == 4) {
+            $units = Unit::where('office_id', $request->input('office_id'))
+                ->where('status', 4)
+                ->select('id', 'unit_name')
+                ->get();
+        } else {
+            $units = Unit::where('office_id', $request->input('office_id'))
+                ->where('status', 1)
+                ->select('id', 'unit_name')
+                ->get();
+        }
 
         return response()->json($units);
     }
@@ -4466,7 +4024,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($row) {
                     $type = $row->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $row->jobCategory ? $row->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('stage', function ($row) {
@@ -4510,12 +4068,155 @@ class SaleController extends Controller
                 })
                 ->addColumn('action', function ($row) use ($sale_id) {
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->id . '\',\'' . (int)$sale_id . '\')">
+                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int) $row->id . '\',\'' . (int) $sale_id . '\')">
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
                 ->rawColumns(['details', 'job_category', 'stage', 'job_title', 'action', 'sub_stage'])
                 ->make(true);
+        }
+    }
+
+    public function getSaleEmails(Request $request)
+    {
+        $sale = Sale::with(['office', 'unit'])->findOrFail($request->sale_id);
+
+        $emails = Contact::where('contactable_id', $sale->office_id)
+            ->where('contactable_type', Office::class)
+            ->whereNotNull('contact_email')
+            ->where('contact_email', '!=', '')
+            ->pluck('contact_email')
+            ->map(fn($email) => trim(strtolower($email)))
+            ->unique()
+            ->values();
+
+        $formattedMessage = '';
+        $formattedSubject = '';
+        $email_from = '';
+
+        $emailNotification = Setting::where('key', 'email_notifications')->first();
+        if ($emailNotification) {
+            $email_template = EmailTemplate::where('slug', 'scrapped_offices_email')
+                ->where('is_active', 1)
+                ->first();
+
+            if ($email_template && !empty($email_template->template)) {
+                $email_from = $email_template->from_email;
+
+                $replace = [
+                    $sale->office->office_name ?? '',
+                    $sale->unit->unit_name ?? '',
+                    $sale->sale_postcode ?? '',
+                    ''
+                ];
+                $prev_val = ['(office_name)', '(unit_name)', '(postcode)', '(recipient_name)'];
+
+                $formattedMessage = str_replace($prev_val, $replace, $email_template->template);
+                $formattedSubject = str_replace($prev_val, $replace, $email_template->subject);
+            }
+
+            return response()->json([
+                'emails' => $emails,
+                'office_id' => $sale->office_id,
+                'email_template' => $formattedMessage,
+                'email_subject' => $formattedSubject,
+                'from_email' => $email_from
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email notifications are disabled.',
+            ]);
+        }
+    }
+
+    public function sendEmailToOffices(Request $request)
+    {
+        $request->validate([
+            'to_email' => 'required',
+            'subject' => 'required|string',
+            'message' => 'required|string',
+        ]);
+
+        // Parse and clean emails
+        $emails = array_filter(
+            array_map('trim', explode(',', $request->to_email))
+        );
+
+        if (empty($emails)) {
+            return response()->json(['success' => false, 'message' => 'No valid emails provided.'], 422);
+        }
+
+        $email_from = $request->from_email;
+        $email_subject = $request->subject;
+        $formattedMessage = $request->message;
+        $email_title = 'scrapped_offices_email';
+        $sale_id = $request->sale_id;
+
+        $failed = [];
+        $success = [];
+
+        try {
+            foreach ($emails as $email) {
+                $email = strtolower(trim($email));
+
+                // Validate each email format
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $failed[] = $email . ' (invalid format)';
+                    continue;
+                }
+
+                try {
+                    $is_save = $this->saveEmailDB(
+                        $email,           // individual email
+                        $email_from,
+                        $email_subject,
+                        $formattedMessage,
+                        $email_title,
+                        null,
+                        $sale_id
+                    );
+
+                    if (!$is_save) {
+                        Log::warning('Email save to DB failed for: ' . $email . ' | Sale ID: ' . $sale_id);
+                        $failed[] = $email . ' (DB save failed)';
+                    } else {
+                        $success[] = $email;
+                    }
+
+                } catch (\Exception $e) {
+                    Log::error('Email send failed for: ' . $email . ' | Error: ' . $e->getMessage());
+                    $failed[] = $email . ' (error: ' . $e->getMessage() . ')';
+                }
+            }
+
+            // Build response based on results
+            if (empty($failed)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email sent successfully to ' . count($success) . ' recipient(s).',
+                    'sent_to' => $success,
+                ]);
+            } elseif (!empty($success)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email sent to some recipients.',
+                    'sent_to' => $success,
+                    'failed' => $failed,
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send email to all recipients.',
+                    'failed' => $failed,
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

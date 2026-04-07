@@ -22,7 +22,7 @@ use App\Http\Controllers\RegionController;
 use App\Http\Controllers\FreePBXController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
-use App\Http\Controllers\ScrapImportController;
+use App\Http\Controllers\ScrapController;
 use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 use App\Http\Middleware\IPAddress;
 
@@ -61,11 +61,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('/dashboard/statistics-report', [DashboardController::class, 'statisticsReportIndex'])->name('dashboard.report-applicants');
     Route::get('getStatisticsApplicants', [DashboardController::class, 'getStatisticsApplicants'])->name('getStatisticsApplicants');
     Route::get('/statistics/chart-data', [DashboardController::class, 'getChartData']);
-    
+
     Route::get('/notifications', [DashboardController::class, 'notificationsIndex'])->name('notifications.index');
     Route::post('/notifications/mark-as-read', [DashboardController::class, 'markNotificationsAsRead']);
     Route::get('getUserNotifications', [DashboardController::class, 'getUserNotifications'])->name('getUserNotifications');
-    
+
     Route::get('/unread-notifications', [DashboardController::class, 'getUnreadNotifications'])->name('unread-notifications');
     Route::get('/unread-messages', [DashboardController::class, 'getUnreadMessages'])->name('unread-messages');
 
@@ -81,7 +81,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('crmuploadCv', [ApplicantController::class, 'crmuploadCv'])->name('applicants.crmuploadCv');
         Route::get('{id}/history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
-    
+
     Route::get('getAvailableJobs', [ApplicantController::class, 'getAvailableJobs'])->name('getAvailableJobs');
     Route::get('getAvailableNoJobs', [ApplicantController::class, 'getAvailableNoJobs'])->name('getAvailableNoJobs');
     Route::get('applicantsExport', [ApplicantController::class, 'export'])->name('applicantsExport');
@@ -92,11 +92,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('markApplicantNoNursingHome', [ApplicantController::class, 'markApplicantNoNursingHome'])->name('markApplicantNoNursingHome');
     Route::post('sendCVtoQuality', [ApplicantController::class, 'sendCVtoQuality'])->name('sendCVtoQuality');
     Route::get('getApplicantHistoryAjaxRequest', [ApplicantController::class, 'getApplicantHistoryAjaxRequest'])
-    ->name('getApplicantHistoryAjaxRequest');
+        ->name('getApplicantHistoryAjaxRequest');
     Route::get('getApplicantNoNursingHomeNotes', [ApplicantController::class, 'getApplicantNoNursingHomeNotes'])
-    ->name('getApplicantNoNursingHomeNotes');
+        ->name('getApplicantNoNursingHomeNotes');
     Route::get('getApplicanCallbackNotes', [ApplicantController::class, 'getApplicanCallbackNotes'])
-    ->name('getApplicanCallbackNotes');
+        ->name('getApplicanCallbackNotes');
 
     Route::group(['prefix' => 'postcode-finder'], function () {
         Route::get('', [PostcodeController::class, 'index'])->name('postcode-finder.index');
@@ -144,7 +144,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     });
     Route::get('salesExport', [SaleController::class, 'export'])->name('salesExport');
     Route::get('/sales/fetch-applicants-by-radius/{id}/{radius?}', [SaleController::class, 'fetchApplicantsWithinSaleRadiusIndex'])
-    ->name('fetchApplicantsWithinSaleRadiusIndex');
+        ->name('fetchApplicantsWithinSaleRadiusIndex');
     Route::get('getSales', [SaleController::class, 'getSales'])->name('getSales');
     Route::get('getDirectSales', [SaleController::class, 'getDirectSales'])->name('getDirectSales');
     Route::get('getRejectedSales', [SaleController::class, 'getRejectedSales'])->name('getRejectedSales');
@@ -190,7 +190,22 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getResourcesCategoryWised', [ResourceController::class, 'getResourcesCategoryWised'])->name('getResourcesCategoryWised');
     Route::post('markApplicantNotInterestedOnSale', [ResourceController::class, 'markApplicantNotInterestedOnSale'])->name('markApplicantNotInterestedOnSale');
     Route::post('markApplicantCallback', [ResourceController::class, 'markApplicantCallback'])->name('markApplicantCallback');
-	Route::post('exportDirectApplicantsEmails', [ResourceController::class, 'exportDirectApplicantsEmails'])->name('exportDirectApplicantsEmails');
+    Route::post('exportDirectApplicantsEmails', [ResourceController::class, 'exportDirectApplicantsEmails'])->name('exportDirectApplicantsEmails');
+
+    Route::group(['prefix' => 'scrap'], function () {
+        Route::get('office-list', [ScrapController::class, 'officeIndex'])->name('scrap.office.list');
+        Route::get('unit-list', [ScrapController::class, 'unitIndex'])->name('scrap.unit.list');
+        Route::get('sales-list', [ScrapController::class, 'salesIndex'])->name('scrap.sales.list');
+    });
+    Route::get('getScrappedOffices', [ScrapController::class, 'getScrappedOffices'])->name('getScrappedOffices');
+    Route::get('getScrappedUnits', [ScrapController::class, 'getScrappedUnits'])->name('getScrappedUnits');
+    Route::get('getScrappedSales', [ScrapController::class, 'getScrappedSales'])->name('getScrappedSales');
+    Route::delete('scrapped/office/{id}', [ScrapController::class, 'scrappedOfficeDestroy'])->name('scrapped.office.destroy');
+    Route::delete('scrapped/unit/{id}', [ScrapController::class, 'scrappedUnitDestroy'])->name('scrapped.unit.destroy');
+    Route::delete('scrapped/sale/{id}', [ScrapController::class, 'scrappedSaleDestroy'])->name('scrapped.sale.destroy');
+
+    Route::get('/get-sale-emails', [SaleController::class, 'getSaleEmails']);
+    Route::post('/send-email-to-offices', [SaleController::class, 'sendEmailToOffices'])->name('send.email.to.offices');
 
     Route::group(['prefix' => 'emails'], function () {
         Route::get('compose-email', [CommunicationController::class, 'index'])->name('emails.inbox');
@@ -201,7 +216,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('saveComposedEmail', [CommunicationController::class, 'saveComposedEmail'])->name('emails.saveComposedEmail');
     Route::get('getSentEmailsAjaxRequest', [CommunicationController::class, 'getSentEmailsAjaxRequest'])->name('getSentEmailsAjaxRequest');
     Route::post('sendMessageToApplicant', [CommunicationController::class, 'sendMessageToApplicant'])->name('sendMessageToApplicant');
-    
+
     Route::group(['prefix' => 'messages'], function () {
         Route::get('', [CommunicationController::class, 'Messagesindex'])->name('messages.index');
         Route::get('write-message', [CommunicationController::class, 'writeMessageindex'])->name('messages.write');
@@ -227,8 +242,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
 
     Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
-    Route::get('scrap/import', [ScrapImportController::class, 'importIndex'])->name('scrap.import.index');
-    Route::post('scrap/import', [ScrapImportController::class, 'importJobs'])->name('scrap.import');
+    Route::get('scrap/import', [ScrapController::class, 'importIndex'])->name('scrap.import.index');
+    Route::post('scrap/import', [ScrapController::class, 'importJobs'])->name('scrap.import');
     Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
     Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
     Route::post('applicants/process-file', [ImportController::class, 'applicantsProcessFile'])->name('process.file');
@@ -282,14 +297,14 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('job-categories/list', [SettingController::class, 'jobCategoriesIndex'])->name('job-categories.list');
     Route::post('job-categories/store', [SettingController::class, 'jobCategoriesStore'])->name('job-categories.store');
     Route::put('job-categories/update', [SettingController::class, 'jobCategoriesUpdate'])->name('job-categories.update');
-    
+
     // job titles
     Route::get('getJobTitles', [SettingController::class, 'getJobTitles'])->name('getJobTitles');
     Route::get('getJobTitlesList', [SettingController::class, 'getJobTitlesList'])->name('getJobTitlesList');
     Route::get('job-titles/list', [SettingController::class, 'jobTitlesIndex'])->name('job-titles.list');
     Route::post('job-titles/store', [SettingController::class, 'jobTitlesStore'])->name('job-titles.store');
     Route::put('job-titles/update', [SettingController::class, 'jobTitlesUpdate'])->name('job-titles.update');
-    
+
     // job sources
     Route::get('getJobSources', [SettingController::class, 'getJobSources'])->name('getJobSources');
     Route::post('job-sources/list', [SettingController::class, 'jobSourceIndex'])->name('job-sources.list');
@@ -312,7 +327,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::put('sms-templates/update', [SettingController::class, 'smsTemplatesUpdate'])->name('smsTemplates.update');
     Route::post('smsTemplateDelete', [SettingController::class, 'smsTemplateDelete'])->name('smsTemplates.delete');
 
-    /** crm */ 
+    /** crm */
     Route::group(['prefix' => 'crm'], function () {
         Route::get('', [CrmController::class, 'index'])->name('crm.list');
         // Route::get('{id}', [CrmController::class, 'changeStatus'])->name('crm.changeStatus');
@@ -327,13 +342,13 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('crmSendRequest', [CrmController::class, 'crmSendRequest'])->name('crmSendRequest');
     Route::post('crmSendRejectedCv', [CrmController::class, 'crmSendRejectedCv'])->name('crmSendRejectedCv');
     Route::post('crmRevertInQuality', [CrmController::class, 'crmRevertInQuality'])->name('crmRevertInQuality');
-    
+
     /** CRM Sent No Job */
     Route::post('updateCrmNoJobNotes', [CrmController::class, 'updateCrmNoJobNotes'])->name('updateCrmNoJobNotes');
     Route::post('crmSendNoJobRequest', [CrmController::class, 'crmSendNoJobRequest'])->name('crmSendNoJobRequest');
     Route::post('crmSendNoJobToRejectedCv', [CrmController::class, 'crmSendNoJobToRejectedCv'])->name('crmSendNoJobToRejectedCv');
     Route::post('crmSentCvNoJobRevertInQuality', [CrmController::class, 'crmSentCvNoJobRevertInQuality'])->name('crmSentCvNoJobRevertInQuality');
-    
+
     /** CRM Rejected CV */
     Route::post('crmRevertRejectedCvToSentCv', [CrmController::class, 'crmRevertRejectedCvToSentCv'])->name('crmRevertRejectedCvToSentCv');
     Route::post('crmRevertRejectedCvToQuality', [CrmController::class, 'crmRevertRejectedCvToQuality'])->name('crmRevertRejectedCvToQuality');
@@ -363,72 +378,72 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('crmConfirmInterviewToAttend', [CrmController::class, 'crmConfirmInterviewToAttend'])->name('crmConfirmInterviewToAttend');
     Route::post('crmConfirmInterviewToRebook', [CrmController::class, 'crmConfirmInterviewToRebook'])->name('crmConfirmInterviewToRebook');
     Route::post('crmConfirmSave', [CrmController::class, 'crmConfirmSave'])->name('crmConfirmSave');
-    
+
     /** CRM Rebook */
     Route::post('crmRevertRebookToConfirmation', [CrmController::class, 'crmRevertRebookToConfirmation'])->name('crmRevertRebookToConfirmation');
     Route::post('crmRebookToNotAttended', [CrmController::class, 'crmRebookToNotAttended'])->name('crmRebookToNotAttended');
     Route::post('crmRevertRebookToQuality', [CrmController::class, 'crmRevertRebookToQuality'])->name('crmRevertRebookToQuality');
     Route::post('crmRebookToAttended', [CrmController::class, 'crmRebookToAttended'])->name('crmRebookToAttended');
     Route::post('crmRebookSave', [CrmController::class, 'crmRebookSave'])->name('crmRebookSave');
-    
+
     /** CRM Attended */
     Route::post('crmRevertAttendedToRebook', [CrmController::class, 'crmRevertAttendedToRebook'])->name('crmRevertAttendedToRebook');
     Route::post('crmAttendedToDecline', [CrmController::class, 'crmAttendedToDecline'])->name('crmAttendedToDecline');
     Route::post('crmAttendedToStartDate', [CrmController::class, 'crmAttendedToStartDate'])->name('crmAttendedToStartDate');
     Route::post('crmRevertAttendedToQuality', [CrmController::class, 'crmRevertAttendedToQuality'])->name('crmRevertAttendedToQuality');
     Route::post('crmAttendedSave', [CrmController::class, 'crmAttendedSave'])->name('crmAttendedSave');
-    
+
     /** CRM Not Attended */
     Route::post('crmNotAttendedToAttended', [CrmController::class, 'crmNotAttendedToAttended'])->name('crmNotAttendedToAttended');
     Route::post('crmNotAttendedToQuality', [CrmController::class, 'crmNotAttendedToQuality'])->name('crmNotAttendedToQuality');
-    
+
     /** CRM Decline */
     Route::post('crmRevertDeclinedToAttended', [CrmController::class, 'crmRevertDeclinedToAttended'])->name('crmRevertDeclinedToAttended');
     Route::post('crmRevertDeclinedToQuality', [CrmController::class, 'crmRevertDeclinedToQuality'])->name('crmRevertDeclinedToQuality');
-    
+
     /** CRM Start Date */
     Route::post('crmRevertStartDateToAttended', [CrmController::class, 'crmRevertStartDateToAttended'])->name('crmRevertStartDateToAttended');
     Route::post('crmStartDateToInvoice', [CrmController::class, 'crmStartDateToInvoice'])->name('crmStartDateToInvoice');
     Route::post('crmStartDateToHold', [CrmController::class, 'crmStartDateToHold'])->name('crmStartDateToHold');
     Route::post('crmStartDateSave', [CrmController::class, 'crmStartDateSave'])->name('crmStartDateSave');
     Route::post('crmStartDateToQuality', [CrmController::class, 'crmStartDateToQuality'])->name('crmStartDateToQuality');
-    
+
     /** CRM Start Date Hold*/
     Route::post('crmRevertStartDateHoldToStartDate', [CrmController::class, 'crmRevertStartDateHoldToStartDate'])->name('crmRevertStartDateHoldToStartDate');
     Route::post('crmStartDateHoldSave', [CrmController::class, 'crmStartDateHoldSave'])->name('crmStartDateHoldSave');
     Route::post('crmStartDateHoldToQuality', [CrmController::class, 'crmStartDateHoldToQuality'])->name('crmStartDateHoldToQuality');
-    
+
     /** CRM Invoice */
     Route::post('crmSendInvoiceToInvoiceSent', [CrmController::class, 'crmSendInvoiceToInvoiceSent'])->name('crmSendInvoiceToInvoiceSent');
     Route::post('crmRevertInvoiceToStartDate', [CrmController::class, 'crmRevertInvoiceToStartDate'])->name('crmRevertInvoiceToStartDate');
     Route::post('crmInvoiceToDispute', [CrmController::class, 'crmInvoiceToDispute'])->name('crmInvoiceToDispute');
     Route::post('crmInvoiceFinalSave', [CrmController::class, 'crmInvoiceFinalSave'])->name('crmInvoiceFinalSave');
     Route::post('crmInvoiceToQuality', [CrmController::class, 'crmInvoiceToQuality'])->name('crmInvoiceToQuality');
-    
+
     /** CRM Invoice Sent*/
     Route::post('crmInvoiceSentToPaid', [CrmController::class, 'crmInvoiceSentToPaid'])->name('crmInvoiceSentToPaid');
     Route::post('crmInvoiceSentToDispute', [CrmController::class, 'crmInvoiceSentToDispute'])->name('crmInvoiceSentToDispute');
     Route::post('crmInvoiceSentToQuality', [CrmController::class, 'crmInvoiceSentToQuality'])->name('crmInvoiceSentToQuality');
-    
+
     /** CRM Dispute */
     Route::post('crmRevertDisputeToInvoice', [CrmController::class, 'crmRevertDisputeToInvoice'])->name('crmRevertDisputeToInvoice');
     Route::post('crmDisputeToQuality', [CrmController::class, 'crmDisputeToQuality'])->name('crmDisputeToQuality');
-    
+
     /** CRM Paid */
     Route::post('crmChangePaidStatus', [CrmController::class, 'crmChangePaidStatus'])->name('crmChangePaidStatus');
-	Route::get('openToPaidApplicants', [CrmController::class, 'crmOpenToPaidApplicants'])->name('openToPaidApplicants');
-	Route::post('crmPaidRevertToInvoiceSent', [CrmController::class, 'crmPaidRevertToInvoiceSent'])->name('crmPaidRevertToInvoiceSent');
+    Route::get('openToPaidApplicants', [CrmController::class, 'crmOpenToPaidApplicants'])->name('openToPaidApplicants');
+    Route::post('crmPaidRevertToInvoiceSent', [CrmController::class, 'crmPaidRevertToInvoiceSent'])->name('crmPaidRevertToInvoiceSent');
 
 
-    /** regions */ 
+    /** regions */
     Route::group(['prefix' => 'regions'], function () {
         Route::get('resources', [RegionController::class, 'resourcesIndex'])->name('regions.resources');
         Route::get('sales', [RegionController::class, 'salesIndex'])->name('regions.sales');
     });
     Route::get('getApplicantsByRegions', [RegionController::class, 'getApplicantsByRegions'])->name('getApplicantsByRegions');
     Route::get('getSalesByRegions', [RegionController::class, 'getSalesByRegions'])->name('getSalesByRegions');
-    
-    /** Quality */ 
+
+    /** Quality */
     Route::group(['prefix' => 'quality'], function () {
         Route::get('resources', [QualityController::class, 'resourceIndex'])->name('quality.resources');
         Route::get('sales', [QualityController::class, 'saleIndex'])->name('quality.sales');
@@ -452,7 +467,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('settings', [SettingController::class, 'index'])->name('settings.list');
     Route::get('getSettings', [SettingController::class, 'getSettings'])->name('settings.get');
     Route::get('save-settings', [SettingController::class, ''])->name('settings.save');
-    
+
     Route::post('save-general-settings', [SettingController::class, 'saveGeneralSettings'])->name('settings.general.save');
     Route::post('save-profile-settings', [SettingController::class, 'saveProfileSettings'])->name('settings.profile.save');
     Route::post('save-sms-settings', [SettingController::class, 'saveSmsSettings'])->name('settings.sms.save');

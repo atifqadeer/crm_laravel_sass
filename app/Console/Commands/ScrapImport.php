@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\ScrapImportController;
+use App\Http\Controllers\ScrapController;
 use App\Services\ScrapService;
 use Horsefly\User;
 use Illuminate\Console\Command;
@@ -27,7 +27,7 @@ class ScrapImport extends Command
         }
 
         $service    = new ScrapService();
-        $controller = new ScrapImportController();
+        $controller = new ScrapController();
         $user       = User::first();
 
         if (!$user) {

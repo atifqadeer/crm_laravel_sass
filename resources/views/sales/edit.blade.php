@@ -10,6 +10,7 @@
     <div class="col-xl-12 col-lg-12">
         <form id="editSaleForm" action="{{ route('sales.update') }}" method="POST" class="needs-validation" novalidate enctype="multipart/form-data">
             @csrf
+            <input type="hidden" name="redirect_url" value="{{ $redirect_url }}">
             <input type="hidden" name="sale_id" value="{{ $sale->id }}">
             <div class="card">
                 <div class="card-header">
@@ -79,7 +80,7 @@
                                 <div class="invalid-feedback">Please provide a postcode</div>
                             </div>
                         </div>
-                        <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="col-lg-3 col-md-3 col-sm-12">
                             <div class="mb-3">
                                 <label for="cv_limit" class="form-label">CV Limit</label>
                                 <input type="number" id="cv_limit" class="form-control" name="cv_limit" 
@@ -87,18 +88,30 @@
                                 <div class="invalid-feedback">Please provide cv limit</div>
                             </div>
                         </div>
-                        <div class="col-lg-4 col-md-4 col-sm-12">
+                        @php
+                            $positionTypes = ['part time', 'full time', 'permanent', 'temporary'];
+
+                            $selected = old('position_type', strtolower($sale->position_type) ?? '');
+                            $selectedArray = array_filter(array_map('trim', explode(',', $selected)));
+                        @endphp
+
+                        <div class="col-lg-3 col-md-3 col-sm-12">
                             <div class="mb-3">
                                 <label for="position_type" class="form-label">Position Type</label>
-                                <select class="form-select" id="position_type" name="position_type" required>
-                                    <option value="">Choose a Type</option>
-                                    <option value="full time" {{ old('position_type', $sale->position_type == 'full time' ? 'selected' : '') }}>Full Time</option>
-                                    <option value="part time" {{ old('position_type', $sale->position_type == 'part time' ? 'selected' : '') }}>Part Time</option>
+                                <select class="form-select" id="position_type" name="position_type[]" multiple required>
+                                    @foreach ($positionTypes as $value)
+                                        @php
+                                            $label = ucwords(strtolower($value));
+                                        @endphp
+                                        <option value="{{ $value }}" {{ in_array($value, $selectedArray) ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
                                 </select>
-                                <div class="invalid-feedback">Please select a position type</div>
+                                <div class="invalid-feedback">Please select at least one position type</div>
                             </div>
                         </div>
-                         <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="col-lg-3 col-md-3 col-sm-12">
                             <div class="mb-3">
                                 <label for="salary" class="form-label">Salary</label>
                                 <input type="text" id="salary" class="form-control" name="salary" 
@@ -106,38 +119,54 @@
                                  <div class="invalid-feedback">Please provide salary</div>
                             </div>
                         </div>
+                        @if($sale->status == 4)
+                            <div class="col-lg-3 col-md-3 col-sm-12">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="">Choose Status</option>
+                                        <option value="1" {{ old('status', $sale->status == "1" ? 'selected':'') }}>Open</option>
+                                        <option value="0" {{ old('status', $sale->status == "0" ? 'selected':'') }}>Closed</option>
+                                        <option value="2" {{ old('status', $sale->status == "2" ? 'selected':'') }}>Pending</option>
+                                        <option value="3" {{ old('status', $sale->status == "3" ? 'selected':'') }}>Rejected</option>
+                                        <option value="4" {{ old('status', $sale->status == "4" ? 'selected':'') }}>Scrapped</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select type</div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="timing" class="form-label">Timing</label>
-                                <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{{ old('timing', $sale->timing) }}</textarea>
+                                <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing" required>{!! old('timing', $sale->timing) !!}</textarea>
                                 <div class="invalid-feedback">Please provide timing</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="experience" class="form-label">Experience</label>
-                                <textarea class="form-control summernotee" id="experience" name="experience" rows="3" placeholder="Enter Experience">{{ old('experience', $sale->experience) }}</textarea>
+                                <textarea class="form-control summernotee" id="experience" name="experience" rows="3" placeholder="Enter Experience">{!! old('experience', $sale->experience) !!}</textarea>
                                 <div class="invalid-feedback">Please provide experience</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="benefits" class="form-label">Benefits</label>
-                                <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{{ old('benefits', $sale->benefits) }}</textarea>
+                                <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3" placeholder="Enter Benefits" required>{!! old('benefits', $sale->benefits) !!}</textarea>
                                 <div class="invalid-feedback">Please provide benefits</div>
                             </div>
                         </div>
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="qualification" class="form-label">Qualification</label>
-                                <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{{ old('qualification', $sale->qualification) }}</textarea>
+                                <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3" placeholder="Enter Qualification" required>{!! old('qualification', $sale->qualification) !!}</textarea>
                                 <div class="invalid-feedback">Please provide qualification</div>
                             </div>
                         </div>
                         <div class="col-lg-12">
                            <div class="mb-3">
                                 <label for="job_description" class="form-label">Job Description</label>
-                                <textarea id="job_description" name="job_description" class="form-control summernote">{{ old('job_description', $sale->job_description) }}</textarea>
+                                <textarea id="job_description" name="job_description" class="form-control summernote">{!! old('job_description', $sale->job_description) !!}</textarea>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -234,7 +263,7 @@
                     <div class="mb-3 rounded">
                         <div class="row justify-content-end g-2">
                             <div class="col-lg-2">
-                                <a href="{{ route('sales.list') }}" class="btn btn-dark w-100">Cancel</a>
+                                <a href="{{ $redirect_url }}" class="btn btn-dark w-100">Cancel</a>
                             </div>
                             <div class="col-lg-2">
                                 <button type="submit" class="btn btn-primary w-100">

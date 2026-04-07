@@ -12,6 +12,7 @@
         <form id="editUnitForm" action="{{ route('units.update') }}" method="POST" class="needs-validation" novalidate enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="unit_id" value="{{ $unit->id }}">
+            <input type="hidden" name="redirect_url" value="{{ $redirect_url }}">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Unit Information</h4>
@@ -57,6 +58,20 @@
                                 value="{{ old('unit_website', $unit->unit_website ) }}" placeholder="Enter URL">
                             </div>
                         </div>
+                        @if($unit->status == 4)
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="">Choose Status</option>
+                                        <option value="1" {{ old('status', $unit->status == "1" ? 'selected':'') }}>Active</option>
+                                        <option value="0" {{ old('status', $unit->status == "0" ? 'selected':'') }}>Inactive</option>
+                                        <option value="4" {{ old('status', $unit->status == "4" ? 'selected':'') }}>Scrapped</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select type</div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="col-lg-12">
                             <div class="mb-3 border px-3 py-5 rounded" style="background-color: #e2e2e2;">
                                 <label class="form-label">Contact Persons</label>
@@ -176,7 +191,7 @@
                         <div class="row justify-content-end g-2">
                         
                             <div class="col-lg-2">
-                                <a href="{{ route('units.list') }}" class="btn btn-dark w-100">Cancel</a>
+                                <a href="{{ $redirect_url }}" class="btn btn-dark w-100">Cancel</a>
                             </div>
                             <div class="col-lg-2">
                                 <button type="submit" class="btn btn-primary w-100">

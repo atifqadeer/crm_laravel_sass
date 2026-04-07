@@ -542,7 +542,7 @@ class HeadOfficeController extends Controller
         $office = Office::findOrFail($id);
         return view('head-offices.details', compact('office'));
     }
-    public function edit($id)
+    public function edit($id, Request $request)
     {
         // Debug the incoming id
         Log::info('Trying to edit head office with ID: ' . $id);
@@ -556,7 +556,9 @@ class HeadOfficeController extends Controller
             Log::info('Head Office not found with ID: ' . $id);
         }
 
-        return view('head-offices.edit', compact('office', 'contacts'));
+        $redirect_url = $request->input('redirect_url', route('head-offices.list'));
+
+        return view('head-offices.edit', compact('office', 'contacts', 'redirect_url'));
     }
     public function update(Request $request)
     {
@@ -565,7 +567,7 @@ class HeadOfficeController extends Controller
             'office_name' => 'required|string|max:255',
             'office_type' => 'required',
             'office_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
-            'office_notes' => 'required|string|max:255',
+            'office_notes' => 'required|string',
 
             // Contact person's details (Array validation)
             'contact_name' => 'required|array',
@@ -701,7 +703,7 @@ class HeadOfficeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Head Office updated successfully',
-                'redirect' => route('head-offices.list')
+                'redirect' => $request->input('redirect_url', route('head-offices.list'))
             ]);
         }
         catch (\Exception $e) {

@@ -86,15 +86,27 @@
                                     <div class="invalid-feedback">Please provide cv limit</div>
                                 </div>
                             </div>
+                           @php
+                                $positionTypes = ['part time', 'full time', 'permanent', 'temporary'];
+
+                                $selected = old('position_type');
+                                $selectedArray = array_filter(array_map('trim', explode(',', $selected)));
+                            @endphp
+
                             <div class="col-lg-4 col-md-4 col-sm-12">
                                 <div class="mb-3">
                                     <label for="position_type" class="form-label">Position Type</label>
-                                    <select class="form-select" id="position_type" name="position_type" required>
-                                        <option value="">Choose a Type</option>
-                                        <option value="full time" {{ old('position_type') == 'full time' ? 'selected' : '' }}>Full Time</option>
-                                        <option value="part time" {{ old('position_type') == 'part time' ? 'selected' : '' }}>Part Time</option>
+                                    <select class="form-select" id="position_type" name="position_type[]" multiple required>
+                                        @foreach ($positionTypes as $value)
+                                            @php
+                                                $label = ucwords(strtolower($value));
+                                            @endphp
+                                            <option value="{{ $value }}" {{ in_array($value, $selectedArray) ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
                                     </select>
-                                    <div class="invalid-feedback">Please select a position type</div>
+                                    <div class="invalid-feedback">Please select at least one position type</div>
                                 </div>
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">

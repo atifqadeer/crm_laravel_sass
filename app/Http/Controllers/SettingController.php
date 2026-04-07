@@ -1353,24 +1353,30 @@ class SettingController extends Controller
             // 3. SAVE ONE ROW PER ACTOR (provider + source = unique key)
             // ---------------------------------------------------------------
             foreach ($actors as $actor) {
-                $provider  = trim($actor['provider'] ?? '') ?: 'scrap';
-                $source    = trim($actor['source']   ?? '') ?: 'source';
+
+                $provider = strtolower(trim($actor['provider'] ?? 'scrap'));
+                $source   = strtolower(trim($actor['source'] ?? 'source'));
+                $actorId  = trim($actor['actor_id'] ?? '');
+
+                // normalize source key
                 $sourceKey = Str::slug($source, '_');
 
-                // e.g. scrap_apify_indeed | scrap_apify_totaljobs | scrap_scrap_reed
-                $key = "scrap_{$provider}_{$sourceKey}";
+                // FINAL UNIQUE KEY (VERY IMPORTANT)
+                $key = strtolower("scrap_{$provider}_{$sourceKey}");
+
+                // prepare payload
+                $data = [
+                    'provider' => $provider,
+                    'source'   => $source,
+                    'actor_id' => $actorId,
+                    'token'    => trim($actor['token'] ?? ''),
+                    'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2')
+                ];
 
                 Setting::updateOrCreate(
                     ['key' => $key],
                     [
-                        'value' => json_encode([
-                            'provider' => $provider,
-                            'source'   => $source,
-                            'token'    => trim($actor['token']    ?? ''),
-                            'base_url' => trim($actor['base_url'] ?? '')
-                                            ?: config('services.scrap.base_url', 'https://api.apify.com/v2'),
-                            'actor_id' => trim($actor['actor_id'] ?? ''),
-                        ]),
+                        'value' => json_encode($data),
                         'group' => 'scraper',
                         'type'  => 'json',
                     ]
@@ -1545,7 +1551,7 @@ class SettingController extends Controller
                 ], 400);
             }
 
-            $controller = new \App\Http\Controllers\ScrapImportController();
+            $controller = new ScrapController();
             $imported   = $controller->persistJobs($jobs, $user);
             $skipped    = $fetched - $imported;
 

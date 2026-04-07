@@ -360,6 +360,33 @@
                     <!-- end users Menu -->
                @endcanany
 
+               <!-- scrap data Menu -->
+               @canany(['scrap-index'])
+                    <li class="menu-title">Scrapped Data</li>
+                    <li class="nav-item">
+                         <a class="nav-link menu-arrow" href="#sidebarScrap" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarScrap">
+                              <span class="nav-icon">
+                                   <i class="ri-filter-3-line"></i>
+                              </span>
+                              <span class="nav-text"> Scrap </span>
+                         </a>
+                         <div class="collapse" id="sidebarScrap">
+                              <ul class="nav sub-navbar-nav">
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('scrap.office.list')}}">Head Offices List</a>
+                                   </li>
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('scrap.unit.list')}}">Units List</a>
+                                   </li>
+                                   <li class="sub-nav-item">
+                                        <a class="sub-nav-link" href="{{ route('scrap.sales.list')}}">Sales List</a>
+                                   </li>
+                              </ul>
+                         </div>
+                    </li>
+               @endcanany
+               <!-- end scrap data Menu -->
+
                @canany(['administrator-user-index', 'administrator-role-index', 'administrator-permission-index', 'administrator-ip-address-index', 'administrator-job-category-index', 'administrator-job-title-index', 'administrator-job-source-index', 'administrator-email-template-index', 'administrator-sms-template-index', 'administrator-setting-index'])
                     <li class="menu-title">Administrator</li>
                     @canany(['administrator-user-index'])
