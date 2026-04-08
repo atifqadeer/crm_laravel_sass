@@ -49,6 +49,9 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 )
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -78,6 +81,9 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->whereIn('applicants.lng', ['0', '', null])
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -109,6 +115,9 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 )
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -146,6 +155,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                                     COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance")
                     ])
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->where('is_in_nurse_home', false)
                     ->having('distance', '<', $radius) // Filter by distance
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
@@ -167,8 +178,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 $jobTitle = JobTitle::find($sale->job_title_id);
 
                 // Decode related titles safely, ensure it is an array and normalize
-                $relatedTitles = is_array($jobTitle->related_titles) 
-                    ? $jobTitle->related_titles 
+                $relatedTitles = is_array($jobTitle->related_titles)
+                    ? $jobTitle->related_titles
                     : (empty($jobTitle->related_titles) ? [] : json_decode($jobTitle->related_titles, true));
 
                 // Normalize the titles (lowercase all) and add main title
@@ -184,7 +195,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
                 // Filter applicants by the job title IDs
                 $model->whereIn('applicants.job_title_id', $jobTitleIds)
-                            ->orderBy('applicants.updated_at', 'desc');
+                    ->orderBy('applicants.updated_at', 'desc');
 
                 // Fetch all applicants without pagination
                 $applicants = $model->get(); // No pagination here, we are getting all the results
@@ -207,8 +218,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_source' => $item->job_source_name ? strtoupper($item->job_source_name) : '',
                         'have_nursing_home_experience' =>
                             $item->have_nursing_home_experience == 1
-                                ? 'Yes'
-                                : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
+                            ? 'Yes'
+                            : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
 
                         'applicant_notes' => htmlspecialchars($item->applicant_notes),
                         'status' => (function () use ($item, $sale_id) {
@@ -328,11 +339,12 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->where([
                         'applicants.status' => 1,
                         'history.status' => 1,
-                        'applicants.is_in_nurse_home' => false,
-                        'applicants.is_blocked' => false,
-                        'applicants.is_callback_enable' => false,
-                        'applicants.is_no_job' => false
+                        'applicants.is_in_nurse_home' => 0,
+                        'applicants.is_blocked' => 0,
+                        'applicants.is_callback_enable' => 0,
+                        'applicants.is_no_job' => 0
                     ])
+                    ->whereNull('applicants.deleted_at')
                     ->with(['jobTitle', 'jobCategory', 'jobSource'])
                     ->get();
 
@@ -401,15 +413,18 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
                     ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-                    ->with(['cv_notes' => function($query) {
-                        $query->select('status', 'applicant_id', 'sale_id', 'user_id')
-                            ->with(['user:id,name'])->latest();
-                    }])
+                    ->with([
+                        'cv_notes' => function ($query) {
+                            $query->select('status', 'applicant_id', 'sale_id', 'user_id')
+                                ->with(['user:id,name'])->latest();
+                        }
+                    ])
                     ->whereNull('applicants_pivot_sales.applicant_id')
                     ->where([
                         'applicants.status' => 1,
-                        'applicants.is_blocked' => true
+                        'applicants.is_blocked' => 1,
                     ])
+                    ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -452,16 +467,20 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'crm_notes.details',
                         'applicants.applicant_experience'
                     ])
-                    ->where('applicants.is_no_job', false)
+                    ->where('applicants.is_no_job', 0)
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->join('crm_notes', 'applicants.id', '=', 'crm_notes.applicant_id')
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->with(['cv_notes' => function($query) {
-                    $query->select('status', 'applicant_id', 'sale_id', 'user_id')
-                        ->with(['user:id,name'])->latest();
-                    }])
+                    ->with([
+                        'cv_notes' => function ($query) {
+                            $query->select('status', 'applicant_id', 'sale_id', 'user_id')
+                                ->with(['user:id,name'])->latest();
+                        }
+                    ])
                     ->whereIn('applicants.paid_status', ['open', 'pending'])
                     ->whereIn('crm_notes.moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'])
                     ->whereIn('crm_notes.id', function ($query) {
@@ -535,8 +554,10 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'module_notes.details as module_notes_details',
                         'module_notes.created_at as note_created_at', // ✅ use the alias from subquery
                     ])
-                    ->where('applicants.is_no_job', true)
+                    ->where('applicants.is_no_job', 1)
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
+                    ->whereNull('applicants.deleted_at')
                     ->joinSub($latestNotesSub, 'module_notes', function ($join) {
                         $join->on('applicants.id', '=', 'module_notes.module_noteable_id');
                     })
@@ -585,7 +606,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'all':
                 return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title' , 'Job Category', 'Job Type' , 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
+                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
