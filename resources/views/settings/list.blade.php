@@ -6,26 +6,33 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
         .settings-menu .list-group-item.active {
             background-color: #007bff;
             color: white;
             border-color: #007bff;
         }
+
         .settings-form-section {
             display: none !important;
         }
+
         .settings-form-section.active {
             display: block !important;
         }
+
         .card-body {
             min-height: 80vh;
         }
+
         .smtp-entry {
             position: relative;
         }
+
         .remove-smtp-btn {
             display: none;
         }
+
         .smtp-entry:not(:first-child) .remove-smtp-btn {
             display: block;
         }
@@ -41,13 +48,21 @@
                         <h5 class="mb-0">Settings Menu</h5>
                     </div>
                     <div class="list-group list-group-flush settings-menu" id="settings-menu">
-                        <button class="list-group-item list-group-item-action active" data-target="#form-general" type="button" id="menu-general" aria-controls="form-general">General Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-profile" type="button" id="menu-profile" aria-controls="form-profile">Profile Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-google-maps" type="button" id="menu-profile" aria-controls="form-google-maps">Google Maps Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-notifications" type="button" id="menu-notifications" aria-controls="form-notifications">Notification Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-sms" type="button" id="menu-sms" aria-controls="form-sms">SMS Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-smtp" type="button" id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button" id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
+                        <button class="list-group-item list-group-item-action active" data-target="#form-general"
+                            type="button" id="menu-general" aria-controls="form-general">General Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-profile" type="button"
+                            id="menu-profile" aria-controls="form-profile">Profile Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-google-maps" type="button"
+                            id="menu-profile" aria-controls="form-google-maps">Google Maps Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-notifications"
+                            type="button" id="menu-notifications" aria-controls="form-notifications">Notification
+                            Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-sms" type="button"
+                            id="menu-sms" aria-controls="form-sms">SMS Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-smtp" type="button"
+                            id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button"
+                            id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
                     </div>
                 </div>
             </div>
@@ -64,7 +79,8 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="site_name" class="form-label">Site Name</label>
-                                    <input type="text" class="form-control" id="site_name" name="site_name" value="{{ old('site_name') }}">
+                                    <input type="text" class="form-control" id="site_name" name="site_name"
+                                        value="{{ old('site_name') }}">
                                 </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save General</button>
@@ -77,11 +93,13 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="user_email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="user_email" name="user_email" value="{{ old('user_email') }}">
+                                    <input type="email" class="form-control" id="user_email" name="user_email"
+                                        value="{{ old('user_email') }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="user_name" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="user_name" name="user_name" value="{{ old('user_name') }}">
+                                    <input type="text" class="form-control" id="user_name" name="user_name"
+                                        value="{{ old('user_name') }}">
                                 </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save Profile</button>
@@ -94,11 +112,13 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="google_api_url" class="form-label">API URL</label>
-                                    <input type="text" class="form-control" id="google_api_url" name="google_api_url" value="{{ old('google_api_url') }}">
+                                    <input type="text" class="form-control" id="google_api_url" name="google_api_url"
+                                        value="{{ old('google_api_url') }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="google_api_key" class="form-label">API Key</label>
-                                    <input type="text" class="form-control" id="google_api_key" name="google_api_key" value="{{ old('google_api_key') }}">
+                                    <input type="text" class="form-control" id="google_api_key" name="google_api_key"
+                                        value="{{ old('google_api_key') }}">
                                 </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save</button>
@@ -134,19 +154,23 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="sms_api_url" class="form-label">SMS API URL</label>
-                                    <input type="text" class="form-control" id="sms_api_url" name="sms_api_url" value="{{ old('sms_api_url') }}">
+                                    <input type="text" class="form-control" id="sms_api_url" name="sms_api_url"
+                                        value="{{ old('sms_api_url') }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="sms_port" class="form-label">SMS Port</label>
-                                    <input type="text" class="form-control" id="sms_port" name="sms_port" value="{{ old('sms_port') }}">
+                                    <input type="text" class="form-control" id="sms_port" name="sms_port"
+                                        value="{{ old('sms_port') }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="sms_username" class="form-label">SMS Username</label>
-                                    <input type="text" class="form-control" id="sms_username" name="sms_username" value="{{ old('sms_username') }}">
+                                    <input type="text" class="form-control" id="sms_username" name="sms_username"
+                                        value="{{ old('sms_username') }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="sms_password" class="form-label">SMS Password</label>
-                                    <input type="text" class="form-control" id="sms_password" name="sms_password" value="{{ old('sms_password') }}">
+                                    <input type="text" class="form-control" id="sms_password" name="sms_password"
+                                        value="{{ old('sms_password') }}">
                                 </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save SMS Settings</button>
@@ -160,19 +184,24 @@
                                 <div id="smtp-entries">
                                     <!-- Initial SMTP Entry Group -->
                                     <div class="smtp-entry border rounded p-3 mb-3 position-relative">
-                                        <button type="button" class="btn-close position-absolute top-0 end-0 mt-2 me-2 remove-smtp-btn" aria-label="Remove SMTP Entry"></button>
+                                        <button type="button"
+                                            class="btn-close position-absolute top-0 end-0 mt-2 me-2 remove-smtp-btn"
+                                            aria-label="Remove SMTP Entry"></button>
                                         <input type="hidden" name="smtp[0][id]" class="smtp-id">
                                         <div class="mb-3">
                                             <label class="form-label">Mailer</label>
-                                            <input type="text" class="form-control" name="smtp[0][mailer]" placeholder="e.g., smtp">
+                                            <input type="text" class="form-control" name="smtp[0][mailer]"
+                                                placeholder="e.g., smtp">
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">SMTP Host</label>
-                                            <input type="text" class="form-control" name="smtp[0][host]" placeholder="e.g., smtp.mailtrap.io">
+                                            <input type="text" class="form-control" name="smtp[0][host]"
+                                                placeholder="e.g., smtp.mailtrap.io">
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">SMTP Port</label>
-                                            <input type="number" class="form-control" name="smtp[0][port]" placeholder="e.g., 587">
+                                            <input type="number" class="form-control" name="smtp[0][port]"
+                                                placeholder="e.g., 587">
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Username</label>
@@ -203,8 +232,10 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div>
-                                        <button type="button" class="btn btn-secondary" id="addSmtpBtn">+ Add More SMTP</button>
-                                        <button type="button" class="btn btn-danger d-none" id="removeSmtpBtn">− Remove Last SMTP</button>
+                                        <button type="button" class="btn btn-secondary" id="addSmtpBtn">+ Add More
+                                            SMTP</button>
+                                        <button type="button" class="btn btn-danger d-none" id="removeSmtpBtn">− Remove Last
+                                            SMTP</button>
                                     </div>
                                     <div class="text-end">
                                         <button type="submit" class="btn btn-success">Save SMTP Settings</button>
@@ -219,7 +250,8 @@
                                 <div class="mb-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <h5 class="mb-0">Scraper Actors</h5>
-                                        <small class="text-muted">Add one or more actor configurations for Scrap or other providers.</small>
+                                        <small class="text-muted">Add one or more actor configurations for Scrap or other
+                                            providers.</small>
                                     </div>
                                     <button type="button" class="btn btn-outline-primary" id="addScraperCardBtn">
                                         <i class="ri-add-line"></i> Add Actor Card
@@ -242,7 +274,8 @@
                                             <button type="button" class="btn btn-success btn-sm run-scraper-actor me-2">
                                                 <i class="ri-play-line"></i> Run
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger btn-sm remove-scraper-card me-3">
+                                            <button type="button"
+                                                class="btn btn-outline-danger btn-sm remove-scraper-card me-3">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </div>
@@ -267,12 +300,14 @@
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Actor ID</label>
-                                            <input type="text" class="form-control scraper-actor-id" name="actors[__INDEX__][actor_id]" value="">
+                                            <input type="text" class="form-control scraper-actor-id"
+                                                name="actors[__INDEX__][actor_id]" value="">
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Token</label>
                                             <div class="input-group">
-                                                <input type="password" class="form-control scraper-token" name="actors[__INDEX__][token]" value="">
+                                                <input type="password" class="form-control scraper-token"
+                                                    name="actors[__INDEX__][token]" value="">
                                                 <button class="btn btn-outline-secondary toggle-token" type="button">
                                                     <i class="ri-eye-line"></i>
                                                 </button>
@@ -280,7 +315,8 @@
                                         </div>
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Base URL</label>
-                                            <input type="text" class="form-control scraper-base-url" name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2">
+                                            <input type="text" class="form-control scraper-base-url"
+                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2">
                                         </div>
                                     </div>
                                 </div>
@@ -318,7 +354,7 @@
     {{-- @vite(['resources/js/pages/settings.js']) --}}
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Ensure jQuery is loaded
             if (typeof jQuery === 'undefined') {
                 console.error('jQuery is not loaded.');
@@ -348,7 +384,7 @@
             $.ajax({
                 url: '{{ route("settings.get") }}',
                 method: 'GET',
-                success: function(data) {
+                success: function (data) {
                     console.log('Settings data:', data); // Debug: Log full response
 
                     // General Settings
@@ -361,7 +397,7 @@
                         $('#user_email').val(data.profile.user_email || '');
                         $('#user_name').val(data.profile.user_name || '');
                     }
-                    
+
                     // Google Settings
                     if (data.google_maps) {
                         $('#google_api_url').val(data.google_maps.google_map_api_url || '');
@@ -370,14 +406,11 @@
 
                     // Scraper Settings
                     let scraperActors = [];
-                    if (data.scraper) {
-                        Object.keys(data.scraper).forEach(key => {
-                            if (key.startsWith('scrap_') && typeof data.scraper[key] === 'object' && data.scraper[key] !== null) {
-                                scraperActors.push({ ...data.scraper[key], _key: key });
-                            }
-                        });
-                    }
-                    if (scraperActors.length === 0) {
+
+                    if (data.scraper && Array.isArray(data.scraper.actors) && data.scraper.actors.length > 0) {
+                        scraperActors = data.scraper.actors;
+                    } else {
+                        // Default row if nothing saved yet
                         scraperActors = [{
                             provider: 'apify',
                             source: 'indeed',
@@ -386,6 +419,7 @@
                             base_url: 'https://api.apify.com/v2'
                         }];
                     }
+
                     renderScraperCards(scraperActors);
 
                     // Notification Settings
@@ -427,14 +461,14 @@
 
                     toggleRemoveButton();
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     console.error('Error loading settings:', xhr.responseText);
                     toastr.error('Failed to load settings.');
                 }
             });
 
             // Handle menu button clicks
-            $menuButtons.on('click', function(e) {
+            $menuButtons.on('click', function (e) {
                 e.preventDefault();
                 const $this = $(this);
                 const target = $this.data('target');
@@ -457,9 +491,9 @@
             });
 
             // Add new SMTP entry
-            $('#addSmtpBtn').on('click', function() {
+            $('#addSmtpBtn').on('click', function () {
                 const $newEntry = $smtpTemplate.clone();
-                $newEntry.find('input, select').each(function() {
+                $newEntry.find('input, select').each(function () {
                     const name = $(this).attr('name').replace('[0]', `[${smtpIndex}]`);
                     $(this).attr('name', name).val('');
                 });
@@ -590,27 +624,17 @@
                 const providerValue = actor.provider || 'apify';
                 const $card = $(scraperCardTemplateHtml);
                 const uniqueId = 'scraper-card-' + (++scraperCardCounter);
-                
+
                 $card.attr('id', uniqueId);
-                $card.attr('data-key', actor._key || '');
-                
+                $card.attr('data-key', actor.key || '');
+
                 $card.find('.scraper-provider').val(providerValue);
                 $card.find('.scraper-source').val(actor.source || 'indeed');
                 $card.find('.scraper-actor-id').val(actor.actor_id || '');
                 $card.find('.scraper-token').val(actor.token || '');
                 $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2');
-                
-                toggleCardFields($card);
-                return $card;
-            }
 
-            function toggleCardFields($card) {
-                const provider = $card.find('.scraper-provider').val();
-                if (provider === 'scrap' || provider === 'apify') {
-                    $card.find('.scrap-only').removeClass('d-none');
-                } else {
-                    $card.find('.scrap-only').addClass('d-none');
-                }
+                return $card;
             }
 
             function updateScraperRemoveButtons() {
@@ -623,23 +647,23 @@
                 if (!Array.isArray(actors) || actors.length === 0) {
                     actors = [{}];
                 }
-                actors.forEach(function(actor) {
+                actors.forEach(function (actor) {
                     $scraperCards.append(createScraperCard(actor));
                 });
                 updateScraperRemoveButtons();
             }
 
-            $('#addScraperCardBtn').on('click', function() {
+            $('#addScraperCardBtn').on('click', function () {
                 $scraperCards.append(createScraperCard({}));
                 updateScraperRemoveButtons();
             });
 
-            $scraperCards.on('change', '.scraper-provider', function() {
+            $scraperCards.on('change', '.scraper-provider', function () {
                 toggleCardFields($(this).closest('.scraper-card'));
             });
 
             // Toggle show/hide token
-            $scraperCards.on('click', '.toggle-token', function() {
+            $scraperCards.on('click', '.toggle-token', function () {
                 const $btn = $(this);
                 const $input = $btn.closest('.input-group').find('.scraper-token');
                 const $icon = $btn.find('i');
@@ -653,14 +677,14 @@
                 }
             });
 
-            $scraperCards.on('click', '.run-scraper-actor', function() {
+            $scraperCards.on('click', '.run-scraper-actor', function () {
                 const $btn = $(this);
                 const $card = $btn.closest('.scraper-card');
                 const $cardStatus = $card.find('.card-scraper-status');
-                
+
                 // Get key from attribute for reliability
                 const key = $card.attr('data-key');
-                
+
                 if (!key || key === '') {
                     $cardStatus.html('<span class="text-warning">Please save settings first</span>');
                     $('#scraperStatus').html('<span class="text-warning">Actor not saved yet. Please save settings first.</span>');
@@ -671,7 +695,7 @@
                 $card.addClass('border-primary shadow-sm');
                 $cardStatus.html('<span class="spinner-border spinner-border-sm text-info"></span> <span class="ms-1">Running...</span>');
                 $('#scraperStatus').html('<span class="text-info">Running specific scraper...</span>');
-                
+
                 const originalBtnHtml = $btn.html();
                 $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
@@ -681,13 +705,13 @@
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function(response) {
+                    success: function (response) {
                         if (response.success) {
                             const fetched = response.fetched || 0;
                             const imported = response.imported || 0;
                             const skipped = response.skipped || 0;
                             const resText = `Total:${fetched} Imported:${imported} Skipped:${skipped}`;
-                            
+
                             $cardStatus.html(`<span class="text-success fw-bold ms-1" title="Fetched: ${fetched}, Imported: ${imported}, Skipped: ${skipped}">${resText}</span>`);
                             $('#scraperStatus').html(`<span class="text-success">Import success: ${resText}</span>`);
                             toastr.success(`Run completed: ${resText}`);
@@ -696,23 +720,24 @@
                             $('#scraperStatus').html('<span class="text-danger">Error: ' + response.message + '</span>');
                         }
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         $cardStatus.html('<span class="text-danger ms-1">Error</span>');
                         $('#scraperStatus').html('<span class="text-danger">Error running scraper.</span>');
                         toastr.error('Connection error running scraper.');
                     },
-                    complete: function() {
+                    complete: function () {
                         $btn.prop('disabled', false).html(originalBtnHtml);
                         setTimeout(() => {
-                           $card.removeClass('border-primary shadow-sm');
+                            $card.removeClass('border-primary shadow-sm');
                         }, 2000);
                     }
                 });
             });
 
-            $scraperCards.on('click', '.remove-scraper-card', function() {
+            $scraperCards.on('click', '.remove-scraper-card', function () {
                 const $card = $(this).closest('.scraper-card');
                 const key = $card.data('key');
+
                 if (key) {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -730,7 +755,7 @@
                                 headers: {
                                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                                 },
-                                success: function(response) {
+                                success: function (response) {
                                     if (response.success) {
                                         $card.remove();
                                         updateScraperRemoveButtons();
@@ -739,7 +764,7 @@
                                         toastr.error(response.message);
                                     }
                                 },
-                                error: function(xhr) {
+                                error: function (xhr) {
                                     toastr.error('Error deleting scraper actor.');
                                 }
                             });
@@ -752,13 +777,13 @@
             });
 
             // Handle form submissions
-            $formSections.find('form').submit(function(e) {
+            $formSections.find('form').submit(function (e) {
                 e.preventDefault();
                 const $form = $(this);
                 const formType = $form.data('type');
 
                 // get the actual submit button inside the form
-                const $btn = $form.find('[type="submit"]'); 
+                const $btn = $form.find('[type="submit"]');
                 const originalText = $btn.html();
 
                 if (formType === 'smtp') {
@@ -775,7 +800,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -783,16 +808,16 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving SMTP settings:', xhr.responseText);
                             toastr.error('Failed to save SMTP settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'general') {
+                } else if (formType === 'general') {
                     const formData = new FormData(this);
 
                     // disable + show loader
@@ -806,7 +831,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -814,16 +839,16 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving general settings:', xhr.responseText);
                             toastr.error('Failed to save general settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'profile') {
+                } else if (formType === 'profile') {
                     const formData = new FormData(this);
 
                     // disable + show loader
@@ -837,7 +862,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -845,16 +870,16 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving profile settings:', xhr.responseText);
                             toastr.error('Failed to save profile settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'google_maps') {
+                } else if (formType === 'google_maps') {
                     const formData = new FormData(this);
 
                     // disable + show loader
@@ -868,7 +893,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -876,16 +901,16 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving Google Map settings:', xhr.responseText);
                             toastr.error('Failed to save Google Map settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'notification') {
+                } else if (formType === 'notification') {
                     const formData = new FormData(this);
 
                     // disable + show loader
@@ -899,7 +924,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -907,16 +932,24 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving notifications settings:', xhr.responseText);
                             toastr.error('Failed to save notifications settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
-                }else if (formType === 'scraper') {
+                } else if (formType === 'scraper') {
+                    // ── Re-index cards before serializing ─────────────────────────────
+                    $('#scraperCards .scraper-card').each(function (index) {
+                        $(this).find('[name*="actors["]').each(function () {
+                            const newName = $(this).attr('name').replace(/actors\[\d+\]/, `actors[${index}]`);
+                            $(this).attr('name', newName);
+                        });
+                    });
+
                     const formData = new FormData(this);
 
                     $btn.prop('disabled', true).html(
@@ -929,18 +962,18 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                             } else {
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving scraper settings:', xhr.responseText);
                             toastr.error('Failed to save scraper settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
@@ -958,7 +991,7 @@
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -966,11 +999,11 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving sms settings:', xhr.responseText);
                             toastr.error('Failed to save sms settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -985,14 +1018,14 @@
                         url: '{{ route("settings.save") }}',
                         method: 'POST',
                         data: $form.serialize() + '&form_type=' + formType,
-                        success: function(response) {
+                        success: function (response) {
                             toastr.success(response.message);
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             console.error('Error saving settings:', xhr.responseText);
                             toastr.error('Failed to save settings.');
                         },
-                        complete: function() {
+                        complete: function () {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }

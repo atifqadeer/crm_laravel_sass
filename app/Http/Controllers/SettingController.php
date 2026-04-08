@@ -352,7 +352,7 @@ class SettingController extends Controller
             $orderDirection = $request->input('order.0.dir', 'asc');
             if ($orderColumn === 'job_category') {
                 $query->orderBy('job_titles.job_category_id', $orderDirection);
-            }elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $query->orderBy($orderColumn, $orderDirection);
             } else {
                 $query->orderBy('job_titles.created_at', 'desc');
@@ -503,8 +503,8 @@ class SettingController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
-                 $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
+                $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
             }
         }
 
@@ -639,7 +639,7 @@ class SettingController extends Controller
             // Create the role
             SmsTemplate::create([
                 'title' => $request->input('title'),
-                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'slug' => strtolower(str_replace(' ', '_', $request->input('title'))),
                 'template' => $request->input('template')
             ]);
 
@@ -686,7 +686,7 @@ class SettingController extends Controller
 
             // Update 
             // $template->title = $request->input('edit_title');
-            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            $template->slug = strtolower(str_replace(' ', '_', $request->input('edit_title')));
             $template->template = $request->input('edit_template');
             $template->status = $request->input('status');
             $template->save();
@@ -715,10 +715,10 @@ class SettingController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
-                 $query->where('email_templates.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.from_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.subject', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.template', 'LIKE', "%{$searchTerm}%");
+                $query->where('email_templates.title', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.from_email', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.subject', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.template', 'LIKE', "%{$searchTerm}%");
             }
         }
 
@@ -829,7 +829,7 @@ class SettingController extends Controller
             // Create the role
             EmailTemplate::create([
                 'title' => $request->input('title'),
-                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'slug' => strtolower(str_replace(' ', '_', $request->input('title'))),
                 'from_email' => $request->input('from_email'),
                 'subject' => $request->input('subject'),
                 'template' => $request->input('template'),
@@ -879,7 +879,7 @@ class SettingController extends Controller
 
             // Update 
             // $template->title = $request->input('edit_title');
-            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            $template->slug = strtolower(str_replace(' ', '_', $request->input('edit_title')));
             $template->from_email = $request->input('edit_from');
             $template->subject = $request->input('edit_subject');
             $template->template = $request->input('edit_template');
@@ -1139,6 +1139,28 @@ class SettingController extends Controller
         $response = [];
 
         foreach ($settings as $group => $items) {
+            // ── Scraper group: rebuild as actors array ──────────────────────
+            // Inside your getSettings() method, inside the foreach loop
+
+            if ($group === 'scraper') {
+
+                $actors = $items
+                    ->filter(fn($item) => $item->type === 'json')
+                    ->mapWithKeys(function ($item) {
+                        $decoded = json_decode($item->value, true);
+
+                        // Optional: Add the key itself inside the actor data for easy reference
+                        $decoded['key'] = $item->key;        // e.g. "scrap_apify_instagram"
+    
+                        return [$item->key => $decoded];
+                    })
+                    ->values()           // This converts it back to a simple indexed array (0, 1, 2...)
+                    ->toArray();
+
+                $response['scraper']['actors'] = $actors;
+
+                continue;
+            }
             // For simple groups (general, sms, profile, google_maps, notifications...)
             $response[$group] = $items->mapWithKeys(function ($item) {
                 // Cast based on type field
@@ -1161,22 +1183,22 @@ class SettingController extends Controller
         // Add SMTP separately (does not overwrite)
         $response['smtp'] = SmtpSetting::all()->map(function ($setting) {
             return [
-                'id'          => $setting->id,
-                'mailer'      => $setting->mailer,
-                'host'        => $setting->host,
-                'port'        => $setting->port,
-                'username'    => $setting->username,
-                'password'    => $setting->password,
-                'encryption'  => $setting->encryption,
-                'from_address'=> $setting->from_address,
-                'from_name'   => $setting->from_name,
+                'id' => $setting->id,
+                'mailer' => $setting->mailer,
+                'host' => $setting->host,
+                'port' => $setting->port,
+                'username' => $setting->username,
+                'password' => $setting->password,
+                'encryption' => $setting->encryption,
+                'from_address' => $setting->from_address,
+                'from_name' => $setting->from_name,
             ];
         })->toArray();
 
         $response['profile'] = [
-            'id'          => Auth::user()->id,
-            'user_name'      => Auth::user()->name,
-            'user_email'        => Auth::user()->email
+            'id' => Auth::user()->id,
+            'user_name' => Auth::user()->name,
+            'user_email' => Auth::user()->email
         ];
 
         return response()->json($response);
@@ -1311,18 +1333,101 @@ class SettingController extends Controller
             ], 500);
         }
     }
+    // public function saveScraperSettings(Request $request)
+    // {
+    //     try {
+    //         // ---------------------------------------------------------------
+    //         // 1. VALIDATE
+    //         // ---------------------------------------------------------------
+    //         $validator = Validator::make($request->all(), [
+    //             'actors' => 'required|array|min:1',
+    //             'actors.*.provider' => 'required|string|in:scrap,apify,other',
+    //             'actors.*.source' => 'required|string',
+    //             'actors.*.actor_id' => 'nullable|string',
+    //             'actors.*.token' => 'nullable|string',
+    //             'actors.*.base_url' => 'nullable|url',
+    //         ]);
+
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Validation failed.',
+    //                 'errors' => $validator->errors()
+    //             ], 422);
+    //         }
+
+    //         // ---------------------------------------------------------------
+    //         // 2. FILTER EMPTY ROWS
+    //         // ---------------------------------------------------------------
+    //         $actors = array_values(array_filter(
+    //             $request->input('actors', []),
+    //             fn($a) => is_array($a) && collect($a)->contains(fn($v) => trim((string) $v) !== '')
+    //         ));
+
+    //         if (empty($actors)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'At least one valid scraper actor must be provided.',
+    //             ], 422);
+    //         }
+
+    //         // ---------------------------------------------------------------
+    //         // 3. SAVE ONE ROW PER ACTOR (provider + source = unique key)
+    //         // ---------------------------------------------------------------
+    //         foreach ($actors as $actor) {
+
+    //             $provider = strtolower(trim($actor['provider'] ?? 'scrap'));
+    //             $source = strtolower(trim($actor['source'] ?? 'source'));
+    //             $actorId = trim($actor['actor_id'] ?? '');
+
+    //             // normalize source key
+    //             $sourceKey = Str::slug($source, '_');
+
+    //             // FINAL UNIQUE KEY (VERY IMPORTANT)
+    //             $key = strtolower("scrap_{$provider}_{$sourceKey}");
+
+    //             // prepare payload
+    //             $data = [
+    //                 'provider' => $provider,
+    //                 'source' => $source,
+    //                 'actor_id' => $actorId,
+    //                 'token' => trim($actor['token'] ?? ''),
+    //                 'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2')
+    //             ];
+
+    //             Setting::updateOrCreate(
+    //                 ['key' => $key],
+    //                 [
+    //                     'value' => json_encode($data),
+    //                     'group' => 'scraper',
+    //                     'type' => 'json',
+    //                 ]
+    //             );
+    //         }
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Scraper settings saved successfully.',
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Error saving settings.',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function saveScraperSettings(Request $request)
     {
         try {
-            // ---------------------------------------------------------------
-            // 1. VALIDATE
-            // ---------------------------------------------------------------
             $validator = Validator::make($request->all(), [
-                'actors'            => 'required|array|min:1',
+                'actors' => 'required|array|min:1',
                 'actors.*.provider' => 'required|string|in:scrap,apify,other',
-                'actors.*.source'   => 'required|string',
+                'actors.*.source' => 'required|string',
                 'actors.*.actor_id' => 'nullable|string',
-                'actors.*.token'    => 'nullable|string',
+                'actors.*.token' => 'nullable|string',
                 'actors.*.base_url' => 'nullable|url',
             ]);
 
@@ -1330,16 +1435,13 @@ class SettingController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed.',
-                    'errors'  => $validator->errors()
+                    'errors' => $validator->errors()
                 ], 422);
             }
 
-            // ---------------------------------------------------------------
-            // 2. FILTER EMPTY ROWS
-            // ---------------------------------------------------------------
             $actors = array_values(array_filter(
                 $request->input('actors', []),
-                fn ($a) => is_array($a) && collect($a)->contains(fn ($v) => trim((string) $v) !== '')
+                fn($a) => is_array($a) && collect($a)->contains(fn($v) => trim((string) $v) !== '')
             ));
 
             if (empty($actors)) {
@@ -1349,36 +1451,24 @@ class SettingController extends Controller
                 ], 422);
             }
 
-            // ---------------------------------------------------------------
-            // 3. SAVE ONE ROW PER ACTOR (provider + source = unique key)
-            // ---------------------------------------------------------------
             foreach ($actors as $actor) {
-
                 $provider = strtolower(trim($actor['provider'] ?? 'scrap'));
-                $source   = strtolower(trim($actor['source'] ?? 'source'));
-                $actorId  = trim($actor['actor_id'] ?? '');
-
-                // normalize source key
+                $source = strtolower(trim($actor['source'] ?? 'source'));
                 $sourceKey = Str::slug($source, '_');
-
-                // FINAL UNIQUE KEY (VERY IMPORTANT)
-                $key = strtolower("scrap_{$provider}_{$sourceKey}");
-
-                // prepare payload
-                $data = [
-                    'provider' => $provider,
-                    'source'   => $source,
-                    'actor_id' => $actorId,
-                    'token'    => trim($actor['token'] ?? ''),
-                    'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2')
-                ];
+                $key = "scrap_{$provider}_{$sourceKey}";
 
                 Setting::updateOrCreate(
                     ['key' => $key],
                     [
-                        'value' => json_encode($data),
+                        'value' => json_encode([
+                            'provider' => $provider,
+                            'source' => $source,
+                            'actor_id' => trim($actor['actor_id'] ?? ''),
+                            'token' => trim($actor['token'] ?? ''),
+                            'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2'),
+                        ]),
                         'group' => 'scraper',
-                        'type'  => 'json',
+                        'type' => 'json',
                     ]
                 );
             }
@@ -1392,10 +1482,11 @@ class SettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error saving settings.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
+
     public function saveSmsSettings(Request $request)
     {
         try {
@@ -1500,10 +1591,10 @@ class SettingController extends Controller
     {
         try {
             $settings = Setting::where('key', $key)
-                            ->where('group', 'scraper')
-                            ->first();
+                ->where('group', 'scraper')
+                ->first();
 
-            if (! $settings) {
+            if (!$settings) {
                 return response()->json([
                     'success' => false,
                     'message' => "Scraper actor [{$key}] not found.",
@@ -1512,7 +1603,7 @@ class SettingController extends Controller
 
             $actor = json_decode($settings->value, true);
 
-            if (empty($actor) || ! is_array($actor)) {
+            if (empty($actor) || !is_array($actor)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid actor configuration.',
@@ -1528,7 +1619,7 @@ class SettingController extends Controller
 
             // 1. Fetch jobs from the scraper API
             $service = new ScrapService();
-            $jobs    = $service->runConfig($actor, []);
+            $jobs = $service->runConfig($actor, []);
 
             $fetched = is_array($jobs) ? count($jobs) : 0;
 
@@ -1537,14 +1628,14 @@ class SettingController extends Controller
                     'success' => true,
                     'message' => 'Scraper ran successfully but returned no jobs.',
                     'fetched' => 0,
-                    'imported'=> 0,
+                    'imported' => 0,
                 ]);
             }
 
             // 2. Import fetched jobs into the DB
             $user = User::first();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No users found in the database. Cannot import.',
@@ -1552,34 +1643,34 @@ class SettingController extends Controller
             }
 
             $controller = new ScrapController();
-            $imported   = $controller->persistJobs($jobs, $user);
-            $skipped    = $fetched - $imported;
+            $imported = $controller->persistJobs($jobs, $user);
+            $skipped = $fetched - $imported;
 
             Log::info('[Scraper] runScraperActor completed', [
-                'key'      => $key,
-                'fetched'  => $fetched,
+                'key' => $key,
+                'fetched' => $fetched,
                 'imported' => $imported,
-                'skipped'  => $skipped,
+                'skipped' => $skipped,
             ]);
 
             return response()->json([
-                'success'  => true,
-                'message'  => "Scraper ran successfully. Fetched {$fetched} job(s), imported {$imported} new job(s), skipped {$skipped}.",
-                'fetched'  => $fetched,
+                'success' => true,
+                'message' => "Scraper ran successfully. Fetched {$fetched} job(s), imported {$imported} new job(s), skipped {$skipped}.",
+                'fetched' => $fetched,
                 'imported' => $imported,
-                'skipped'  => $skipped,
+                'skipped' => $skipped,
             ]);
 
         } catch (\Exception $e) {
             Log::error('[Scraper] runScraperActor failed', [
-                'key'   => $key,
+                'key' => $key,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error running scraper actor.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -1588,10 +1679,10 @@ class SettingController extends Controller
     {
         try {
             $setting = Setting::where('key', $key)
-                              ->where('group', 'scraper')
-                              ->first();
+                ->where('group', 'scraper')
+                ->first();
 
-            if (! $setting) {
+            if (!$setting) {
                 return response()->json([
                     'success' => false,
                     'message' => "Scraper actor [{$key}] not found.",
@@ -1602,19 +1693,19 @@ class SettingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Scraper actor [{$key}] deleted successfully.",
+                'message' => "Scraper actor {$key} deleted successfully.",
             ]);
 
         } catch (\Exception $e) {
             Log::error('[Scraper] deleteScraperActor failed', [
-                'key'   => $key,
+                'key' => $key,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error deleting scraper actor.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
