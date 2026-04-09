@@ -10,6 +10,7 @@ use Horsefly\Unit;
 use Horsefly\JobTitle;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
+use Horsefly\EmailTemplate;
 use Horsefly\Sale;
 use Horsefly\Contact;
 use Horsefly\User;
@@ -25,10 +26,13 @@ use Illuminate\Support\Str;
 use League\Csv\Reader;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
+use App\Traits\SendEmails;
 
 
 class ScrapController extends Controller
 {
+    use SendEmails;
+
     public function importIndex()
     {
         return response()->json([
@@ -298,7 +302,7 @@ class ScrapController extends Controller
                         'unit_notes' => 'Imported from Scraper',
                         'lat' => $lat,
                         'lng' => $lng,
-                        'status' => 4,// 4=Scrapped
+                        'status' => 4, // 4=Scrapped
                     ]);
 
                     $unit->update(['unit_uid' => md5($unit->id)]);
@@ -475,13 +479,22 @@ class ScrapController extends Controller
         }
 
         // Sorting logic
+        $sortableColumns = [
+            'office_name',
+            'office_postcode',
+            'office_type',
+            'status',
+            'created_at',
+            'updated_at',
+        ];
+
         if ($request->has('order')) {
             $orderColumnIndex = $request->input('order.0.column');
             $orderColumn = $request->input("columns.$orderColumnIndex.data");
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
+            if ($orderColumn && in_array($orderColumn, $sortableColumns)) { // ← only sort if column is whitelisted
+                $model->orderBy('offices.' . $orderColumn, $orderDirection);
             } else {
                 $model->orderBy('offices.created_at', 'desc');
             }
@@ -489,9 +502,13 @@ class ScrapController extends Controller
             $model->orderBy('offices.created_at', 'desc');
         }
 
+
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
+                ->addColumn('checkbox', function ($office) {
+                    return '<input type="checkbox" class="office-checkbox" value="' . (int) $office->id . '" id="office_' . (int) $office->id . '">';
+                })
                 ->addColumn('office_name', function ($office) {
                     $output = $office->formatted_office_name;
 
@@ -565,12 +582,18 @@ class ScrapController extends Controller
                     $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
                     return '<a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int) $office->id . '\')">' . $notes . '</a>';
                 })
-                ->addColumn('status', function ($office) {
-                    return $office->status = 4 ? '<span class="badge bg-success">Inprocess</span>' : 'Scrapped';
-                })
                 ->addColumn('action', function ($office) {
                     $postcode = $office->formatted_postcode;
-                    $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+
+                    $status = '';
+                    if ($office->status == 1) {
+                        $status .= '<span class="badge bg-success">Active</span>';
+                    } elseif ($office->status == 0) {
+                        $status .= '<span class="badge bg-dark">Disabled</span>';
+                    } elseif ($office->status == 4) {
+                        $status .= '<span class="badge bg-primary">Scrapped</span>';
+                    }
+
                     $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
@@ -598,7 +621,7 @@ class ScrapController extends Controller
                     $html .= '</ul></div>';
                     return $html;
                 })
-                ->rawColumns(['office_name', 'office_notes', 'contact_email', 'office_postcode', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
+                ->rawColumns(['checkbox', 'office_name', 'office_notes', 'contact_email', 'office_postcode', 'contact_phone', 'contact_landline', 'office_type', 'action'])
                 ->toJson();
         }
     }
@@ -651,14 +674,34 @@ class ScrapController extends Controller
             $orderColumn = $request->input("columns.$orderColumnIndex.data");
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                // Handle contact.* columns differently if needed
-                // $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'units.' . $orderColumn;
-                $query->orderBy($orderColumn, $orderDirection);
+            // List of columns that are not actual database columns and should be skipped
+            $nonSortableColumns = [
+                'checkbox',
+                'action',
+                // add other non-database columns here if needed
+            ];
+
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex' && !in_array($orderColumn, $nonSortableColumns)) {
+                // Map the column if needed, or directly use the column name
+                // Example: if you want to map 'office_name' to 'offices.name', do it here
+                $columnMap = [
+                    'office_name' => 'offices.name',
+                    'unit_name' => 'units.unit_name',
+                    // add other mappings as needed
+                ];
+
+                if (isset($columnMap[$orderColumn])) {
+                    $query->orderBy($columnMap[$orderColumn], $orderDirection);
+                } else {
+                    // fallback: assume it's a column in 'units' or your main table
+                    $query->orderBy($orderColumn, $orderDirection);
+                }
             } else {
+                // Default order if column is non-sortable or invalid
                 $query->orderBy('units.created_at', 'desc');
             }
         } else {
+            // Default order if no order parameter is sent
             $query->orderBy('units.created_at', 'desc');
         }
 
@@ -668,7 +711,9 @@ class ScrapController extends Controller
         -------------------------------------------------*/
         return DataTables::eloquent($query)
             ->addIndexColumn()
-
+            ->addColumn('checkbox', function ($u) {
+                return '<input type="checkbox" class="unit-checkbox" value="' . (int) $u->id . '" id="unit_' . (int) $u->id . '">';
+            })
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
                 $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
@@ -745,19 +790,17 @@ class ScrapController extends Controller
                 '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
                 . nl2br(e($u->unit_notes)) . '</a>'
             )
-            ->addColumn(
-                'status',
-                fn($u) =>
-                $u->status
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Inactive</span>'
-            )
             ->addColumn('action', function ($u) {
                 $postcode = $u->formatted_postcode;
                 $office_name = $u->office?->office_name ?? '-';
-                $status = $u->status
-                    ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-secondary">Inactive</span>';
+                $status = '';
+                if ($u->status == 1) {
+                    $status .= '<span class="badge bg-success">Active</span>';
+                } elseif ($u->status == 0) {
+                    $status .= '<span class="badge bg-dark">Disabled</span>';
+                } elseif ($u->status == 4) {
+                    $status .= '<span class="badge bg-primary">Scrapped</span>';
+                }
 
                 $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -793,11 +836,11 @@ class ScrapController extends Controller
             })
 
             ->rawColumns([
+                'checkbox',
                 'unit_notes',
                 'contact_email',
                 'contact_phone',
                 'contact_landline',
-                'status',
                 'office_name',
                 'unit_name',
                 'action',
@@ -922,7 +965,11 @@ class ScrapController extends Controller
                 'users.name as user_name',
                 // Latest note (joined subquery)
                 'updated_notes.sale_note as latest_note',
-            ])->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+                // offices contacts
+                'office_contacts.office_emails as office_emails',   // "email1@x.com, email2@x.com"
+                'office_contacts.office_phones as office_phones',   // "07700, 07800"
+            ])
+            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
@@ -942,6 +989,22 @@ class ScrapController extends Controller
                 'latest_open_audit_ids.auditable_id',
                 '=',
                 'sales.id'
+            )
+            ->leftJoinSub(
+                DB::table('contacts')
+                    ->select([
+                        'contactable_id',
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_email SEPARATOR ", ") as office_emails'),
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_phone SEPARATOR ", ") as office_phones'),
+                    ])
+                    ->where('contactable_type', 'Horsefly\\Office')
+                    ->whereNotNull('contact_email')
+                    ->where('contact_email', '!=', '')
+                    ->groupBy('contactable_id'),
+                'office_contacts',
+                'office_contacts.contactable_id',
+                '=',
+                'offices.id'
             )
             ->leftJoin('audits as open_audits', 'open_audits.id', '=', 'latest_open_audit_ids.id');
 
@@ -1011,35 +1074,62 @@ class ScrapController extends Controller
         }
 
 
-        // Sorting logic
+        // ------------------------------------------------------
+        // ✅ SAFE SORTING (Handles aliases + checkbox + computed)
+        // ------------------------------------------------------
         if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Handle special cases first
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('sales.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('sales.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('sales.job_title_id', $orderDirection);
+            $columnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            $orderColumn = $request->input("columns.$columnIndex.data");
+
+            // Map DataTable columns → actual DB columns
+            $columnMap = [
+                'office_name' => 'offices.name',
+                'unit_name' => 'units.unit_name',
+                'job_title' => 'job_titles.name',
+                'job_category' => 'job_categories.name',
+                'job_source' => 'sales.job_source_id',
+                'open_date' => 'sales.open_date',
+                'created_at' => 'sales.created_at',
+                'updated_at' => 'sales.updated_at',
+            ];
+
+            // ❌ Skip non-sortable columns
+            $nonSortable = [
+                'checkbox',
+                'action',
+                'sale_notes',
+                'cv_limit',
+                'position_type'
+            ];
+
+            if (in_array($orderColumn, $nonSortable)) {
+                $model->orderBy('sales.updated_at', 'desc'); // fallback
             }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
+            // ✅ If mapped column exists
+            elseif (isset($columnMap[$orderColumn])) {
+                $model->orderBy($columnMap[$orderColumn], $orderDirection);
             }
-            // Fallback if no valid order column is found
+            // ✅ Direct DB column (safe fallback)
+            elseif (!empty($orderColumn) && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy("sales.$orderColumn", $orderDirection);
+            }
+            // ✅ Final fallback
             else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
+            // Default sorting
             $model->orderBy('sales.updated_at', 'desc');
         }
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
+                ->addColumn('checkbox', function ($sale) {
+                    return '<input type="checkbox" class="sale-checkbox" value="' . (int) $sale->id . '" id="sale_' . (int) $sale->id . '">';
+                })
                 ->addColumn('office_name', function ($sale) {
                     return $sale->office_name ? ucwords($sale->office_name) : '-';
                 })
@@ -1141,7 +1231,6 @@ class ScrapController extends Controller
                                     </a>
                                 </div>' . $urlCTA . '
                             </div>';
-
                 })
                 ->addColumn('action', function ($sale) {
                     $postcode = strtoupper($sale->sale_postcode ?? '-');
@@ -1221,7 +1310,7 @@ class ScrapController extends Controller
                     }
 
                     if (Gate::allows('sale-view-manager-details')) {
-                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->unit_id . ')">Manager Details</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->office_id . ')">Manager Details</a></li>';
                     }
 
                     $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteSale(' . $sale->id . ')">Delete</a></li>';
@@ -1229,36 +1318,374 @@ class ScrapController extends Controller
                     $action .= '</ul></div>';
 
                     return $action;
-
                 })
-                ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'action', 'statusFilter'])
+                ->addColumn('office_emails', function ($sale) {
+                    return $sale->office_emails ? $sale->office_emails : '-';
+                })
+                ->addColumn('office_phones', function ($sale) {
+                    return $sale->office_phones ? $sale->office_phones : '-';
+                })
+                ->rawColumns(['checkbox', 'office_phones', 'office_emails', 'sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
-    public function scrappedOfficeDestroy($id)
+
+    // scrap destroy
+    public function scrappedOfficeDestroy(Request $request)
     {
         try {
-            $office = Office::where('id', $id)->where('status', 4)->first();
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
 
-            if (!$office) {
+            $offices = Office::whereIn('id', $ids)->where('status', 4)->get();
+
+            if ($offices->isEmpty()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Office not found'
+                    'message' => 'Office(s) not found'
                 ], 404);
             }
 
-            $units = Unit::where('office_id', $office->id)->where('status', 4)->get();
-            $unitIds = $units->pluck('id')->toArray();
-            Contact::where('contactable_id', $office->id)->where('contactable_type', 'Horsefly\Office')->forceDelete();
-            Sale::where('office_id', $office->id)->whereIn('unit_id', $unitIds)->where('status', 4)->forceDelete();
-            Unit::where('office_id', $office->id)->where('status', 4)->forceDelete();
+            $foundIds = $offices->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
 
-            $office->forceDelete();
+            DB::beginTransaction();
 
-            return response()->json([
+            Contact::whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Office::class)
+                ->forceDelete();
+
+            Sale::whereIn('office_id', $foundIds)
+                ->where('status', 4)
+                ->forceDelete();
+
+            Unit::whereIn('office_id', $foundIds)
+                ->where('status', 4)
+                ->forceDelete();
+
+            // Delete the office
+            Office::whereIn('id', $foundIds)->where('status', 4)->forceDelete();
+
+            DB::commit();
+
+            $response = [
                 'status' => true,
-                'message' => 'Office deleted successfully'
-            ]);
+                'message' => count($foundIds) . ' office(s) deleted successfully',
+                'deleted' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function scrappedUnitDestroy(Request $request)
+    {
+        try {
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No IDs provided'
+                ], 400);
+            }
+
+            $units = Unit::whereIn('id', $ids)->where('status', 4)->get();
+
+            if ($units->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unit(s) not found'
+                ], 404);
+            }
+
+            $foundIds = $units->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            DB::beginTransaction();
+
+            Contact::whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Unit::class)
+                ->forceDelete();
+
+            Sale::whereIn('unit_id', $foundIds)->where('status', 4)->forceDelete();
+
+            Unit::whereIn('id', $foundIds)->where('status', 4)->forceDelete();
+
+            DB::commit();
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' unit(s) deleted successfully',
+                'deleted' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    // public function scrappedSaleDestroy(Request $request)
+    // {
+    //     try {
+    //         $ids = $request->has('id')
+    //             ? (is_array($request->id) ? $request->id : [$request->id])
+    //             : [];
+
+    //         if (empty($ids)) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'No IDs provided'
+    //             ], 400);
+    //         }
+
+    //         $sales = Sale::whereIn('id', $ids)->where('status', 4)->get();
+
+    //         if ($sales->isEmpty()) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Sale(s) not found or not scrapped'
+    //             ], 404);
+    //         }
+
+    //         $foundIds = $sales->pluck('id')->toArray();
+    //         $notFoundIds = array_diff($ids, $foundIds);
+
+    //         DB::beginTransaction();
+
+    //         Contact::whereIn('contactable_id', $foundIds)
+    //             ->where('contactable_type', Sale::class)
+    //             ->forceDelete();
+
+    //         Sale::whereIn('id', $foundIds)->forceDelete();
+
+    //         DB::commit();
+
+    //         $response = [
+    //             'status' => true,
+    //             'message' => count($foundIds) . ' sale(s) deleted successfully',
+    //             'deleted' => $foundIds,
+    //         ];
+
+    //         if (!empty($notFoundIds)) {
+    //             $response['not_found'] = array_values($notFoundIds);
+    //         }
+
+    //         return response()->json($response);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Something went wrong',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+    public function scrappedSaleDestroy(Request $request)
+    {
+        try {
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No IDs provided'
+                ], 400);
+            }
+
+            $sales = Sale::whereIn('id', $ids)->where('status', 4)->get();
+
+            if ($sales->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Sale(s) not found or not scrapped'
+                ], 404);
+            }
+
+            $foundIds = $sales->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            $officeIds = $sales->pluck('office_id')->filter()->unique()->toArray();
+            $unitIds = $sales->pluck('unit_id')->filter()->unique()->toArray();
+
+            DB::beginTransaction();
+
+            // Check which offices have ONLY the requested sales linked
+            $soloOfficeIds = [];
+            foreach ($officeIds as $officeId) {
+                $totalSalesForOffice = Sale::where('office_id', $officeId)->count();
+                $requestedSalesForOffice = $sales->where('office_id', $officeId)->count();
+
+                // If all sales for this office are in the requested deletion list
+                if ($totalSalesForOffice === $requestedSalesForOffice) {
+                    $soloOfficeIds[] = $officeId; // safe to delete office
+                }
+            }
+
+            // Check which units have ONLY the requested sales linked
+            $soloUnitIds = [];
+            foreach ($unitIds as $unitId) {
+                $totalSalesForUnit = Sale::where('unit_id', $unitId)->count();
+                $requestedSalesForUnit = $sales->where('unit_id', $unitId)->count();
+
+                // If all sales for this unit are in the requested deletion list
+                if ($totalSalesForUnit === $requestedSalesForUnit) {
+                    $soloUnitIds[] = $unitId; // safe to delete unit
+                }
+            }
+
+            // Delete sale contacts
+            Contact::whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Sale::class)
+                ->forceDelete();
+
+            // Delete office contacts and offices only if no other sales reference them
+            if (!empty($soloOfficeIds)) {
+                Contact::whereIn('contactable_id', $soloOfficeIds)
+                    ->where('contactable_type', Office::class)
+                    ->forceDelete();
+
+                Office::whereIn('id', $soloOfficeIds)->forceDelete();
+            }
+
+            // Delete units only if no other sales reference them
+            if (!empty($soloUnitIds)) {
+                Unit::whereIn('id', $soloUnitIds)->forceDelete();
+            }
+
+            // Always delete the requested sales
+            Sale::whereIn('id', $foundIds)->forceDelete();
+
+            DB::commit();
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' sale(s) deleted successfully',
+                'deleted_sales' => $foundIds,
+                'deleted_offices' => $soloOfficeIds,  // offices that were also deleted
+                'deleted_units' => $soloUnitIds,    // units that were also deleted
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // scrap approved
+    public function scrappedSaleApprove(Request $request)
+    {
+        try {
+            if ($request->has('id')) {
+                $raw = $request->id;
+
+                if (is_array($raw)) {
+                    $ids = $raw;
+                } else {
+                    $decoded = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $ids = $decoded;
+                    } else {
+                        $ids = array_map('trim', explode(',', $raw));
+                    }
+                }
+            } else {
+                $ids = []; // Bug 1 fix: ← was [$request->id] which would always be null here
+            }
+
+            $ids = array_map('intval', array_filter($ids));
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No sale IDs provided'
+                ], 422);
+            }
+
+            $sales = Sale::whereIn('id', $ids)->where('status', 4)->get();
+
+            if ($sales->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No scrapped sales found'
+                ], 404);
+            }
+
+            $foundIds = $sales->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            $officeIds = $sales->pluck('office_id')->filter()->unique()->toArray();
+            $unitIds = $sales->pluck('unit_id')->filter()->unique()->toArray();
+
+            // Bug 2 fix: collections are always truthy even when empty
+            // no need for if($offices) — foreach handles empty collections
+            Office::whereIn('id', $officeIds)
+                ->where('status', 4)        // Bug 3 fix: ← filter in query not in loop
+                ->update([
+                    'status' => 1,
+                    'office_notes' => 'Sale has been approved.'
+                ]);
+
+            Unit::whereIn('id', $unitIds)
+                ->where('status', 4)
+                ->update([
+                    'status' => 1,
+                    'unit_notes' => 'Sale has been approved.'
+                ]);
+
+            Sale::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update([
+                    'status' => 1,
+                    'sale_notes' => 'Sale has been approved.'
+                ]);
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' sale(s) approved successfully',
+                'approved' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -1269,27 +1696,66 @@ class ScrapController extends Controller
         }
     }
 
-    public function scrappedUnitDestroy($id)
+    public function scrappedUnitApprove(Request $request)
     {
         try {
-            $unit = Unit::where('id', $id)->where('status', 4)->first();
+            // Handle JSON string, array, or single id
+            if ($request->has('id')) {
+                $raw = $request->id;
 
-            if (!$unit) {
+                if (is_array($raw)) {
+                    $ids = $raw;
+                } else {
+                    // Try to decode JSON array
+                    $decoded = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $ids = $decoded;
+                    } else {
+                        // If not JSON, check for comma-separated string
+                        $ids = array_map('trim', explode(',', $raw));
+                    }
+                }
+            } else {
+                $ids = [$request->id];
+            }
+
+            // Ensure all IDs are integers
+            $ids = array_map('intval', array_filter($ids));
+
+            if (empty($ids)) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unit not found'
+                    'message' => 'No unit IDs provided'
+                ], 422);
+            }
+
+            $units = Unit::whereIn('id', $ids)->where('status', 4)->get();
+            if ($units->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No scrapped units found'
                 ], 404);
             }
 
-            Contact::where('contactable_id', $unit->id)->where('contactable_type', 'Horsefly\Unit')->forceDelete();
-            Sale::where('unit_id', $unit->id)->where('status', 4)->forceDelete();
+            $foundIds = $units->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
 
-            $unit->forceDelete();
+            $officeIds = $units->pluck('office_id')->filter()->unique()->toArray();
 
-            return response()->json([
+            Office::whereIn('id', $officeIds)->where('status', 4)->update(['status' => 1, 'office_notes' => 'Unit has been approved.']);
+            Unit::whereIn('id', $foundIds)->where('status', 4)->update(['status' => 1, 'unit_notes' => 'Unit has been approved.']);
+
+            $response = [
                 'status' => true,
-                'message' => 'Unit deleted successfully'
-            ]);
+                'message' => count($foundIds) . ' unit(s) approved successfully',
+                'approved' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -1299,32 +1765,406 @@ class ScrapController extends Controller
             ], 500);
         }
     }
-    public function scrappedSaleDestroy($id)
+
+    public function scrappedOfficeApprove(Request $request)
     {
         try {
-            $sale = Sale::where('id', $id)->where('status', 4)->first();
+            // Handle JSON string, array, or single id
+            if ($request->has('id')) {
+                $raw = $request->id;
 
+                if (is_array($raw)) {
+                    $ids = $raw;
+                } else {
+                    // Try to decode JSON array
+                    $decoded = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $ids = $decoded;
+                    } else {
+                        // If not JSON, check for comma-separated string
+                        $ids = array_map('trim', explode(',', $raw));
+                    }
+                }
+            } else {
+                $ids = [$request->id];
+            }
+
+            // Ensure all IDs are integers
+            $ids = array_map('intval', array_filter($ids));
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No office IDs provided'
+                ], 422);
+            }
+
+            $offices = Office::whereIn('id', $ids)->where('status', 4)->get();
+            if ($offices->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No scrapped offices found'
+                ], 404);
+            }
+
+            $foundIds = $offices->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            Office::whereIn('id', $foundIds)->where('status', 4)->update(['status' => 1, 'office_notes' => 'Office has been approved.']);
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' office(s) approved successfully',
+                'approved' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getSaleEmails(Request $request)
+    {
+        $sale = Sale::with(['office', 'unit'])->findOrFail($request->sale_id);
+
+        $emails = Contact::where('contactable_id', $sale->office_id)
+            ->where('contactable_type', Office::class)
+            ->whereNotNull('contact_email')
+            ->where('contact_email', '!=', '')
+            ->pluck('contact_email')
+            ->map(fn($email) => trim(strtolower($email)))
+            ->unique()
+            ->values();
+
+        $formattedMessage = '';
+        $formattedSubject = '';
+        $email_from = '';
+
+        $emailNotification = Setting::where('key', 'email_notifications')->first();
+        if ($emailNotification) {
+            $email_template = EmailTemplate::where('slug', 'scrapped_offices_email')
+                ->where('is_active', 1)
+                ->first();
+
+            if ($email_template && !empty($email_template->template)) {
+                $email_from = $email_template->from_email;
+
+                $replace = [
+                    $sale->office->office_name ?? '',
+                    $sale->unit->unit_name ?? '',
+                    $sale->sale_postcode ?? '',
+                    ''
+                ];
+                $prev_val = ['(office_name)', '(unit_name)', '(postcode)', '(recipient_name)'];
+
+                $formattedMessage = str_replace($prev_val, $replace, $email_template->template);
+                $formattedSubject = str_replace($prev_val, $replace, $email_template->subject);
+            }
+
+            return response()->json([
+                'emails' => $emails,
+                'office_id' => $sale->office_id,
+                'email_template' => $formattedMessage,
+                'email_subject' => $formattedSubject,
+                'from_email' => $email_from
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email notifications are disabled.',
+            ]);
+        }
+    }
+
+    public function getBulkEmailTemplate(Request $request)
+    {
+        $ids = is_array($request->ids) ? $request->ids : [$request->ids]; // match AJAX 'ids'
+
+        // Get unique office IDs for the given sales
+        $officeIds = Sale::whereIn('id', $ids)
+            ->pluck('office_id')
+            ->unique()
+            ->toArray();
+
+        // Get unique emails from those offices
+        $emails = Contact::whereIn('contactable_id', $officeIds)
+            ->where('contactable_type', Office::class)
+            ->whereNotNull('contact_email')
+            ->where('contact_email', '!=', '')
+            ->pluck('contact_email', 'contactable_id') // key = office_id
+            ->map(fn($email) => trim(strtolower($email)))
+            ->unique()
+            ->toArray();
+
+        // Only keep sale IDs whose office has at least one email
+        $saleIdsWithEmails = Sale::whereIn('id', $ids)
+            ->whereIn('office_id', array_keys($emails))
+            ->pluck('id')
+            ->toArray();
+
+        // Default template values
+        $formattedMessage = '';
+        $formattedSubject = '';
+        $email_from = '';
+
+        $email_template = EmailTemplate::where('slug', 'scrap_bulk_emails')
+            ->where('is_active', 1)
+            ->first();
+
+        if ($email_template) {
+            $email_from = $email_template->from_email;
+            $formattedMessage = $email_template->template ?? '';
+            $formattedSubject = $email_template->subject ?? '';
+        }
+
+        return response()->json([     // emails to send
+            'email_template' => $formattedMessage,
+            'subject' => $formattedSubject,
+            'from_email' => $email_from,
+            'sale_ids' => $saleIdsWithEmails,         // only sales with emails
+        ]);
+    }
+
+    public function getBulkOfficesEmailTemplate(Request $request)
+    {
+        $ids = is_array($request->ids) ? $request->ids : [$request->ids]; // match AJAX 'ids'
+
+        // Get unique emails from those offices
+        $emails = Contact::whereIn('contactable_id', $ids)
+            ->where('contactable_type', Office::class)
+            ->whereNotNull('contact_email')
+            ->where('contact_email', '!=', '')
+            ->pluck('contact_email', 'contactable_id') // key = office_id
+            ->map(fn($email) => trim(strtolower($email)))
+            ->unique()
+            ->toArray();
+
+        // Only keep sale IDs whose office has at least one email
+        $saleIdsWithEmails = Sale::whereIn('office_id', array_keys($emails))
+            ->pluck('id')
+            ->toArray();
+
+        // Default template values
+        $formattedMessage = '';
+        $formattedSubject = '';
+        $email_from = '';
+
+        $email_template = EmailTemplate::where('slug', 'scrap_bulk_emails')
+            ->where('is_active', 1)
+            ->first();
+
+        if ($email_template) {
+            $email_from = $email_template->from_email;
+            $formattedMessage = $email_template->template ?? '';
+            $formattedSubject = $email_template->subject ?? '';
+        }
+
+        return response()->json([     // emails to send
+            'email_template' => $formattedMessage,
+            'subject' => $formattedSubject,
+            'from_email' => $email_from,
+            'sale_ids' => $saleIdsWithEmails,         // only sales with emails
+        ]);
+    }
+
+    public function sendEmailToOffices(Request $request)
+    {
+        $request->validate([
+            'to_email' => 'required',
+            'from_email' => 'required',
+            'subject' => 'required|string',
+            'message' => 'required|string',
+        ]);
+
+        // Parse and clean emails
+        $emails = array_filter(array_map('trim', explode(',', $request->to_email)));
+        if (empty($emails)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid emails provided.'
+            ], 422);
+        }
+
+        $email_from = $request->from_email;
+        $email_subject = $request->subject;
+        $formattedMessage = $request->message;
+        $email_title = $request->email_title;
+
+        // Normalize sale_id to an array (works for single or multiple)
+        $sale_ids = is_array($request->sale_id) ? $request->sale_id : [$request->sale_id];
+
+        $success = [];
+        $failed = [];
+
+        foreach ($emails as $email) {
+            $email = strtolower(trim($email));
+
+            // Validate email format
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $failed[] = $email . ' (invalid format)';
+                continue;
+            }
+
+            // Loop through each sale ID
+            foreach ($sale_ids as $sale_id) {
+                try {
+                    $is_save = $this->saveEmailDB(
+                        $email,
+                        $email_from,
+                        $email_subject,
+                        $formattedMessage,
+                        $email_title,
+                        null,
+                        $sale_id
+                    );
+
+                    if (!$is_save) {
+                        Log::warning("Email save failed: $email | Sale ID: $sale_id");
+                        $failed[] = "$email (DB save failed for Sale ID: $sale_id)";
+                    } else {
+                        $success[] = "$email (Sale ID: $sale_id)";
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Email send failed: $email | Sale ID: $sale_id | Error: " . $e->getMessage());
+                    $failed[] = "$email (error for Sale ID: $sale_id)";
+                }
+            }
+        }
+
+        // Build response
+        if (empty($failed)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email sent successfully to ' . count($success) . ' recipient(s).',
+                'sent_to' => $success
+            ]);
+        } elseif (!empty($success)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email sent to some recipients.',
+                'sent_to' => $success,
+                'failed' => $failed
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email to all recipients.',
+                'failed' => $failed
+            ], 500);
+        }
+    }
+
+    public function sendBulkEmailsToOffices(Request $request)
+    {
+        $request->validate([
+            'from_email' => 'required|email',
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
+            'email_title' => 'required|string',
+            'sale_ids' => 'required|array',       // ← validate as array
+            'sale_ids.*' => 'required|integer',     // ← each value must be integer
+        ]);
+
+        $email_from = $request->from_email;
+        $email_subject = $request->subject;
+        $formattedMessage = $request->message;
+        $email_title = $request->email_title;
+        $sale_ids = $request->sale_ids;
+
+        $success = [];
+        $failed = [];
+
+        foreach ($sale_ids as $sale_id) {
+
+            // Guard: sale not found
+            $sale = Sale::find($sale_id);
             if (!$sale) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Sale not found'
-                ], 404);
+                $failed[] = "Sale ID: {$sale_id} (not found)";
+                continue;
             }
 
-            Contact::where('contactable_id', $sale->id)->where('contactable_type', 'Horsefly\Sale')->forceDelete();
+            // Guard: office not found
+            $office = Office::with('contact')->find($sale->office_id);
+            if (!$office) {
+                $failed[] = "Sale ID: {$sale_id} (office not found)";
+                continue;
+            }
 
-            $sale->forceDelete();
+            // Fix: contacts (plural) not contact
+            $emails = $office->contact
+                ->whereNotNull('contact_email')
+                ->where('contact_email', '!=', '')
+                ->pluck('contact_email')
+                ->map(fn($email) => trim(strtolower($email)))
+                ->unique()
+                ->values();
 
+            // Guard: no emails found for this office
+            if ($emails->isEmpty()) {
+                $failed[] = "Sale ID: {$sale_id} (no emails found for office)";
+                continue;
+            }
+
+            foreach ($emails as $email) {
+
+                // Validate each email format
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $failed[] = "{$email} (invalid format for Sale ID: {$sale_id})";
+                    continue;
+                }
+
+                try {
+                    $is_save = $this->saveEmailDB(
+                        $email,
+                        $email_from,
+                        $email_subject,
+                        $formattedMessage,
+                        $email_title,
+                        null,
+                        $sale_id
+                    );
+
+                    if (!$is_save) {
+                        Log::warning("Email save failed: {$email} | Sale ID: {$sale_id}");
+                        $failed[] = "{$email} (DB save failed for Sale ID: {$sale_id})";
+                    } else {
+                        $success[] = "{$email} (Sale ID: {$sale_id})";
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Email send failed: {$email} | Sale ID: {$sale_id} | Error: " . $e->getMessage());
+                    $failed[] = "{$email} (error for Sale ID: {$sale_id})";
+                }
+            }
+        }
+
+        if (empty($failed)) {
             return response()->json([
-                'status' => true,
-                'message' => 'Sale deleted successfully'
+                'success' => true,
+                'message' => 'Email sent successfully to ' . count($success) . ' recipient(s).',
+                'sent_to' => $success
             ]);
-
-        } catch (\Exception $e) {
+        } elseif (!empty($success)) {
             return response()->json([
-                'status' => false,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
+                'success' => true,
+                'message' => 'Email sent to ' . count($success) . ' of ' . (count($success) + count($failed)) . ' recipient(s).',
+                'sent_to' => $success,
+                'failed' => $failed
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email to all recipients.',
+                'failed' => $failed
             ], 500);
         }
     }

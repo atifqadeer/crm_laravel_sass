@@ -1052,7 +1052,6 @@ class SaleController extends Controller
                                     </a>
                                 </div>' . $urlCTA . '
                             </div>';
-
                 })
                 ->addColumn('status', function ($sale) {
                     $status = '';
@@ -1180,7 +1179,6 @@ class SaleController extends Controller
                     $action .= '</ul></div>';
 
                     return $action;
-
                 })
                 ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
@@ -1297,7 +1295,8 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -1305,7 +1304,8 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -1314,7 +1314,8 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -1642,7 +1643,8 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -1650,7 +1652,8 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -1659,7 +1662,8 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -2531,7 +2535,8 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -2539,7 +2544,8 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -2548,7 +2554,8 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -2895,7 +2902,8 @@ class SaleController extends Controller
         switch ($limitCountFilter) {
             case 'zero':
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
@@ -2903,7 +2911,8 @@ class SaleController extends Controller
                 break;
             case 'not max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -2912,7 +2921,8 @@ class SaleController extends Controller
                 break;
             case 'max':
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
@@ -3230,13 +3240,13 @@ class SaleController extends Controller
                                 ->where("is_callback_enable", true);
                         })
                             ->orWhere(function ($subQuery) {
-                            $subQuery->where("is_temp_not_interested", true)
-                                ->where("is_callback_enable", true);
-                        })
+                                $subQuery->where("is_temp_not_interested", true)
+                                    ->where("is_callback_enable", true);
+                            })
                             ->orWhere(function ($subQuery) {
-                            $subQuery->where("is_temp_not_interested", false)
-                                ->where("is_callback_enable", false);
-                        })
+                                $subQuery->where("is_temp_not_interested", false)
+                                    ->where("is_callback_enable", false);
+                            })
                         ;
                     })
                     ->where(function ($query) {
@@ -3299,7 +3309,6 @@ class SaleController extends Controller
                             ->take(1);
                     });
                 break;
-
         }
 
         if ($request->has('search.value')) {
@@ -3432,7 +3441,7 @@ class SaleController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-    
+
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -3447,7 +3456,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-    
+
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -3455,7 +3464,7 @@ class SaleController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-    
+
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -3520,7 +3529,7 @@ class SaleController extends Controller
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
                             if ($value['sale_id'] == $sale_id) {
-                                if ($value['status'] == 1) {//active
+                                if ($value['status'] == 1) { //active
                                     $status_value = 'sent';
                                     $color_class = 'bg-success';
                                     break;
@@ -3528,7 +3537,7 @@ class SaleController extends Controller
                                     $status_value = 'reject_job';
                                     $color_class = 'bg-danger';
                                     break;
-                                } elseif ($value['status'] == 0) {//disable
+                                } elseif ($value['status'] == 0) { //disable
                                     $status_value = 'reject';
                                     $color_class = 'bg-danger';
                                 } elseif ($value['status'] == 2) {
@@ -3599,7 +3608,6 @@ class SaleController extends Controller
                                                 <span>Send CV</span>
                                             </a>
                                         </li>';
-
                         }
                         $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale_id . ')">Mark Callback</a></li>';
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
@@ -4076,147 +4084,5 @@ class SaleController extends Controller
                 ->make(true);
         }
     }
-
-    public function getSaleEmails(Request $request)
-    {
-        $sale = Sale::with(['office', 'unit'])->findOrFail($request->sale_id);
-
-        $emails = Contact::where('contactable_id', $sale->office_id)
-            ->where('contactable_type', Office::class)
-            ->whereNotNull('contact_email')
-            ->where('contact_email', '!=', '')
-            ->pluck('contact_email')
-            ->map(fn($email) => trim(strtolower($email)))
-            ->unique()
-            ->values();
-
-        $formattedMessage = '';
-        $formattedSubject = '';
-        $email_from = '';
-
-        $emailNotification = Setting::where('key', 'email_notifications')->first();
-        if ($emailNotification) {
-            $email_template = EmailTemplate::where('slug', 'scrapped_offices_email')
-                ->where('is_active', 1)
-                ->first();
-
-            if ($email_template && !empty($email_template->template)) {
-                $email_from = $email_template->from_email;
-
-                $replace = [
-                    $sale->office->office_name ?? '',
-                    $sale->unit->unit_name ?? '',
-                    $sale->sale_postcode ?? '',
-                    ''
-                ];
-                $prev_val = ['(office_name)', '(unit_name)', '(postcode)', '(recipient_name)'];
-
-                $formattedMessage = str_replace($prev_val, $replace, $email_template->template);
-                $formattedSubject = str_replace($prev_val, $replace, $email_template->subject);
-            }
-
-            return response()->json([
-                'emails' => $emails,
-                'office_id' => $sale->office_id,
-                'email_template' => $formattedMessage,
-                'email_subject' => $formattedSubject,
-                'from_email' => $email_from
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email notifications are disabled.',
-            ]);
-        }
-    }
-
-    public function sendEmailToOffices(Request $request)
-    {
-        $request->validate([
-            'to_email' => 'required',
-            'subject' => 'required|string',
-            'message' => 'required|string',
-        ]);
-
-        // Parse and clean emails
-        $emails = array_filter(
-            array_map('trim', explode(',', $request->to_email))
-        );
-
-        if (empty($emails)) {
-            return response()->json(['success' => false, 'message' => 'No valid emails provided.'], 422);
-        }
-
-        $email_from = $request->from_email;
-        $email_subject = $request->subject;
-        $formattedMessage = $request->message;
-        $email_title = 'scrapped_offices_email';
-        $sale_id = $request->sale_id;
-
-        $failed = [];
-        $success = [];
-
-        try {
-            foreach ($emails as $email) {
-                $email = strtolower(trim($email));
-
-                // Validate each email format
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $failed[] = $email . ' (invalid format)';
-                    continue;
-                }
-
-                try {
-                    $is_save = $this->saveEmailDB(
-                        $email,           // individual email
-                        $email_from,
-                        $email_subject,
-                        $formattedMessage,
-                        $email_title,
-                        null,
-                        $sale_id
-                    );
-
-                    if (!$is_save) {
-                        Log::warning('Email save to DB failed for: ' . $email . ' | Sale ID: ' . $sale_id);
-                        $failed[] = $email . ' (DB save failed)';
-                    } else {
-                        $success[] = $email;
-                    }
-
-                } catch (\Exception $e) {
-                    Log::error('Email send failed for: ' . $email . ' | Error: ' . $e->getMessage());
-                    $failed[] = $email . ' (error: ' . $e->getMessage() . ')';
-                }
-            }
-
-            // Build response based on results
-            if (empty($failed)) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Email sent successfully to ' . count($success) . ' recipient(s).',
-                    'sent_to' => $success,
-                ]);
-            } elseif (!empty($success)) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Email sent to some recipients.',
-                    'sent_to' => $success,
-                    'failed' => $failed,
-                ]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to send email to all recipients.',
-                    'failed' => $failed,
-                ], 500);
-            }
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unexpected error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+    
 }

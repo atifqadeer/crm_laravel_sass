@@ -200,12 +200,20 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getScrappedOffices', [ScrapController::class, 'getScrappedOffices'])->name('getScrappedOffices');
     Route::get('getScrappedUnits', [ScrapController::class, 'getScrappedUnits'])->name('getScrappedUnits');
     Route::get('getScrappedSales', [ScrapController::class, 'getScrappedSales'])->name('getScrappedSales');
-    Route::delete('scrapped/office/{id}', [ScrapController::class, 'scrappedOfficeDestroy'])->name('scrapped.office.destroy');
-    Route::delete('scrapped/unit/{id}', [ScrapController::class, 'scrappedUnitDestroy'])->name('scrapped.unit.destroy');
-    Route::delete('scrapped/sale/{id}', [ScrapController::class, 'scrappedSaleDestroy'])->name('scrapped.sale.destroy');
 
-    Route::get('/get-sale-emails', [SaleController::class, 'getSaleEmails']);
-    Route::post('/send-email-to-offices', [SaleController::class, 'sendEmailToOffices'])->name('send.email.to.offices');
+    Route::delete('scrapped/office/destroy', [ScrapController::class, 'scrappedOfficeDestroy'])->name('scrapped.office.destroy');
+    Route::delete('scrapped/unit/destroy', [ScrapController::class, 'scrappedUnitDestroy'])->name('scrapped.unit.destroy');
+    Route::delete('scrapped/sale/destroy', [ScrapController::class, 'scrappedSaleDestroy'])->name('scrapped.sale.destroy');
+
+    Route::post('scrapped/sale/approve', [ScrapController::class, 'scrappedSaleApprove'])->name('scrapped.sale.approve');
+    Route::post('scrapped/unit/approve', [ScrapController::class, 'scrappedUnitApprove'])->name('scrapped.unit.approve');
+    Route::post('scrapped/office/approve', [ScrapController::class, 'scrappedOfficeApprove'])->name('scrapped.office.approve');
+
+    Route::get('/get-sale-emails', [ScrapController::class, 'getSaleEmails']);
+    Route::post('/send-email-to-offices', [ScrapController::class, 'sendEmailToOffices'])->name('send.email.to.offices');
+    Route::post('scrap/bulk-email-template', [ScrapController::class, 'getBulkEmailTemplate'])->name('scrap.bulk.email.template');
+    Route::post('scrap/bulk-offices-email-template', [ScrapController::class, 'getBulkOfficesEmailTemplate'])->name('scrap.bulk.offices.email.template');
+    Route::post('/send-bulk-emails-to-offices', [ScrapController::class, 'sendBulkEmailsToOffices'])->name('send.bulk.emails.to.offices');
 
     Route::group(['prefix' => 'emails'], function () {
         Route::get('compose-email', [CommunicationController::class, 'index'])->name('emails.inbox');

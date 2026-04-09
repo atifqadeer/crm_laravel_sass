@@ -33,6 +33,20 @@
                         </div>
                         <div class="col-lg-9">
                             <div class="text-md-end mt-3">
+                                <!-- buttons Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-success me-1 my-1" id="bulk-approve-btn" disabled>
+                                        <i class="ri-check-line me-1"></i> Bulk Approve
+                                    </button>
+
+                                    <button class="btn btn-danger me-1 my-1" id="bulk-delete-btn" disabled>
+                                        <i class="ri-delete-bin-line me-1"></i> Bulk Delete
+                                    </button>
+
+                                    <button class="btn btn-info me-1 my-1" id="bulk-email-btn" disabled>
+                                        <i class="ri-mail-line me-1"></i> Bulk Email
+                                    </button>
+                                </div>
                                 <!-- Button Dropdown -->
                                 @canany(['office-export'])
                                     <div class="dropdown d-inline">
@@ -70,6 +84,7 @@
                         <table id="headOffice_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
                                 <tr>
+                                    <th><input type="checkbox" id="select-all"></th>
                                     <th>#</th>
                                     <th>Created Date</th>
                                     <th>Name</th>
@@ -120,6 +135,46 @@
             </form>
         </div>
     </div>
+    <div class="modal fade" id="bulkEmailModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Bulk Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <input type="hidden" id="bulk-sales-ids">
+                    <input type="hidden" name="bulk_from_email" id="bulk_from_email">
+                    {{--
+                    <div class="mb-3">
+                        <label>To</label>
+                        <input type="text" id="bulk-email-to" class="form-control">
+                    </div> --}}
+
+                    <div class="mb-3">
+                        <label>Subject</label>
+                        <input type="text" id="bulk-email-subject" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Message</label>
+                        <textarea id="bulk-email-body" class="form-control" rows="6"></textarea>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="submit-bulk-email-btn" onclick="sendBulkEmail()">
+                        Send Email
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
     @section('script')
         <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -144,12 +199,26 @@
         <script src="{{ asset('js/moment.min.js')}}"></script>
 
         <!-- Summernote CSS -->
-        <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
         <!-- Summernote JS -->
-        <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
         <script>
+            $(document).ready(function () {
+                $('#bulk-email-body').summernote({
+                    height: 500,
+                    toolbar: [
+                        ['style', ['bold', 'italic', 'underline', 'clear']],
+                        ['font', ['strikethrough', 'superscript', 'subscript']],
+                        ['fontsize', ['fontsize']],
+                        ['color', []],
+                        ['para', ['ul', 'ol', 'paragraph']],
+                        ['insert', []],
+                        ['view', []]
+                    ]
+                });
+            });
             $(document).ready(function () {
                 const hasViewNotePermission = @json(auth()->user()->can('office-view-note'));
                 const hasAddNotePermission = @json(auth()->user()->can('office-add-note'));
@@ -159,10 +228,10 @@
 
                 // Create loader row
                 const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </td></tr>`;
+                                                                                        <div class="spinner-border text-primary" role="status">
+                                                                                            <span class="visually-hidden">Loading...</span>
+                                                                                        </div>
+                                                                                    </td></tr>`;
 
                 // Function to show loader
                 function showLoader() {
@@ -170,6 +239,12 @@
                 }
 
                 let columns = [
+                    {
+                        data: 'checkbox',
+                        name: 'checkbox',
+                        orderable: false,
+                        searchable: false
+                    },
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'created_at', name: 'offices.created_at' },
                     { data: 'office_name', name: 'offices.office_name' },
@@ -246,22 +321,22 @@
                         }
 
                         let paginationHtml = `
-                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                                <nav aria-label="Page navigation">
-                                                    <ul class="pagination pagination-rounded mb-0">
-                                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                                <span aria-hidden="true">&laquo;</span>
-                                                            </a>
-                                                        </li>`;
+                                                                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                                                                        <nav aria-label="Page navigation">
+                                                                                                            <ul class="pagination pagination-rounded mb-0">
+                                                                                                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                                                                                                    <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                                                                                                        <span aria-hidden="true">&laquo;</span>
+                                                                                                                    </a>
+                                                                                                                </li>`;
 
                         const visiblePages = 3;
                         const showDots = totalPages > visiblePages + 2;
 
                         // Always show page 1
                         paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                                        </li>`;
+                                                                                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                                                                                                </li>`;
 
                         let start = Math.max(2, currentPage - 1);
                         let end = Math.min(totalPages - 1, currentPage + 1);
@@ -272,8 +347,8 @@
 
                         for (let i = start; i <= end; i++) {
                             paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                                            </li>`;
+                                                                                                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                                                                                                    </li>`;
                         }
 
                         if (end < totalPages - 1) {
@@ -282,27 +357,27 @@
 
                         if (totalPages > 1) {
                             paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                                            </li>`;
+                                                                                                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                                                                                                    </li>`;
                         }
 
                         // Next button
                         paginationHtml += `
-                                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                                    <span aria-hidden="true">&raquo;</span>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                        </nav>
+                                                                                                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                                                                                        <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                                                                                            <span aria-hidden="true">&raquo;</span>
+                                                                                                        </a>
+                                                                                                    </li>
+                                                                                                </ul>
+                                                                                                </nav>
 
-                                        <div class="d-flex align-items-center ms-3 text-primary">
-                                            <span class="me-2">Go to page:</span>
-                                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                                        </div>
-                                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                                        </div>`;
+                                                                                                <div class="d-flex align-items-center ms-3 text-primary">
+                                                                                                    <span class="me-2">Go to page:</span>
+                                                                                                    <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                                                                                                        onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                                                                                                </div>
+                                                                                                <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                                                                                                </div>`;
                         pagination.html(paginationHtml);
                     },
                 });
@@ -392,32 +467,32 @@
                 // Add modal HTML only once
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
-                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-top">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="${modalLabelId}">Head Office Notes</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body text-center">
-                                                    <div class="spinner-border text-primary my-4" role="status">
-                                                        <span class="visually-hidden">Loading...</span>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `);
+                                                                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
+                                                                                                <div class="modal-dialog modal-dialog-top">
+                                                                                                    <div class="modal-content">
+                                                                                                        <div class="modal-header">
+                                                                                                            <h5 class="modal-title" id="${modalLabelId}">Head Office Notes</h5>
+                                                                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                                        </div>
+                                                                                                        <div class="modal-body text-center">
+                                                                                                            <div class="spinner-border text-primary my-4" role="status">
+                                                                                                                <span class="visually-hidden">Loading...</span>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div class="modal-footer">
+                                                                                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        `);
                 } else {
                     // Reset modal body to loader
                     $(`#${modalId} .modal-body`).html(`
-                                    <div class="spinner-border text-primary my-4" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                `);
+                                                                                            <div class="spinner-border text-primary my-4" role="status">
+                                                                                                <span class="visually-hidden">Loading...</span>
+                                                                                            </div>
+                                                                                        `);
                 }
 
                 // Show the modal
@@ -427,12 +502,12 @@
                 setTimeout(() => {
                     const formattedNotes = notes.replace(/\n/g, '<br>');
                     $(`#${modalId} .modal-body`).html(`
-                                    <div class="text-start">
-                                        <p class="mb-1"><strong>Head Office Name:</strong> ${officeName}</p>
-                                        <p class="mb-1"><strong>Postcode:</strong> ${officePostcode}</p>
-                                        <p><strong>Notes Detail:</strong><br>${formattedNotes}</p>
-                                    </div>
-                                `);
+                                                                                            <div class="text-start">
+                                                                                                <p class="mb-1"><strong>Head Office Name:</strong> ${officeName}</p>
+                                                                                                <p class="mb-1"><strong>Postcode:</strong> ${officePostcode}</p>
+                                                                                                <p><strong>Notes Detail:</strong><br>${formattedNotes}</p>
+                                                                                            </div>
+                                                                                        `);
                 }, 300); // Delay in ms
             }
 
@@ -446,29 +521,29 @@
                 // Add the modal HTML to the page (only once, if not already present)
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
-                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                                        <div class="modal-dialog modal-lg modal-dialog-top">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <form id="${formId}">
-                                                        <div class="mb-3">
-                                                            <label for="${textareaId}" class="form-label">Details</label>
-                                                            <textarea class="form-control" id="${textareaId}" rows="4" required></textarea>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `);
+                                                                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                                                                                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                                                                                    <div class="modal-content">
+                                                                                                        <div class="modal-header">
+                                                                                                            <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
+                                                                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                                        </div>
+                                                                                                        <div class="modal-body">
+                                                                                                            <form id="${formId}">
+                                                                                                                <div class="mb-3">
+                                                                                                                    <label for="${textareaId}" class="form-label">Details</label>
+                                                                                                                    <textarea class="form-control" id="${textareaId}" rows="4" required></textarea>
+                                                                                                                </div>
+                                                                                                            </form>
+                                                                                                        </div>
+                                                                                                        <div class="modal-footer">
+                                                                                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                                                                                                            <button type="button" class="btn btn-primary" id="${saveBtnId}">Save</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        `);
                 }
 
                 // Reset the form when showing
@@ -540,34 +615,34 @@
                 // Add modal HTML only once
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
-                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                                        <div class="modal-dialog modal-lg modal-dialog-top">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="${labelId}">Head Office Details</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body modal-body-text-left">
-                                                    <div class="text-center py-3">
-                                                        <div class="spinner-border text-primary my-4" role="status">
-                                                            <span class="visually-hidden">Loading...</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="${labelId}">Head Office Details</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body modal-body-text-left">
+                                            <div class="text-center py-3">
+                                                <div class="spinner-border text-primary my-4" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                        </div>
                                     </div>
-                                `);
+                                </div>
+                            </div>
+                        `);
                 } else {
                     // Reset modal content with loader if already exists
                     $(`#${modalId} .modal-body`).html(`
-                                    <div class="spinner-border text-primary my-4" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                `);
+                                        <div class="spinner-border text-primary my-4" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    `);
                 }
 
                 // Show the modal
@@ -576,25 +651,25 @@
                 // Simulate loading delay before showing content (optional)
                 setTimeout(() => {
                     $(`#${modalId} .modal-body`).html(`
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th>Head Office ID</th>
-                                            <td>${officeId}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Name</th>
-                                            <td>${name}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Postcode</th>
-                                            <td>${postcode}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Status</th>
-                                            <td>${status}</td>
-                                        </tr>
-                                    </table>
-                                `);
+                                                                                            <table class="table table-bordered">
+                                                                                                <tr>
+                                                                                                    <th>Head Office ID</th>
+                                                                                                    <td>${officeId}</td>
+                                                                                                </tr>
+                                                                                                <tr>
+                                                                                                    <th>Name</th>
+                                                                                                    <td>${name}</td>
+                                                                                                </tr>
+                                                                                                <tr>
+                                                                                                    <th>Postcode</th>
+                                                                                                    <td>${postcode}</td>
+                                                                                                </tr>
+                                                                                                <tr>
+                                                                                                    <th>Status</th>
+                                                                                                    <td>${status}</td>
+                                                                                                </tr>
+                                                                                            </table>
+                                                                                        `);
                 }, 300); // Adjust delay if needed
             }
 
@@ -606,34 +681,34 @@
                 // Add the modal HTML to the page (only once)
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
-                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="${labelId}">Head Office Notes History</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="text-center py-3">
-                                                        <div class="spinner-border text-primary my-4" role="status">
-                                                            <span class="visually-hidden">Loading...</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `);
+                                                                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                                                                                                <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                                                                                                    <div class="modal-content">
+                                                                                                        <div class="modal-header">
+                                                                                                            <h5 class="modal-title" id="${labelId}">Head Office Notes History</h5>
+                                                                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                                        </div>
+                                                                                                        <div class="modal-body">
+                                                                                                            <div class="text-center py-3">
+                                                                                                                <div class="spinner-border text-primary my-4" role="status">
+                                                                                                                    <span class="visually-hidden">Loading...</span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div class="modal-footer">
+                                                                                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        `);
                 } else {
                     // Reset content to loader if modal already exists
                     $(`#${modalId} .modal-body`).html(`
-                                    <div class="spinner-border text-primary my-4" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                `);
+                                                                                            <div class="spinner-border text-primary my-4" role="status">
+                                                                                                <span class="visually-hidden">Loading...</span>
+                                                                                            </div>
+                                                                                        `);
                 }
 
                 // Show modal immediately with loader
@@ -658,12 +733,12 @@
                                 const status = note.status == 1 ? 'Active' : 'Inactive';
                                 const badgeClass = note.status == 1 ? 'bg-success' : 'bg-dark';
                                 notesHtml += `
-                                                <div class="note-entry mb-3">
-                                                    <p><strong>Dated:</strong> ${created} &nbsp;
-                                                        <span class="badge ${badgeClass}">${status}</span>
-                                                    </p>
-                                                    <p><strong>Notes Detail:</strong><br>${note.details}</p>
-                                                </div><hr>`;
+                                                                                                        <div class="note-entry mb-3">
+                                                                                                            <p><strong>Dated:</strong> ${created} &nbsp;
+                                                                                                                <span class="badge ${badgeClass}">${status}</span>
+                                                                                                            </p>
+                                                                                                            <p><strong>Notes Detail:</strong><br>${note.details}</p>
+                                                                                                        </div><hr>`;
                             });
                         }
 
@@ -684,34 +759,34 @@
                 // Add modal HTML if not already present
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
-                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="${labelId}">Manager Details</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body modal-body-text-left">
-                                                    <div class="text-center py-3">
-                                                        <div class="spinner-border text-primary my-4 text-center" role="status">
-                                                            <span class="visually-hidden">Loading...</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `);
+                                                                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
+                                                                                                <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                                                                                                    <div class="modal-content">
+                                                                                                        <div class="modal-header">
+                                                                                                            <h5 class="modal-title" id="${labelId}">Manager Details</h5>
+                                                                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                                        </div>
+                                                                                                        <div class="modal-body modal-body-text-left">
+                                                                                                            <div class="text-center py-3">
+                                                                                                                <div class="spinner-border text-primary my-4 text-center" role="status">
+                                                                                                                    <span class="visually-hidden">Loading...</span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div class="modal-footer">
+                                                                                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        `);
                 } else {
                     // Reset modal body to loader if already exists
                     $(`#${modalId} .modal-body`).html(`
-                                    <div class="spinner-border text-primary my-4" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                `);
+                                                                                            <div class="spinner-border text-primary my-4" role="status">
+                                                                                                <span class="visually-hidden">Loading...</span>
+                                                                                            </div>
+                                                                                        `);
                 }
 
                 // Show the modal immediately with loader
@@ -739,14 +814,14 @@
                                 const note = contact.contact_note || 'N/A';
 
                                 contactHtml += `
-                                                <div class="note-entry mb-3">
-                                                    <p><strong>Name:</strong> ${name}</p>
-                                                    <p><strong>Email:</strong> ${email}</p>
-                                                    <p><strong>Phone:</strong> ${phone}</p>
-                                                    <p><strong>Landline:</strong> ${landline}</p>
-                                                    <p><strong>Note:</strong><br>${note}</p>
-                                                </div>
-                                                <hr>`;
+                                                                                                        <div class="note-entry mb-3">
+                                                                                                            <p><strong>Name:</strong> ${name}</p>
+                                                                                                            <p><strong>Email:</strong> ${email}</p>
+                                                                                                            <p><strong>Phone:</strong> ${phone}</p>
+                                                                                                            <p><strong>Landline:</strong> ${landline}</p>
+                                                                                                            <p><strong>Note:</strong><br>${note}</p>
+                                                                                                        </div>
+                                                                                                        <hr>`;
                             });
                         }
 
@@ -917,6 +992,225 @@
                 });
             }
 
+            let selectedIds = [];
+
+            // Individual checkbox
+            $(document).on('change', '.office-checkbox', function () {
+                toggleBulkButtons();
+            });
+
+            // Select all checkbox
+            $(document).on('change', '#select-all', function () {
+                $('.office-checkbox')
+                    .prop('checked', this.checked)
+                    .trigger('change'); // 🔥 important
+            });
+
+            const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
+
+            function toggleBulkButtons() {
+                bulkButtons.prop('disabled', $('.office-checkbox:checked').length === 0);
+            }
+
+            function getSelectedOffices() {
+                let ids = [];
+
+                $('.office-checkbox:checked').each(function () {
+                    ids.push($(this).val());
+                });
+                return ids;
+            }
+
+            $('#bulk-email-btn').on('click', function () {
+                let ids = getSelectedOffices();
+
+                if (ids.length === 0) {
+                    alert('Select at least one record');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('scrap.bulk.offices.email.template') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        ids: ids
+                    },
+                    success: function (res) {
+                        if (res.sale_ids.length > 0) {
+                            // Set modal fields
+                            $('#bulk-email-subject').val(res.subject);
+                            $('#bulk-email-body').summernote('code', res.email_template);
+                            $('#bulk-sales-ids').val(res.sale_ids); // store full map
+                            $('#bulk_from_email').val(res.from_email);
+
+                            // Show modal
+                            $('#bulkEmailModal').modal('show');
+                        } else {
+                            toastr.error('No emails found');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        toastr.error('Something went wrong while fetching email template');
+                        console.error(error);
+                    }
+                });
+            });
+
+            function sendBulkEmail() {
+                var message = $('#bulk-email-body').summernote('code');
+                let rawIds = $('#bulk-sales-ids').val();
+
+                let saleIds = [];
+                try {
+                    let parsed = JSON.parse(rawIds);
+                    saleIds = Array.isArray(parsed) ? parsed : [parsed]; // ← wrap single value in array
+                } catch (e) {
+                    // fallback: treat as comma-separated string
+                    saleIds = rawIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                }
+
+                if (!message || message === '<p><br></p>') {
+                    toastr.error('Message body cannot be empty.');
+                    return;
+                }
+
+                if (saleIds.length === 0) {
+                    toastr.error('No office IDs found.');
+                    return;
+                }
+
+                var $btn = $('#submit-bulk-email-btn');
+                $btn.prop('disabled', true).text('Sending...');
+
+                $.ajax({
+                    url: '/send-bulk-emails-to-offices',
+                    type: 'POST',
+                    data: {
+                        sale_ids: saleIds,
+                        from_email: $('#bulk_from_email').val(),
+                        subject: $('#bulk-email-subject').val(),
+                        email_title: 'Scrap Bulk Emails',
+                        message: message,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (res) {
+                        $('#bulkEmailModal').modal('hide');
+                        toastr.success(res.message || 'Email sent successfully!');
+                    },
+                    error: function (xhr) {
+                        var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
+                        toastr.error(err);
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).text('Send');
+                    }
+                });
+            }
+
+            $('#bulk-delete-btn').on('click', function () {
+                let ids = getSelectedOffices();
+
+                if (ids.length === 0) {
+                    alert('Select at least one record');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This office will be permanently deleted! If you delete this office then it will delete its units, sales and contacts.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+
+                    if (result.isConfirmed) {
+
+                        $.ajax({
+                            url: "{{ route('scrapped.office.destroy') }}",
+                            type: 'DELETE',
+                            data: {
+                                id: ids,
+                                _token: $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function (response) {
+
+                                Swal.fire(
+                                    'Deleted!',
+                                    response.message || 'Office(s) has been deleted.',
+                                    'success'
+                                );
+
+                                // ✅ Reload DataTable WITHOUT refreshing page
+                                $('#headOffice_table').DataTable().ajax.reload(null, false);
+                            },
+
+                            error: function (xhr) {
+                                Swal.fire(
+                                    'Error!',
+                                    xhr.responseJSON?.message || 'Something went wrong.',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            });
+
+            $('#bulk-approve-btn').on('click', function () {
+                let ids = getSelectedOffices();
+
+                if (ids.length === 0) {
+                    alert('Select at least one record');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This will approve to the office.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: 'rgba(34, 190, 13, 1)',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, approve it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+
+                    if (result.isConfirmed) {
+
+                        $.ajax({
+                            url: "{{ route('scrapped.office.approve') }}",
+                            type: 'POST',
+                            data: {
+                                id: ids,
+                                _token: $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function (response) {
+
+                                Swal.fire(
+                                    'Approved!',
+                                    response.message || 'Office(s) has been approved.',
+                                    'success'
+                                );
+
+                                // ✅ Reload DataTable WITHOUT refreshing page
+                                $('#headOffice_table').DataTable().ajax.reload(null, false);
+                            },
+
+                            error: function (xhr) {
+                                Swal.fire(
+                                    'Error!',
+                                    xhr.responseJSON?.message || 'Something went wrong.',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            });
         </script>
 
     @endsection

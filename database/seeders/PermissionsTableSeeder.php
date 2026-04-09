@@ -21,6 +21,8 @@ class PermissionsTableSeeder extends Seeder
             'dashboard-daily-analytics',
             'dashboard-users',
             'dashboard-users-stats',
+            'dashboard-agents-stats',
+            'dashboard-agents-chart',
 
             // Applicant Permissions
             'applicant-index',
@@ -45,7 +47,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-export-emails',
             'applicant-import',
 
-             // Office Permissions
+            // Office Permissions
             'office-index',
             'office-filters',
             'office-view-note',
@@ -161,7 +163,7 @@ class PermissionsTableSeeder extends Seeder
             'sale-rejected-view-documents',
             'sale-rejected-change-status',
             'sale-rejected-filters',
-            
+
             // Sale Sub Modules On Hold Sales Permissions
             'sale-hold-index',
             'sale-hold-view',
@@ -184,8 +186,8 @@ class PermissionsTableSeeder extends Seeder
             'sale-pending-hold-mark-dis-approved',
             'sale-pending-hold-filters',
 
-           // Resources Permissions
-           // Resource Sub Modules Direct Resources Permissions
+            // Resources Permissions
+            // Resource Sub Modules Direct Resources Permissions
             'resource-direct-index',
             'resource-direct-filters',
             'resource-direct-send-email-btn',
@@ -210,6 +212,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-category-download-resume',
             'resource-category-upload-resume',
             'resource-category-view',
+            'resource-category-upload-crm-resume',
 
             // Resource Sub Modules Rejected Resources Permissions
             'resource-rejected-index',
@@ -220,7 +223,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-rejected-export',
             'resource-rejected-export-all',
             'resource-rejected-export-emails',
-            
+
             // Resource Sub Modules Blocked Resources Permissions
             'resource-blocked-index',
             'resource-blocked-filters',
@@ -232,7 +235,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-blocked-export-all',
             'resource-blocked-export-emails',
             'resource-blocked-mark-unblock',
-           
+
             // Resource Sub Modules Not Interested Resources Permissions
             'resource-not-interested-index',
             'resource-not-interested-filters',
@@ -277,6 +280,7 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-resource-revert-cv',
             'quality-assurance-resource-upload-resume',
             'quality-assurance-resource-download-resume',
+            'quality-assurance-sale-clear',
 
             // Quality Assurance Sub Modules Sales Permissions
             'quality-assurance-sale-index',
@@ -375,6 +379,9 @@ class PermissionsTableSeeder extends Seeder
 
             // sent email Permissions
             'sent-email-index',
+
+            // scrapper Permissions
+            'scrap-index',
 
             // Postcode Permissions
             'postcode-index',

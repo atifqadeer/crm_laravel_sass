@@ -20,6 +20,10 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             JobCategoriesSeeder::class,
             JobSourcesSeeder::class,
+            SettingsTableSeeder::class,
+            SmtpSettingsTableSeeder::class,
+            EmailTemplatesTableSeeder::class,
+            SmsTemplatesTableSeeder::class,
             // FactorySeeder::class,
         ]);
     }
