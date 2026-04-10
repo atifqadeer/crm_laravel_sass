@@ -5,48 +5,48 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Log;
 
-    Artisan::command('inspire', function () {
-        $this->comment(Inspiring::quote());
-    })->purpose('Display an inspiring quote')->hourly();
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote')->hourly();
 
-    Schedule::command('emails:send-bulk')
-                ->everyMinute()
-                ->withoutOverlapping()
-                ->onSuccess(function () {
-                    Log::info('SendBulkEmails command ran successfully.');
-                })
-                ->onFailure(function () {
-                    Log::error('SendBulkEmails command failed.');
-                });
-    
-    Schedule::command('sms:send-bulk')
-                ->everyMinute()
-                ->withoutOverlapping()
-                ->onSuccess(function () {
-                    Log::info('SendSms command ran successfully.');
-                })
-                ->onFailure(function () {
-                    Log::error('SendSms command failed.');
-                });
-    
-    Schedule::command('app:update-available-job-status')
-                ->dailyAt('22:00')
-                ->withoutOverlapping()
-                ->onSuccess(function () {
-                    Log::info('Update to the job availability command ran successfully.');
-                })
-                ->onFailure(function () {
-                    Log::error('Update to the job availability command failed.');
-                });
+Schedule::command('emails:send-bulk')
+    ->cron('*/3 * * * *')
+    ->withoutOverlapping()
+    ->onSuccess(function () {
+        Log::info('SendBulkEmails command ran successfully.');
+    })
+    ->onFailure(function () {
+        Log::error('SendBulkEmails command failed.');
+    });
 
-     Schedule::command('scrapper:import --all')
-                ->name('scrap-scheduled-import')
-                ->dailyAt('03:00')
-                ->withoutOverlapping()
-                ->onSuccess(function () {
-                    Log::info('Scrap scheduled import completed successfully.');
-                })
-                ->onFailure(function () {
-                    Log::error('Scrap scheduled import failed.');
-                });
+Schedule::command('sms:send-bulk')
+    ->cron('*/2 * * * *')
+    ->withoutOverlapping()
+    ->onSuccess(function () {
+        Log::info('SendSms command ran successfully.');
+    })
+    ->onFailure(function () {
+        Log::error('SendSms command failed.');
+    });
+
+Schedule::command('app:update-available-job-status')
+    ->dailyAt('22:00')
+    ->withoutOverlapping()
+    ->onSuccess(function () {
+        Log::info('Update to the job availability command ran successfully.');
+    })
+    ->onFailure(function () {
+        Log::error('Update to the job availability command failed.');
+    });
+
+Schedule::command('scrapper:import --all')
+    ->name('scrap-scheduled-import')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->onSuccess(function () {
+        Log::info('Scrap scheduled import completed successfully.');
+    })
+    ->onFailure(function () {
+        Log::error('Scrap scheduled import failed.');
+    });
 

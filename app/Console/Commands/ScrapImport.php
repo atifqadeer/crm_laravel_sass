@@ -23,12 +23,12 @@ class ScrapImport extends Command
         $input = $this->resolveInput();
 
         if ($input === false) {
-            return 1; // Invalid JSON
+            return 1;
         }
 
-        $service    = new ScrapService();
+        $service = new ScrapService();
         $controller = new ScrapController();
-        $user       = User::first();
+        $user = User::first();
 
         if (!$user) {
             $this->error('No users exist in the database. Cannot import.');
@@ -60,12 +60,12 @@ class ScrapImport extends Command
                 }
 
                 try {
-                    $imported = $controller->persistJobs($jobs, $user);
+                    $imported = $this->persistByKey($controller, $key, $jobs, $user);
                     $this->info("  [{$key}] Imported {$imported} new job(s) into DB.");
 
                     Log::info('[Scraper] CLI --all import completed', [
-                        'key'      => $key,
-                        'fetched'  => count($jobs),
+                        'key' => $key,
+                        'fetched' => count($jobs),
                         'imported' => $imported,
                     ]);
                 } catch (\Throwable $e) {
@@ -85,6 +85,7 @@ class ScrapImport extends Command
         if (empty($key)) {
             $this->error('Provide a key argument or use --all flag.');
             $this->line('  Usage: php artisan scrapper:import scrap_apify_indeed');
+            $this->line('         php artisan scrapper:import scrap_apify_totaljob');
             $this->line('         php artisan scrapper:import --all');
             return 1;
         }
@@ -107,12 +108,12 @@ class ScrapImport extends Command
             }
 
             $this->info("Importing jobs into database...");
-            $imported = $controller->persistJobs($jobs, $user);
+            $imported = $this->persistByKey($controller, $key, $jobs, $user);
             $this->info("Done. Imported {$imported} new job(s) (skipped duplicates).");
 
             Log::info('[Scraper] CLI import completed', [
-                'key'      => $key,
-                'fetched'  => $count,
+                'key' => $key,
+                'fetched' => $count,
                 'imported' => $imported,
             ]);
 
@@ -121,13 +122,24 @@ class ScrapImport extends Command
         } catch (\Throwable $e) {
             $this->error("Failed: {$e->getMessage()}");
             Log::error('[Scraper] CLI import failed', [
-                'key'   => $key,
+                'key' => $key,
                 'error' => $e->getMessage(),
             ]);
             return 1;
         }
     }
 
+    // ---------------------------------------------------------------
+    // Route to the correct persist method based on actor key
+    // ---------------------------------------------------------------
+    private function persistByKey(ScrapController $controller, string $key, array $jobs, $user): int
+    {
+        return match (true) {
+            str_contains($key, 'scrap_apify_indeed') => $controller->persistJobsIndeed($jobs, $user),
+            str_contains($key, 'scrap_apify_totaljob') => $controller->persistJobsTotalJob($jobs, $user),
+            default => throw new \InvalidArgumentException("No persist handler defined for actor key: [{$key}]"),
+        };
+    }
     private function resolveInput(): array|false
     {
         $option = $this->option('input');
