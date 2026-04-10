@@ -1642,8 +1642,15 @@ class SettingController extends Controller
                 ], 400);
             }
 
+            // 3. Route to the correct persist method based on the actor key
             $controller = new ScrapController();
-            $imported = $controller->persistJobs($jobs, $user);
+
+            $imported = match (true) {
+                str_contains($key, 'scrap_apify_indeed') => $controller->persistJobsIndeed($jobs, $user),
+                str_contains($key, 'scrap_apify_totaljob') => $controller->persistJobsTotalJob($jobs, $user), // removed trailing 's'
+                default => throw new \InvalidArgumentException("No persist handler defined for actor key: [{$key}]"),
+            };
+
             $skipped = $fetched - $imported;
 
             Log::info('[Scraper] runScraperActor completed', [

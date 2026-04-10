@@ -31,7 +31,7 @@ use App\Traits\SendEmails;
 
 class ScrapController extends Controller
 {
-    use SendEmails;
+    use SendEmails, Geocode;
 
     public function importIndex()
     {
@@ -88,7 +88,13 @@ class ScrapController extends Controller
             }
 
 
-            $importedCount = $this->persistJobs($jobs, $user);
+            // $importedCount = $this->persistJobs($jobs, $user);
+            // Route to the correct persist method based on actorKey
+            $importedCount = match (true) {
+                str_contains($actorKey, 'scrap_apify_indeed') => $this->persistJobsIndeed($jobs, $user),
+                str_contains($actorKey, 'scrap_apify_totaljobs') => $this->persistJobsTotalJob($jobs, $user),
+                default => throw new \InvalidArgumentException("No persist handler found for actor_key: [{$actorKey}]"),
+            };
 
             return response()->json([
                 'success' => true,
@@ -111,7 +117,7 @@ class ScrapController extends Controller
      * Persist an array of raw scraper job rows into the DB.
      * Returns the number of newly created Sale records.
      */
-    public function persistJobs(array $jobs, $user): int
+    public function persistJobsIndeed(array $jobs, $user): int
     {
         $importedCount = 0;
 
@@ -133,7 +139,7 @@ class ScrapController extends Controller
                 $city = $job['location']['city'] ?? null;
 
                 $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])
-                    // ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
                 if (!$office) {
@@ -165,6 +171,16 @@ class ScrapController extends Controller
                         $phone = isset($c['contactPhone']) ? trim($c['contactPhone']) : null;
 
                         if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+                            // Skip if this email already exists for any Office contact
+                            $alreadyExists = Contact::where('contact_email', $email)
+                                ->where('contactable_type', Office::class)
+                                ->exists();
+
+                            if ($alreadyExists) {
+                                continue;
+                            }
+
                             $contactsMap[$email] = [
                                 'contact_name' => $name ?? $companyName,
                                 'contact_phone' => $phone,
@@ -196,69 +212,49 @@ class ScrapController extends Controller
                             $name = trim($m[1]);
 
                             if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
-                                $contactsMap[$email] = [
-                                    'contact_name' => $name ?? $companyName,
-                                    'contact_phone' => null,
-                                    'contact_email' => $email,
-                                ];
+
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
+                                $contactsMap[$email] = ['contact_name' => $name, 'contact_phone' => null, 'contact_email' => $email];
                             }
                         }
                     }
 
-                    // Pattern 2: Any bare email address in text (email@example.com)
-                    if (
-                        preg_match_all(
-                            '/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/',
-                            $descriptionText,
-                            $bareMatches
-                        )
-                    ) {
+                    // Pattern 2: Bare email addresses
+                    if (preg_match_all('/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', $descriptionText, $bareMatches)) {
                         foreach ($bareMatches[0] as $email) {
                             $email = strtolower(trim($email));
 
                             if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
 
-                                // Try to find a name before the email
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
                                 $name = null;
-                                if (
-                                    preg_match(
-                                        '/([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\s*[:\-]?\s*' . preg_quote($email, '/') . '/',
-                                        $descriptionText,
-                                        $nameMatch
-                                    )
-                                ) {
+                                if (preg_match('/([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\s*[:\-]?\s*' . preg_quote($email, '/') . '/', $descriptionText, $nameMatch)) {
                                     $name = trim($nameMatch[1]);
                                 }
 
-                                // Fallback to company name if no name found
-                                $name = $name ?? $companyName;
-
-                                $contactsMap[$email] = [
-                                    'contact_name' => $name,
-                                    'contact_phone' => null,
-                                    'contact_email' => $email,
-                                ];
+                                $contactsMap[$email] = ['contact_name' => $name ?? $companyName, 'contact_phone' => null, 'contact_email' => $email];
                             }
                         }
                     }
 
-                    // Pattern 3: "Email: email@example.com" or "Contact: email@example.com"
-                    if (
-                        preg_match_all(
-                            '/(?:email|contact|mailto|e-mail)\s*[:\-]?\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i',
-                            $descriptionText,
-                            $labeledMatches
-                        )
-                    ) {
+                    // Pattern 3: "Email: ..." or "Contact: ..."
+                    if (preg_match_all('/(?:email|contact|mailto|e-mail)\s*[:\-]?\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i', $descriptionText, $labeledMatches)) {
                         foreach ($labeledMatches[1] as $email) {
                             $email = strtolower(trim($email));
 
                             if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
-                                $contactsMap[$email] = [
-                                    'contact_name' => $companyName, // fallback to company name
-                                    'contact_phone' => null,
-                                    'contact_email' => $email,
-                                ];
+
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
+                                $contactsMap[$email] = ['contact_name' => $companyName, 'contact_phone' => null, 'contact_email' => $email];
                             }
                         }
                     }
@@ -299,7 +295,7 @@ class ScrapController extends Controller
                         'unit_postcode' => $postcode,
                         'user_id' => $user->id,
                         'unit_website' => $companyUrl,
-                        'unit_notes' => 'Imported from Scraper',
+                        'unit_notes' => 'Scrapped from Indeed',
                         'lat' => $lat,
                         'lng' => $lng,
                         'status' => 4, // 4=Scrapped
@@ -326,7 +322,7 @@ class ScrapController extends Controller
                         'name' => $rawTitle,
                         'type' => $jobConditionType,
                         'job_category_id' => $jobCategory,
-                        'description' => 'Imported from Scraper',
+                        'description' => 'Scrapped from Indeed',
                         'is_active' => true,
                         'related_titles' => json_encode([]),
                     ]);
@@ -377,7 +373,7 @@ class ScrapController extends Controller
 
                 $existingSale = Sale::where('office_id', $office->id)
                     ->where('unit_id', $unit->id)
-                    ->where('sale_notes', 'LIKE', '%' . $jobUrl . '%')
+                    ->whereRaw("REPLACE(sale_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
                 if (!$existingSale) {
@@ -413,6 +409,322 @@ class ScrapController extends Controller
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('[ScrapImport] persistJobs row error: ' . $e->getMessage());
+            }
+        }
+
+        return $importedCount;
+    }
+
+    public function persistJobsTotalJob(array $jobs, $user): int
+    {
+        $importedCount = 0;
+
+        foreach ($jobs as $job) {
+
+            DB::beginTransaction();
+
+            try {
+                // ===============================
+                // COMPANY / OFFICE
+                // ===============================
+
+                // Clean company name — strip trailing "\nView Profile" or similar
+                $companyName = trim(explode("\n", $job['companyName'] ?? 'Unknown Company')[0]);
+                $companyUrl = $job['companyURL'] ?? null;
+                $companyDesc = $job['descriptionText'] ?? 'Scrapped from TotalJobs';
+
+                // ===============================
+                // PARSE LOCATION STRING
+                // e.g. "Dumfries (DG2), DG2 9JW"
+                // ===============================
+                $locationRaw = $job['location'] ?? '';
+                $postcode = 'UNKNOWN';
+                $city = null;
+                $lat = null;
+                $lng = null;
+
+                if (!empty($locationRaw)) {
+                    // Extract UK postcode from end of string (e.g. "DG2 9JW")
+                    if (preg_match('/([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})$/i', $locationRaw, $pcMatch)) {
+                        $postcode = strtoupper(trim($pcMatch[1]));
+
+                        // 1. Try to find a match in the full postcodes table first
+                        $postcode_query = DB::table('postcodes')
+                            ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                            ->first();
+
+                        // 2. Fallback: If not found in full postcodes, check outcodes
+                        if (!$postcode_query) {
+                            $postcode_query = DB::table('outcodepostcodes')
+                                ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                                ->first();
+                        }
+
+                        if (!$postcode_query) {
+                            try {
+                                $result = $this->geocode($postcode);
+
+                                // If geocode fails, throw
+                                if (!isset($result['lat']) || !isset($result['lng'])) {
+                                    throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                                }
+
+                                $lat = $result['lat'];
+                                $lng = $result['lng'];
+                            } catch (\Exception $e) {
+                                Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
+                            }
+                        } else {
+                            $lat = $postcode_query->lat;
+                            $lng = $postcode_query->lng;
+                        }
+                    }
+
+                    // Extract city — everything before first "(" or ","
+                    if (preg_match('/^([^,(]+)/', $locationRaw, $cityMatch)) {
+                        $city = trim($cityMatch[1]);
+                    }
+                }
+
+                $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])
+                    ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->first();
+
+                if (!$office) {
+                    $office = Office::create([
+                        'office_name' => $companyName,
+                        'office_postcode' => $postcode,
+                        'user_id' => $user->id,
+                        'office_type' => 'head_office',
+                        'office_website' => $companyUrl,
+                        'office_notes' => substr($companyDesc, 0, 500),
+                        'office_lat' => $lat,
+                        'office_lng' => $lng,
+                        'status' => 4, // 4=Scrapped
+                    ]);
+
+                    $office->update(['office_uid' => md5($office->id)]);
+                }
+
+                // ===============================
+                // COLLECT ALL CONTACTS
+                // ===============================
+                $contactsMap = [];
+                $descriptionText = $job['descriptionText'] ?? '';
+
+                // Source 1: extract emails from description
+                if (!empty($descriptionText)) {
+
+                    // Pattern 1: Name (email@example.com)
+                    if (
+                        preg_match_all(
+                            '/([A-Za-z][A-Za-z\.\'\-]+(?:\s[A-Za-z\.\'\-]+)+)\s*\(\s*([\w\.\-]+@[\w\.\-]+\.\w+)\s*\)/',
+                            $descriptionText,
+                            $matches,
+                            PREG_SET_ORDER
+                        )
+                    ) {
+                        foreach ($matches as $m) {
+                            $email = strtolower(trim($m[2]));
+                            $name = trim($m[1]);
+
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
+                                $contactsMap[$email] = ['contact_name' => $name, 'contact_phone' => null, 'contact_email' => $email];
+                            }
+                        }
+                    }
+
+                    // Pattern 2: Bare email addresses
+                    if (preg_match_all('/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', $descriptionText, $bareMatches)) {
+                        foreach ($bareMatches[0] as $email) {
+                            $email = strtolower(trim($email));
+
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
+                                $name = null;
+                                if (preg_match('/([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\s*[:\-]?\s*' . preg_quote($email, '/') . '/', $descriptionText, $nameMatch)) {
+                                    $name = trim($nameMatch[1]);
+                                }
+
+                                $contactsMap[$email] = ['contact_name' => $name ?? $companyName, 'contact_phone' => null, 'contact_email' => $email];
+                            }
+                        }
+                    }
+
+                    // Pattern 3: "Email: ..." or "Contact: ..."
+                    if (preg_match_all('/(?:email|contact|mailto|e-mail)\s*[:\-]?\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i', $descriptionText, $labeledMatches)) {
+                        foreach ($labeledMatches[1] as $email) {
+                            $email = strtolower(trim($email));
+
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+
+                                if (Contact::where('contact_email', $email)->where('contactable_type', Office::class)->exists()) {
+                                    continue;
+                                }
+
+                                $contactsMap[$email] = ['contact_name' => $companyName, 'contact_phone' => null, 'contact_email' => $email];
+                            }
+                        }
+                    }
+                }
+
+                // ===============================
+                // SAVE ALL CONTACTS
+                // ===============================
+                foreach ($contactsMap as $email => $contact) {
+                    Contact::updateOrCreate(
+                        ['contactable_id' => $office->id, 'contactable_type' => Office::class, 'contact_email' => $email],
+                        ['contact_name' => $contact['contact_name'], 'contact_phone' => $contact['contact_phone']]
+                    );
+                }
+
+                // ===============================
+                // UNIT
+                // ===============================
+                $validCity = $city && !in_array(strtolower($city), ['unknown city', 'null']);
+                $unitName = $validCity ? $city : $companyName . ' Main Unit';
+
+                $unit = Unit::where('office_id', $office->id)
+                    ->whereRaw('LOWER(unit_name)=?', [strtolower(trim($unitName))])
+                    ->whereRaw("REPLACE(unit_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->first();
+
+                if (!$unit) {
+                    $unit = Unit::create([
+                        'office_id' => $office->id,
+                        'unit_name' => $unitName,
+                        'unit_postcode' => $postcode,
+                        'user_id' => $user->id,
+                        'unit_website' => $companyUrl,
+                        'unit_notes' => 'Scrapped from TotalJobs',
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'status' => 4,
+                    ]);
+
+                    $unit->update(['unit_uid' => md5($unit->id)]);
+                }
+
+                // ===============================
+                // JOB TITLE
+                // ===============================
+                $rawTitle = str_replace('-', ' ', $job['title'] ?? 'Generic Job');
+                $jobTitle = JobTitle::where('name', $rawTitle)->first();
+
+                if ($jobTitle) {
+                    $jobTitleId = $jobTitle->id;
+                    $jobCategory = $jobTitle->job_category_id;
+                    $jobConditionType = $jobTitle->type;
+                } else {
+                    $jobCategory = 2;
+                    $jobConditionType = 'regular';
+                    $jobTitle = JobTitle::create([
+                        'name' => $rawTitle,
+                        'type' => $jobConditionType,
+                        'job_category_id' => $jobCategory,
+                        'description' => 'Scrapped from TotalJobs',
+                        'is_active' => true,
+                        'related_titles' => json_encode([]),
+                    ]);
+                    $jobTitleId = $jobTitle->id;
+                }
+
+                // ===============================
+                // DESCRIPTION PARSING
+                // ===============================
+                $qualification = 'Not specified';
+                if (preg_match('/\*Qualifications\*\s*(.+?)(\n\*|$)/s', $descriptionText, $m)) {
+                    $qualification = trim($m[1]);
+                }
+
+                $experience = 'Not specified';
+                if (preg_match('/\*Experience\*\s*(.+?)(\n\*|$)/s', $descriptionText, $m)) {
+                    $experience = trim($m[1]);
+                }
+
+                // ===============================
+                // TIMING / VACANCIES / BENEFITS
+                // jobType is a plain string in TotalJobs, not an array
+                // ===============================
+                $jobTypeRaw = $job['jobType'] ?? '';
+                $timing = !empty($jobTypeRaw)
+                    ? str_replace('-', ' ', $jobTypeRaw)   // e.g. "Permanent"
+                    : 'Not specified';
+
+                $vacancies = $job['numOfCandidates'] ?? 2;
+                $benefits = isset($job['benefits']) && is_array($job['benefits'])
+                    ? implode(', ', $job['benefits'])
+                    : 'None';
+
+                // ===============================
+                // LAT/LNG FALLBACK via postcodes table
+                // ===============================
+                if (!$lat || !$lng) {
+                    $postcodeRow = DB::table('postcodes')
+                        ->whereRaw("LOWER(REPLACE(postcode,' ',''))=?", [strtolower(str_replace(' ', '', $postcode))])
+                        ->first();
+
+                    if ($postcodeRow) {
+                        $lat = $postcodeRow->lat;
+                        $lng = $postcodeRow->lng;
+                    }
+                }
+
+                // ===============================
+                // DUPLICATE CHECK
+                // TotalJobs has no jobUrl — use numeric id instead
+                // ===============================
+                $jobId = $job['id'] ?? null;
+                $jobRef = 'Scrap TotalJobs Job - ' . $jobId;
+
+                $existingSale = Sale::where('office_id', $office->id)
+                    ->where('unit_id', $unit->id)
+                    ->whereRaw("REPLACE(sale_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->first();
+
+                if (!$existingSale) {
+                    $sale = Sale::create([
+                        'user_id' => $user->id,
+                        'office_id' => $office->id,
+                        'unit_id' => $unit->id,
+                        'job_category_id' => $jobCategory,
+                        'job_title_id' => $jobTitleId,
+                        'job_type' => $jobConditionType,
+                        'position_type' => strtolower($timing),
+                        'sale_postcode' => $postcode,
+                        'cv_limit' => $vacancies,
+                        'timing' => $timing,
+                        'experience' => $experience,
+                        'salary' => $job['salaryRangeRaw'] ?? '',  // TotalJobs field
+                        'benefits' => $benefits,
+                        'qualification' => $qualification,
+                        'sale_notes' => $jobRef,
+                        'job_description' => $descriptionText,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'status' => 4,
+                    ]);
+
+                    $sale->update(['sale_uid' => md5($sale->id)]);
+                    $importedCount++;
+                }
+
+                DB::commit();
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('[ScrapImport] persistJobsTotalJob row error: ' . $e->getMessage(), [
+                    'job_id' => $job['id'] ?? null,
+                ]);
             }
         }
 
