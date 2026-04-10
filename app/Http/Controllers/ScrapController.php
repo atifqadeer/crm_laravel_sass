@@ -683,8 +683,8 @@ class ScrapController extends Controller
                 // DUPLICATE CHECK
                 // TotalJobs has no jobUrl — use numeric id instead
                 // ===============================
-                $jobId = $job['id'] ?? null;
-                $jobRef = 'Scrap TotalJobs Job - ' . $jobId;
+                $jobUrl = $job['companyURL'] ?? null;
+                $jobRef = 'Scrap TotalJobs Job - ' . $jobUrl;
 
                 $existingSale = Sale::where('office_id', $office->id)
                     ->where('unit_id', $unit->id)
