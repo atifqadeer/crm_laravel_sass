@@ -504,11 +504,13 @@ class UnitController extends Controller
                 throw new \Exception("Unit not found with ID: " . $id);
             }
 
-            if ($unit->status == 4 && $request->status != 4) {
-                Office::where('id', $unit->office_id)->where('status', 4)->update([
-                    'status' => 1,
-                    'office_notes' => 'unit has been approved'
-                ]);
+            if ($unit->status == 4) {
+                if ($request->status == 1) {
+                    Office::where('id', $unit->office_id)->where('status', 4)->update([
+                        'status' => 1,
+                        'office_notes' => 'unit has been approved'
+                    ]);
+                }
             }
 
             $postcode = preg_replace('/\s+/', '', $request->unit_postcode);

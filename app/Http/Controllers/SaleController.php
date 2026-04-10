@@ -543,16 +543,18 @@ class SaleController extends Controller
             // Retrieve the office record
             $sale = Sale::find($id);
 
-            if ($sale->status == 4 && $request->status != 4) {
-                Office::where('id', $sale->office_id)->where('status', 4)->update([
-                    'status' => 1,
-                    'office_notes' => 'sale has been approved'
-                ]);
+            if ($sale->status == 4) {
+                if ($request->status == 1) {
+                    Office::where('id', $sale->office_id)->where('status', 4)->update([
+                        'status' => 1,
+                        'office_notes' => 'sale has been approved'
+                    ]);
 
-                Unit::where('id', $sale->unit_id)->where('status', 4)->update([
-                    'status' => 1,
-                    'unit_notes' => 'sale has been approved'
-                ]);
+                    Unit::where('id', $sale->unit_id)->where('status', 4)->update([
+                        'status' => 1,
+                        'unit_notes' => 'sale has been approved'
+                    ]);
+                }
             }
 
             // If the applicant doesn't exist, throw an exception
@@ -3240,13 +3242,13 @@ class SaleController extends Controller
                                 ->where("is_callback_enable", true);
                         })
                             ->orWhere(function ($subQuery) {
-                                $subQuery->where("is_temp_not_interested", true)
-                                    ->where("is_callback_enable", true);
-                            })
+                            $subQuery->where("is_temp_not_interested", true)
+                                ->where("is_callback_enable", true);
+                        })
                             ->orWhere(function ($subQuery) {
-                                $subQuery->where("is_temp_not_interested", false)
-                                    ->where("is_callback_enable", false);
-                            })
+                            $subQuery->where("is_temp_not_interested", false)
+                                ->where("is_callback_enable", false);
+                        })
                         ;
                     })
                     ->where(function ($query) {
@@ -3441,7 +3443,7 @@ class SaleController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-
+    
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -3456,7 +3458,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-
+    
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -3464,7 +3466,7 @@ class SaleController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-
+    
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -4084,5 +4086,5 @@ class SaleController extends Controller
                 ->make(true);
         }
     }
-    
+
 }
