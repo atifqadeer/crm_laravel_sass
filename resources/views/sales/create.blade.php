@@ -15,19 +15,21 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_category" class="form-label">Job Category</label>
                                     <select class="form-select" id="job_category" name="job_category_id" required>
                                         <option value="">Choose a Job Category</option>
-                                        @foreach($jobCategories as $category)
+                                        @forelse($jobCategories as $category)
                                             <option value="{{ $category->id }}" {{ old('job_category_id') == $category->id ? 'selected':'' }}>{{ $category->name }}</option>
-                                        @endforeach
+                                        @empty
+                                            <option value="">No data found</option>
+                                        @endforelse
                                     </select>
                                     <div class="invalid-feedback">Please select a job category</div>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_type" class="form-label">Job Type</label>
                                     <select class="form-select" id="job_type" name="job_type" required>
@@ -38,7 +40,7 @@
                                     <div class="invalid-feedback">Please select a job type</div>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_title" class="form-label">Job Title</label>
                                     <select id="job_title" name="job_title_id" class="form-select">
@@ -46,6 +48,21 @@
                                     </select>
                                     
                                     <div class="invalid-feedback">Please select a job title</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="mb-3">
+                                    <label for="job_source_id" class="form-label">Job Source</label>
+                                    <select class="form-select" id="job_source_id" name="job_source_id">
+                                        <option value="">Choose a Job Source</option>
+                                        @forelse($jobSources as $source)
+                                            <option value="{{ $source->id }}" {{ old('job_source_id') == $source->id ? 'selected':'' }}>{{ $source->name }}</option>
+                                        @empty
+                                            <option value="">No data found</option>
+                                        @endforelse
+                                    </select>
+                                    
+                                    <div class="invalid-feedback">Please select a job source</div>
                                 </div>
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">
@@ -80,10 +97,10 @@
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="cv_limit" class="form-label">CV Limit</label>
+                                    <label for="cv_limit" class="form-label">No. of Positions</label>
                                     <input type="number" id="cv_limit" class="form-control" name="cv_limit" 
-                                    value="{{ old('cv_limit') }}" placeholder="Enter Limit" required>
-                                    <div class="invalid-feedback">Please provide cv limit</div>
+                                    value="{{ old('cv_limit') }}" placeholder="Enter CV Limit" required>
+                                    <div class="invalid-feedback">Please provide positions limit</div>
                                 </div>
                             </div>
                            @php

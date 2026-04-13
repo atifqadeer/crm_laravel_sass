@@ -20,6 +20,7 @@ class Sale extends Model
         'unit_id',
         'job_category_id',
         'job_title_id',
+        'job_source_id',
         'job_type',
         'position_type',
         'sale_postcode',
@@ -43,16 +44,16 @@ class Sale extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id'             => (int)$this->id,
-            'sale_uid'       => $this->sale_uid,
-            'sale_postcode'  => $this->sale_postcode,
-            'experience'     => strip_tags($this->experience),
-            'timing'         => $this->timing,
-            'job_type'       => $this->job_type,
-            'position_type'  => $this->position_type,
-            'salary'         => strip_tags($this->salary),
-            'qualification'  => strip_tags($this->qualification),
-            'cv_limit'       => $this->cv_limit,
+            'id' => (int) $this->id,
+            'sale_uid' => $this->sale_uid,
+            'sale_postcode' => $this->sale_postcode,
+            'experience' => strip_tags($this->experience),
+            'timing' => $this->timing,
+            'job_type' => $this->job_type,
+            'position_type' => $this->position_type,
+            'salary' => strip_tags($this->salary),
+            'qualification' => strip_tags($this->qualification),
+            'cv_limit' => $this->cv_limit,
         ];
     }
 

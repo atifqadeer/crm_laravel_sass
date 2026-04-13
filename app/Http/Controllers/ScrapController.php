@@ -377,6 +377,8 @@ class ScrapController extends Controller
                     ->whereRaw("REPLACE(sale_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
+                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['indeed'])->first();
+
                 if (!$existingSale) {
 
                     $sale = Sale::create([
@@ -385,6 +387,7 @@ class ScrapController extends Controller
                         'unit_id' => $unit->id,
                         'job_category_id' => $jobCategory,
                         'job_title_id' => $jobTitleId,
+                        'job_source_id' => $jobSource->id,
                         'job_type' => $jobConditionType,
                         'position_type' => strtolower($timing),
                         'sale_postcode' => $postcode,
@@ -460,24 +463,24 @@ class ScrapController extends Controller
                                 ->first();
                         }
 
-                        if (!$postcode_query) {
-                            try {
-                                $result = $this->geocode($postcode);
+                        // if (!$postcode_query) {
+                        //     try {
+                        //         $result = $this->geocode($postcode);
 
-                                // If geocode fails, throw
-                                if (!isset($result['lat']) || !isset($result['lng'])) {
-                                    throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                                }
+                        //         // If geocode fails, throw
+                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
+                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        //         }
 
-                                $lat = $result['lat'];
-                                $lng = $result['lng'];
-                            } catch (\Exception $e) {
-                                Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
-                            }
-                        } else {
-                            $lat = $postcode_query->lat;
-                            $lng = $postcode_query->lng;
-                        }
+                        //         $lat = $result['lat'];
+                        //         $lng = $result['lng'];
+                        //     } catch (\Exception $e) {
+                        //         Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
+                        //     }
+                        // } else {
+                        $lat = $postcode_query->lat;
+                        $lng = $postcode_query->lng;
+                        // }
                     }
 
                     // Extract city — everything before first "(" or ","
@@ -691,6 +694,8 @@ class ScrapController extends Controller
                     ->whereRaw("REPLACE(sale_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
+                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['total job'])->first();
+
                 if (!$existingSale) {
                     $sale = Sale::create([
                         'user_id' => $user->id,
@@ -698,6 +703,7 @@ class ScrapController extends Controller
                         'unit_id' => $unit->id,
                         'job_category_id' => $jobCategory,
                         'job_title_id' => $jobTitleId,
+                        'job_source_id' => $jobSource->id,
                         'job_type' => $jobConditionType,
                         'position_type' => strtolower($timing),
                         'sale_postcode' => $postcode,
@@ -772,24 +778,24 @@ class ScrapController extends Controller
                                 ->first();
                         }
 
-                        if (!$postcode_query) {
-                            try {
-                                $result = $this->geocode($postcode);
+                        // if (!$postcode_query) {
+                        //     try {
+                        //         $result = $this->geocode($postcode);
 
-                                // If geocode fails, throw
-                                if (!isset($result['lat']) || !isset($result['lng'])) {
-                                    throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                                }
+                        //         // If geocode fails, throw
+                        //         if (!isset($result['lat']) || !isset($result['lng'])) {
+                        //             throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        //         }
 
-                                $lat = $result['lat'];
-                                $lng = $result['lng'];
-                            } catch (\Exception $e) {
-                                Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
-                            }
-                        } else {
-                            $lat = $postcode_query->lat;
-                            $lng = $postcode_query->lng;
-                        }
+                        //         $lat = $result['lat'];
+                        //         $lng = $result['lng'];
+                        //     } catch (\Exception $e) {
+                        //         Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
+                        //     }
+                        // } else {
+                        $lat = $postcode_query->lat;
+                        $lng = $postcode_query->lng;
+                        // }
                     }
 
                     // Extract city — everything before first "(" or ","
@@ -956,6 +962,8 @@ class ScrapController extends Controller
 
                 $existingSale = Sale::where('sale_notes', 'LIKE', '%' . $jobUrl . '%')->first();
 
+                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['reed'])->first();
+
                 if (!$existingSale) {
 
                     $sale = Sale::create([
@@ -964,6 +972,7 @@ class ScrapController extends Controller
                         'unit_id' => $unit->id,
                         'job_category_id' => $jobTitle->job_category_id,
                         'job_title_id' => $jobTitle->id,
+                        'job_source_id' => $jobSource->id,
                         'job_type' => $jobTitle->type,
                         'position_type' => strtolower($timing),
                         'sale_postcode' => $postcode,
@@ -1009,10 +1018,11 @@ class ScrapController extends Controller
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $sources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
         $offices = Office::where('status', 4)->orderBy('office_name', 'asc')->get();
         $users = User::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('scrapped.sales_list', compact('jobCategories', 'jobTitles', 'offices', 'users'));
+        return view('scrapped.sales_list', compact('jobCategories', 'jobTitles', 'offices', 'users', 'sources'));
     }
     public function getScrappedOffices(Request $request)
     {
@@ -1505,6 +1515,7 @@ class ScrapController extends Controller
         $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
+        $sourceFilter = $request->input('source_filter', ''); // Default is empty (no filter)
 
         $model = Sale::query()
             ->select([
@@ -1617,6 +1628,11 @@ class ScrapController extends Controller
         // Filter by category if it's not empty
         if ($officeFilter) {
             $model->whereIn('sales.office_id', $officeFilter);
+        }
+
+        // Filter by source if it's not empty
+        if ($sourceFilter) {
+            $model->whereIn('sales.job_source_id', $sourceFilter);
         }
 
         // CV limit filter — use HAVING on the pre-aggregated cv_counts join

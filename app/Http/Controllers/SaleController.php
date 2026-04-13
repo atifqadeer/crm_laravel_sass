@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Horsefly\JobSource;
 use Illuminate\Http\Request;
 use Horsefly\Unit;
 use Horsefly\Office;
@@ -206,12 +207,13 @@ class SaleController extends Controller
     public function create()
     {
         $offices = Office::where('status', 1)->select('id', 'office_name')->orderBy('office_name', 'asc')->get();
-        $units = Unit::where('status', 1)->select('id', 'unit_name')->get();
+        $units = Unit::where('status', 1)->select('id', 'unit_name')->orderBy('unit_name', 'asc')->get();
 
-        $jobCategories = JobCategory::where('is_active', 1)->get();
-        $jobTitles = JobTitle::where('is_active', 1)->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('sales.create', compact('offices', 'units', 'jobCategories', 'jobTitles'));
+        return view('sales.create', compact('offices', 'units', 'jobCategories', 'jobTitles', 'jobSources'));
     }
     public function store(Request $request)
     {
@@ -283,6 +285,10 @@ class SaleController extends Controller
                 $saleData['position_type'] = implode(', ', $saleData['position_type']);
             }
 
+            if (isset($request->job_source_id)) {
+                $saleData['job_source_id'] = $request->job_source_id;
+            }
+
             $postcode = preg_replace('/\s+/', '', $request->sale_postcode);
             // 1. Try to find a match in the full postcodes table first
             $postcode_query = DB::table('postcodes')
@@ -347,38 +353,6 @@ class SaleController extends Controller
                 'module_note_uid' => md5($moduleNote->id)
             ]);
 
-            // Handle attachments if provided
-            // if ($request->hasFile('attachments')) {
-            //     $attachments = $request->file('attachments');
-
-            //     foreach ($attachments as $attachment) {
-            //         // Get the original filename
-            //         $filenameWithExt = $attachment->getClientOriginalName();
-            //         $size = $attachment->getSize();
-
-            //         // Get just the filename without extension
-            //         $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-
-            //         // Get just the extension
-            //         $extension = $attachment->getClientOriginalExtension();
-
-            //         // Create a new filename with timestamp
-            //         $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-
-            //         // Upload file to public/uploads directory
-            //         $path = $attachment->storeAs('uploads/docs/', $fileNameToStore, 'public');
-
-            //         // Save document details in sale_documents table
-            //         SaleDocument::create([
-            //             'sale_id' => $sale->id,
-            //             'document_name' => $fileNameToStore,
-            //             'document_path' => $path,
-            //             'document_extension' => $extension,
-            //             'document_size' => $size
-            //         ]);
-            //     }
-            // }
-
             if ($request->hasFile('attachments')) {
 
                 foreach ($request->file('attachments') as $attachment) {
@@ -441,17 +415,18 @@ class SaleController extends Controller
     {
         $sale = Sale::with('documents')->find($id);
         if ($sale->status == 4) {
-            $offices = Office::where('status', 4)->select('id', 'office_name')->get();
+            $offices = Office::where('status', 4)->select('id', 'office_name')->orderBy('office_name', 'asc')->get();
         } else {
-            $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+            $offices = Office::where('status', 1)->select('id', 'office_name')->orderBy('office_name', 'asc')->get();
         }
 
-        $jobCategories = JobCategory::where('is_active', 1)->get();
-        $jobTitles = JobTitle::where('is_active', 1)->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         $redirect_url = $request->input('redirect_url', route('sales.list'));
 
-        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url'));
+        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url', 'jobSources'));
     }
     public function update(Request $request)
     {
@@ -520,6 +495,10 @@ class SaleController extends Controller
 
             if (isset($saleData['position_type']) && is_array($saleData['position_type'])) {
                 $saleData['position_type'] = implode(', ', $saleData['position_type']);
+            }
+
+            if (isset($request->job_source_id)) {
+                $saleData['job_source_id'] = $request->job_source_id;
             }
 
             $id = $request->input('sale_id');
