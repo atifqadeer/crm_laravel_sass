@@ -1647,7 +1647,8 @@ class SettingController extends Controller
 
             $imported = match (true) {
                 str_contains($key, 'scrap_apify_indeed') => $controller->persistJobsIndeed($jobs, $user),
-                str_contains($key, 'scrap_apify_totaljob') => $controller->persistJobsTotalJob($jobs, $user), // removed trailing 's'
+                str_contains($key, 'scrap_apify_totaljob') => $controller->persistJobsTotalJob($jobs, $user),
+                str_contains($key, 'scrap_apify_reed') => $controller->persistJobsReed($jobs, $user),
                 default => throw new \InvalidArgumentException("No persist handler defined for actor key: [{$key}]"),
             };
 

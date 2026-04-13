@@ -93,6 +93,7 @@ class ScrapController extends Controller
             $importedCount = match (true) {
                 str_contains($actorKey, 'scrap_apify_indeed') => $this->persistJobsIndeed($jobs, $user),
                 str_contains($actorKey, 'scrap_apify_totaljobs') => $this->persistJobsTotalJob($jobs, $user),
+                str_contains($actorKey, 'scrap_apify_reed') => $this->persistJobsReed($jobs, $user),
                 default => throw new \InvalidArgumentException("No persist handler found for actor_key: [{$actorKey}]"),
             };
 
@@ -414,7 +415,6 @@ class ScrapController extends Controller
 
         return $importedCount;
     }
-
     public function persistJobsTotalJob(array $jobs, $user): int
     {
         $importedCount = 0;
@@ -730,7 +730,272 @@ class ScrapController extends Controller
 
         return $importedCount;
     }
+    public function persistJobsReed(array $jobs, $user): int
+    {
+        $importedCount = 0;
 
+        foreach ($jobs as $job) {
+
+            DB::beginTransaction();
+
+            try {
+
+                // ===============================
+                // COMPANY / OFFICE
+                // ===============================
+                $companyName = trim($job['company'] ?? $job['ouName'] ?? 'Unknown Company');
+                $companyUrl = $job['job_profileUrl'] ?? $job['employerUrl'] ?? null;
+                $companyDesc = $job['description_text'] ?? 'Scrapped from Reed';
+
+                // ===============================
+                // LOCATION
+                // ===============================
+                $locationRaw = $job['location'] ?? null;
+                $postcode = 'UNKNOWN'; // Reed doesn't provide postcode
+                $lat = null;
+                $lng = null;
+
+                if (!empty($locationRaw)) {
+                    // Extract UK postcode from end of string (e.g. "DG2 9JW")
+                    if (preg_match('/([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})$/i', $locationRaw, $pcMatch)) {
+                        $postcode = strtoupper(trim($pcMatch[1]));
+
+                        // 1. Try to find a match in the full postcodes table first
+                        $postcode_query = DB::table('postcodes')
+                            ->whereRaw("LOWER(REPLACE(postcode, ' ', '')) = ?", [$postcode])
+                            ->first();
+
+                        // 2. Fallback: If not found in full postcodes, check outcodes
+                        if (!$postcode_query) {
+                            $postcode_query = DB::table('outcodepostcodes')
+                                ->whereRaw("LOWER(REPLACE(outcode, ' ', '')) = ?", [$postcode])
+                                ->first();
+                        }
+
+                        if (!$postcode_query) {
+                            try {
+                                $result = $this->geocode($postcode);
+
+                                // If geocode fails, throw
+                                if (!isset($result['lat']) || !isset($result['lng'])) {
+                                    throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                                }
+
+                                $lat = $result['lat'];
+                                $lng = $result['lng'];
+                            } catch (\Exception $e) {
+                                Log::error('[ScrapImport] Geocode failed for postcode ' . $postcode . ': ' . $e->getMessage());
+                            }
+                        } else {
+                            $lat = $postcode_query->lat;
+                            $lng = $postcode_query->lng;
+                        }
+                    }
+
+                    // Extract city — everything before first "(" or ","
+                    if (preg_match('/^([^,(]+)/', $locationRaw, $cityMatch)) {
+                        $city = trim($cityMatch[1]);
+                    }
+                }
+
+                // ===============================
+                // OFFICE
+                // ===============================
+                $office = Office::whereRaw('LOWER(office_name)=?', [strtolower($companyName)])
+                    ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->first();
+
+                if (!$office) {
+                    $office = Office::create([
+                        'office_name' => $companyName,
+                        'office_postcode' => $postcode,
+                        'user_id' => $user->id,
+                        'office_type' => 'head_office',
+                        'office_website' => $companyUrl,
+                        'office_notes' => substr($companyDesc, 0, 500),
+                        'office_lat' => $lat,
+                        'office_lng' => $lng,
+                        'status' => 4,
+                    ]);
+
+                    $office->update(['office_uid' => md5($office->id)]);
+                }
+
+                // ===============================
+                // CONTACTS (same logic, just change source)
+                // ===============================
+                $contactsMap = [];
+                $descriptionText = $job['description_text'] ?? '';
+
+                if (!empty($descriptionText)) {
+
+                    preg_match_all('/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', $descriptionText, $matches);
+
+                    foreach ($matches[0] as $email) {
+                        $email = strtolower(trim($email));
+
+                        if (!isset($contactsMap[$email])) {
+                            $contactsMap[$email] = [
+                                'contact_name' => $companyName,
+                                'contact_phone' => null,
+                                'contact_email' => $email
+                            ];
+                        }
+                    }
+                }
+
+                foreach ($contactsMap as $email => $contact) {
+                    Contact::updateOrCreate(
+                        [
+                            'contactable_id' => $office->id,
+                            'contactable_type' => Office::class,
+                            'contact_email' => $email
+                        ],
+                        [
+                            'contact_name' => $contact['contact_name'],
+                            'contact_phone' => $contact['contact_phone']
+                        ]
+                    );
+                }
+
+                // ===============================
+                // UNIT
+                // ===============================
+                $unitName = $city ?: ($companyName . ' Main Unit');
+
+                $unit = Unit::where('office_id', $office->id)
+                    ->whereRaw('LOWER(unit_name)=?', [strtolower($unitName)])
+                    ->first();
+
+                if (!$unit) {
+                    $unit = Unit::create([
+                        'office_id' => $office->id,
+                        'unit_name' => $unitName,
+                        'unit_postcode' => $postcode,
+                        'user_id' => $user->id,
+                        'unit_website' => $companyUrl,
+                        'unit_notes' => 'Scrapped from Reed',
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'status' => 4,
+                    ]);
+
+                    $unit->update(['unit_uid' => md5($unit->id)]);
+                }
+
+                // ===============================
+                // JOB TITLE
+                // ===============================
+                $rawTitle = $job['jobTitle'] ?? '';
+
+                $jobTitle = JobTitle::where('name', $rawTitle)->first();
+
+                if (!$jobTitle) {
+                    $jobTitle = JobTitle::create([
+                        'name' => $rawTitle,
+                        'type' => 'regular',
+                        'job_category_id' => 2,
+                        'description' => 'Scrapped from Reed',
+                        'is_active' => true,
+                        'related_titles' => json_encode([]),
+                    ]);
+                }
+
+                // ===============================
+                // JOB DETAILS
+                // ===============================
+                $timing = $job['employmentType'] ?? 'Not specified';
+
+                $salary = $job['salary'] ??
+                    ($job['salaryMin'] && $job['salaryMax']
+                        ? $job['salaryMin'] . ' - ' . $job['salaryMax']
+                        : '');
+
+                // Normalize spacing
+                $salary = trim($salary) . ' per annum';
+
+                // Add £ if no symbol found
+                if ($salary && !preg_match('/[£$€]/u', $salary)) {
+                    $salary = '£' . $salary;
+                }
+
+                // ===============================
+                // DESCRIPTION PARSING
+                // ===============================
+                $qualification = [];
+
+                if (!empty($descriptionText)) {
+
+                    // Capture Level qualifications
+                    preg_match_all('/Level\s*\d+\s+[A-Za-z\s]+qualification[^.,]*/i', $descriptionText, $levelMatches);
+
+                    // Capture NMC registration
+                    preg_match_all('/NMC\s+registration[^.,]*/i', $descriptionText, $nmcMatches);
+
+                    $all = array_merge($levelMatches[0], $nmcMatches[0]);
+
+                    if (!empty($all)) {
+                        $qualification = implode(', ', array_unique(array_map('trim', $all)));
+                    } else {
+                        $qualification = 'Not specified';
+                    }
+                }
+
+                $experience = 'Not specified';
+
+                if (!empty($descriptionText)) {
+                    if (preg_match('/(minimum\s+\d+.*?experience.*?)(?:\.|\n)/i', $descriptionText, $m)) {
+                        $experience = trim($m[1]);
+                    }
+                }
+
+                // ===============================
+                // DUPLICATE CHECK
+                // ===============================
+                $jobUrl = $job['job_url'] ?? $job['url'] ?? null;
+
+                $existingSale = Sale::where('sale_notes', 'LIKE', '%' . $jobUrl . '%')->first();
+
+                if (!$existingSale) {
+
+                    $sale = Sale::create([
+                        'user_id' => $user->id,
+                        'office_id' => $office->id,
+                        'unit_id' => $unit->id,
+                        'job_category_id' => $jobTitle->job_category_id,
+                        'job_title_id' => $jobTitle->id,
+                        'job_type' => $jobTitle->type,
+                        'position_type' => strtolower($timing),
+                        'sale_postcode' => $postcode,
+                        'cv_limit' => 2,
+                        'timing' => $timing,
+                        'experience' => $experience,
+                        'salary' => $salary,
+                        'benefits' => 'N/A',
+                        'qualification' => $qualification,
+                        'sale_notes' => 'Reed Job - ' . $jobUrl,
+                        'job_description' => $job['jobDescription'] ?? $descriptionText,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'status' => 4,
+                    ]);
+
+                    $sale->update(['sale_uid' => md5($sale->id)]);
+                    $importedCount++;
+                }
+
+                DB::commit();
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('[ScrapImport] persistJobsReed error: ' . $e->getMessage(), [
+                    'job_id' => $job['jobId'] ?? null,
+                ]);
+            }
+        }
+
+        return $importedCount;
+    }
     public function officeIndex()
     {
         return view('scrapped.offices_list');
