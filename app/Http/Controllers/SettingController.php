@@ -1212,24 +1212,35 @@ class SettingController extends Controller
                 'smtp.*.host' => 'required|string',
                 'smtp.*.port' => 'required|numeric',
                 'smtp.*.username' => 'required|string',
-                'smtp.*.password' => 'required|string',
+                'smtp.*.password' => 'nullable|string',
                 'smtp.*.from_name' => 'required|string',
                 'smtp.*.from_address' => 'required|email',
                 'smtp.*.encryption' => 'nullable|string',
             ]);
 
             foreach ($request->smtp as $setting) {
+
+                // Normalize email (important)
+                $fromAddress = strtolower(trim($setting['from_address']));
+
+                // Prepare data
+                $data = [
+                    'host' => $setting['host'],
+                    'mailer' => $setting['mailer'],
+                    'port' => $setting['port'],
+                    'username' => $setting['username'],
+                    'from_name' => $setting['from_name'],
+                    'encryption' => $setting['encryption'] ?? null,
+                ];
+
+                // Only update password if provided
+                if (!empty($setting['password'])) {
+                    $data['password'] = $setting['password'];
+                }
+
                 SmtpSetting::updateOrCreate(
-                    ['from_address' => $setting['from_address']], // check by from_address instead of id
-                    [
-                        'host' => $setting['host'],
-                        'mailer' => $setting['mailer'],
-                        'port' => $setting['port'],
-                        'username' => $setting['username'],
-                        'password' => $setting['password'],
-                        'from_name' => $setting['from_name'],
-                        'encryption' => $setting['encryption'] ?? null,
-                    ]
+                    ['from_address' => $fromAddress], // unique key
+                    $data
                 );
             }
 
@@ -1237,6 +1248,7 @@ class SettingController extends Controller
                 'success' => true,
                 'message' => 'SMTP settings saved successfully.'
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1333,91 +1345,6 @@ class SettingController extends Controller
             ], 500);
         }
     }
-    // public function saveScraperSettings(Request $request)
-    // {
-    //     try {
-    //         // ---------------------------------------------------------------
-    //         // 1. VALIDATE
-    //         // ---------------------------------------------------------------
-    //         $validator = Validator::make($request->all(), [
-    //             'actors' => 'required|array|min:1',
-    //             'actors.*.provider' => 'required|string|in:scrap,apify,other',
-    //             'actors.*.source' => 'required|string',
-    //             'actors.*.actor_id' => 'nullable|string',
-    //             'actors.*.token' => 'nullable|string',
-    //             'actors.*.base_url' => 'nullable|url',
-    //         ]);
-
-    //         if ($validator->fails()) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Validation failed.',
-    //                 'errors' => $validator->errors()
-    //             ], 422);
-    //         }
-
-    //         // ---------------------------------------------------------------
-    //         // 2. FILTER EMPTY ROWS
-    //         // ---------------------------------------------------------------
-    //         $actors = array_values(array_filter(
-    //             $request->input('actors', []),
-    //             fn($a) => is_array($a) && collect($a)->contains(fn($v) => trim((string) $v) !== '')
-    //         ));
-
-    //         if (empty($actors)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'At least one valid scraper actor must be provided.',
-    //             ], 422);
-    //         }
-
-    //         // ---------------------------------------------------------------
-    //         // 3. SAVE ONE ROW PER ACTOR (provider + source = unique key)
-    //         // ---------------------------------------------------------------
-    //         foreach ($actors as $actor) {
-
-    //             $provider = strtolower(trim($actor['provider'] ?? 'scrap'));
-    //             $source = strtolower(trim($actor['source'] ?? 'source'));
-    //             $actorId = trim($actor['actor_id'] ?? '');
-
-    //             // normalize source key
-    //             $sourceKey = Str::slug($source, '_');
-
-    //             // FINAL UNIQUE KEY (VERY IMPORTANT)
-    //             $key = strtolower("scrap_{$provider}_{$sourceKey}");
-
-    //             // prepare payload
-    //             $data = [
-    //                 'provider' => $provider,
-    //                 'source' => $source,
-    //                 'actor_id' => $actorId,
-    //                 'token' => trim($actor['token'] ?? ''),
-    //                 'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2')
-    //             ];
-
-    //             Setting::updateOrCreate(
-    //                 ['key' => $key],
-    //                 [
-    //                     'value' => json_encode($data),
-    //                     'group' => 'scraper',
-    //                     'type' => 'json',
-    //                 ]
-    //             );
-    //         }
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Scraper settings saved successfully.',
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Error saving settings.',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
 
     public function saveScraperSettings(Request $request)
     {

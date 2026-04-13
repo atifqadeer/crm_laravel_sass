@@ -449,7 +449,14 @@
                             $entry.find('input[name="smtp[0][username]"]').val(setting.username || '').attr('name', `smtp[${index}][username]`);
                             $entry.find('input[name="smtp[0][password]"]').val(setting.password || '').attr('name', `smtp[${index}][password]`);
                             $entry.find('select[name="smtp[0][encryption]"]').val(setting.encryption || '').attr('name', `smtp[${index}][encryption]`);
-                            $entry.find('input[name="smtp[0][from_address]"]').val(setting.from_address || '').attr('name', `smtp[${index}][from_address]`);
+                            // ✅ FROM EMAIL (disable if exists)
+                            const $fromEmail = $entry.find('input[name="smtp[0][from_address]"]')
+                                .val(setting.from_address || '')
+                                .attr('name', `smtp[${index}][from_address]`);
+
+                            if (setting.from_address) {
+                                $fromEmail.prop('readonly', true);
+                            }
                             $entry.find('input[name="smtp[0][from_name]"]').val(setting.from_name || '').attr('name', `smtp[${index}][from_name]`);
                             $('#smtp-entries').append($entry);
                         });
