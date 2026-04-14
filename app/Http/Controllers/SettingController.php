@@ -1139,8 +1139,6 @@ class SettingController extends Controller
         $response = [];
 
         foreach ($settings as $group => $items) {
-            // ── Scraper group: rebuild as actors array ──────────────────────
-            // Inside your getSettings() method, inside the foreach loop
 
             if ($group === 'scraper') {
 

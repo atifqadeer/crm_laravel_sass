@@ -253,13 +253,13 @@
                                         <small class="text-muted">Add one or more actor configurations for Scrap or other
                                             providers.</small>
                                     </div>
-                                    <button type="button" class="btn btn-outline-primary" id="addScraperCardBtn">
-                                        <i class="ri-add-line"></i> Add Actor Card
-                                    </button>
                                 </div>
                                 <div id="scraperCards"></div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <div class="text-muted small"></div>
+                                    <!-- <div class="text-muted small"></div> -->
+                                    <button type="button" class="btn btn-outline-primary left" id="addScraperCardBtn">
+                                        <i class="ri-add-line"></i> Add Actor Card
+                                    </button>
                                     <button type="submit" class="btn btn-success">Save Scraper Settings</button>
                                 </div>
                             </form>
@@ -316,7 +316,7 @@
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Base URL</label>
                                             <input type="text" class="form-control scraper-base-url"
-                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2">
+                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2/dataset">
                                         </div>
                                     </div>
                                 </div>
@@ -416,7 +416,7 @@
                             source: 'indeed',
                             actor_id: '',
                             token: '',
-                            base_url: 'https://api.apify.com/v2'
+                            base_url: 'https://api.apify.com/v2/dataset'
                         }];
                     }
 
@@ -627,19 +627,44 @@
 
             let scraperCardCounter = 0;
 
-            function createScraperCard(actor = {}) {
+            function createScraperCard(actor = {}, index = 0) {
                 const providerValue = actor.provider || 'apify';
+                const sourceValue = actor.source || 'indeed';
+
                 const $card = $(scraperCardTemplateHtml);
                 const uniqueId = 'scraper-card-' + (++scraperCardCounter);
 
                 $card.attr('id', uniqueId);
                 $card.attr('data-key', actor.key || '');
 
+                // Set values
                 $card.find('.scraper-provider').val(providerValue);
-                $card.find('.scraper-source').val(actor.source || 'indeed');
+                $card.find('.scraper-source').val(sourceValue);
                 $card.find('.scraper-actor-id').val(actor.actor_id || '');
                 $card.find('.scraper-token').val(actor.token || '');
-                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2');
+                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/dataset');
+
+                // ✅ Check if existing record
+                const isExisting = !!actor.key;
+
+                if (isExisting) {
+                    // Disable fields
+                    $card.find('.scraper-provider').prop('disabled', true);
+                    $card.find('.scraper-source').prop('disabled', true);
+
+                    // Add hidden inputs so values still submit
+                    $card.append(`<input type="hidden" name="actors[${index}][provider]" value="${providerValue}">`);
+                    $card.append(`<input type="hidden" name="actors[${index}][source]" value="${sourceValue}">`);
+                } else {
+                    // New card → keep editable + proper name attributes
+                    $card.find('.scraper-provider').attr('name', `actors[${index}][provider]`);
+                    $card.find('.scraper-source').attr('name', `actors[${index}][source]`);
+                }
+
+                // Always set names for other fields
+                $card.find('.scraper-actor-id').attr('name', `actors[${index}][actor_id]`);
+                $card.find('.scraper-token').attr('name', `actors[${index}][token]`);
+                $card.find('.scraper-base-url').attr('name', `actors[${index}][base_url]`);
 
                 return $card;
             }
