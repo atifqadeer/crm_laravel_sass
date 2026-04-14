@@ -1031,10 +1031,21 @@ class ScrapController extends Controller
         // Base query
         $model = Office::query()
             ->with(['contact']) // Eager load contact relationship to solve N+1 Problem
-            ->leftJoin('contacts', function ($join) {
-                $join->on('contacts.contactable_id', '=', 'offices.id')
-                    ->where('contacts.contactable_type', 'Horsefly\\Office');
-            })
+            ->leftJoinSub(
+                DB::table('contacts')
+                    ->select([
+                        'contactable_id',
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_email SEPARATOR ", ") as office_emails'),
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_phone SEPARATOR ", ") as office_phones'),
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_landline SEPARATOR ", ") as office_landlines'),
+                    ])
+                    ->where('contactable_type', 'Horsefly\\Office')
+                    ->groupBy('contactable_id'),
+                'office_contacts',
+                'office_contacts.contactable_id',
+                '=',
+                'offices.id'
+            )
             ->select('offices.*')
             ->where('offices.status', 4)
             ->distinct();
@@ -1066,26 +1077,44 @@ class ScrapController extends Controller
         }
 
         // Sorting logic
-        $sortableColumns = [
-            'office_name',
-            'office_postcode',
-            'office_type',
-            'status',
-            'created_at',
-            'updated_at',
-        ];
-
         if ($request->has('order')) {
             $orderColumnIndex = $request->input('order.0.column');
             $orderColumn = $request->input("columns.$orderColumnIndex.data");
             $orderDirection = $request->input('order.0.dir', 'asc');
 
-            if ($orderColumn && in_array($orderColumn, $sortableColumns)) { // ← only sort if column is whitelisted
-                $model->orderBy('offices.' . $orderColumn, $orderDirection);
+            // List of columns that are not actual database columns and should be skipped
+            $nonSortableColumns = [
+                'checkbox',
+                'action',
+                // add other non-database columns here if needed
+            ];
+
+            if ($orderColumn && $orderColumn !== 'DT_RowIndex' && !in_array($orderColumn, $nonSortableColumns)) {
+                // Map the column if needed, or directly use the column name
+                // Example: if you want to map 'office_name' to 'offices.name', do it here
+                $columnMap = [
+                    'office_name' => 'offices.office_name',
+                    'office_postcode' => 'offices.office_postcode',
+                    'office_type' => 'offices.office_type',
+                    'contact_email' => 'office_contacts.office_emails',
+                    'contact_phone' => 'office_contacts.office_phones',
+                    'contact_landline' => 'office_contacts.office_landlines',
+                    'created_at' => 'offices.created_at',
+                    'updated_at' => 'offices.updated_at',
+                ];
+
+                if (isset($columnMap[$orderColumn])) {
+                    $model->orderBy($columnMap[$orderColumn], $orderDirection);
+                } else {
+                    // fallback: assume it's a column in 'units' or your main table
+                    $model->orderBy($orderColumn, $orderDirection);
+                }
             } else {
+                // Default order if column is non-sortable or invalid
                 $model->orderBy('offices.created_at', 'desc');
             }
         } else {
+            // Default order if no order parameter is sent
             $model->orderBy('offices.created_at', 'desc');
         }
 
@@ -1218,10 +1247,24 @@ class ScrapController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
-            ->select('units.*', 'offices.office_name as office_name')
+            ->select('units.*', 'offices.office_name as office_name', 'unit_contacts.contact_email as contact_email', 'unit_contacts.contact_phone as contact_phone', 'unit_contacts.contact_landline as contact_landline')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
+            ->leftJoinSub(
+                DB::table('contacts')
+                    ->select([
+                        'contactable_id',
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_email SEPARATOR ", ") as contact_email'),
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_phone SEPARATOR ", ") as contact_phone'),
+                        DB::raw('GROUP_CONCAT(DISTINCT contact_landline SEPARATOR ", ") as contact_landline'),
+                    ])
+                    ->where('contactable_type', 'Horsefly\\Unit')
+                    ->groupBy('contactable_id'),
+                'unit_contacts',
+                'unit_contacts.contactable_id',
+                '=',
+                'units.id'
+            )
             ->whereNull('units.deleted_at')
-            ->with('office', 'contacts')
             ->where('units.status', 4); //scrapped
 
         // Office filter
@@ -1272,9 +1315,14 @@ class ScrapController extends Controller
                 // Map the column if needed, or directly use the column name
                 // Example: if you want to map 'office_name' to 'offices.name', do it here
                 $columnMap = [
-                    'office_name' => 'offices.name',
+                    'office_name' => 'offices.office_name',
                     'unit_name' => 'units.unit_name',
-                    // add other mappings as needed
+                    'unit_postcode' => 'units.unit_postcode',
+                    'contact_email' => 'unit_contacts.contact_email',
+                    'contact_phone' => 'unit_contacts.contact_phone',
+                    'contact_landline' => 'unit_contacts.contact_landline',
+                    'unit_notes' => 'units.unit_notes',
+                    'created_at' => 'units.created_at',
                 ];
 
                 if (isset($columnMap[$orderColumn])) {
@@ -1344,7 +1392,7 @@ class ScrapController extends Controller
                     $q->select(DB::raw(1))
                         ->from('contacts')
                         ->whereColumn('contacts.contactable_id', 'units.id')
-                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contacts.contactable_type', Unit::class)
                         ->where('contact_email', 'LIKE', "{$keyword}%");
                 });
             })
@@ -1354,7 +1402,7 @@ class ScrapController extends Controller
                     $q->select(DB::raw(1))
                         ->from('contacts')
                         ->whereColumn('contacts.contactable_id', 'units.id')
-                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contacts.contactable_type', Unit::class)
                         ->where('contact_phone', 'LIKE', "{$clean}%");
                 });
             })
@@ -1364,7 +1412,7 @@ class ScrapController extends Controller
                     $q->select(DB::raw(1))
                         ->from('contacts')
                         ->whereColumn('contacts.contactable_id', 'units.id')
-                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contacts.contactable_type', Unit::class)
                         ->where('contact_landline', 'LIKE', "{$clean}%");
                 });
             })
@@ -1666,7 +1714,6 @@ class ScrapController extends Controller
             $model->whereIn('sales.user_id', $userFilter);
         }
 
-
         // ------------------------------------------------------
         // ✅ SAFE SORTING (Handles aliases + checkbox + computed)
         // ------------------------------------------------------
@@ -1678,7 +1725,9 @@ class ScrapController extends Controller
 
             // Map DataTable columns → actual DB columns
             $columnMap = [
-                'office_name' => 'offices.name',
+                'office_name' => 'offices.office_name',
+                'office_emails' => 'office_contacts.office_emails',
+                'office_phones' => 'office_contacts.office_phones',
                 'unit_name' => 'units.unit_name',
                 'job_title' => 'job_titles.name',
                 'job_category' => 'job_categories.name',
@@ -1707,6 +1756,13 @@ class ScrapController extends Controller
             // ✅ Direct DB column (safe fallback)
             elseif (!empty($orderColumn) && $orderColumn !== 'DT_RowIndex') {
                 $model->orderBy("sales.$orderColumn", $orderDirection);
+            } elseif (isset($columnMap[$orderColumn])) {
+
+                if (in_array($orderColumn, ['office_emails', 'office_phones'])) {
+                    $model->orderByRaw($columnMap[$orderColumn] . ' ' . $orderDirection);
+                } else {
+                    $model->orderBy($columnMap[$orderColumn], $orderDirection);
+                }
             }
             // ✅ Final fallback
             else {

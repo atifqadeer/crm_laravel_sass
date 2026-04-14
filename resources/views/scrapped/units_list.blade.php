@@ -224,9 +224,9 @@
                     { data: 'office_name', name: 'offices.office_name' },
                     { data: 'unit_name', name: 'units.unit_name' },
                     { data: 'unit_postcode', name: 'units.unit_postcode' },
-                    { data: 'contact_email', name: 'contacts.contact_email' },
-                    { data: 'contact_phone', name: 'contacts.contact_phone' },
-                    { data: 'contact_landline', name: 'contacts.contact_landline' },
+                    { data: 'contact_email', name: 'unit_contacts.contact_email' },
+                    { data: 'contact_phone', name: 'unit_contacts.contact_phone' },
+                    { data: 'contact_landline', name: 'unit_contacts.contact_landline' },
                     { data: 'unit_notes', name: 'units.unit_notes', orderable: false },
                     { data: 'action', name: 'action', orderable: false }
                 ];
@@ -253,10 +253,10 @@
 
                 // Create loader row
                 const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                                                                                                <div class="spinner-border text-primary" role="status">
-                                                                                                    <span class="visually-hidden">Loading...</span>
-                                                                                                </div>
-                                                                                            </td></tr>`;
+                                                                                                        <div class="spinner-border text-primary" role="status">
+                                                                                                            <span class="visually-hidden">Loading...</span>
+                                                                                                        </div>
+                                                                                                    </td></tr>`;
 
                 // Function to show loader
                 function showLoader() {
@@ -307,22 +307,22 @@
                         }
 
                         let paginationHtml = `
-                                                                                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                                                                                                <nav aria-label="Page navigation">
-                                                                                                                    <ul class="pagination pagination-rounded mb-0">
-                                                                                                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                                                                                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                                                                                                <span aria-hidden="true">&laquo;</span>
-                                                                                                                            </a>
-                                                                                                                        </li>`;
+                                                                                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                                                                                        <nav aria-label="Page navigation">
+                                                                                                                            <ul class="pagination pagination-rounded mb-0">
+                                                                                                                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                                                                                                                    <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                                                                                                                        <span aria-hidden="true">&laquo;</span>
+                                                                                                                                    </a>
+                                                                                                                                </li>`;
 
                         const visiblePages = 3;
                         const showDots = totalPages > visiblePages + 2;
 
                         // Always show page 1
                         paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                                                                                                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                                                                                                        </li>`;
+                                                                                                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                                                                                                                </li>`;
 
                         let start = Math.max(2, currentPage - 1);
                         let end = Math.min(totalPages - 1, currentPage + 1);
@@ -333,8 +333,8 @@
 
                         for (let i = start; i <= end; i++) {
                             paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                                                                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                                                                                                            </li>`;
+                                                                                                                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                                                                                                                    </li>`;
                         }
 
                         if (end < totalPages - 1) {
@@ -343,27 +343,27 @@
 
                         if (totalPages > 1) {
                             paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                                                                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                                                                                                            </li>`;
+                                                                                                                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                                                                                                                    </li>`;
                         }
 
                         // Next button
                         paginationHtml += `
-                                                                                                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                                                                                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                                                                                                    <span aria-hidden="true">&raquo;</span>
-                                                                                                                </a>
-                                                                                                            </li>
-                                                                                                        </ul>
-                                                                                                        </nav>
+                                                                                                                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                                                                                                        <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                                                                                                            <span aria-hidden="true">&raquo;</span>
+                                                                                                                        </a>
+                                                                                                                    </li>
+                                                                                                                </ul>
+                                                                                                                </nav>
 
-                                                                                                        <div class="d-flex align-items-center ms-3 text-primary">
-                                                                                                            <span class="me-2">Go to page:</span>
-                                                                                                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                                                                                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                                                                                                        </div>
-                                                                                                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                                                                                                        </div>`;
+                                                                                                                <div class="d-flex align-items-center ms-3 text-primary">
+                                                                                                                    <span class="me-2">Go to page:</span>
+                                                                                                                    <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                                                                                                                        onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                                                                                                                </div>
+                                                                                                                <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                                                                                                                </div>`;
 
                         pagination.html(paginationHtml);
                     },

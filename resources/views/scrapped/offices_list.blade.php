@@ -250,9 +250,9 @@
                     { data: 'office_name', name: 'offices.office_name' },
                     { data: 'office_type', name: 'offices.office_type' },
                     { data: 'office_postcode', name: 'offices.office_postcode' },
-                    { data: 'contact_email', name: 'contacts.contact_email' },
-                    { data: 'contact_phone', name: 'contacts.contact_phone' },
-                    { data: 'contact_landline', name: 'contacts.contact_landline' },
+                    { data: 'contact_email', name: 'office_contacts.office_emails' },
+                    { data: 'contact_phone', name: 'office_contacts.office_phones' },
+                    { data: 'contact_landline', name: 'office_contacts.office_landlines' },
                     { data: 'office_notes', name: 'offices.office_notes', orderable: false },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ];
