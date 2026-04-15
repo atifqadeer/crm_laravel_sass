@@ -9,7 +9,6 @@
             border-bottom: none !important;
         }
     </style>
-
 @endsection
 @section('content')
     <div class="row">
@@ -46,6 +45,17 @@
                                     <button class="btn btn-info me-1 my-1" id="bulk-email-btn" disabled>
                                         <i class="ri-mail-line me-1"></i> Bulk Email
                                     </button>
+                                </div>
+                                <!-- Button Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Scraped</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item status-filter" href="#">Scraped</a>
+                                        <a class="dropdown-item status-filter" href="#">Deleted</a>
+                                    </div>
                                 </div>
                                 <!-- Button Dropdown -->
                                 @canany(['office-export'])
@@ -121,7 +131,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="csvFile" class="form-label">Choose CSV File</label>
-                            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv"
+                                required>
                         </div>
                         <div class="progress" style="height: 20px;">
                             <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
@@ -176,151 +187,189 @@
         </div>
     </div>
 
-    @section('script')
-        <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-        <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
+@section('script')
+    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-        <!-- DataTables CSS (for styling the table) -->
-        <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <!-- DataTables CSS (for styling the table) -->
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
-        <!-- DataTables JS (for the table functionality) -->
-        <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <!-- DataTables JS (for the table functionality) -->
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
-        <!-- Toastify CSS -->
-        <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
-        <!-- SweetAlert2 CDN -->
-        <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
-        <!-- Toastr JS -->
-        <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
-        <!-- Moment JS -->
-        <script src="{{ asset('js/moment.min.js')}}"></script>
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
-        <!-- Summernote CSS -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+    <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
-        <!-- Summernote JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
-        <script>
-            $(document).ready(function () {
-                $('#bulk-email-body').summernote({
-                    height: 500,
-                    toolbar: [
-                        ['style', ['bold', 'italic', 'underline', 'clear']],
-                        ['font', ['strikethrough', 'superscript', 'subscript']],
-                        ['fontsize', ['fontsize']],
-                        ['color', []],
-                        ['para', ['ul', 'ol', 'paragraph']],
-                        ['insert', []],
-                        ['view', []]
-                    ]
+    <script>
+        $(document).ready(function() {
+            $('#bulk-email-body').summernote({
+                height: 500,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+        });
+        $(document).ready(function() {
+            const hasViewNotePermission = @json(auth()->user()->can('office-view-note'));
+            const hasAddNotePermission = @json(auth()->user()->can('office-add-note'));
+
+            // Store the current filter in a variable
+            var currentFilter = '';
+
+            // Create loader row
+            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td></tr>`;
+
+            // Function to show loader
+            function showLoader() {
+                $('#headOffice_table tbody').empty().append(loadingRow);
+            }
+
+            let columns = [{
+                    data: 'checkbox',
+                    name: 'checkbox',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'DT_RowIndex',
+                    name: 'DT_RowIndex',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'created_at',
+                    name: 'offices.created_at'
+                },
+                {
+                    data: 'office_name',
+                    name: 'offices.office_name'
+                },
+                {
+                    data: 'office_type',
+                    name: 'offices.office_type'
+                },
+                {
+                    data: 'office_postcode',
+                    name: 'offices.office_postcode'
+                },
+                {
+                    data: 'contact_email',
+                    name: 'office_contacts.office_emails'
+                },
+                {
+                    data: 'contact_phone',
+                    name: 'office_contacts.office_phones'
+                },
+                {
+                    data: 'contact_landline',
+                    name: 'office_contacts.office_landlines'
+                },
+                {
+                    data: 'office_notes',
+                    name: 'offices.office_notes',
+                    orderable: false
+                },
+                {
+                    data: 'action',
+                    name: 'action',
+                    orderable: false,
+                    searchable: false
+                }
+            ];
+
+            let columnDefs = [];
+
+            // Dynamically assign center alignment for columns starting from resume/applicant_experience
+            const centerAlignedIndices = [];
+            for (let i = 0; i < columns.length; i++) {
+                const key = columns[i].data;
+                if (['action'].includes(key)) {
+                    centerAlignedIndices.push(i);
+                }
+            }
+
+            centerAlignedIndices.forEach(idx => {
+                columnDefs.push({
+                    targets: idx,
+                    createdCell: function(td) {
+                        $(td).css('text-align', 'center');
+                    }
                 });
             });
-            $(document).ready(function () {
-                const hasViewNotePermission = @json(auth()->user()->can('office-view-note'));
-                const hasAddNotePermission = @json(auth()->user()->can('office-add-note'));
 
-                // Store the current filter in a variable
-                var currentFilter = '';
-
-                // Create loader row
-                const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                                                                                        <div class="spinner-border text-primary" role="status">
-                                                                                            <span class="visually-hidden">Loading...</span>
-                                                                                        </div>
-                                                                                    </td></tr>`;
-
-                // Function to show loader
-                function showLoader() {
-                    $('#headOffice_table tbody').empty().append(loadingRow);
-                }
-
-                let columns = [
-                    {
-                        data: 'checkbox',
-                        name: 'checkbox',
-                        orderable: false,
-                        searchable: false
+            // Initialize DataTable with server-side processing
+            var table = $('#headOffice_table').DataTable({
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
+                ajax: {
+                    url: @json(route('getScrappedOffices')), // Fetch data from the backend
+                    type: 'GET',
+                    data: function(d) {
+                        // Add the current filter to the request parameters
+                        d.status_filter = currentFilter; // Send the current filter value as a parameter
+                        if (d.search && d.search.value) {
+                            d.search.value = d.search.value.toString().trim();
+                        }
                     },
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'offices.created_at' },
-                    { data: 'office_name', name: 'offices.office_name' },
-                    { data: 'office_type', name: 'offices.office_type' },
-                    { data: 'office_postcode', name: 'offices.office_postcode' },
-                    { data: 'contact_email', name: 'office_contacts.office_emails' },
-                    { data: 'contact_phone', name: 'office_contacts.office_phones' },
-                    { data: 'contact_landline', name: 'office_contacts.office_landlines' },
-                    { data: 'office_notes', name: 'offices.office_notes', orderable: false },
-                    { data: 'action', name: 'action', orderable: false, searchable: false }
-                ];
-
-                let columnDefs = [];
-
-                // Dynamically assign center alignment for columns starting from resume/applicant_experience
-                const centerAlignedIndices = [];
-                for (let i = 0; i < columns.length; i++) {
-                    const key = columns[i].data;
-                    if (['action'].includes(key)) {
-                        centerAlignedIndices.push(i);
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
-                }
+                },
+                columns: columns,
+                columnDefs: columnDefs,
+                rowId: function(data) {
+                    return 'row_' + data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
+                },
+                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
 
-                centerAlignedIndices.forEach(idx => {
-                    columnDefs.push({
-                        targets: idx,
-                        createdCell: function (td) {
-                            $(td).css('text-align', 'center');
-                        }
-                    });
-                });
+                drawCallback: function(settings) {
+                    const api = this.api();
+                    const pagination = $(api.table().container()).find('.dataTables_paginate');
+                    pagination.empty();
 
-                // Initialize DataTable with server-side processing
-                var table = $('#headOffice_table').DataTable({
-                    processing: false,  // Disable default processing state
-                    serverSide: true,  // Enables server-side processing
-                    ajax: {
-                        url: @json(route('getScrappedOffices')),  // Fetch data from the backend
-                        type: 'GET',
-                        data: function (d) {
-                            // Add the current filter to the request parameters
-                            d.status_filter = currentFilter;  // Send the current filter value as a parameter
-                            if (d.search && d.search.value) {
-                                d.search.value = d.search.value.toString().trim();
-                            }
-                        },
-                        beforeSend: function () {
-                            showLoader(); // Show loader before AJAX request starts
-                        },
-                        error: function (xhr) {
-                            console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                            $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
-                        }
-                    },
-                    columns: columns,
-                    columnDefs: columnDefs,
-                    rowId: function (data) {
-                        return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
-                    },
-                    dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                    const pageInfo = api.page.info();
+                    const currentPage = pageInfo.page + 1;
+                    const totalPages = pageInfo.pages;
 
-                    drawCallback: function (settings) {
-                        const api = this.api();
-                        const pagination = $(api.table().container()).find('.dataTables_paginate');
-                        pagination.empty();
+                    if (pageInfo.recordsTotal === 0) {
+                        $('#headOffice_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        return;
+                    }
 
-                        const pageInfo = api.page.info();
-                        const currentPage = pageInfo.page + 1;
-                        const totalPages = pageInfo.pages;
-
-                        if (pageInfo.recordsTotal === 0) {
-                            $('#headOffice_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
-                            return;
-                        }
-
-                        let paginationHtml = `
+                    let paginationHtml = `
                                                                                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                                                                                         <nav aria-label="Page navigation">
                                                                                                             <ul class="pagination pagination-rounded mb-0">
@@ -330,39 +379,41 @@
                                                                                                                     </a>
                                                                                                                 </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                                                                                                     <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                                                                                                 </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                                                                                         <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                                                                                                     </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                                                                                         <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                                                                                                     </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                                                                                                     <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                                                                                         <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                                                                                             <span aria-hidden="true">&raquo;</span>
@@ -378,95 +429,95 @@
                                                                                                 </div>
                                                                                                 <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
                                                                                                 </div>`;
-                        pagination.html(paginationHtml);
-                    },
-                });
-
-                // Search logic helper
-                function handleCustomSearch() {
-                    let searchValue = $('#customSearchInput').val().trim();
-                    table.search(searchValue).draw();
-                }
-
-                // Custom Search Button Event
-                $('#customSearchBtn').on('click', function () {
-                    handleCustomSearch();
-                });
-
-                // Custom Search Input Enter Key Event
-                $('#customSearchInput').on('keypress', function (e) {
-                    if (e.which == 13) { // Enter key
-                        handleCustomSearch();
-                    }
-                });
-
-                // Show/Hide Clear button
-                $('#customSearchInput').on('keyup change', function () {
-                    if ($(this).val().trim() !== '') {
-                        $('#customClearBtn').removeClass('d-none');
-                    } else {
-                        $('#customClearBtn').addClass('d-none');
-                    }
-                });
-
-                // Clear Button Event
-                $('#customClearBtn').on('click', function () {
-                    $('#customSearchInput').val('');
-                    $(this).addClass('d-none');
-                    table.search('').draw();
-                });
-
-                /*** Status filter dropdown handler ***/
-                $('.status-filter').on('click', function () {
-                    currentFilter = $(this).text().toLowerCase();
-
-                    // Capitalize each word
-                    const formattedText = currentFilter
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-
-                    $('#showFilterStatus').html(formattedText);
-                    table.ajax.reload(); // Reload with updated status filter
-                });
+                    pagination.html(paginationHtml);
+                },
             });
 
-            function goToPage(totalPages) {
-                const input = document.getElementById('goToPageInput');
-                const errorMessage = document.getElementById('goToPageError');
-                let page = parseInt(input.value);
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
 
-                if (!isNaN(page) && page >= 1 && page <= totalPages) {
-                    $('#headOffice_table').DataTable().page(page - 1).draw('page');
-                    input.classList.remove('is-invalid');
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
                 } else {
-                    input.classList.add('is-invalid');
+                    $('#customClearBtn').addClass('d-none');
                 }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
+
+            /*** Status filter dropdown handler ***/
+            $('.status-filter').on('click', function() {
+                currentFilter = $(this).text().toLowerCase();
+
+                // Capitalize each word
+                const formattedText = currentFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                $('#showFilterStatus').html(formattedText);
+                table.ajax.reload(); // Reload with updated status filter
+            });
+        });
+
+        function goToPage(totalPages) {
+            const input = document.getElementById('goToPageInput');
+            const errorMessage = document.getElementById('goToPageError');
+            let page = parseInt(input.value);
+
+            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                $('#headOffice_table').DataTable().page(page - 1).draw('page');
+                input.classList.remove('is-invalid');
+            } else {
+                input.classList.add('is-invalid');
             }
+        }
 
-            // Function to move the page forward or backward
-            function movePage(page) {
-                var table = $('#headOffice_table').DataTable();
-                var currentPage = table.page.info().page + 1;
-                var totalPages = table.page.info().pages;
+        // Function to move the page forward or backward
+        function movePage(page) {
+            var table = $('#headOffice_table').DataTable();
+            var currentPage = table.page.info().page + 1;
+            var totalPages = table.page.info().pages;
 
-                if (page === 'previous' && currentPage > 1) {
-                    table.page(currentPage - 2).draw('page');  // Move to the previous page
-                } else if (page === 'next' && currentPage < totalPages) {
-                    table.page(currentPage).draw('page');  // Move to the next page
-                } else if (typeof page === 'number' && page !== currentPage) {
-                    table.page(page - 1).draw('page');  // Move to the selected page
-                }
+            if (page === 'previous' && currentPage > 1) {
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
+            } else if (page === 'next' && currentPage < totalPages) {
+                table.page(currentPage).draw('page'); // Move to the next page
+            } else if (typeof page === 'number' && page !== currentPage) {
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
+        }
 
-            // Function to show the notes modal
-            function showNotesModal(officeId, notes, officeName, officePostcode) {
-                const modalId = `showNotesModal_${officeId}`;
-                const modalLabelId = `${modalId}Label`;
+        // Function to show the notes modal
+        function showNotesModal(officeId, notes, officeName, officePostcode) {
+            const modalId = `showNotesModal_${officeId}`;
+            const modalLabelId = `${modalId}Label`;
 
-                // Add modal HTML only once
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(`
+            // Add modal HTML only once
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
                                                                                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
                                                                                                 <div class="modal-dialog modal-dialog-top">
                                                                                                     <div class="modal-content">
@@ -486,41 +537,41 @@
                                                                                                 </div>
                                                                                             </div>
                                                                                         `);
-                } else {
-                    // Reset modal body to loader
-                    $(`#${modalId} .modal-body`).html(`
+            } else {
+                // Reset modal body to loader
+                $(`#${modalId} .modal-body`).html(`
                                                                                             <div class="spinner-border text-primary my-4" role="status">
                                                                                                 <span class="visually-hidden">Loading...</span>
                                                                                             </div>
                                                                                         `);
-                }
+            }
 
-                // Show the modal
-                $(`#${modalId}`).modal('show');
+            // Show the modal
+            $(`#${modalId}`).modal('show');
 
-                // Set content after short delay to simulate loading
-                setTimeout(() => {
-                    const formattedNotes = notes.replace(/\n/g, '<br>');
-                    $(`#${modalId} .modal-body`).html(`
+            // Set content after short delay to simulate loading
+            setTimeout(() => {
+                const formattedNotes = notes.replace(/\n/g, '<br>');
+                $(`#${modalId} .modal-body`).html(`
                                                                                             <div class="text-start">
                                                                                                 <p class="mb-1"><strong>Head Office Name:</strong> ${officeName}</p>
                                                                                                 <p class="mb-1"><strong>Postcode:</strong> ${officePostcode}</p>
                                                                                                 <p><strong>Notes Detail:</strong><br>${formattedNotes}</p>
                                                                                             </div>
                                                                                         `);
-                }, 300); // Delay in ms
-            }
+            }, 300); // Delay in ms
+        }
 
-            // Function to show the notes modal
-            function addShortNotesModal(officeID) {
-                const modalId = `shortNotesModal_${officeID}`;
-                const formId = `shortNotesForm_${officeID}`;
-                const textareaId = `detailsTextarea_${officeID}`;
-                const saveBtnId = `saveShortNotesButton_${officeID}`;
+        // Function to show the notes modal
+        function addShortNotesModal(officeID) {
+            const modalId = `shortNotesModal_${officeID}`;
+            const formId = `shortNotesForm_${officeID}`;
+            const textareaId = `detailsTextarea_${officeID}`;
+            const saveBtnId = `saveShortNotesButton_${officeID}`;
 
-                // Add the modal HTML to the page (only once, if not already present)
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(`
+            // Add the modal HTML to the page (only once, if not already present)
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
                                                                                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                                                                                     <div class="modal-content">
@@ -544,77 +595,79 @@
                                                                                                 </div>
                                                                                             </div>
                                                                                         `);
-                }
-
-                // Reset the form when showing
-                $(`#${formId}`)[0]?.reset(); // Reset if form exists
-                $(`#${textareaId}`).removeClass('is-valid is-invalid').next('.invalid-feedback').remove();
-
-                // Show the modal
-                $(`#${modalId}`).modal('show');
-
-                // Handle Save button click
-                $(`#${saveBtnId}`).off('click').on('click', function () {
-                    const notes = $(`#${textareaId}`).val();
-
-                    if (!notes) {
-                        $(`#${textareaId}`).addClass('is-invalid');
-                        if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
-                            $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
-
-                        $(`#${textareaId}`).on('input', function () {
-                            if ($(this).val()) {
-                                $(this).removeClass('is-invalid').addClass('is-valid');
-                                $(this).next('.invalid-feedback').remove();
-                            }
-                        });
-
-                        return;
-                    }
-
-                    // Remove validation states
-                    $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
-                    $(`#${textareaId}`).next('.invalid-feedback').remove();
-
-                    const btn = $(this);
-                    const originalText = btn.html();
-                    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-                    // AJAX request
-                    $.ajax({
-                        url: '{{ route("storeHeadOfficeShortNotes") }}',
-                        type: 'POST',
-                        data: {
-                            office_id: officeID,
-                            details: notes,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function (response) {
-                            toastr.success('Notes saved successfully!');
-                            $(`#${modalId}`).modal('hide');
-                            $(`#${formId}`)[0].reset();
-                            $(`#${textareaId}`).removeClass('is-valid');
-                            $(`#${textareaId}`).next('.invalid-feedback').remove();
-                            $('#headOffice_table').DataTable().ajax.reload();
-                        },
-                        error: function () {
-                            alert('An error occurred while saving notes.');
-                        },
-                        complete: function () {
-                            btn.prop('disabled', false).html(originalText);
-                        }
-                    });
-                });
             }
 
-            function showDetailsModal(officeId, name, postcode, status) {
-                const modalId = `showDetailsModal_${officeId}`;
-                const labelId = `${modalId}Label`;
+            // Reset the form when showing
+            $(`#${formId}`)[0]?.reset(); // Reset if form exists
+            $(`#${textareaId}`).removeClass('is-valid is-invalid').next('.invalid-feedback').remove();
 
-                // Add modal HTML only once
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(`
+            // Show the modal
+            $(`#${modalId}`).modal('show');
+
+            // Handle Save button click
+            $(`#${saveBtnId}`).off('click').on('click', function() {
+                const notes = $(`#${textareaId}`).val();
+
+                if (!notes) {
+                    $(`#${textareaId}`).addClass('is-invalid');
+                    if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
+                        $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+
+                    $(`#${textareaId}`).on('input', function() {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+
+                    return;
+                }
+
+                // Remove validation states
+                $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                // AJAX request
+                $.ajax({
+                    url: '{{ route('storeHeadOfficeShortNotes') }}',
+                    type: 'POST',
+                    data: {
+                        office_id: officeID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        toastr.success('Notes saved successfully!');
+                        $(`#${modalId}`).modal('hide');
+                        $(`#${formId}`)[0].reset();
+                        $(`#${textareaId}`).removeClass('is-valid');
+                        $(`#${textareaId}`).next('.invalid-feedback').remove();
+                        $('#headOffice_table').DataTable().ajax.reload();
+                    },
+                    error: function() {
+                        alert('An error occurred while saving notes.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        function showDetailsModal(officeId, name, postcode, status) {
+            const modalId = `showDetailsModal_${officeId}`;
+            const labelId = `${modalId}Label`;
+
+            // Add modal HTML only once
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                     <div class="modal-content">
@@ -636,21 +689,21 @@
                                 </div>
                             </div>
                         `);
-                } else {
-                    // Reset modal content with loader if already exists
-                    $(`#${modalId} .modal-body`).html(`
+            } else {
+                // Reset modal content with loader if already exists
+                $(`#${modalId} .modal-body`).html(`
                                         <div class="spinner-border text-primary my-4" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
                                     `);
-                }
+            }
 
-                // Show the modal
-                $(`#${modalId}`).modal('show');
+            // Show the modal
+            $(`#${modalId}`).modal('show');
 
-                // Simulate loading delay before showing content (optional)
-                setTimeout(() => {
-                    $(`#${modalId} .modal-body`).html(`
+            // Simulate loading delay before showing content (optional)
+            setTimeout(() => {
+                $(`#${modalId} .modal-body`).html(`
                                                                                             <table class="table table-bordered">
                                                                                                 <tr>
                                                                                                     <th>Head Office ID</th>
@@ -670,17 +723,17 @@
                                                                                                 </tr>
                                                                                             </table>
                                                                                         `);
-                }, 300); // Adjust delay if needed
-            }
+            }, 300); // Adjust delay if needed
+        }
 
-            // Function to show the notes modal
-            function viewNotesHistory(officeId) {
-                const modalId = `viewNotesHistoryModal_${officeId}`;
-                const labelId = `${modalId}Label`;
+        // Function to show the notes modal
+        function viewNotesHistory(officeId) {
+            const modalId = `viewNotesHistoryModal_${officeId}`;
+            const labelId = `${modalId}Label`;
 
-                // Add the modal HTML to the page (only once)
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(`
+            // Add the modal HTML to the page (only once)
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
                                                                                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
                                                                                                 <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                                                                                                     <div class="modal-content">
@@ -702,63 +755,65 @@
                                                                                                 </div>
                                                                                             </div>
                                                                                         `);
-                } else {
-                    // Reset content to loader if modal already exists
-                    $(`#${modalId} .modal-body`).html(`
+            } else {
+                // Reset content to loader if modal already exists
+                $(`#${modalId} .modal-body`).html(`
                                                                                             <div class="spinner-border text-primary my-4" role="status">
                                                                                                 <span class="visually-hidden">Loading...</span>
                                                                                             </div>
                                                                                         `);
-                }
+            }
 
-                // Show modal immediately with loader
-                $(`#${modalId}`).modal('show');
+            // Show modal immediately with loader
+            $(`#${modalId}`).modal('show');
 
-                // AJAX request to fetch notes history
-                $.ajax({
-                    url: '{{ route("getModuleNotesHistory") }}',
-                    type: 'GET',
-                    data: {
-                        id: officeId,
-                        module: 'Office'
-                    },
-                    success: function (response) {
-                        let notesHtml = '';
+            // AJAX request to fetch notes history
+            $.ajax({
+                url: '{{ route('getModuleNotesHistory') }}',
+                type: 'GET',
+                data: {
+                    id: officeId,
+                    module: 'Office'
+                },
+                success: function(response) {
+                    let notesHtml = '';
 
-                        if (response.data.length === 0) {
-                            notesHtml = '<p>No record found.</p>';
-                        } else {
-                            response.data.forEach(function (note) {
-                                const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
-                                const status = note.status == 1 ? 'Active' : 'Inactive';
-                                const badgeClass = note.status == 1 ? 'bg-success' : 'bg-dark';
-                                notesHtml += `
+                    if (response.data.length === 0) {
+                        notesHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(note) {
+                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                            const status = note.status == 1 ? 'Active' : 'Inactive';
+                            const badgeClass = note.status == 1 ? 'bg-success' : 'bg-dark';
+                            notesHtml += `
                                                                                                         <div class="note-entry mb-3">
                                                                                                             <p><strong>Dated:</strong> ${created} &nbsp;
                                                                                                                 <span class="badge ${badgeClass}">${status}</span>
                                                                                                             </p>
                                                                                                             <p><strong>Notes Detail:</strong><br>${note.details}</p>
                                                                                                         </div><hr>`;
-                            });
-                        }
-
-                        $(`#${modalId} .modal-body`).html(notesHtml);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Error fetching notes history:", error);
-                        $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>');
+                        });
                     }
-                });
-            }
 
-            // Function to show the notes modal
-            function viewManagerDetails(officeId) {
-                const modalId = `viewManagerDetailsModal_${officeId}`;
-                const labelId = `${modalId}Label`;
+                    $(`#${modalId} .modal-body`).html(notesHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching notes history:", error);
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
+                    );
+                }
+            });
+        }
 
-                // Add modal HTML if not already present
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(`
+        // Function to show the notes modal
+        function viewManagerDetails(officeId) {
+            const modalId = `viewManagerDetailsModal_${officeId}`;
+            const labelId = `${modalId}Label`;
+
+            // Add modal HTML if not already present
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(`
                                                                                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
                                                                                                 <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                                                                                                     <div class="modal-content">
@@ -780,40 +835,40 @@
                                                                                                 </div>
                                                                                             </div>
                                                                                         `);
-                } else {
-                    // Reset modal body to loader if already exists
-                    $(`#${modalId} .modal-body`).html(`
+            } else {
+                // Reset modal body to loader if already exists
+                $(`#${modalId} .modal-body`).html(`
                                                                                             <div class="spinner-border text-primary my-4" role="status">
                                                                                                 <span class="visually-hidden">Loading...</span>
                                                                                             </div>
                                                                                         `);
-                }
+            }
 
-                // Show the modal immediately with loader
-                $(`#${modalId}`).modal('show');
+            // Show the modal immediately with loader
+            $(`#${modalId}`).modal('show');
 
-                // AJAX request to fetch contact data
-                $.ajax({
-                    url: '{{ route("getModuleContacts") }}',
-                    type: 'GET',
-                    data: {
-                        id: officeId,
-                        module: 'Office'
-                    },
-                    success: function (response) {
-                        let contactHtml = '';
+            // AJAX request to fetch contact data
+            $.ajax({
+                url: '{{ route('getModuleContacts') }}',
+                type: 'GET',
+                data: {
+                    id: officeId,
+                    module: 'Office'
+                },
+                success: function(response) {
+                    let contactHtml = '';
 
-                        if (!response.data || response.data.length === 0) {
-                            contactHtml = '<p>No record found.</p>';
-                        } else {
-                            response.data.forEach(function (contact) {
-                                const name = contact.contact_name || 'N/A';
-                                const email = contact.contact_email || 'N/A';
-                                const phone = contact.contact_phone || 'N/A';
-                                const landline = contact.contact_landline || 'N/A';
-                                const note = contact.contact_note || 'N/A';
+                    if (!response.data || response.data.length === 0) {
+                        contactHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(contact) {
+                            const name = contact.contact_name || 'N/A';
+                            const email = contact.contact_email || 'N/A';
+                            const phone = contact.contact_phone || 'N/A';
+                            const landline = contact.contact_landline || 'N/A';
+                            const note = contact.contact_note || 'N/A';
 
-                                contactHtml += `
+                            contactHtml += `
                                                                                                         <div class="note-entry mb-3">
                                                                                                             <p><strong>Name:</strong> ${name}</p>
                                                                                                             <p><strong>Email:</strong> ${email}</p>
@@ -822,396 +877,399 @@
                                                                                                             <p><strong>Note:</strong><br>${note}</p>
                                                                                                         </div>
                                                                                                         <hr>`;
-                            });
-                        }
+                        });
+                    }
 
-                        $(`#${modalId} .modal-body`).html(contactHtml);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Error fetching manager details:", error);
-                        $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>');
+                    $(`#${modalId} .modal-body`).html(contactHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching manager details:", error);
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>'
+                    );
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $('#csvImportForm').on('submit', function(e) {
+                e.preventDefault();
+
+                let form = $(this);
+                let submitBtn = form.find('button[type="submit"]');
+                let formData = new FormData(this);
+                let xhr = new XMLHttpRequest();
+
+                // Disable button
+                submitBtn.prop('disabled', true).text('Uploading...');
+
+                xhr.open('POST', '{{ route('offices.import') }}', true);
+                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                xhr.upload.addEventListener("progress", function(event) {
+                    if (event.lengthComputable) {
+                        let percent = Math.round((event.loaded / event.total) * 100);
+                        $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
+                        console.log('Uploading: ' + percent + '%');
                     }
                 });
-            }
 
-            $(document).ready(function () {
-                $('#csvImportForm').on('submit', function (e) {
-                    e.preventDefault();
+                xhr.onload = function() {
+                    console.log('Upload response:', xhr.status, xhr.responseText);
 
-                    let form = $(this);
-                    let submitBtn = form.find('button[type="submit"]');
-                    let formData = new FormData(this);
-                    let xhr = new XMLHttpRequest();
+                    if (xhr.status === 200) {
+                        $('#uploadProgressBar')
+                            .removeClass('bg-danger')
+                            .addClass('bg-success')
+                            .text('Upload Complete');
 
-                    // Disable button
-                    submitBtn.prop('disabled', true).text('Uploading...');
+                        form[0].reset();
+                        $('#headOffice_table').DataTable().ajax.reload();
 
-                    xhr.open('POST', '{{ route("offices.import") }}', true);
-                    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
-
-                    xhr.upload.addEventListener("progress", function (event) {
-                        if (event.lengthComputable) {
-                            let percent = Math.round((event.loaded / event.total) * 100);
-                            $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
-                            console.log('Uploading: ' + percent + '%');
-                        }
-                    });
-
-                    xhr.onload = function () {
-                        console.log('Upload response:', xhr.status, xhr.responseText);
-
-                        if (xhr.status === 200) {
+                        // ✅ Close modal after short delay
+                        setTimeout(() => {
+                            $('#csvImportModal').modal('hide');
                             $('#uploadProgressBar')
-                                .removeClass('bg-danger')
-                                .addClass('bg-success')
-                                .text('Upload Complete');
-
-                            form[0].reset();
-                            $('#headOffice_table').DataTable().ajax.reload();
-
-                            // ✅ Close modal after short delay
-                            setTimeout(() => {
-                                $('#csvImportModal').modal('hide');
-                                $('#uploadProgressBar')
-                                    .css('width', '0%')
-                                    .removeClass('bg-success bg-danger')
-                                    .text('0%');
-                            }, 800);
-                        } else {
-                            $('#uploadProgressBar')
-                                .removeClass('bg-success')
-                                .addClass('bg-danger')
-                                .text('Upload Failed');
-                            alert('Server Error: ' + xhr.responseText);
-                        }
-
-                        // Re-enable button
-                        submitBtn.prop('disabled', false).text('Import CSV');
-                    };
-
-                    xhr.onerror = function () {
-                        console.error('XHR error:', xhr.responseText);
+                                .css('width', '0%')
+                                .removeClass('bg-success bg-danger')
+                                .text('0%');
+                        }, 800);
+                    } else {
                         $('#uploadProgressBar')
                             .removeClass('bg-success')
                             .addClass('bg-danger')
-                            .text('Upload Error');
-                        alert('XHR Error: ' + xhr.responseText);
-
-                        // Re-enable button
-                        submitBtn.prop('disabled', false).text('Import CSV');
-                    };
-
-                    xhr.send(formData);
-                });
-            });
-
-            $(document).on('click', '.export-btn', function (e) {
-                e.preventDefault();
-
-                const $link = $(this);
-                const url = $link.attr('href');
-                const $dropdown = $link.closest('.dropdown');
-                const $btn = $dropdown.find('button');
-                const $icon = $btn.find('i');
-                const $text = $btn.find('.btn-text');
-
-                // Disable button + show loader
-                $btn.prop('disabled', true);
-                $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
-                $text.text('Exporting...');
-
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    xhrFields: { responseType: 'blob' }, // for binary file
-                    success: function (data, status, xhr) {
-                        const blob = new Blob([data]);
-                        const link = document.createElement('a');
-                        const fileName = xhr.getResponseHeader('Content-Disposition')
-                            ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = fileName;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    },
-                    error: function () {
-                        alert('Export failed. Please try again.');
-                    },
-                    complete: function () {
-                        // Re-enable button + reset text
-                        $btn.prop('disabled', false);
-                        $icon.removeClass().addClass('ri-download-line me-1');
-                        $text.text('Export');
+                            .text('Upload Failed');
+                        alert('Server Error: ' + xhr.responseText);
                     }
-                });
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.onerror = function() {
+                    console.error('XHR error:', xhr.responseText);
+                    $('#uploadProgressBar')
+                        .removeClass('bg-success')
+                        .addClass('bg-danger')
+                        .text('Upload Error');
+                    alert('XHR Error: ' + xhr.responseText);
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.send(formData);
             });
+        });
 
-            function deleteOffice(id) {
+        $(document).on('click', '.export-btn', function(e) {
+            e.preventDefault();
 
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This office will be permanently deleted! If you delete this office then it will delete its units, contacts and sales.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
 
-                    if (result.isConfirmed) {
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Exporting...');
 
-                        $.ajax({
-                            url: "{{ route('scrapped.office.destroy', ':id') }}".replace(':id', id),
-                            type: 'DELETE',
-                            data: {
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
-
-                                Swal.fire(
-                                    'Deleted!',
-                                    response.message || 'Office has been deleted.',
-                                    'success'
-                                );
-
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#headOffice_table').DataTable().ajax.reload(null, false);
-                            },
-
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
-                    }
-                });
-            }
-
-            let selectedIds = [];
-
-            // Individual checkbox
-            $(document).on('change', '.office-checkbox', function () {
-                toggleBulkButtons();
-            });
-
-            // Select all checkbox
-            $(document).on('change', '#select-all', function () {
-                $('.office-checkbox')
-                    .prop('checked', this.checked)
-                    .trigger('change'); // 🔥 important
-            });
-
-            const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
-
-            function toggleBulkButtons() {
-                bulkButtons.prop('disabled', $('.office-checkbox:checked').length === 0);
-            }
-
-            function getSelectedOffices() {
-                let ids = [];
-
-                $('.office-checkbox:checked').each(function () {
-                    ids.push($(this).val());
-                });
-                return ids;
-            }
-
-            $('#bulk-email-btn').on('click', function () {
-                let ids = getSelectedOffices();
-
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: {
+                    responseType: 'blob'
+                }, // for binary file
+                success: function(data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function() {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function() {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
                 }
+            });
+        });
 
-                $.ajax({
-                    url: "{{ route('scrap.bulk.offices.email.template') }}",
-                    type: "POST",
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        ids: ids
-                    },
-                    success: function (res) {
-                        if (res.sale_ids.length > 0) {
-                            // Set modal fields
-                            $('#bulk-email-subject').val(res.subject);
-                            $('#bulk-email-body').summernote('code', res.email_template);
-                            $('#bulk-sales-ids').val(res.sale_ids); // store full map
-                            $('#bulk_from_email').val(res.from_email);
+        function deleteOffice(id) {
 
-                            // Show modal
-                            $('#bulkEmailModal').modal('show');
-                        } else {
-                            toastr.error('No emails found');
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This office will be permanently deleted! If you delete this office then it will delete its units, contacts and sales.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.office.destroy', ':id') }}".replace(':id', id),
+                        type: 'DELETE',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Deleted!',
+                                response.message || 'Office has been deleted.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#headOffice_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
                         }
-                    },
-                    error: function (xhr, status, error) {
-                        toastr.error('Something went wrong while fetching email template');
-                        console.error(error);
-                    }
-                });
+                    });
+                }
             });
+        }
 
-            function sendBulkEmail() {
-                var message = $('#bulk-email-body').summernote('code');
-                let rawIds = $('#bulk-sales-ids').val();
+        let selectedIds = [];
 
-                let saleIds = [];
-                try {
-                    let parsed = JSON.parse(rawIds);
-                    saleIds = Array.isArray(parsed) ? parsed : [parsed]; // ← wrap single value in array
-                } catch (e) {
-                    // fallback: treat as comma-separated string
-                    saleIds = rawIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                }
+        // Individual checkbox
+        $(document).on('change', '.office-checkbox', function() {
+            toggleBulkButtons();
+        });
 
-                if (!message || message === '<p><br></p>') {
-                    toastr.error('Message body cannot be empty.');
-                    return;
-                }
+        // Select all checkbox
+        $(document).on('change', '#select-all', function() {
+            $('.office-checkbox')
+                .prop('checked', this.checked)
+                .trigger('change'); // 🔥 important
+        });
 
-                if (saleIds.length === 0) {
-                    toastr.error('No office IDs found.');
-                    return;
-                }
+        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
 
-                var $btn = $('#submit-bulk-email-btn');
-                $btn.prop('disabled', true).text('Sending...');
+        function toggleBulkButtons() {
+            bulkButtons.prop('disabled', $('.office-checkbox:checked').length === 0);
+        }
 
-                $.ajax({
-                    url: '/send-bulk-emails-to-offices',
-                    type: 'POST',
-                    data: {
-                        sale_ids: saleIds,
-                        from_email: $('#bulk_from_email').val(),
-                        subject: $('#bulk-email-subject').val(),
-                        email_title: 'Scrap Bulk Emails',
-                        message: message,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function (res) {
-                        $('#bulkEmailModal').modal('hide');
-                        toastr.success(res.message || 'Email sent successfully!');
-                    },
-                    error: function (xhr) {
-                        var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
-                        toastr.error(err);
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).text('Send');
-                    }
-                });
+        function getSelectedOffices() {
+            let ids = [];
+
+            $('.office-checkbox:checked').each(function() {
+                ids.push($(this).val());
+            });
+            return ids;
+        }
+
+        $('#bulk-email-btn').on('click', function() {
+            let ids = getSelectedOffices();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
             }
 
-            $('#bulk-delete-btn').on('click', function () {
-                let ids = getSelectedOffices();
+            $.ajax({
+                url: "{{ route('scrap.bulk.offices.email.template') }}",
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    ids: ids
+                },
+                success: function(res) {
+                    if (res.sale_ids.length > 0) {
+                        // Set modal fields
+                        $('#bulk-email-subject').val(res.subject);
+                        $('#bulk-email-body').summernote('code', res.email_template);
+                        $('#bulk-sales-ids').val(res.sale_ids); // store full map
+                        $('#bulk_from_email').val(res.from_email);
 
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This office will be permanently deleted! If you delete this office then it will delete its units, sales and contacts.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-
-                    if (result.isConfirmed) {
-
-                        $.ajax({
-                            url: "{{ route('scrapped.office.destroy') }}",
-                            type: 'DELETE',
-                            data: {
-                                id: ids,
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
-
-                                Swal.fire(
-                                    'Deleted!',
-                                    response.message || 'Office(s) has been deleted.',
-                                    'success'
-                                );
-
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#headOffice_table').DataTable().ajax.reload(null, false);
-                            },
-
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
+                        // Show modal
+                        $('#bulkEmailModal').modal('show');
+                    } else {
+                        toastr.error('No emails found');
                     }
-                });
-            });
-
-            $('#bulk-approve-btn').on('click', function () {
-                let ids = getSelectedOffices();
-
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
+                },
+                error: function(xhr, status, error) {
+                    toastr.error('Something went wrong while fetching email template');
+                    console.error(error);
                 }
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This will approve to the office.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: 'rgba(34, 190, 13, 1)',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, approve it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-
-                    if (result.isConfirmed) {
-
-                        $.ajax({
-                            url: "{{ route('scrapped.office.approve') }}",
-                            type: 'POST',
-                            data: {
-                                id: ids,
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
-
-                                Swal.fire(
-                                    'Approved!',
-                                    response.message || 'Office(s) has been approved.',
-                                    'success'
-                                );
-
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#headOffice_table').DataTable().ajax.reload(null, false);
-                            },
-
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
-                    }
-                });
             });
-        </script>
+        });
 
-    @endsection
+        function sendBulkEmail() {
+            var message = $('#bulk-email-body').summernote('code');
+            let rawIds = $('#bulk-sales-ids').val();
+
+            let saleIds = [];
+            try {
+                let parsed = JSON.parse(rawIds);
+                saleIds = Array.isArray(parsed) ? parsed : [parsed]; // ← wrap single value in array
+            } catch (e) {
+                // fallback: treat as comma-separated string
+                saleIds = rawIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            }
+
+            if (!message || message === '<p><br></p>') {
+                toastr.error('Message body cannot be empty.');
+                return;
+            }
+
+            if (saleIds.length === 0) {
+                toastr.error('No office IDs found.');
+                return;
+            }
+
+            var $btn = $('#submit-bulk-email-btn');
+            $btn.prop('disabled', true).text('Sending...');
+
+            $.ajax({
+                url: '/send-bulk-emails-to-offices',
+                type: 'POST',
+                data: {
+                    sale_ids: saleIds,
+                    from_email: $('#bulk_from_email').val(),
+                    subject: $('#bulk-email-subject').val(),
+                    email_title: 'Scrap Bulk Emails',
+                    message: message,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(res) {
+                    $('#bulkEmailModal').modal('hide');
+                    toastr.success(res.message || 'Email sent successfully!');
+                },
+                error: function(xhr) {
+                    var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
+                    toastr.error(err);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('Send');
+                }
+            });
+        }
+
+        $('#bulk-delete-btn').on('click', function() {
+            let ids = getSelectedOffices();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This office will be permanently deleted! If you delete this office then it will delete its units, sales and contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.office.destroy') }}",
+                        type: 'DELETE',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Deleted!',
+                                response.message || 'Office(s) has been deleted.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#headOffice_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#bulk-approve-btn').on('click', function() {
+            let ids = getSelectedOffices();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will approve to the office.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'rgba(34, 190, 13, 1)',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, approve it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.office.approve') }}",
+                        type: 'POST',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Approved!',
+                                response.message || 'Office(s) has been approved.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#headOffice_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+@endsection
 @endsection

@@ -725,7 +725,6 @@ class ScrapController extends Controller
                 }
 
                 DB::commit();
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('[ScrapImport] persistJobsTotalJob row error: ' . $e->getMessage(), [
@@ -994,7 +993,6 @@ class ScrapController extends Controller
                 }
 
                 DB::commit();
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('[ScrapImport] persistJobsReed error: ' . $e->getMessage(), [
@@ -1029,7 +1027,7 @@ class ScrapController extends Controller
         $statusFilter = $request->input('status_filter', '');
 
         // Base query
-        $model = Office::query()
+        $model = Office::withTrashed()
             ->with(['contact']) // Eager load contact relationship to solve N+1 Problem
             ->leftJoinSub(
                 DB::table('contacts')
@@ -1046,9 +1044,17 @@ class ScrapController extends Controller
                 '=',
                 'offices.id'
             )
-            ->select('offices.*')
             ->where('offices.status', 4)
+            ->select('offices.*')
             ->distinct();
+
+        if ($statusFilter === 'deleted') {
+            $model->where('offices.status', 4)
+                ->onlyTrashed(); // 👈 BEST & CLEAN
+        } else {
+            $model->where('offices.status', 4)
+                ->whereNull('offices.deleted_at');
+        }
 
         // Handle search input
         if ($request->filled('search.value')) {
@@ -1117,7 +1123,6 @@ class ScrapController extends Controller
             // Default order if no order parameter is sent
             $model->orderBy('offices.created_at', 'desc');
         }
-
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
@@ -1246,7 +1251,7 @@ class ScrapController extends Controller
         $statusFilter = $request->input('status_filter');
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
-        $query = Unit::query()
+        $query = Unit::withTrashed()
             ->select('units.*', 'offices.office_name as office_name', 'unit_contacts.contact_email as contact_email', 'unit_contacts.contact_phone as contact_phone', 'unit_contacts.contact_landline as contact_landline')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->leftJoinSub(
@@ -1264,12 +1269,19 @@ class ScrapController extends Controller
                 '=',
                 'units.id'
             )
-            ->whereNull('units.deleted_at')
             ->where('units.status', 4); //scrapped
 
         // Office filter
         if ($officeFilter !== '') {
             $query->whereIn('units.office_id', $officeFilter);
+        }
+
+        if ($statusFilter === 'deleted') {
+            $query->where('offices.status', 4)
+                ->onlyTrashed(); // 👈 BEST & CLEAN
+        } else {
+            $query->where('offices.status', 4)
+                ->whereNull('offices.deleted_at');
         }
 
         // ─── Turbo Search Optimization (Units + Contacts) ───────────────────
@@ -1423,7 +1435,7 @@ class ScrapController extends Controller
                 'unit_notes',
                 fn($u) =>
                 '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
-                . nl2br(e($u->unit_notes)) . '</a>'
+                    . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn('action', function ($u) {
                 $postcode = $u->formatted_postcode;
@@ -1565,7 +1577,7 @@ class ScrapController extends Controller
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
         $sourceFilter = $request->input('source_filter', ''); // Default is empty (no filter)
 
-        $model = Sale::query()
+        $model = Sale::withTrashed()
             ->select([
                 // Core identifiers
                 'sales.id',
@@ -1613,7 +1625,6 @@ class ScrapController extends Controller
             // Latest sale note via indexed join
             ->leftJoin(DB::raw('(SELECT sale_id, MAX(id) AS latest_id FROM sale_notes GROUP BY sale_id) AS latest_notes'), 'sales.id', '=', 'latest_notes.sale_id')
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
-            ->where('sales.status', 4) // scrapped
             // Latest open-audit per sale — avoids raw string escaping of backslash namespace
             ->leftJoinSub(
                 DB::table('audits')
@@ -1643,6 +1654,14 @@ class ScrapController extends Controller
                 'offices.id'
             )
             ->leftJoin('audits as open_audits', 'open_audits.id', '=', 'latest_open_audit_ids.id');
+
+        if ($statusFilter === 'deleted') {
+            $model->where('sales.status', 4)
+                ->onlyTrashed(); // 👈 BEST & CLEAN
+        } else {
+            $model->where('sales.status', 4)
+                ->whereNull('sales.deleted_at');
+        }
 
         if ($request->filled('search.value')) {
             $searchTerm = (string) $request->input('search.value');
@@ -2003,18 +2022,18 @@ class ScrapController extends Controller
 
             Contact::whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Office::class)
-                ->forceDelete();
+                ->delete();
 
             Sale::whereIn('office_id', $foundIds)
                 ->where('status', 4)
-                ->forceDelete();
+                ->delete();
 
             Unit::whereIn('office_id', $foundIds)
                 ->where('status', 4)
-                ->forceDelete();
+                ->delete();
 
             // Delete the office
-            Office::whereIn('id', $foundIds)->where('status', 4)->forceDelete();
+            Office::whereIn('id', $foundIds)->where('status', 4)->delete();
 
             DB::commit();
 
@@ -2068,11 +2087,11 @@ class ScrapController extends Controller
 
             Contact::whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Unit::class)
-                ->forceDelete();
+                ->delete();
 
-            Sale::whereIn('unit_id', $foundIds)->where('status', 4)->forceDelete();
+            Sale::whereIn('unit_id', $foundIds)->where('status', 4)->delete();
 
-            Unit::whereIn('id', $foundIds)->where('status', 4)->forceDelete();
+            Unit::whereIn('id', $foundIds)->where('status', 4)->delete();
 
             DB::commit();
 
@@ -2096,63 +2115,6 @@ class ScrapController extends Controller
             ], 500);
         }
     }
-    // public function scrappedSaleDestroy(Request $request)
-    // {
-    //     try {
-    //         $ids = $request->has('id')
-    //             ? (is_array($request->id) ? $request->id : [$request->id])
-    //             : [];
-
-    //         if (empty($ids)) {
-    //             return response()->json([
-    //                 'status' => false,
-    //                 'message' => 'No IDs provided'
-    //             ], 400);
-    //         }
-
-    //         $sales = Sale::whereIn('id', $ids)->where('status', 4)->get();
-
-    //         if ($sales->isEmpty()) {
-    //             return response()->json([
-    //                 'status' => false,
-    //                 'message' => 'Sale(s) not found or not scrapped'
-    //             ], 404);
-    //         }
-
-    //         $foundIds = $sales->pluck('id')->toArray();
-    //         $notFoundIds = array_diff($ids, $foundIds);
-
-    //         DB::beginTransaction();
-
-    //         Contact::whereIn('contactable_id', $foundIds)
-    //             ->where('contactable_type', Sale::class)
-    //             ->forceDelete();
-
-    //         Sale::whereIn('id', $foundIds)->forceDelete();
-
-    //         DB::commit();
-
-    //         $response = [
-    //             'status' => true,
-    //             'message' => count($foundIds) . ' sale(s) deleted successfully',
-    //             'deleted' => $foundIds,
-    //         ];
-
-    //         if (!empty($notFoundIds)) {
-    //             $response['not_found'] = array_values($notFoundIds);
-    //         }
-
-    //         return response()->json($response);
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Something went wrong',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
     public function scrappedSaleDestroy(Request $request)
     {
         try {
@@ -2211,24 +2173,24 @@ class ScrapController extends Controller
             // Delete sale contacts
             Contact::whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Sale::class)
-                ->forceDelete();
+                ->delete();
 
             // Delete office contacts and offices only if no other sales reference them
             if (!empty($soloOfficeIds)) {
                 Contact::whereIn('contactable_id', $soloOfficeIds)
                     ->where('contactable_type', Office::class)
-                    ->forceDelete();
+                    ->delete();
 
-                Office::whereIn('id', $soloOfficeIds)->forceDelete();
+                Office::whereIn('id', $soloOfficeIds)->delete();
             }
 
             // Delete units only if no other sales reference them
             if (!empty($soloUnitIds)) {
-                Unit::whereIn('id', $soloUnitIds)->forceDelete();
+                Unit::whereIn('id', $soloUnitIds)->delete();
             }
 
             // Always delete the requested sales
-            Sale::whereIn('id', $foundIds)->forceDelete();
+            Sale::whereIn('id', $foundIds)->delete();
 
             DB::commit();
 
@@ -2245,7 +2207,6 @@ class ScrapController extends Controller
             }
 
             return response()->json($response);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -2335,7 +2296,6 @@ class ScrapController extends Controller
             }
 
             return response()->json($response);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -2405,7 +2365,6 @@ class ScrapController extends Controller
             }
 
             return response()->json($response);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -2472,7 +2431,6 @@ class ScrapController extends Controller
             }
 
             return response()->json($response);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,

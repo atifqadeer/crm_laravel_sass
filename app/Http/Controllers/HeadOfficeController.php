@@ -26,7 +26,7 @@ class HeadOfficeController extends Controller
 
     public function __construct()
     {
-    //
+        //
     }
     /**
      * Display a listing of the applicants.
@@ -112,15 +112,13 @@ class HeadOfficeController extends Controller
 
                     $officeData['office_lat'] = $result['lat'];
                     $officeData['office_lng'] = $result['lng'];
-                }
-                catch (\Exception $e) {
+                } catch (\Exception $e) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unable to locate address: ' . $e->getMessage()
                     ], 400);
                 }
-            }
-            else {
+            } else {
                 $officeData['office_lat'] = $postcode_query->lat;
                 $officeData['office_lng'] = $postcode_query->lng;
             }
@@ -139,8 +137,8 @@ class HeadOfficeController extends Controller
                     'contact_email' => $request->input('contact_email')[$index],
                     'contact_phone' => preg_replace('/[^0-9]/', '', $request->input('contact_phone')[$index]),
                     'contact_landline' => $request->input('contact_landline')[$index]
-                    ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
-                    : null,
+                        ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
+                        : null,
                     'contact_note' => $request->input('contact_note')[$index] ?? null,
                 ];
 
@@ -169,8 +167,7 @@ class HeadOfficeController extends Controller
                 'message' => 'Head Office created successfully',
                 'redirect' => route('head-offices.list')
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error creating head office: ' . $e->getMessage());
             DB::rollBack();
             return response()->json([
@@ -186,19 +183,19 @@ class HeadOfficeController extends Controller
         // Query builder with minimal selected columns
         $model = Office::query()
             ->leftJoin('contacts', function ($join) {
-            $join->on('contacts.contactable_id', '=', 'offices.id')
-                ->where('contacts.contactable_type', 'Horsefly\\Office');
-        })
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+            })
             ->select(
-            'offices.id',
-            'offices.office_name',
-            'offices.office_postcode',
-            'offices.office_type',
-            'offices.office_notes',
-            'offices.status',
-            'offices.created_at',
-            'offices.updated_at'
-        );
+                'offices.id',
+                'offices.office_name',
+                'offices.office_postcode',
+                'offices.office_type',
+                'offices.office_notes',
+                'offices.status',
+                'offices.created_at',
+                'offices.updated_at'
+            );
 
         // Apply status filter if provided
         switch ($statusFilter) {
@@ -239,12 +236,10 @@ class HeadOfficeController extends Controller
                 // Handle contact.* columns differently if needed
                 // $column = str_starts_with($orderColumn, 'contact.') ? 'contacts.' . str_replace('contact.', '', $orderColumn) : 'offices.' . $orderColumn;
                 $model->orderBy($orderColumn, $orderDirection);
-            }
-            else {
+            } else {
                 $model->orderBy('offices.created_at', 'desc');
             }
-        }
-        else {
+        } else {
             $model->orderBy('offices.created_at', 'desc');
         }
 
@@ -252,82 +247,82 @@ class HeadOfficeController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn()
                 ->addColumn('office_name', function ($office) {
-                return $office->formatted_office_name;
-            })
+                    return $office->formatted_office_name;
+                })
                 ->addColumn('office_postcode', function ($office) {
-                return $office->formatted_postcode;
-            })
+                    return $office->formatted_postcode;
+                })
                 ->addColumn('office_type', function ($office) {
-                return ucwords(str_replace('_', ' ', $office->office_type));
-            })
+                    return ucwords(str_replace('_', ' ', $office->office_type));
+                })
                 ->addColumn('contact_email', function ($office) {
-                return $office->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
+                })
                 ->addColumn('contact_landline', function ($office) {
-                return $office->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
+                })
                 ->addColumn('contact_phone', function ($office) {
-                return $office->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
+                })
                 ->filterColumn('contact_email', function ($query, $keyword) {
-                $query->whereRaw("LOWER(contacts.contact_email) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
-            })
+                    $query->whereRaw("LOWER(contacts.contact_email) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
+                })
 
                 ->filterColumn('contact_phone', function ($query, $keyword) {
-                $query->whereRaw("contacts.contact_phone LIKE ?", ["%" . trim($keyword) . "%"]);
-            })
+                    $query->whereRaw("contacts.contact_phone LIKE ?", ["%" . trim($keyword) . "%"]);
+                })
 
                 ->filterColumn('contact_landline', function ($query, $keyword) {
-                $query->whereRaw("contacts.contact_landline LIKE ?", ["%" . trim($keyword) . "%"]);
-            })
+                    $query->whereRaw("contacts.contact_landline LIKE ?", ["%" . trim($keyword) . "%"]);
+                })
                 ->orderColumn('contact_email', function ($query, $order) {
-                $query->orderBy('contacts.contact_email', $order);
-            })
+                    $query->orderBy('contacts.contact_email', $order);
+                })
                 ->orderColumn('contact_phone', function ($query, $order) {
-                $query->orderBy('contacts.contact_phone', $order);
-            })
+                    $query->orderBy('contacts.contact_phone', $order);
+                })
                 ->orderColumn('contact_landline', function ($query, $order) {
-                $query->orderBy('contacts.contact_landline', $order);
-            })
+                    $query->orderBy('contacts.contact_landline', $order);
+                })
                 ->addColumn('updated_at', function ($office) {
-                return $office->formatted_updated_at;
-            })
+                    return $office->formatted_updated_at;
+                })
                 ->addColumn('created_at', function ($office) {
-                return $office->formatted_created_at;
-            })
+                    return $office->formatted_created_at;
+                })
                 ->addColumn('office_notes', function ($office) {
-                $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
-                return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
-            })
+                    $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
+                    return '<a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
+                })
                 ->addColumn('status', function ($office) {
-                return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-            })
+                    return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                })
                 ->addColumn('action', function ($office) {
-                $postcode = $office->formatted_postcode;
-                $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-                $html = '<div class="btn-group dropstart">
+                    $postcode = $office->formatted_postcode;
+                    $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    $html = '<div class="btn-group dropstart">
                                     <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                     </button>
                                     <ul class="dropdown-menu">';
-                if (Gate::allows('office-edit')) {
-                    $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
-                }
-                if (Gate::allows('office-view')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
-                }
-                if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
-                    $html .= '<li><hr class="dropdown-divider"></li>';
-                }
-                if (Gate::allows('office-view-notes-history')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
-                }
-                if (Gate::allows('office-view-manager-details')) {
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
-                }
-                $html .= '</ul></div>';
-                return $html;
-            })
+                    if (Gate::allows('office-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('office-view')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
+                    }
+                    if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
+                    if (Gate::allows('office-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
+                    }
+                    if (Gate::allows('office-view-manager-details')) {
+                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
+                    }
+                    $html .= '</ul></div>';
+                    return $html;
+                })
                 ->rawColumns(['office_notes', 'contact_email', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
                 ->toJson();
         }
@@ -340,17 +335,16 @@ class HeadOfficeController extends Controller
         $model = Office::query()
             ->with(['contact']) // Eager load contact relationship to solve N+1 Problem
             ->leftJoin('contacts', function ($join) {
-            $join->on('contacts.contactable_id', '=', 'offices.id')
-                ->where('contacts.contactable_type', 'Horsefly\\Office');
-        })
+                $join->on('contacts.contactable_id', '=', 'offices.id')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+            })
             ->select('offices.*')
             ->distinct();
 
         // Apply status filter
         if ($statusFilter === 'active') {
             $model->where('offices.status', 1);
-        }
-        elseif ($statusFilter === 'inactive') {
+        } elseif ($statusFilter === 'inactive') {
             $model->where('offices.status', 0);
         }
 
@@ -365,10 +359,10 @@ class HeadOfficeController extends Controller
                 // Find contact IDs matching the search for contact fields
                 $contactIds = Contact::where('contactable_type', 'Horsefly\\Office')
                     ->where(function ($q) use ($search) {
-                    $q->where('contact_email', 'LIKE', "%{$search}%")
-                        ->orWhere('contact_phone', 'LIKE', "%{$search}%")
-                        ->orWhere('contact_landline', 'LIKE', "%{$search}%");
-                })->pluck('contactable_id')->toArray();
+                        $q->where('contact_email', 'LIKE', "%{$search}%")
+                            ->orWhere('contact_phone', 'LIKE', "%{$search}%")
+                            ->orWhere('contact_landline', 'LIKE', "%{$search}%");
+                    })->pluck('contactable_id')->toArray();
 
                 // Merge and get unique IDs from both searches
                 $allMatchingIds = array_unique(array_merge($officeIds, $contactIds));
@@ -388,12 +382,10 @@ class HeadOfficeController extends Controller
 
             if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $model->orderBy($orderColumn, $orderDirection);
-            }
-            else {
+            } else {
                 $model->orderBy('offices.created_at', 'desc');
             }
-        }
-        else {
+        } else {
             $model->orderBy('offices.created_at', 'desc');
         }
 
@@ -401,100 +393,99 @@ class HeadOfficeController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn()
                 ->addColumn('office_name', function ($office) {
-                return $office->formatted_office_name;
-            })
+                    return $office->formatted_office_name;
+                })
                 ->editColumn('office_postcode', function ($office) {
-                $rawPostcode = trim($office->formatted_postcode);
-                if (empty($rawPostcode))
-                    return '<div class="text-center w-100">-</div>';
+                    $rawPostcode = trim($office->formatted_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
 
-                $postcode = $office->formatted_postcode;
-                $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                    $postcode = $office->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
                                     data-postcode="' . e($office->formatted_postcode) . '" title="Copy Postcode">
                                     <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
                                 </button>';
 
-                if ($office->office_lat != null && $office->office_lng != null) {
-                    $url = route('applicants.available_job', ['id' => $office->id, 'radius' => 15]);
-                    $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
-                    return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
-                }
-                else {
-                    return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
-                }
-            })
+                    if ($office->office_lat != null && $office->office_lng != null) {
+                        $url = route('applicants.available_job', ['id' => $office->id, 'radius' => 15]);
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+                    } else {
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
+                    }
+                })
                 ->addColumn('office_type', function ($office) {
-                return ucwords(str_replace('_', ' ', $office->office_type));
-            })
+                    return ucwords(str_replace('_', ' ', $office->office_type));
+                })
                 ->addColumn('contact_email', function ($office) {
-                return $office->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_email')->filter()->implode('<br>') ?: '-';
+                })
                 ->addColumn('contact_landline', function ($office) {
-                return $office->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_landline')->filter()->implode('<br>') ?: '-';
+                })
                 ->addColumn('contact_phone', function ($office) {
-                return $office->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
-            })
+                    return $office->contact->pluck('contact_phone')->filter()->implode('<br>') ?: '-';
+                })
                 ->filterColumn('contact_email', function ($query, $keyword) {
-                $query->whereRaw("LOWER(contacts.contact_email) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
-            })
+                    $query->whereRaw("LOWER(contacts.contact_email) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
+                })
                 ->filterColumn('contact_phone', function ($query, $keyword) {
-                $query->whereRaw("contacts.contact_phone LIKE ?", ["%" . trim($keyword) . "%"]);
-            })
+                    $query->whereRaw("contacts.contact_phone LIKE ?", ["%" . trim($keyword) . "%"]);
+                })
                 ->filterColumn('contact_landline', function ($query, $keyword) {
-                $query->whereRaw("contacts.contact_landline LIKE ?", ["%" . trim($keyword) . "%"]);
-            })
+                    $query->whereRaw("contacts.contact_landline LIKE ?", ["%" . trim($keyword) . "%"]);
+                })
                 ->filterColumn('office_notes', function ($query, $keyword) {
-                $query->whereRaw("LOWER(offices.office_notes) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
-            })
+                    $query->whereRaw("LOWER(offices.office_notes) LIKE ?", ["%" . strtolower(trim($keyword)) . "%"]);
+                })
                 ->orderColumn('contact_email', function ($query, $order) {
-                $query->orderBy('contacts.contact_email', $order);
-            })
+                    $query->orderBy('contacts.contact_email', $order);
+                })
                 ->orderColumn('contact_phone', function ($query, $order) {
-                $query->orderBy('contacts.contact_phone', $order);
-            })
+                    $query->orderBy('contacts.contact_phone', $order);
+                })
                 ->orderColumn('contact_landline', function ($query, $order) {
-                $query->orderBy('contacts.contact_landline', $order);
-            })
+                    $query->orderBy('contacts.contact_landline', $order);
+                })
                 ->addColumn('updated_at', function ($office) {
-                return $office->formatted_updated_at;
-            })
+                    return $office->formatted_updated_at;
+                })
                 ->addColumn('created_at', function ($office) {
-                return $office->formatted_created_at;
-            })
+                    return $office->formatted_created_at;
+                })
                 ->editColumn('office_notes', function ($office) {
-                $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
-                return '<a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
-            })
+                    $notes = nl2br(htmlspecialchars($office->office_notes ?? '', ENT_QUOTES, 'UTF-8'));
+                    return '<a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
+                })
                 ->addColumn('status', function ($office) {
-                return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-            })
+                    return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                })
                 ->addColumn('action', function ($office) {
-                $postcode = $office->formatted_postcode;
-                $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-                $html = '<div class="btn-group dropstart">
+                    $postcode = $office->formatted_postcode;
+                    $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">';
-                if (Gate::allows('office-edit')) {
-                    $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
-                }
-                if (Gate::allows('office-view')) {
-                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
-                }
-                if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
-                    $html .= '<li><hr class="dropdown-divider"></li>';
-                }
-                if (Gate::allows('office-view-notes-history')) {
-                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
-                }
-                if (Gate::allows('office-view-manager-details')) {
-                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
-                }
-                $html .= '</ul></div>';
-                return $html;
-            })
+                    if (Gate::allows('office-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
+                    }
+                    if (Gate::allows('office-view')) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
+                    }
+                    if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
+                        $html .= '<li><hr class="dropdown-divider"></li>';
+                    }
+                    if (Gate::allows('office-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $office->id . ')">Notes History</a></li>';
+                    }
+                    if (Gate::allows('office-view-manager-details')) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
+                    }
+                    $html .= '</ul></div>';
+                    return $html;
+                })
                 ->rawColumns(['office_notes', 'contact_email', 'office_postcode', 'contact_phone', 'contact_landline', 'office_type', 'status', 'action'])
                 ->toJson();
         }
@@ -570,19 +561,16 @@ class HeadOfficeController extends Controller
             'office_notes' => 'required|string',
 
             // Contact person's details (Array validation)
-            'contact_name' => 'required|array',
-            'contact_name.*' => 'required|string|max:255',
+            'contact_email' => 'sometimes|array',
+            'contact_email.*' => 'nullable|email|max:255',
 
-            'contact_email' => 'required|array',
-            'contact_email.*' => 'required|email|max:255',
-
-            'contact_phone' => 'nullable|array',
+            'contact_phone' => 'sometimes|array',
             'contact_phone.*' => 'nullable|string|max:20',
 
-            'contact_landline' => 'nullable|array',
+            'contact_landline' => 'sometimes|array',
             'contact_landline.*' => 'nullable|string|max:20',
 
-            'contact_note' => 'nullable|array',
+            'contact_note' => 'sometimes|array',
             'contact_note.*' => 'nullable|string',
         ]);
 
@@ -616,6 +604,13 @@ class HeadOfficeController extends Controller
                 throw new \Exception("Head Office not found with ID: " . $id);
             }
 
+            /*** update to the office status */
+            if ($office->status == 4) {
+                $office->status = $request->status;
+                $office->office_notes = 'Office has been updated';
+                $office->save();
+            }
+
             $officeData['office_notes'] = $office_notes = $request->office_notes . ' --- By: ' . Auth::user()->name . ' Date: ' . Carbon::now()->format('d-m-Y');
 
             $postcode = preg_replace('/\s+/', '', $request->office_postcode);
@@ -644,15 +639,13 @@ class HeadOfficeController extends Controller
 
                         $officeData['office_lat'] = $result['lat'];
                         $officeData['office_lng'] = $result['lng'];
-                    }
-                    catch (\Exception $e) {
+                    } catch (\Exception $e) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Unable to locate address: ' . $e->getMessage()
                         ], 400);
                     }
-                }
-                else {
+                } else {
                     $officeData['office_lat'] = $postcode_query->lat;
                     $officeData['office_lng'] = $postcode_query->lng;
                 }
@@ -690,8 +683,8 @@ class HeadOfficeController extends Controller
                     'contact_email' => $request->input('contact_email')[$index],
                     'contact_phone' => preg_replace('/[^0-9]/', '', $request->input('contact_phone')[$index]),
                     'contact_landline' => $request->input('contact_landline')[$index]
-                    ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
-                    : null,
+                        ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
+                        : null,
                     'contact_note' => $request->input('contact_note')[$index] ?? null,
                 ];
 
@@ -705,8 +698,7 @@ class HeadOfficeController extends Controller
                 'message' => 'Head Office updated successfully',
                 'redirect' => $request->input('redirect_url', route('head-offices.list'))
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error updating head office: ' . $e->getMessage());
             DB::rollBack();
             return response()->json([
@@ -750,8 +742,7 @@ class HeadOfficeController extends Controller
                 'data' => $contacts,
                 'success' => true
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',

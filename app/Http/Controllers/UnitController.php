@@ -326,14 +326,14 @@ class UnitController extends Controller
                 'unit_notes',
                 fn($u) =>
                 '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
-                . nl2br(e($u->unit_notes)) . '</a>'
+                    . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn(
                 'status',
                 fn($u) =>
                 $u->status
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Inactive</span>'
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-secondary">Inactive</span>'
             )
             ->addColumn('action', function ($u) {
                 $postcode = $u->formatted_postcode;
@@ -458,19 +458,16 @@ class UnitController extends Controller
             'unit_notes' => 'required|string|max:255',
 
             // Contact person's details (Array validation)
-            'contact_name' => 'required|array',
-            'contact_name.*' => 'required|string|max:255',
+            'contact_email' => 'sometimes|array',
+            'contact_email.*' => 'nullable|email|max:255',
 
-            'contact_email' => 'required|array',
-            'contact_email.*' => 'required|email|max:255',
-
-            'contact_phone' => 'nullable|array',
+            'contact_phone' => 'sometimes|array',
             'contact_phone.*' => 'nullable|string|max:20',
 
-            'contact_landline' => 'nullable|array',
+            'contact_landline' => 'sometimes|array',
             'contact_landline.*' => 'nullable|string|max:20',
 
-            'contact_note' => 'nullable|array',
+            'contact_note' => 'sometimes|array',
             'contact_note.*' => 'nullable|string',
         ]);
 
@@ -504,13 +501,16 @@ class UnitController extends Controller
                 throw new \Exception("Unit not found with ID: " . $id);
             }
 
+            /*** update to the office of this unit */
             if ($unit->status == 4) {
-                if ($request->status == 1) {
-                    Office::where('id', $unit->office_id)->where('status', 4)->update([
-                        'status' => 1,
-                        'office_notes' => 'unit has been approved'
-                    ]);
-                }
+                Office::where('id', $unit->office_id)->whereNotIn('status', [0, 1])->update([
+                    'status' => $request->status,
+                    'office_notes' => 'Unit has been updated'
+                ]);
+
+                $unit->status = $request->status;
+                $unit->unit_notes = 'Unit has been updated';
+                $unit->save();
             }
 
             $postcode = preg_replace('/\s+/', '', $request->unit_postcode);

@@ -62,10 +62,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="officesList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input office-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-offices" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-offices">All Head Office</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input office-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-offices" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-offices">All Head Office</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
 
                                                 @foreach ($offices as $office)
                                                     <div class="form-check">
@@ -103,10 +103,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="categoryList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input category-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-categories" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-categories">All Category</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input category-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-categories" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-categories">All Category</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
 
                                                 @foreach ($jobCategories as $category)
                                                     <div class="form-check">
@@ -134,7 +134,8 @@
                                                 placeholder="Search titles...">
                                             <!-- Select/Deselect All -->
                                             <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
                                                     data-target=".title-filter" data-exclude="[data-title-id='']">Select
                                                     All</a>
                                                 <a href="#" class="filter-deselect-all text-danger small fw-semibold"
@@ -144,10 +145,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="titleList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input title-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-titles" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-titles">All Titles</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input title-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-titles" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-titles">All Titles</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
                                                 @foreach ($jobTitles as $title)
                                                     <div class="form-check">
                                                         <input class="form-check-input title-filter" type="checkbox"
@@ -173,7 +174,8 @@
                                                 placeholder="Search Source...">
                                             <!-- Select/Deselect All -->
                                             <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
                                                     data-target=".source-filter" data-exclude="[data-source-id='']">Select
                                                     All</a>
                                                 <a href="#" class="filter-deselect-all text-danger small fw-semibold"
@@ -193,6 +195,16 @@
                                                     </div>
                                                 @endforeach
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Scraped</span>
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <a class="dropdown-item status-filter" href="#">Scraped</a>
+                                            <a class="dropdown-item status-filter" href="#">Deleted</a>
                                         </div>
                                     </div>
                                 @endcanany
@@ -291,7 +303,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="csvFile" class="form-label">Choose CSV File</label>
-                            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv"
+                                required>
                         </div>
                         <div class="progress" style="height: 20px;">
                             <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
@@ -383,127 +396,127 @@
         </div>
     </div>
 
-    @section('script')
-        <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-        <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
+@section('script')
+    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-        <!-- DataTables CSS (for styling the table) -->
-        <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
+    <!-- DataTables CSS (for styling the table) -->
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
-        <!-- DataTables JS (for the table functionality) -->
-        <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+    <!-- DataTables JS (for the table functionality) -->
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
-        <!-- Toastify CSS -->
-        <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
-        <!-- SweetAlert2 CDN -->
-        <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
-        <!-- Toastr JS -->
-        <script src="{{ asset('js/toastr.min.js') }}"></script>
+    <!-- Toastr JS -->
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
-        <!-- Moment JS -->
-        <script src="{{ asset('js/moment.min.js') }}"></script>
+    <!-- Moment JS -->
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
-        <!-- Summernote CSS -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+    <!-- Summernote CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
 
-        <!-- Summernote JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+    <!-- Summernote JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
 
-        <!-- Add daterangepicker -->
-        <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
-        <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
+    <!-- Add daterangepicker -->
+    <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
-        <script>
-            $(document).ready(function () {
-                // Initialize Summernote and set content
-                $('#message').summernote({
-                    height: 500,
-                    toolbar: [
-                        ['style', ['bold', 'italic', 'underline', 'clear']],
-                        ['font', ['strikethrough', 'superscript', 'subscript']],
-                        ['fontsize', ['fontsize']],
-                        ['color', []],
-                        ['para', ['ul', 'ol', 'paragraph']],
-                        ['insert', []],
-                        ['view', []]
-                    ]
-                });
-                $('#bulk-email-body').summernote({
-                    height: 500,
-                    toolbar: [
-                        ['style', ['bold', 'italic', 'underline', 'clear']],
-                        ['font', ['strikethrough', 'superscript', 'subscript']],
-                        ['fontsize', ['fontsize']],
-                        ['color', []],
-                        ['para', ['ul', 'ol', 'paragraph']],
-                        ['insert', []],
-                        ['view', []]
-                    ]
-                });
+    <script>
+        $(document).ready(function() {
+            // Initialize Summernote and set content
+            $('#message').summernote({
+                height: 500,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
             });
+            $('#bulk-email-body').summernote({
+                height: 500,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough', 'superscript', 'subscript']],
+                    ['fontsize', ['fontsize']],
+                    ['color', []],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []],
+                    ['view', []]
+                ]
+            });
+        });
 
-            $(document).ready(function () {
-                // Store the current filter in a variable
-                var currentFilter = '';
-                var currentTypeFilter = '';
-                var currentCategoryFilters = [];
-                var currentSourceFilters = [];
-                var currentUserFilters = [];
-                var currentTitleFilters = [];
-                var currentOfficeFilters = [];
-                var currentCVLimitFilter = '';
+        $(document).ready(function() {
+            // Store the current filter in a variable
+            var currentFilter = '';
+            var currentTypeFilter = '';
+            var currentCategoryFilters = [];
+            var currentSourceFilters = [];
+            var currentUserFilters = [];
+            var currentTitleFilters = [];
+            var currentOfficeFilters = [];
+            var currentCVLimitFilter = '';
 
-                // Create loader row
-                const loadingRow =
-                    `<tr><td colspan="100%" class="text-center py-4">
+            // Create loader row
+            const loadingRow =
+                `<tr><td colspan="100%" class="text-center py-4">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <div class="spinner-border text-primary" role="status">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <span class="visually-hidden">Loading...</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </td></tr>`;
 
-                // Function to show loader
-                function showLoader() {
-                    $('#sales_table tbody').empty().append(loadingRow);
-                }
+            // Function to show loader
+            function showLoader() {
+                $('#sales_table tbody').empty().append(loadingRow);
+            }
 
-                // Initialize DataTable with server-side processing
-                var table = $('#sales_table').DataTable({
-                    processing: false, // Disable default processing state
-                    serverSide: true, // Enables server-side processing
-                    ajax: {
-                        url: @json(route('getScrappedSales')), // Fetch data from the backend
-                        type: 'GET',
-                        data: function (d) {
-                            // Add the current filter to the request parameters
-                            d.status_filter = currentFilter; // Send the current filter value as a parameter
-                            d.type_filter =
-                                currentTypeFilter; // Send the current filter value as a parameter
-                            d.category_filter =
-                                currentCategoryFilters; // Send the current filter value as a parameter
-                            d.title_filter =
-                                currentTitleFilters; // Send the current filter value as a parameter
-                            d.office_filter =
-                                currentOfficeFilters; // Send the current filter value as a parameter
-                            d.user_filter =
-                                currentUserFilters; // Send the current filter value as a parameter
-                            d.cv_limit_filter =
-                                currentCVLimitFilter; // Send the current filter value as a parameter
-                            d.source_filter =
-                                currentSourceFilters; // Send the current filter value as a parameter
-                        },
-                        beforeSend: function () {
-                            showLoader(); // Show loader before AJAX request starts
-                        },
-                        error: function (xhr) {
-                            console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                            $('#sales_table tbody').empty().html(
-                                '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
-                            );
-                        }
+            // Initialize DataTable with server-side processing
+            var table = $('#sales_table').DataTable({
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
+                ajax: {
+                    url: @json(route('getScrappedSales')), // Fetch data from the backend
+                    type: 'GET',
+                    data: function(d) {
+                        // Add the current filter to the request parameters
+                        d.status_filter = currentFilter; // Send the current filter value as a parameter
+                        d.type_filter =
+                            currentTypeFilter; // Send the current filter value as a parameter
+                        d.category_filter =
+                            currentCategoryFilters; // Send the current filter value as a parameter
+                        d.title_filter =
+                            currentTitleFilters; // Send the current filter value as a parameter
+                        d.office_filter =
+                            currentOfficeFilters; // Send the current filter value as a parameter
+                        d.user_filter =
+                            currentUserFilters; // Send the current filter value as a parameter
+                        d.cv_limit_filter =
+                            currentCVLimitFilter; // Send the current filter value as a parameter
+                        d.source_filter =
+                            currentSourceFilters; // Send the current filter value as a parameter
                     },
-                    columns: [{
+                    beforeSend: function() {
+                        showLoader(); // Show loader before AJAX request starts
+                    },
+                    error: function(xhr) {
+                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                        $('#sales_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
+                    }
+                },
+                columns: [{
                         data: 'checkbox',
                         name: 'checkbox',
                         orderable: false,
@@ -582,66 +595,66 @@
                         orderable: false,
                         searchable: false
                     }
-                    ],
-                    columnDefs: [{
+                ],
+                columnDefs: [{
                         targets: 5, // Column index for 'position_type'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 6, // Column index for 'cv_limit'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 7, // Column index for 'status'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 8, // Column index for 'action'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 12, // Column index for 'action'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 14, // Column index for 'action'
-                        createdCell: function (td, cellData, rowData, row, col) {
+                        createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     }
-                    ],
-                    rowId: function (data) {
-                        return 'row_' + data
-                            .id; // Assign a unique ID to each row using the 'id' field from the data
-                    },
-                    dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                    drawCallback: function (settings) {
-                        const api = this.api();
-                        const pagination = $(api.table().container()).find('.dataTables_paginate');
-                        pagination.empty();
+                ],
+                rowId: function(data) {
+                    return 'row_' + data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
+                },
+                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
+                    const api = this.api();
+                    const pagination = $(api.table().container()).find('.dataTables_paginate');
+                    pagination.empty();
 
-                        const pageInfo = api.page.info();
-                        const currentPage = pageInfo.page + 1;
-                        const totalPages = pageInfo.pages;
+                    const pageInfo = api.page.info();
+                    const currentPage = pageInfo.page + 1;
+                    const totalPages = pageInfo.pages;
 
-                        if (pageInfo.recordsTotal === 0) {
-                            $('#sales_table tbody').html(
-                                '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
-                            return;
-                        }
+                    if (pageInfo.recordsTotal === 0) {
+                        $('#sales_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        return;
+                    }
 
-                        let paginationHtml =
-                            `
+                    let paginationHtml =
+                        `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <nav aria-label="Page navigation">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <ul class="pagination pagination-rounded mb-0">
@@ -651,45 +664,45 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </a>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml +=
-                            `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml +=
+                        `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml +=
-                                `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml +=
-                                `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml +=
+                            `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml +=
-                                `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml +=
-                                `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml +=
+                            `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml +=
-                            `
+                    // Next button
+                    paginationHtml +=
+                        `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <span aria-hidden="true">&raquo;</span>
@@ -706,353 +719,353 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>`;
 
-                        pagination.html(paginationHtml);
-                    },
-                });
+                    pagination.html(paginationHtml);
+                },
+            });
 
-                // Search logic helper
-                function handleCustomSearch() {
-                    let searchValue = $('#customSearchInput').val().trim();
-                    table.search(searchValue).draw();
-                }
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
 
-                // Custom Search Button Event
-                $('#customSearchBtn').on('click', function () {
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
                     handleCustomSearch();
-                });
-
-                // Custom Search Input Enter Key Event
-                $('#customSearchInput').on('keypress', function (e) {
-                    if (e.which == 13) { // Enter key
-                        handleCustomSearch();
-                    }
-                });
-
-                // Show/Hide Clear button
-                $('#customSearchInput').on('keyup change', function () {
-                    if ($(this).val().trim() !== '') {
-                        $('#customClearBtn').removeClass('d-none');
-                    } else {
-                        $('#customClearBtn').addClass('d-none');
-                    }
-                });
-
-                // Clear Button Event
-                $('#customClearBtn').on('click', function () {
-                    $('#customSearchInput').val('');
-                    $(this).addClass('d-none');
-                    table.search('').draw();
-                });
-
-                // Type filter dropdown handler
-                $('.type-filter').on('click', function () {
-                    currentTypeFilter = $(this).text().toLowerCase();
-
-                    // Capitalize each word
-                    const formattedText = currentTypeFilter
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-
-                    $('#showFilterType').html(formattedText);
-                    table.ajax.reload(); // Reload with updated type filter
-                });
-                // cv limit filter dropdown handler
-                $('.cv-limit-filter').on('click', function () {
-                    currentCVLimitFilter = $(this).text().toLowerCase();
-
-                    // Capitalize each word
-                    const formattedText = currentCVLimitFilter
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-
-                    $('#showFilterCvLimit').html(formattedText);
-                    table.ajax.reload(); // Reload with updated status filter
-                });
-                // Status filter dropdown handler
-                $('.status-filter').on('click', function () {
-                    currentFilter = $(this).text().toLowerCase();
-
-                    // Capitalize each word
-                    const formattedText = currentFilter
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-
-                    $('#showFilterStatus').html(formattedText);
-                    table.ajax.reload(); // Reload with updated status filter
-                });
-                /*** Category filter handler ***/
-                $('.category-filter').on('click', function () {
-                    const id = $(this).data('category-id');
-                    // Handle "All Titles"
-                    if (id === '' || id === undefined) {
-                        currentCategoryFilters = [];
-                        $('.category-filter').not(this).prop('checked', false);
-                    } else {
-                        // Remove or add to array
-                        if (this.checked) {
-                            currentCategoryFilters.push(id);
-                            // Uncheck "All Titles"
-                            $('.category-filter[data-category-id=""]').prop('checked', false);
-                        } else {
-                            currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
-                        }
-                    }
-
-                    // Update dropdown display text and toggle visibility
-                    const total = $('.category-filter').not('[data-category-id=""]').length;
-                    const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
-
-                    $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` :
-                        'All Category');
-
-                    const container = $('#categoryToggleContainer');
-                    container.find('.filter-select-all').toggle(checked < total);
-                    container.find('.filter-deselect-all').toggle(checked > 0);
-
-                    // Trigger DataTable reload with the selected filters
-                    table.ajax.reload();
-                });
-
-                /*** Title Filter Handler ***/
-                $('.title-filter').on('change', function () {
-                    const id = $(this).data('title-id');
-
-                    // Handle "All Titles"
-                    if (id === '' || id === undefined) {
-                        currentTitleFilters = [];
-                        $('.title-filter').not(this).prop('checked', false);
-                    } else {
-                        // Remove or add to array
-                        if (this.checked) {
-                            currentTitleFilters.push(id);
-                            // Uncheck "All Titles"
-                            $('.title-filter[data-title-id=""]').prop('checked', false);
-                        } else {
-                            currentTitleFilters = currentTitleFilters.filter(x => x !== id);
-                        }
-                    }
-
-                    // Update dropdown display text and toggle visibility
-                    const total = $('.title-filter').not('[data-title-id=""]').length;
-                    const checked = $('.title-filter:checked').not('[data-title-id=""]').length;
-
-                    $('#showFilterTitle').text(checked > 0 ? `Selected Titles (${checked})` : 'All Titles');
-
-                    const container = $('#titleToggleContainer');
-                    container.find('.filter-select-all').toggle(checked < total);
-                    container.find('.filter-deselect-all').toggle(checked > 0);
-
-                    // Trigger DataTable reload with the selected filters
-                    table.ajax.reload();
-                });
-
-                /*** User Filter Handler ***/
-                $('.user-filter').on('change', function () {
-                    const id = $(this).data('user-id');
-
-                    // Handle "All Titles"
-                    if (id === '' || id === undefined) {
-                        currentUserFilters = [];
-                        $('.user-filter').not(this).prop('checked', false);
-                    } else {
-                        // Remove or add to array
-                        if (this.checked) {
-                            currentUserFilters.push(id);
-                            // Uncheck "All Titles"
-                            $('.user-filter[data-user-id=""]').prop('checked', false);
-                        } else {
-                            currentUserFilters = currentUserFilters.filter(x => x !== id);
-                        }
-                    }
-
-                    // Update dropdown display text and toggle visibility
-                    const total = $('.user-filter').not('[data-user-id=""]').length;
-                    const checked = $('.user-filter:checked').not('[data-user-id=""]').length;
-
-                    $('#showFilterUser').text(checked > 0 ? `Selected Users (${checked})` : 'All Users');
-
-                    const container = $('#userToggleContainer');
-                    container.find('.filter-select-all').toggle(checked < total);
-                    container.find('.filter-deselect-all').toggle(checked > 0);
-
-                    // Trigger DataTable reload with the selected filters
-                    table.ajax.reload();
-                });
-
-                /*** Office Filter Handler ***/
-                $('.office-filter').on('change', function () {
-                    const id = $(this).data('office-id');
-
-                    // Handle "All Titles"
-                    if (id === '' || id === undefined) {
-                        currentOfficeFilters = [];
-                        $('.office-filter').not(this).prop('checked', false);
-                    } else {
-                        // Remove or add to array
-                        if (this.checked) {
-                            currentOfficeFilters.push(id);
-                            // Uncheck "All Titles"
-                            $('.office-filter[data-office-id=""]').prop('checked', false);
-                        } else {
-                            currentOfficeFilters = currentOfficeFilters.filter(x => x !== id);
-                        }
-                    }
-
-                    // Update dropdown display text and toggle visibility
-                    const total = $('.office-filter').not('[data-office-id=""]').length;
-                    const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
-
-                    $('#showFilterOffice').text(checked > 0 ? `Selected Offices (${checked})` :
-                        'All Head Office');
-
-                    const container = $('#officeToggleContainer');
-                    container.find('.filter-select-all').toggle(checked < total);
-                    container.find('.filter-deselect-all').toggle(checked > 0);
-
-                    // Trigger DataTable reload with the selected filters
-                    table.ajax.reload();
-                });
-
-                /*** Source Filter Handler ***/
-                $('.source-filter').on('change', function () {
-                    const id = $(this).data('source-id');
-
-                    // Handle "All Titles"
-                    if (id === '' || id === undefined) {
-                        currentSourceFilters = [];
-                        $('.source-filter').not(this).prop('checked', false);
-                    } else {
-                        // Remove or add to array
-                        if (this.checked) {
-                            currentSourceFilters.push(id);
-                            // Uncheck "All Titles"
-                            $('.source-filter[data-source-id=""]').prop('checked', false);
-                        } else {
-                            currentSourceFilters = currentSourceFilters.filter(x => x !== id);
-                        }
-                    }
-
-                    // Update dropdown display text and toggle visibility
-                    const total = $('.source-filter').not('[data-source-id=""]').length;
-                    const checked = $('.source-filter:checked').not('[data-source-id=""]').length;
-
-                    $('#showFilterSource').text(checked > 0 ? `Selected Sources (${checked})` :
-                        'All Sources');
-
-                    const container = $('#sourceToggleContainer');
-                    container.find('.filter-select-all').toggle(checked < total);
-                    container.find('.filter-deselect-all').toggle(checked > 0);
-
-                    // Trigger DataTable reload with the selected filters
-                    table.ajax.reload();
-                });
-
-                /*** Dropdown Select All Action ***/
-                $(document).on('click', '.filter-select-all', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const filterClass = $(this).data('target');
-                    const excludeAttr = $(this).data('exclude');
-
-                    $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
-                    $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
-                });
-
-                /*** Dropdown Deselect All Action ***/
-                $(document).on('click', '.filter-deselect-all', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const filterClass = $(this).data('target');
-                    const excludeAttr = $(this).data('exclude');
-
-                    $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
-                });
-
-                // Keep dropdown open when clicking inside its content area
-                $(document).on('click', '.filter-dropdowns', function (e) {
-                    e.stopPropagation();
-                });
+                }
             });
 
-            document.getElementById('categorySearchInput').addEventListener('keyup', function () {
-                const searchValue = this.value.toLowerCase();
-                const checkboxes = document.querySelectorAll('#categoryList .form-check');
-
-                checkboxes.forEach(function (item) {
-                    const label = item.querySelector('label').innerText.toLowerCase();
-                    item.style.display = label.includes(searchValue) ? '' : 'none';
-                });
-            });
-
-            document.getElementById('titleSearchInput').addEventListener('keyup', function () {
-                const searchValue = this.value.toLowerCase();
-                const checkboxes = document.querySelectorAll('#titleList .form-check');
-
-                checkboxes.forEach(function (item) {
-                    const label = item.querySelector('label').innerText.toLowerCase();
-                    item.style.display = label.includes(searchValue) ? '' : 'none';
-                });
-            });
-
-            document.getElementById('officeSearchInput').addEventListener('keyup', function () {
-                const searchValue = this.value.toLowerCase();
-                const checkboxes = document.querySelectorAll('#officesList .form-check');
-
-                checkboxes.forEach(function (item) {
-                    const label = item.querySelector('label').innerText.toLowerCase();
-                    item.style.display = label.includes(searchValue) ? '' : 'none';
-                });
-            });
-
-            document.getElementById('jobSourceInput').addEventListener('keyup', function () {
-                const searchValue = this.value.toLowerCase();
-                const checkboxes = document.querySelectorAll('#sourcesList .form-check');
-
-                checkboxes.forEach(function (item) {
-                    const label = item.querySelector('label').innerText.toLowerCase();
-                    item.style.display = label.includes(searchValue) ? '' : 'none';
-                });
-            });
-
-            function goToPage(totalPages) {
-                const input = document.getElementById('goToPageInput');
-                const errorMessage = document.getElementById('goToPageError');
-                let page = parseInt(input.value);
-
-                if (!isNaN(page) && page >= 1 && page <= totalPages) {
-                    $('#sales_table').DataTable().page(page - 1).draw('page');
-                    input.classList.remove('is-invalid');
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
                 } else {
-                    input.classList.add('is-invalid');
+                    $('#customClearBtn').addClass('d-none');
                 }
-            }
+            });
 
-            // Function to move the page forward or backward
-            function movePage(page) {
-                var table = $('#sales_table').DataTable();
-                var currentPage = table.page.info().page + 1;
-                var totalPages = table.page.info().pages;
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
 
-                if (page === 'previous' && currentPage > 1) {
-                    table.page(currentPage - 2).draw('page'); // Move to the previous page
-                } else if (page === 'next' && currentPage < totalPages) {
-                    table.page(currentPage).draw('page'); // Move to the next page
-                } else if (typeof page === 'number' && page !== currentPage) {
-                    table.page(page - 1).draw('page'); // Move to the selected page
+            // Type filter dropdown handler
+            $('.type-filter').on('click', function() {
+                currentTypeFilter = $(this).text().toLowerCase();
+
+                // Capitalize each word
+                const formattedText = currentTypeFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                $('#showFilterType').html(formattedText);
+                table.ajax.reload(); // Reload with updated type filter
+            });
+            // cv limit filter dropdown handler
+            $('.cv-limit-filter').on('click', function() {
+                currentCVLimitFilter = $(this).text().toLowerCase();
+
+                // Capitalize each word
+                const formattedText = currentCVLimitFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                $('#showFilterCvLimit').html(formattedText);
+                table.ajax.reload(); // Reload with updated status filter
+            });
+            // Status filter dropdown handler
+            $('.status-filter').on('click', function() {
+                currentFilter = $(this).text().toLowerCase();
+
+                // Capitalize each word
+                const formattedText = currentFilter
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                $('#showFilterStatus').html(formattedText);
+                table.ajax.reload(); // Reload with updated status filter
+            });
+            /*** Category filter handler ***/
+            $('.category-filter').on('click', function() {
+                const id = $(this).data('category-id');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentCategoryFilters = [];
+                    $('.category-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentCategoryFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.category-filter[data-category-id=""]').prop('checked', false);
+                    } else {
+                        currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
+                    }
                 }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.category-filter').not('[data-category-id=""]').length;
+                const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
+
+                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` :
+                    'All Category');
+
+                const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** Title Filter Handler ***/
+            $('.title-filter').on('change', function() {
+                const id = $(this).data('title-id');
+
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentTitleFilters = [];
+                    $('.title-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentTitleFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.title-filter[data-title-id=""]').prop('checked', false);
+                    } else {
+                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.title-filter').not('[data-title-id=""]').length;
+                const checked = $('.title-filter:checked').not('[data-title-id=""]').length;
+
+                $('#showFilterTitle').text(checked > 0 ? `Selected Titles (${checked})` : 'All Titles');
+
+                const container = $('#titleToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** User Filter Handler ***/
+            $('.user-filter').on('change', function() {
+                const id = $(this).data('user-id');
+
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentUserFilters = [];
+                    $('.user-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentUserFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.user-filter[data-user-id=""]').prop('checked', false);
+                    } else {
+                        currentUserFilters = currentUserFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.user-filter').not('[data-user-id=""]').length;
+                const checked = $('.user-filter:checked').not('[data-user-id=""]').length;
+
+                $('#showFilterUser').text(checked > 0 ? `Selected Users (${checked})` : 'All Users');
+
+                const container = $('#userToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** Office Filter Handler ***/
+            $('.office-filter').on('change', function() {
+                const id = $(this).data('office-id');
+
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentOfficeFilters = [];
+                    $('.office-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentOfficeFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.office-filter[data-office-id=""]').prop('checked', false);
+                    } else {
+                        currentOfficeFilters = currentOfficeFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.office-filter').not('[data-office-id=""]').length;
+                const checked = $('.office-filter:checked').not('[data-office-id=""]').length;
+
+                $('#showFilterOffice').text(checked > 0 ? `Selected Offices (${checked})` :
+                    'All Head Office');
+
+                const container = $('#officeToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** Source Filter Handler ***/
+            $('.source-filter').on('change', function() {
+                const id = $(this).data('source-id');
+
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentSourceFilters = [];
+                    $('.source-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentSourceFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.source-filter[data-source-id=""]').prop('checked', false);
+                    } else {
+                        currentSourceFilters = currentSourceFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.source-filter').not('[data-source-id=""]').length;
+                const checked = $('.source-filter:checked').not('[data-source-id=""]').length;
+
+                $('#showFilterSource').text(checked > 0 ? `Selected Sources (${checked})` :
+                    'All Sources');
+
+                const container = $('#sourceToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** Dropdown Select All Action ***/
+            $(document).on('click', '.filter-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+
+                $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
+                $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
+            });
+
+            /*** Dropdown Deselect All Action ***/
+            $(document).on('click', '.filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+
+                $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
+            });
+
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#categoryList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('titleSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('officeSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#officesList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('jobSourceInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#sourcesList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        function goToPage(totalPages) {
+            const input = document.getElementById('goToPageInput');
+            const errorMessage = document.getElementById('goToPageError');
+            let page = parseInt(input.value);
+
+            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                $('#sales_table').DataTable().page(page - 1).draw('page');
+                input.classList.remove('is-invalid');
+            } else {
+                input.classList.add('is-invalid');
             }
+        }
 
-            // Function to show the notes modal
-            function showNotesModal(saleId, notes, officeName, unitName, unitPostcode) {
-                const modalId = `showNotesModal_${saleId}`;
+        // Function to move the page forward or backward
+        function movePage(page) {
+            var table = $('#sales_table').DataTable();
+            var currentPage = table.page.info().page + 1;
+            var totalPages = table.page.info().pages;
 
-                // Check and append modal only once
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            if (page === 'previous' && currentPage > 1) {
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
+            } else if (page === 'next' && currentPage < totalPages) {
+                table.page(currentPage).draw('page'); // Move to the next page
+            } else if (typeof page === 'number' && page !== currentPage) {
+                table.page(page - 1).draw('page'); // Move to the selected page
+            }
+        }
+
+        // Function to show the notes modal
+        function showNotesModal(saleId, notes, officeName, unitName, unitPostcode) {
+            const modalId = `showNotesModal_${saleId}`;
+
+            // Check and append modal only once
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-dialog-top">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1072,25 +1085,25 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                } else {
-                    // Reset body content with loader if it already exists
-                    $(`#${modalId} .modal-body`).html(
-                        `
+                );
+            } else {
+                // Reset body content with loader if it already exists
+                $(`#${modalId} .modal-body`).html(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="spinner-border text-primary my-4" role="status">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <span class="visually-hidden">Loading...</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
+                );
+            }
 
-                // Show modal
-                $(`#${modalId}`).modal('show');
+            // Show modal
+            $(`#${modalId}`).modal('show');
 
-                // Set content after short delay (simulate loading)
-                setTimeout(() => {
-                    $(`#${modalId} .modal-body`).html(
-                        `
+            // Set content after short delay (simulate loading)
+            setTimeout(() => {
+                $(`#${modalId} .modal-body`).html(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="text-start">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p class="mb-1"><strong>Head Office Name:</strong> ${officeName}</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p class="mb-1"><strong>Unit Name:</strong> ${unitName}</p>
@@ -1098,21 +1111,21 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p><strong>Notes Detail:</strong><br>${notes.replace(/\n/g, '<br>')}</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }, 300); // adjust delay if needed
-            }
+                );
+            }, 300); // adjust delay if needed
+        }
 
-            // Function to show the notes modal
-            function addNotesModal(saleID) {
-                const modalId = `notesModal_${saleID}`;
-                const formId = `notesForm_${saleID}`;
-                const textareaId = `detailsTextarea_${saleID}`;
-                const saveBtnId = `saveNotesButton_${saleID}`;
+        // Function to show the notes modal
+        function addNotesModal(saleID) {
+            const modalId = `notesModal_${saleID}`;
+            const formId = `notesForm_${saleID}`;
+            const textareaId = `detailsTextarea_${saleID}`;
+            const saveBtnId = `saveNotesButton_${saleID}`;
 
-                // Append modal HTML only once
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            // Append modal HTML only once
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-lg modal-dialog-top">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1136,80 +1149,80 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
-
-                // Show modal
-                $(`#${modalId}`).modal('show');
-
-                // Reset form fields on open
-                $(`#${modalId}`).on('shown.bs.modal', function () {
-                    $(`#${formId}`)[0].reset();
-                    $(`#${textareaId}`).removeClass('is-invalid is-valid');
-                    $(`#${textareaId}`).next('.invalid-feedback').remove();
-                });
-
-                // Save button logic
-                $(`#${saveBtnId}`).off('click').on('click', function () {
-                    const notes = $(`#${textareaId}`).val();
-
-                    if (!notes) {
-                        $(`#${textareaId}`).addClass('is-invalid');
-                        if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
-                            $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
-
-                        $(`#${textareaId}`).on('input', function () {
-                            if ($(this).val()) {
-                                $(this).removeClass('is-invalid').addClass('is-valid');
-                                $(this).next('.invalid-feedback').remove();
-                            }
-                        });
-
-                        return;
-                    }
-
-                    $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
-                    $(`#${textareaId}`).next('.invalid-feedback').remove();
-
-                    const btn = $(this);
-                    const originalText = btn.html();
-                    btn.prop('disabled', true).html(
-                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
-
-                    $.ajax({
-                        url: '{{ route('storeSaleNotes') }}',
-                        type: 'POST',
-                        data: {
-                            sale_id: saleID,
-                            details: notes,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function (response) {
-                            toastr.success('Notes saved successfully!');
-                            $(`#${modalId}`).modal('hide');
-                            $(`#notesForm_${saleID}`)[0].reset();
-                            $('#sales_table').DataTable().ajax.reload();
-                        },
-                        error: function (xhr) {
-                            toastr.error('An error occurred while saving notes.');
-                        },
-                        complete: function () {
-                            btn.prop('disabled', false).html(originalText);
-                        }
-                    });
-                });
+                );
             }
 
-            // Function to change sale status modal
-            function changeSaleStatusModal(saleID, currentStatus) {
-                const modalId = `changeSaleStatusModal_${saleID}`;
+            // Show modal
+            $(`#${modalId}`).modal('show');
 
-                // Create modal if it doesn't exist
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            // Reset form fields on open
+            $(`#${modalId}`).on('shown.bs.modal', function() {
+                $(`#${formId}`)[0].reset();
+                $(`#${textareaId}`).removeClass('is-invalid is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
+            });
+
+            // Save button logic
+            $(`#${saveBtnId}`).off('click').on('click', function() {
+                const notes = $(`#${textareaId}`).val();
+
+                if (!notes) {
+                    $(`#${textareaId}`).addClass('is-invalid');
+                    if ($(`#${textareaId}`).next('.invalid-feedback').length === 0) {
+                        $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+
+                    $(`#${textareaId}`).on('input', function() {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+
+                    return;
+                }
+
+                $(`#${textareaId}`).removeClass('is-invalid').addClass('is-valid');
+                $(`#${textareaId}`).next('.invalid-feedback').remove();
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                $.ajax({
+                    url: '{{ route('storeSaleNotes') }}',
+                    type: 'POST',
+                    data: {
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        toastr.success('Notes saved successfully!');
+                        $(`#${modalId}`).modal('hide');
+                        $(`#notesForm_${saleID}`)[0].reset();
+                        $('#sales_table').DataTable().ajax.reload();
+                    },
+                    error: function(xhr) {
+                        toastr.error('An error occurred while saving notes.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        // Function to change sale status modal
+        function changeSaleStatusModal(saleID, currentStatus) {
+            const modalId = `changeSaleStatusModal_${saleID}`;
+
+            // Create modal if it doesn't exist
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-lg modal-dialog-top">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1241,113 +1254,113 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
-
-                // Show modal and reset form on load
-                const modalSelector = `#${modalId}`;
-                const formSelector = `#changeSaleStatusForm_${saleID}`;
-                const textareaSelector = `#detailsTextarea_${saleID}`;
-                const dropdownSelector = `#statusDropdown_${saleID}`;
-                const saveButtonSelector = `#saveNotesButton_${saleID}`;
-
-                $(modalSelector).on('shown.bs.modal', function () {
-                    $(formSelector)[0].reset();
-                    $(textareaSelector).removeClass('is-invalid is-valid');
-                    $(dropdownSelector).removeClass('is-invalid is-valid');
-                    $(textareaSelector).next('.invalid-feedback').remove();
-                    $(dropdownSelector).next('.invalid-feedback').remove();
-
-                    // Pre-select status if passed
-                    if (currentStatus !== undefined && currentStatus !== null) {
-                        $(dropdownSelector).val(currentStatus);
-                    }
-                });
-
-                $(modalSelector).modal('show');
-
-                // Save button handler
-                $(saveButtonSelector).off('click').on('click', function () {
-                    const notes = $(textareaSelector).val();
-                    const selectedStatus = $(dropdownSelector).val();
-                    let hasError = false;
-
-                    // Notes validation
-                    if (!notes) {
-                        $(textareaSelector).addClass('is-invalid');
-                        if ($(textareaSelector).next('.invalid-feedback').length === 0) {
-                            $(textareaSelector).after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
-                        hasError = true;
-                    }
-
-                    // Status validation
-                    if (!selectedStatus) {
-                        $(dropdownSelector).addClass('is-invalid');
-                        if ($(dropdownSelector).next('.invalid-feedback').length === 0) {
-                            $(dropdownSelector).after('<div class="invalid-feedback">Please select a status.</div>');
-                        }
-                        hasError = true;
-                    }
-
-                    if (hasError) {
-                        $(textareaSelector).on('input', function () {
-                            if ($(this).val()) {
-                                $(this).removeClass('is-invalid').addClass('is-valid');
-                                $(this).next('.invalid-feedback').remove();
-                            }
-                        });
-                        $(dropdownSelector).on('change', function () {
-                            if ($(this).val()) {
-                                $(this).removeClass('is-invalid').addClass('is-valid');
-                                $(this).next('.invalid-feedback').remove();
-                            }
-                        });
-                        return;
-                    }
-
-                    const btn = $(this);
-                    const originalText = btn.html();
-                    btn.prop('disabled', true).html(
-                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
-
-                    // AJAX request
-                    $.ajax({
-                        url: '{{ route('changeSaleStatus') }}',
-                        type: 'POST',
-                        data: {
-                            sale_id: saleID,
-                            details: notes,
-                            status: selectedStatus,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function () {
-                            toastr.success('Sale status changed successfully!');
-                            $(modalSelector).modal('hide');
-                            $('#sales_table').DataTable().ajax.reload();
-                        },
-                        error: function () {
-                            toastr.error('An error occurred while updating the sale status.');
-                        },
-                        complete: function () {
-                            btn.prop('disabled', false).html(originalText);
-                        }
-                    });
-                });
+                );
             }
 
-            // Function to change on hold status modal
-            function changeSaleOnHoldStatusModal(saleID, status) {
-                const modalId = `changeSaleOnHoldStatusModal_${saleID}`;
-                const formId = `changeSaleOnHoldStatusForm_${saleID}`;
-                const textareaId = `detailsTextarea_${saleID}`;
-                const saveBtnId = `saveOnHoldNotesButton_${saleID}`;
+            // Show modal and reset form on load
+            const modalSelector = `#${modalId}`;
+            const formSelector = `#changeSaleStatusForm_${saleID}`;
+            const textareaSelector = `#detailsTextarea_${saleID}`;
+            const dropdownSelector = `#statusDropdown_${saleID}`;
+            const saveButtonSelector = `#saveNotesButton_${saleID}`;
 
-                // Append modal HTML if it doesn't already exist
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            $(modalSelector).on('shown.bs.modal', function() {
+                $(formSelector)[0].reset();
+                $(textareaSelector).removeClass('is-invalid is-valid');
+                $(dropdownSelector).removeClass('is-invalid is-valid');
+                $(textareaSelector).next('.invalid-feedback').remove();
+                $(dropdownSelector).next('.invalid-feedback').remove();
+
+                // Pre-select status if passed
+                if (currentStatus !== undefined && currentStatus !== null) {
+                    $(dropdownSelector).val(currentStatus);
+                }
+            });
+
+            $(modalSelector).modal('show');
+
+            // Save button handler
+            $(saveButtonSelector).off('click').on('click', function() {
+                const notes = $(textareaSelector).val();
+                const selectedStatus = $(dropdownSelector).val();
+                let hasError = false;
+
+                // Notes validation
+                if (!notes) {
+                    $(textareaSelector).addClass('is-invalid');
+                    if ($(textareaSelector).next('.invalid-feedback').length === 0) {
+                        $(textareaSelector).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+                    hasError = true;
+                }
+
+                // Status validation
+                if (!selectedStatus) {
+                    $(dropdownSelector).addClass('is-invalid');
+                    if ($(dropdownSelector).next('.invalid-feedback').length === 0) {
+                        $(dropdownSelector).after('<div class="invalid-feedback">Please select a status.</div>');
+                    }
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    $(textareaSelector).on('input', function() {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+                    $(dropdownSelector).on('change', function() {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                // AJAX request
+                $.ajax({
+                    url: '{{ route('changeSaleStatus') }}',
+                    type: 'POST',
+                    data: {
+                        sale_id: saleID,
+                        details: notes,
+                        status: selectedStatus,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function() {
+                        toastr.success('Sale status changed successfully!');
+                        $(modalSelector).modal('hide');
+                        $('#sales_table').DataTable().ajax.reload();
+                    },
+                    error: function() {
+                        toastr.error('An error occurred while updating the sale status.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        // Function to change on hold status modal
+        function changeSaleOnHoldStatusModal(saleID, status) {
+            const modalId = `changeSaleOnHoldStatusModal_${saleID}`;
+            const formId = `changeSaleOnHoldStatusForm_${saleID}`;
+            const textareaId = `detailsTextarea_${saleID}`;
+            const saveBtnId = `saveOnHoldNotesButton_${saleID}`;
+
+            // Append modal HTML if it doesn't already exist
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-lg modal-dialog-top">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1372,94 +1385,94 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
-
-                // Reset form and show modal
-                const modalSelector = `#${modalId}`;
-                const textareaSelector = `#${textareaId}`;
-                const formSelector = `#${formId}`;
-                const saveBtnSelector = `#${saveBtnId}`;
-
-                $(modalSelector).on('shown.bs.modal', function () {
-                    $(formSelector)[0].reset();
-                    $(textareaSelector).removeClass('is-invalid is-valid');
-                    $(textareaSelector).next('.invalid-feedback').remove();
-                });
-
-                $(modalSelector).modal('show');
-
-                // Save button handler
-                $(saveBtnSelector).off('click').on('click', function () {
-                    const notes = $(textareaSelector).val();
-                    const selectedStatus = $(`#status_${saleID}`).val();
-
-                    let hasError = false;
-
-                    if (!notes) {
-                        $(textareaSelector).addClass('is-invalid');
-                        if ($(textareaSelector).next('.invalid-feedback').length === 0) {
-                            $(textareaSelector).after('<div class="invalid-feedback">Please provide details.</div>');
-                        }
-                        hasError = true;
-                    }
-
-                    if (hasError) {
-                        $(textareaSelector).on('input', function () {
-                            if ($(this).val()) {
-                                $(this).removeClass('is-invalid').addClass('is-valid');
-                                $(this).next('.invalid-feedback').remove();
-                            }
-                        });
-                        return;
-                    }
-
-                    const btn = $(this);
-                    const originalText = btn.html();
-                    btn.prop('disabled', true).html(
-                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
-
-                    // AJAX request (use POST instead of GET)
-                    $.ajax({
-                        url: '{{ route('changeSaleHoldStatus') }}',
-                        type: 'GET',
-                        data: {
-                            id: saleID,
-                            details: notes,
-                            status: selectedStatus,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function (response) {
-                            toastr.success('Sale marked as On Hold successfully!');
-                            $(modalSelector).modal('hide');
-                            $(formSelector)[0].reset();
-                            $(textareaSelector).removeClass('is-valid is-invalid');
-                            $(textareaSelector).next('.invalid-feedback').remove();
-
-                            $('#sales_table').DataTable().ajax.reload();
-                        },
-                        error: function (xhr) {
-                            toastr.error('An error occurred while updating the On Hold status.');
-                        },
-                        complete: function () {
-                            btn.prop('disabled', false).html(originalText);
-                        }
-                    });
-                });
+                );
             }
 
-            function showDetailsModal(
-                saleId, postedOn, officeName, name, postcode,
-                jobCategory, jobTitle, status, timing,
-                experience, salary, position, qualification, benefits
-            ) {
-                const modalId = `showDetailsModal_${saleId}`;
+            // Reset form and show modal
+            const modalSelector = `#${modalId}`;
+            const textareaSelector = `#${textareaId}`;
+            const formSelector = `#${formId}`;
+            const saveBtnSelector = `#${saveBtnId}`;
 
-                // Create modal if it doesn't already exist
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            $(modalSelector).on('shown.bs.modal', function() {
+                $(formSelector)[0].reset();
+                $(textareaSelector).removeClass('is-invalid is-valid');
+                $(textareaSelector).next('.invalid-feedback').remove();
+            });
+
+            $(modalSelector).modal('show');
+
+            // Save button handler
+            $(saveBtnSelector).off('click').on('click', function() {
+                const notes = $(textareaSelector).val();
+                const selectedStatus = $(`#status_${saleID}`).val();
+
+                let hasError = false;
+
+                if (!notes) {
+                    $(textareaSelector).addClass('is-invalid');
+                    if ($(textareaSelector).next('.invalid-feedback').length === 0) {
+                        $(textareaSelector).after('<div class="invalid-feedback">Please provide details.</div>');
+                    }
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    $(textareaSelector).on('input', function() {
+                        if ($(this).val()) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                            $(this).next('.invalid-feedback').remove();
+                        }
+                    });
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                // AJAX request (use POST instead of GET)
+                $.ajax({
+                    url: '{{ route('changeSaleHoldStatus') }}',
+                    type: 'GET',
+                    data: {
+                        id: saleID,
+                        details: notes,
+                        status: selectedStatus,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        toastr.success('Sale marked as On Hold successfully!');
+                        $(modalSelector).modal('hide');
+                        $(formSelector)[0].reset();
+                        $(textareaSelector).removeClass('is-valid is-invalid');
+                        $(textareaSelector).next('.invalid-feedback').remove();
+
+                        $('#sales_table').DataTable().ajax.reload();
+                    },
+                    error: function(xhr) {
+                        toastr.error('An error occurred while updating the On Hold status.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        function showDetailsModal(
+            saleId, postedOn, officeName, name, postcode,
+            jobCategory, jobTitle, status, timing,
+            experience, salary, position, qualification, benefits
+        ) {
+            const modalId = `showDetailsModal_${saleId}`;
+
+            // Create modal if it doesn't already exist
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1479,25 +1492,25 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                } else {
-                    // Reset content with loader on each call
-                    $(`#${modalId} .modal-body`).html(
-                        `
+                );
+            } else {
+                // Reset content with loader on each call
+                $(`#${modalId} .modal-body`).html(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="spinner-border text-primary my-4" role="status">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <span class="visually-hidden">Loading...</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
+                );
+            }
 
-                // Show the modal
-                $(`#${modalId}`).modal('show');
+            // Show the modal
+            $(`#${modalId}`).modal('show');
 
-                // Simulate loading delay before filling in data
-                setTimeout(() => {
-                    const tableHTML =
-                        `
+            // Simulate loading delay before filling in data
+            setTimeout(() => {
+                const tableHTML =
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <table class="table table-bordered mb-0">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <tr><th>Sale ID</th><td>${saleId}</td></tr>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <tr><th>Posted On</th><td>${postedOn}</td></tr>
@@ -1516,19 +1529,19 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </table>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `;
 
-                    $(`#${modalId} .modal-body`).html(tableHTML);
-                }, 300); // Adjust delay to match actual data loading if needed
-            }
+                $(`#${modalId} .modal-body`).html(tableHTML);
+            }, 300); // Adjust delay to match actual data loading if needed
+        }
 
-            // Function to show the notes modal
-            function viewSaleDocuments(saleId) {
-                const modalId = `viewSaleDocumentsModal_${saleId}`;
-                const modalLabelId = `viewSaleDocumentsModalLabel_${saleId}`;
+        // Function to show the notes modal
+        function viewSaleDocuments(saleId) {
+            const modalId = `viewSaleDocumentsModal_${saleId}`;
+            const modalLabelId = `viewSaleDocumentsModalLabel_${saleId}`;
 
-                // Append modal HTML only if it doesn't already exist
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+            // Append modal HTML only if it doesn't already exist
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1548,44 +1561,44 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                } else {
-                    // Reset with loader if modal exists
-                    $(`#${modalId} .modal-body`).html(
-                        `
+                );
+            } else {
+                // Reset with loader if modal exists
+                $(`#${modalId} .modal-body`).html(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="spinner-border text-primary my-4" role="status">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <span class="visually-hidden">Loading...</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
+                );
+            }
 
-                // Show modal
-                $(`#${modalId}`).modal('show');
+            // Show modal
+            $(`#${modalId}`).modal('show');
 
-                // Make AJAX request
-                $.ajax({
-                    url: '{{ route('getSaleDocuments') }}',
-                    type: 'GET',
-                    data: {
-                        id: saleId
-                    },
-                    success: function (response) {
-                        let contentHtml = '';
+            // Make AJAX request
+            $.ajax({
+                url: '{{ route('getSaleDocuments') }}',
+                type: 'GET',
+                data: {
+                    id: saleId
+                },
+                success: function(response) {
+                    let contentHtml = '';
 
-                        if (!response.data || response.data.length === 0) {
-                            contentHtml = '<p class="text-muted text-center">No record found.</p>';
-                        } else {
-                            response.data.forEach(doc => {
-                                const created = moment(doc.created_at).format('DD MMM YYYY, h:mm A');
+                    if (!response.data || response.data.length === 0) {
+                        contentHtml = '<p class="text-muted text-center">No record found.</p>';
+                    } else {
+                        response.data.forEach(doc => {
+                            const created = moment(doc.created_at).format('DD MMM YYYY, h:mm A');
 
-                                // ✅ DB already contains folder path relative to public/
-                                const filePath = '/' + doc.document_path;
+                            // ✅ DB already contains folder path relative to public/
+                            const filePath = '/' + doc.document_path;
 
-                                const docName = doc.document_name;
+                            const docName = doc.document_name;
 
-                                contentHtml +=
-                                    `
+                            contentHtml +=
+                                `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <div class="note-entry text-start">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <p><strong>Dated:</strong> ${created}</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <p><strong>File:</strong> ${docName}
@@ -1598,29 +1611,29 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <hr>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             `;
-                            });
-                        }
-
-                        $(`#${modalId} .modal-body`).html(contentHtml);
-                    },
-                    error: function () {
-                        $(`#${modalId} .modal-body`).html(
-                            '<p class="text-danger text-center">There was an error retrieving the documents. Please try again later.</p>'
-                        );
+                        });
                     }
-                });
 
-            }
+                    $(`#${modalId} .modal-body`).html(contentHtml);
+                },
+                error: function() {
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger text-center">There was an error retrieving the documents. Please try again later.</p>'
+                    );
+                }
+            });
 
-            // Function to show the notes modal
-            function viewNotesHistory(id) {
-                const modalId = `viewNotesHistoryModal_${id}`;
-                const modalLabelId = `viewNotesHistoryModalLabel_${id}`;
+        }
 
-                // Create the modal if it doesn't already exist
-                if ($(`#${modalId}`).length === 0) {
-                    $('body').append(
-                        `
+        // Function to show the notes modal
+        function viewNotesHistory(id) {
+            const modalId = `viewNotesHistoryModal_${id}`;
+            const modalLabelId = `viewNotesHistoryModalLabel_${id}`;
+
+            // Create the modal if it doesn't already exist
+            if ($(`#${modalId}`).length === 0) {
+                $('body').append(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="modal-content">
@@ -1640,595 +1653,594 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                } else {
-                    // Reset modal content with loader if already exists
-                    $(`#${modalId} .modal-body`).html(
-                        `
+                );
+            } else {
+                // Reset modal content with loader if already exists
+                $(`#${modalId} .modal-body`).html(
+                    `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <div class="spinner-border text-primary my-4" role="status">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <span class="visually-hidden">Loading...</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `
-                    );
-                }
+                );
+            }
 
-                // Show the modal
-                $(`#${modalId}`).modal('show');
+            // Show the modal
+            $(`#${modalId}`).modal('show');
 
-                // AJAX request to fetch notes
-                $.ajax({
-                    url: '{{ route('getModuleNotesHistory') }}',
-                    type: 'GET',
-                    data: {
-                        id: id,
-                        module: 'Sale'
-                    },
-                    success: function (response) {
-                        let notesHtml = '';
+            // AJAX request to fetch notes
+            $.ajax({
+                url: '{{ route('getModuleNotesHistory') }}',
+                type: 'GET',
+                data: {
+                    id: id,
+                    module: 'Sale'
+                },
+                success: function(response) {
+                    let notesHtml = '';
 
-                        if (!response.data || response.data.length === 0) {
-                            notesHtml = '<p class="text-muted text-center">No record found.</p>';
-                        } else {
-                            response.data.forEach(note => {
-                                const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
-                                const status = note.status;
-                                const statusClass = status == 1 ? 'bg-success' : 'bg-dark';
-                                const statusText = status == 1 ? 'Active' : 'Inactive';
-                                const notes = note.details.replace(/\n/g, '<br>');
+                    if (!response.data || response.data.length === 0) {
+                        notesHtml = '<p class="text-muted text-center">No record found.</p>';
+                    } else {
+                        response.data.forEach(note => {
+                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                            const status = note.status;
+                            const statusClass = status == 1 ? 'bg-success' : 'bg-dark';
+                            const statusText = status == 1 ? 'Active' : 'Inactive';
+                            const notes = note.details.replace(/\n/g, '<br>');
 
-                                notesHtml +=
-                                    `
+                            notesHtml +=
+                                `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <div class="note-entry text-start">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <p><strong>Dated:</strong> ${created} &nbsp;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <span class="badge ${statusClass}">${statusText}</span></p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <p><strong>Notes Detail:</strong><br>${notes}</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </div><hr>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             `;
-                            });
-                        }
-
-                        $(`#${modalId} .modal-body`).html(notesHtml);
-                    },
-                    error: function (xhr) {
-                        $(`#${modalId} .modal-body`).html(
-                            '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
-                        );
+                        });
                     }
-                });
-            }
 
-            // Function to show the manager details modal
-            function viewManagerDetails(id) {
-                const modalID = 'viewManagerDetailsModal-' + id;
-
-                // Create modal if it doesn't exist
-                if ($('#' + modalID).length === 0) {
-                    $('body').append(
-                        `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${id}">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-md">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="modal-content">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="modal-header">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <h5 class="modal-title" id="viewManagerDetailsModalLabel-${id}">Manager Details</h5>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="modal-body modal-body-text-left">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="text-center py-3">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div class="spinner-border text-primary" role="status">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <span class="visually-hidden">Loading...</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="modal-footer">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `
+                    $(`#${modalId} .modal-body`).html(notesHtml);
+                },
+                error: function(xhr) {
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
                     );
                 }
+            });
+        }
 
-                // Show modal immediately with loading state
-                $('#' + modalID).modal('show');
+        // Function to show the manager details modal
+        function viewManagerDetails(id) {
+            const modalID = 'viewManagerDetailsModal-' + id;
 
-                // Make AJAX call
-                $.ajax({
-                    url: '{{ route('getModuleContacts') }}',
-                    type: 'GET',
-                    data: {
-                        id: id,
-                        module: 'Office'
-                    },
-                    success: function (response) {
-                        let contactHtml = '';
-
-                        if (response.data.length === 0) {
-                            contactHtml = '<p>No record found.</p>';
-                        } else {
-                            response.data.forEach(function (contact) {
-                                const name = contact.contact_name;
-                                const email = contact.contact_email;
-                                const phone = contact.contact_phone;
-                                const landline = contact.contact_landline || '-';
-                                const note = contact.contact_note || 'N/A';
-
-                                contactHtml +=
-                                    `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="note-entry">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p><strong>Name:</strong> ${name}</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p><strong>Email:</strong> ${email}</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p><strong>Phone:</strong> ${phone}</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p><strong>Landline:</strong> ${landline}</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p><strong>Notes:</strong> ${note}</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div><hr>`;
-                            });
-                        }
-
-                        $('#' + modalID + ' .modal-body').html(contactHtml);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Error fetching notes history:", error);
-                        $('#' + modalID + ' .modal-body').html(
-                            '<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>'
-                        );
-                    }
-                });
+            // Create modal if it doesn't exist
+            if ($('#' + modalID).length === 0) {
+                $('body').append(
+                    `   
+                        <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${id}">
+                            <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-md">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="viewManagerDetailsModalLabel-${id}">Manager Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body modal-body-text-left">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                `
+                );
             }
 
-            $(document).ready(function () {
-                $('#csvImportForm').on('submit', function (e) {
-                    e.preventDefault();
+            // Show modal immediately with loading state
+            $('#' + modalID).modal('show');
 
-                    let form = $(this);
-                    let submitBtn = form.find('button[type="submit"]');
-                    let formData = new FormData(this);
-                    let xhr = new XMLHttpRequest();
+            // Make AJAX call
+            $.ajax({
+                url: '{{ route('getModuleContacts') }}',
+                type: 'GET',
+                data: {
+                    id: id,
+                    module: 'Office'
+                },
+                success: function(response) {
+                    let contactHtml = '';
 
-                    // Disable button
-                    submitBtn.prop('disabled', true).text('Uploading...');
+                    if (response.data.length === 0) {
+                        contactHtml = '<p>No record found.</p>';
+                    } else {
+                        response.data.forEach(function(contact) {
+                            const name = contact.contact_name;
+                            const email = contact.contact_email;
+                            const phone = contact.contact_phone;
+                            const landline = contact.contact_landline || '-';
+                            const note = contact.contact_note || 'N/A';
 
-                    xhr.open('POST', '{{ route('sales.import') }}', true);
-                    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+                            contactHtml +=
+                                `<div class="note-entry">
+                                            <p><strong>Name:</strong> ${name}</p>
+                                            <p><strong>Email:</strong> ${email}</p>
+                                            <p><strong>Phone:</strong> ${phone}</p>
+                                            <p><strong>Landline:</strong> ${landline}</p>
+                                            <p><strong>Notes:</strong> ${note}</p>
+                                        </div><hr>`;
+                        });
+                    }
 
-                    xhr.upload.addEventListener("progress", function (event) {
-                        if (event.lengthComputable) {
-                            let percent = Math.round((event.loaded / event.total) * 100);
-                            $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
-                            console.log('Uploading: ' + percent + '%');
-                        }
-                    });
+                    $('#' + modalID + ' .modal-body').html(contactHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching notes history:", error);
+                    $('#' + modalID + ' .modal-body').html(
+                        '<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>'
+                    );
+                }
+            });
+        }
 
-                    xhr.onload = function () {
-                        console.log('Upload response:', xhr.status, xhr.responseText);
+        $(document).ready(function() {
+            $('#csvImportForm').on('submit', function(e) {
+                e.preventDefault();
 
-                        if (xhr.status === 200) {
+                let form = $(this);
+                let submitBtn = form.find('button[type="submit"]');
+                let formData = new FormData(this);
+                let xhr = new XMLHttpRequest();
+
+                // Disable button
+                submitBtn.prop('disabled', true).text('Uploading...');
+
+                xhr.open('POST', '{{ route('sales.import') }}', true);
+                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                xhr.upload.addEventListener("progress", function(event) {
+                    if (event.lengthComputable) {
+                        let percent = Math.round((event.loaded / event.total) * 100);
+                        $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
+                        console.log('Uploading: ' + percent + '%');
+                    }
+                });
+
+                xhr.onload = function() {
+                    console.log('Upload response:', xhr.status, xhr.responseText);
+
+                    if (xhr.status === 200) {
+                        $('#uploadProgressBar')
+                            .removeClass('bg-danger')
+                            .addClass('bg-success')
+                            .text('Upload Complete');
+
+                        form[0].reset();
+                        $('#sales_table').DataTable().ajax.reload();
+
+                        // ✅ Close modal after short delay
+                        setTimeout(() => {
+                            $('#csvImportModal').modal('hide');
                             $('#uploadProgressBar')
-                                .removeClass('bg-danger')
-                                .addClass('bg-success')
-                                .text('Upload Complete');
-
-                            form[0].reset();
-                            $('#sales_table').DataTable().ajax.reload();
-
-                            // ✅ Close modal after short delay
-                            setTimeout(() => {
-                                $('#csvImportModal').modal('hide');
-                                $('#uploadProgressBar')
-                                    .css('width', '0%')
-                                    .removeClass('bg-success bg-danger')
-                                    .text('0%');
-                            }, 800);
-                        } else {
-                            $('#uploadProgressBar')
-                                .removeClass('bg-success')
-                                .addClass('bg-danger')
-                                .text('Upload Failed');
-                            alert('Server Error: ' + xhr.responseText);
-                        }
-
-                        // Re-enable button
-                        submitBtn.prop('disabled', false).text('Import CSV');
-                    };
-
-                    xhr.onerror = function () {
-                        console.error('XHR error:', xhr.responseText);
+                                .css('width', '0%')
+                                .removeClass('bg-success bg-danger')
+                                .text('0%');
+                        }, 800);
+                    } else {
                         $('#uploadProgressBar')
                             .removeClass('bg-success')
                             .addClass('bg-danger')
-                            .text('Upload Error');
-                        alert('XHR Error: ' + xhr.responseText);
-
-                        // Re-enable button
-                        submitBtn.prop('disabled', false).text('Import CSV');
-                    };
-
-                    xhr.send(formData);
-                });
-            });
-
-            $(document).on('click', '.export-btn', function (e) {
-                e.preventDefault();
-
-                const $link = $(this);
-                const url = $link.attr('href');
-                const $dropdown = $link.closest('.dropdown');
-                const $btn = $dropdown.find('button');
-                const $icon = $btn.find('i');
-                const $text = $btn.find('.btn-text');
-
-                // Disable button + show loader
-                $btn.prop('disabled', true);
-                $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
-                $text.text('Exporting...');
-
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    xhrFields: {
-                        responseType: 'blob'
-                    }, // for binary file
-                    success: function (data, status, xhr) {
-                        const blob = new Blob([data]);
-                        const link = document.createElement('a');
-                        const fileName = xhr.getResponseHeader('Content-Disposition')
-                            ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = fileName;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    },
-                    error: function () {
-                        alert('Export failed. Please try again.');
-                    },
-                    complete: function () {
-                        // Re-enable button + reset text
-                        $btn.prop('disabled', false);
-                        $icon.removeClass().addClass('ri-download-line me-1');
-                        $text.text('Export');
+                            .text('Upload Failed');
+                        alert('Server Error: ' + xhr.responseText);
                     }
-                });
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.onerror = function() {
+                    console.error('XHR error:', xhr.responseText);
+                    $('#uploadProgressBar')
+                        .removeClass('bg-success')
+                        .addClass('bg-danger')
+                        .text('Upload Error');
+                    alert('XHR Error: ' + xhr.responseText);
+
+                    // Re-enable button
+                    submitBtn.prop('disabled', false).text('Import CSV');
+                };
+
+                xhr.send(formData);
             });
+        });
 
-            function deleteSale(id) {
+        $(document).on('click', '.export-btn', function(e) {
+            e.preventDefault();
 
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
+            const $link = $(this);
+            const url = $link.attr('href');
+            const $dropdown = $link.closest('.dropdown');
+            const $btn = $dropdown.find('button');
+            const $icon = $btn.find('i');
+            const $text = $btn.find('.btn-text');
 
-                    if (result.isConfirmed) {
+            // Disable button + show loader
+            $btn.prop('disabled', true);
+            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+            $text.text('Exporting...');
 
-                        $.ajax({
-                            url: "{{ route('scrapped.sale.destroy') }}",
-                            type: 'DELETE',
-                            data: {
-                                id: id,
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
+            $.ajax({
+                url: url,
+                type: 'GET',
+                xhrFields: {
+                    responseType: 'blob'
+                }, // for binary file
+                success: function(data, status, xhr) {
+                    const blob = new Blob([data]);
+                    const link = document.createElement('a');
+                    const fileName = xhr.getResponseHeader('Content-Disposition')
+                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function() {
+                    alert('Export failed. Please try again.');
+                },
+                complete: function() {
+                    // Re-enable button + reset text
+                    $btn.prop('disabled', false);
+                    $icon.removeClass().addClass('ri-download-line me-1');
+                    $text.text('Export');
+                }
+            });
+        });
 
-                                Swal.fire(
-                                    'Deleted!',
-                                    response.message || 'Sale has been deleted.',
-                                    'success'
-                                );
+        function deleteSale(id) {
 
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#sales_table').DataTable().ajax.reload(null, false);
-                            },
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
 
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
-                    }
-                });
-            }
+                if (result.isConfirmed) {
 
-            function openEmailModal(saleId) {
-                $('#sale_id').val(saleId);
+                    $.ajax({
+                        url: "{{ route('scrapped.sale.destroy') }}",
+                        type: 'DELETE',
+                        data: {
+                            id: id,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
 
-                $.ajax({
-                    url: '/get-sale-emails',
-                    type: 'GET',
-                    data: {
-                        sale_id: saleId
-                    },
-                    success: function (res) {
-                        console.log(res);
-                        // Emails
-                        $('#to_email').val(res.emails.join(', '));
+                            Swal.fire(
+                                'Deleted!',
+                                response.message || 'Sale has been deleted.',
+                                'success'
+                            );
 
-                        // Hidden fields
-                        $('#office_id').val(res.office_id);
-                        $('#from_email').val(res.from_email);
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#sales_table').DataTable().ajax.reload(null, false);
+                        },
 
-                        // Set HTML content in Summernote
-                        $('#message').summernote('code', res.email_template);
-
-                        // Optional: subject if you send it
-                        if (res.email_subject) {
-                            $('#subject').val(res.email_subject);
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
                         }
-
-                        $('#emailModal').modal('show');
-                    },
-                    error: function () {
-                        alert('Failed to fetch emails');
-                    }
-                });
-            }
-
-            function sendEmail() {
-                var message = $('#message').summernote('code');
-
-                // Prevent empty message
-                if (!message || message === '<p><br></p>') {
-                    toast.error('Message body cannot be empty.');
-                    return;
+                    });
                 }
+            });
+        }
 
-                // Disable button to prevent double submit
-                var $btn = $('#sendEmailBtn');
-                $btn.prop('disabled', true).text('Sending...');
+        function openEmailModal(saleId) {
+            $('#sale_id').val(saleId);
 
-                $.ajax({
-                    url: '/send-email-to-offices',
-                    type: 'POST',
-                    data: {
-                        sale_id: $('#sale_id').val(),
-                        to_email: $('#to_email').val(),
-                        from_email: $('#from_email').val(),
-                        subject: $('#subject').val(),
-                        email_title: 'Scrapped Offices Email', // set a proper title
-                        message: message,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function (res) {
-                        $('#emailModal').modal('hide');
-                        toastr.success(res.message || 'Email sent successfully!');
-                    },
-                    error: function (xhr) {
-                        var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
-                        toastr.error(err);
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).text('Send');
+            $.ajax({
+                url: '/get-sale-emails',
+                type: 'GET',
+                data: {
+                    sale_id: saleId
+                },
+                success: function(res) {
+                    console.log(res);
+                    // Emails
+                    $('#to_email').val(res.emails.join(', '));
+
+                    // Hidden fields
+                    $('#office_id').val(res.office_id);
+                    $('#from_email').val(res.from_email);
+
+                    // Set HTML content in Summernote
+                    $('#message').summernote('code', res.email_template);
+
+                    // Optional: subject if you send it
+                    if (res.email_subject) {
+                        $('#subject').val(res.email_subject);
                     }
-                });
-            }
 
-            let selectedIds = [];
-
-            // Individual checkbox
-            $(document).on('change', '.sale-checkbox', function () {
-                toggleBulkButtons();
-            });
-
-            // Select all checkbox
-            $(document).on('change', '#select-all', function () {
-                $('.sale-checkbox')
-                    .prop('checked', this.checked)
-                    .trigger('change'); // 🔥 important
-            });
-
-            const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
-
-            function toggleBulkButtons() {
-                bulkButtons.prop('disabled', $('.sale-checkbox:checked').length === 0);
-            }
-
-            function getSelectedSales() {
-                let ids = [];
-
-                $('.sale-checkbox:checked').each(function () {
-                    ids.push($(this).val());
-                });
-                return ids;
-            }
-
-            $('#bulk-email-btn').on('click', function () {
-                let ids = getSelectedSales();
-
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
+                    $('#emailModal').modal('show');
+                },
+                error: function() {
+                    alert('Failed to fetch emails');
                 }
+            });
+        }
 
-                $.ajax({
-                    url: "{{ route('scrap.bulk.email.template') }}",
-                    type: "POST",
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        ids: ids
-                    },
-                    success: function (res) {
-                        if (res.sale_ids.length > 0) {
-                            // Set modal fields
-                            $('#bulk-email-subject').val(res.subject);
-                            $('#bulk-email-body').summernote('code', res.email_template);
-                            $('#bulk-sales-ids').val(res.sale_ids); // store full map
-                            $('#bulk_from_email').val(res.from_email);
+        function sendEmail() {
+            var message = $('#message').summernote('code');
 
-                            // Show modal
-                            $('#bulkEmailModal').modal('show');
-                        } else {
-                            toastr.error('No emails found');
+            // Prevent empty message
+            if (!message || message === '<p><br></p>') {
+                toast.error('Message body cannot be empty.');
+                return;
+            }
+
+            // Disable button to prevent double submit
+            var $btn = $('#sendEmailBtn');
+            $btn.prop('disabled', true).text('Sending...');
+
+            $.ajax({
+                url: '/send-email-to-offices',
+                type: 'POST',
+                data: {
+                    sale_id: $('#sale_id').val(),
+                    to_email: $('#to_email').val(),
+                    from_email: $('#from_email').val(),
+                    subject: $('#subject').val(),
+                    email_title: 'Scrapped Offices Email', // set a proper title
+                    message: message,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(res) {
+                    $('#emailModal').modal('hide');
+                    toastr.success(res.message || 'Email sent successfully!');
+                },
+                error: function(xhr) {
+                    var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
+                    toastr.error(err);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('Send');
+                }
+            });
+        }
+
+        let selectedIds = [];
+
+        // Individual checkbox
+        $(document).on('change', '.sale-checkbox', function() {
+            toggleBulkButtons();
+        });
+
+        // Select all checkbox
+        $(document).on('change', '#select-all', function() {
+            $('.sale-checkbox')
+                .prop('checked', this.checked)
+                .trigger('change'); // 🔥 important
+        });
+
+        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
+
+        function toggleBulkButtons() {
+            bulkButtons.prop('disabled', $('.sale-checkbox:checked').length === 0);
+        }
+
+        function getSelectedSales() {
+            let ids = [];
+
+            $('.sale-checkbox:checked').each(function() {
+                ids.push($(this).val());
+            });
+            return ids;
+        }
+
+        $('#bulk-email-btn').on('click', function() {
+            let ids = getSelectedSales();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('scrap.bulk.email.template') }}",
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    ids: ids
+                },
+                success: function(res) {
+                    if (res.sale_ids.length > 0) {
+                        // Set modal fields
+                        $('#bulk-email-subject').val(res.subject);
+                        $('#bulk-email-body').summernote('code', res.email_template);
+                        $('#bulk-sales-ids').val(res.sale_ids); // store full map
+                        $('#bulk_from_email').val(res.from_email);
+
+                        // Show modal
+                        $('#bulkEmailModal').modal('show');
+                    } else {
+                        toastr.error('No emails found');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    toastr.error('Something went wrong while fetching email template');
+                    console.error(error);
+                }
+            });
+        });
+
+        function sendBulkEmail() {
+            var message = $('#bulk-email-body').summernote('code');
+            let rawIds = $('#bulk-sales-ids').val();
+
+            let saleIds = [];
+            try {
+                let parsed = JSON.parse(rawIds);
+                saleIds = Array.isArray(parsed) ? parsed : [parsed]; // ← wrap single value in array
+            } catch (e) {
+                // fallback: treat as comma-separated string
+                saleIds = rawIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            }
+
+            if (!message || message === '<p><br></p>') {
+                toastr.error('Message body cannot be empty.');
+                return;
+            }
+
+            if (saleIds.length === 0) {
+                toastr.error('No sale IDs found.');
+                return;
+            }
+
+            var $btn = $('#submit-bulk-email-btn');
+            $btn.prop('disabled', true).text('Sending...');
+
+            $.ajax({
+                url: '/send-bulk-emails-to-offices',
+                type: 'POST',
+                data: {
+                    sale_ids: saleIds,
+                    from_email: $('#bulk_from_email').val(),
+                    subject: $('#bulk-email-subject').val(),
+                    email_title: 'Scrap Bulk Emails',
+                    message: message,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(res) {
+                    $('#bulkEmailModal').modal('hide');
+                    toastr.success(res.message || 'Email sent successfully!');
+                },
+                error: function(xhr) {
+                    var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
+                    toastr.error(err);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('Send');
+                }
+            });
+        }
+
+        $('#bulk-delete-btn').on('click', function() {
+            let ids = getSelectedSales();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.sale.destroy') }}",
+                        type: 'DELETE',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Deleted!',
+                                response.message || 'Sale(s) has been deleted.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#sales_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
                         }
-                    },
-                    error: function (xhr, status, error) {
-                        toastr.error('Something went wrong while fetching email template');
-                        console.error(error);
-                    }
-                });
+                    });
+                }
             });
+        });
 
-            function sendBulkEmail() {
-                var message = $('#bulk-email-body').summernote('code');
-                let rawIds = $('#bulk-sales-ids').val();
+        $('#bulk-approve-btn').on('click', function() {
+            let ids = getSelectedSales();
 
-                let saleIds = [];
-                try {
-                    let parsed = JSON.parse(rawIds);
-                    saleIds = Array.isArray(parsed) ? parsed : [parsed]; // ← wrap single value in array
-                } catch (e) {
-                    // fallback: treat as comma-separated string
-                    saleIds = rawIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                }
-
-                if (!message || message === '<p><br></p>') {
-                    toastr.error('Message body cannot be empty.');
-                    return;
-                }
-
-                if (saleIds.length === 0) {
-                    toastr.error('No sale IDs found.');
-                    return;
-                }
-
-                var $btn = $('#submit-bulk-email-btn');
-                $btn.prop('disabled', true).text('Sending...');
-
-                $.ajax({
-                    url: '/send-bulk-emails-to-offices',
-                    type: 'POST',
-                    data: {
-                        sale_ids: saleIds,
-                        from_email: $('#bulk_from_email').val(),
-                        subject: $('#bulk-email-subject').val(),
-                        email_title: 'Scrap Bulk Emails',
-                        message: message,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function (res) {
-                        $('#bulkEmailModal').modal('hide');
-                        toastr.success(res.message || 'Email sent successfully!');
-                    },
-                    error: function (xhr) {
-                        var err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to send email.';
-                        toastr.error(err);
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).text('Send');
-                    }
-                });
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
             }
 
-            $('#bulk-delete-btn').on('click', function () {
-                let ids = getSelectedSales();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will automatically approve the sale along with its associated unit and office.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'rgba(34, 190, 13, 1)',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, approve it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
 
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.sale.approve') }}",
+                        type: 'POST',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Approved!',
+                                response.message || 'Sale(s) has been approved.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#sales_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
                 }
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-
-                    if (result.isConfirmed) {
-
-                        $.ajax({
-                            url: "{{ route('scrapped.sale.destroy') }}",
-                            type: 'DELETE',
-                            data: {
-                                id: ids,
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
-
-                                Swal.fire(
-                                    'Deleted!',
-                                    response.message || 'Sale(s) has been deleted.',
-                                    'success'
-                                );
-
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#sales_table').DataTable().ajax.reload(null, false);
-                            },
-
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
-                    }
-                });
             });
-
-            $('#bulk-approve-btn').on('click', function () {
-                let ids = getSelectedSales();
-
-                if (ids.length === 0) {
-                    alert('Select at least one record');
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This will automatically approve the sale along with its associated unit and office.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: 'rgba(34, 190, 13, 1)',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, approve it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-
-                    if (result.isConfirmed) {
-
-                        $.ajax({
-                            url: "{{ route('scrapped.sale.approve') }}",
-                            type: 'POST',
-                            data: {
-                                id: ids,
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (response) {
-
-                                Swal.fire(
-                                    'Approved!',
-                                    response.message || 'Sale(s) has been approved.',
-                                    'success'
-                                );
-
-                                // ✅ Reload DataTable WITHOUT refreshing page
-                                $('#sales_table').DataTable().ajax.reload(null, false);
-                            },
-
-                            error: function (xhr) {
-                                Swal.fire(
-                                    'Error!',
-                                    xhr.responseJSON?.message || 'Something went wrong.',
-                                    'error'
-                                );
-                            }
-                        });
-                    }
-                });
-            });
-        </script>
-    @endsection
+        });
+    </script>
+@endsection
 @endsection
