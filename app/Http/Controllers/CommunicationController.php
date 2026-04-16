@@ -244,9 +244,9 @@ class CommunicationController extends Controller
 
             foreach ($phone_numbers as $phone) {
                 $applicant = Applicant::where('applicant_phone', 'like', '%' . $phone . '%')
-                            ->orWhere('applicant_phone_secondary', 'like', '%' . $phone . '%')
-                            ->orWhere('applicant_landline', 'like', '%' . $phone . '%')
-                            ->first();
+                    ->orWhere('applicant_phone_secondary', 'like', '%' . $phone . '%')
+                    ->orWhere('applicant_landline', 'like', '%' . $phone . '%')
+                    ->first();
 
                 if ($applicant) {
                     $is_saved = $this->saveSMSDB($phone, $message, 'Horsefly\Applicant', $applicant->id);
@@ -462,7 +462,11 @@ class CommunicationController extends Controller
                 ->latest()
                 ->first();
 
-            $applicant = Applicant::where('applicant_phone', $phoneNumber)->orWhere('applicant_landline', $phoneNumber)->first();
+            $applicant = Applicant::where('applicant_phone', $phoneNumber)
+                ->orWhere('applicant_landline', $phoneNumber)
+                ->orWhere('applicant_phone_secondary', $phoneNumber)
+                ->first();
+
             $contact = Contact::where('contact_phone', $phoneNumber)->first();
 
             if ($applicant) {
@@ -594,7 +598,7 @@ class CommunicationController extends Controller
                     ->where('module_type', ($recipientType === 'applicant' || $recipientType === 'unknown') ? Applicant::class : User::class)
                     ->where('status', 'incoming')
                     ->update(['is_read' => 1]);  // Ensure it's an integer value (0 or 1)
-            
+
 
                 // Base query for fetching messages for both normal and 'unknown-chat' cases
                 $query = Message::where('module_id', $recipientId)
@@ -663,24 +667,24 @@ class CommunicationController extends Controller
                 $query->latest()->limit(1);
             }
         ])
-        ->withMax('messages', 'created_at')          // <- adds messages_max_created_at
-        ->withCount([
-            'messages as messages_count',
-            'messages as unread_count' => function ($query) {
-                $query->where('module_type', 'Horsefly\\Applicant')
-                    ->where('status', 'incoming')
-                    ->where('is_read', 0);
-            }
-        ]);
+            ->withMax('messages', 'created_at')          // <- adds messages_max_created_at
+            ->withCount([
+                'messages as messages_count',
+                'messages as unread_count' => function ($query) {
+                    $query->where('module_type', 'Horsefly\\Applicant')
+                        ->where('status', 'incoming')
+                        ->where('is_read', 0);
+                }
+            ]);
 
 
         if (!empty($request->search)) {
             $search = trim($request->search);
             $raw_query->where('applicant_name', 'like', '%' . $search . '%')
-                    ->orWhere('applicant_phone', 'like', '%' . $search . '%');
+                ->orWhere('applicant_phone', 'like', '%' . $search . '%');
         }
 
-       $applicants = $raw_query
+        $applicants = $raw_query
             ->orderByDesc(DB::raw('unread_count > 0'))  // unread first
             ->orderByDesc('unread_count')
             ->orderByDesc('messages_max_created_at')     // latest message first
@@ -726,7 +730,7 @@ class CommunicationController extends Controller
             ->where('messages.module_type', 'Horsefly\\Applicant')
             ->where(function ($q) {
                 $q->whereNull('messages.module_id')
-                ->orWhereNull('applicants.id');
+                    ->orWhereNull('applicants.id');
             })
             ->select([
                 'messages.phone_number',
@@ -770,8 +774,8 @@ class CommunicationController extends Controller
                 'last_message' => $lastMessage ? [
                     'message' => Str::limit($lastMessage->message, 50),
                     'time' => $lastMessage->created_at
-                                ? $lastMessage->created_at->format('h:i A')
-                                : '',
+                        ? $lastMessage->created_at->format('h:i A')
+                        : '',
                     'is_sent' => (int) ($lastMessage->is_sent ?? 0),
                     'is_read' => (int) ($lastMessage->is_read ?? 0),
                 ] : null,
@@ -823,12 +827,12 @@ class CommunicationController extends Controller
                     DB::raw('COALESCE(unread_msgs.unread_count, 0) as unread_count')
                 );
 
-                if ($request->search) {
-                    $raw_query->where('applicants.applicant_name', 'like', '%' . $request->search . '%')
-                        ->orWhere('applicant_phone', 'like', '%' . $request->search . '%');
-                }
-                
-                $applicants = $raw_query->orderByDesc('messages.created_at')
+            if ($request->search) {
+                $raw_query->where('applicants.applicant_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('applicant_phone', 'like', '%' . $request->search . '%');
+            }
+
+            $applicants = $raw_query->orderByDesc('messages.created_at')
                 ->offset($start)
                 ->limit($limit)
                 ->get();
