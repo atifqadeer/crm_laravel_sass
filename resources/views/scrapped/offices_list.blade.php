@@ -492,6 +492,16 @@
                     $('#bulkActionButtons').removeClass('d-none');
                 }
 
+                // ✅ Uncheck all checkboxes
+                $('.office-checkbox').prop('checked', false);
+                $('#select-all').prop('checked', false);
+
+                // Optional: reset indeterminate state (if you used it)
+                $('#select-all').prop('indeterminate', false);
+
+                // Trigger change if you rely on it
+                $('.office-checkbox').trigger('change');
+
                 table.ajax.reload(); // Reload with updated status filter
             });
         });
