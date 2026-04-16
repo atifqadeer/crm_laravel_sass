@@ -33,7 +33,7 @@
                         <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- buttons Dropdown -->
-                                <div class="dropdown d-inline">
+                                <div class="dropdown d-inline" id="bulkActionButtons">
                                     <button class="btn btn-success me-1 my-1" id="bulk-approve-btn" disabled>
                                         <i class="ri-check-line me-1"></i> Bulk Approve
                                     </button>
@@ -44,6 +44,11 @@
 
                                     <button class="btn btn-info me-1 my-1" id="bulk-email-btn" disabled>
                                         <i class="ri-mail-line me-1"></i> Bulk Email
+                                    </button>
+                                </div>
+                                <div class="dropdown d-inline d-none" id="bulkRestoreActionButtons">
+                                    <button class="btn btn-info me-1 my-1" id="bulk-restore-btn" disabled>
+                                        <i class="ri-refresh-line me-1"></i> Bulk Restore
                                     </button>
                                 </div>
                                 <!-- Button Dropdown -->
@@ -478,6 +483,15 @@
                     .join(' ');
 
                 $('#showFilterStatus').html(formattedText);
+
+                if (currentFilter === 'deleted') {
+                    $('#bulkRestoreActionButtons').removeClass('d-none');
+                    $('#bulkActionButtons').addClass('d-none');
+                } else {
+                    $('#bulkRestoreActionButtons').addClass('d-none');
+                    $('#bulkActionButtons').removeClass('d-none');
+                }
+
                 table.ajax.reload(); // Reload with updated status filter
             });
         });
@@ -1006,6 +1020,52 @@
             });
         });
 
+        function restoreOffice(id) {
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This office will be restored! If you restore this office then it will restore its units, contacts and sales.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.office.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: id,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Office(s) has been restored.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#headOffice_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+
         function deleteOffice(id) {
 
             Swal.fire({
@@ -1022,9 +1082,10 @@
                 if (result.isConfirmed) {
 
                     $.ajax({
-                        url: "{{ route('scrapped.office.destroy', ':id') }}".replace(':id', id),
+                        url: "{{ route('scrapped.office.destroy') }}",
                         type: 'DELETE',
                         data: {
+                            id: id,
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
@@ -1055,6 +1116,13 @@
 
         // Individual checkbox
         $(document).on('change', '.office-checkbox', function() {
+
+            let total = $('.office-checkbox').length;
+            let checked = $('.office-checkbox:checked').length;
+
+            // If any checkbox is unchecked → uncheck select-all
+            $('#select-all').prop('checked', total === checked);
+
             toggleBulkButtons();
         });
 
@@ -1062,10 +1130,10 @@
         $(document).on('change', '#select-all', function() {
             $('.office-checkbox')
                 .prop('checked', this.checked)
-                .trigger('change'); // 🔥 important
+                .trigger('change'); // keep your existing logic
         });
 
-        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
+        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn, #bulk-restore-btn');
 
         function toggleBulkButtons() {
             bulkButtons.prop('disabled', $('.office-checkbox:checked').length === 0);
@@ -1077,6 +1145,7 @@
             $('.office-checkbox:checked').each(function() {
                 ids.push($(this).val());
             });
+
             return ids;
         }
 
@@ -1155,6 +1224,17 @@
                 },
                 success: function(res) {
                     $('#bulkEmailModal').modal('hide');
+
+                    // ✅ Uncheck all checkboxes
+                    $('.office-checkbox').prop('checked', false);
+                    $('#select-all').prop('checked', false);
+
+                    // Optional: reset indeterminate state (if you used it)
+                    $('#select-all').prop('indeterminate', false);
+
+                    // Trigger change if you rely on it
+                    $('.office-checkbox').trigger('change');
+
                     toastr.success(res.message || 'Email sent successfully!');
                 },
                 error: function(xhr) {
@@ -1202,6 +1282,16 @@
                                 response.message || 'Office(s) has been deleted.',
                                 'success'
                             );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.office-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.office-checkbox').trigger('change');
 
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#headOffice_table').DataTable().ajax.reload(null, false);
@@ -1254,6 +1344,79 @@
                                 response.message || 'Office(s) has been approved.',
                                 'success'
                             );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.office-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.office-checkbox').trigger('change');
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#headOffice_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#bulk-restore-btn').on('click', function() {
+            let ids = getSelectedOffices();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This office will be permanently restored! If you restore this office then it will restore its units, sales and contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#45c5cd',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.office.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Office(s) has been restored.',
+                                'success'
+                            );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.office-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.office-checkbox').trigger('change');
+
 
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#headOffice_table').DataTable().ajax.reload(null, false);

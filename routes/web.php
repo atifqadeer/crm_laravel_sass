@@ -201,6 +201,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getScrappedUnits', [ScrapController::class, 'getScrappedUnits'])->name('getScrappedUnits');
     Route::get('getScrappedSales', [ScrapController::class, 'getScrappedSales'])->name('getScrappedSales');
 
+    Route::put('scrapped/office/restore', [ScrapController::class, 'scrappedOfficeRestore'])->name('scrapped.office.restore');
+    Route::put('scrapped/unit/restore', [ScrapController::class, 'scrappedUnitRestore'])->name('scrapped.unit.restore');
+    Route::put('scrapped/sale/restore', [ScrapController::class, 'scrappedSaleRestore'])->name('scrapped.sale.restore');
+
     Route::delete('scrapped/office/destroy', [ScrapController::class, 'scrappedOfficeDestroy'])->name('scrapped.office.destroy');
     Route::delete('scrapped/unit/destroy', [ScrapController::class, 'scrappedUnitDestroy'])->name('scrapped.unit.destroy');
     Route::delete('scrapped/sale/destroy', [ScrapController::class, 'scrappedSaleDestroy'])->name('scrapped.sale.destroy');
@@ -266,7 +270,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('crm-notes/import', [ImportController::class, 'crmNotesImport'])->name('crmNotes.import');
     Route::post('crm-rejected-cv/import', [ImportController::class, 'crmRejectedCvImport'])->name('crmRejectedCv.import');
     Route::post('cv-notes/import', [ImportController::class, 'cvNotesImport'])->name('cvNotes.import');
-    Route::post('history-data/import', [ImportController::class, 'historyImport'])->name('history.import');//
+    Route::post('history-data/import', [ImportController::class, 'historyImport'])->name('history.import'); //
     Route::post('interview/import', [ImportController::class, 'interviewImport'])->name('interview.import');
     Route::post('ipAddress/import', [ImportController::class, 'ipAddressImport'])->name('ipAddress.import');
     Route::post('module-notes-data/import', [ImportController::class, 'moduleNotesImport'])->name('moduleNotes.import');

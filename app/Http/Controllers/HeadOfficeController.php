@@ -709,9 +709,12 @@ class HeadOfficeController extends Controller
     }
     public function destroy($id)
     {
-        $office = Office::findOrFail($id);
+        $office = Office::findOrFail($id); // auto 404 if not found
         $office->delete();
-        return redirect()->route('head-offices.list')->with('success', 'Head Office deleted successfully');
+
+        return redirect()
+            ->route('head-offices.list')
+            ->with('success', 'Head Office deleted successfully');
     }
     public function show($id)
     {

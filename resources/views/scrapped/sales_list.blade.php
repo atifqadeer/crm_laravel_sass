@@ -25,7 +25,7 @@
                             <div class="text-md-end mt-3">
                                 @canany(['sale-filters'])
                                     <!-- buttons Dropdown -->
-                                    <div class="dropdown d-inline">
+                                    <div class="dropdown d-inline" id="bulkActionButtons">
                                         <button class="btn btn-success me-1 my-1" id="bulk-approve-btn" disabled>
                                             <i class="ri-check-line me-1"></i> Bulk Approve
                                         </button>
@@ -36,6 +36,11 @@
 
                                         <button class="btn btn-info me-1 my-1" id="bulk-email-btn" disabled>
                                             <i class="ri-mail-line me-1"></i> Bulk Email
+                                        </button>
+                                    </div>
+                                    <div class="dropdown d-inline d-none" id="bulkRestoreActionButtons">
+                                        <button class="btn btn-info me-1 my-1" id="bulk-restore-btn" disabled>
+                                            <i class="ri-refresh-line me-1"></i> Bulk Restore
                                         </button>
                                     </div>
 
@@ -62,10 +67,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="officesList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input office-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-offices" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-offices">All Head Office</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input office-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-offices" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-offices">All Head Office</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
 
                                                 @foreach ($offices as $office)
                                                     <div class="form-check">
@@ -103,10 +108,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="categoryList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input category-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-categories" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-categories">All Category</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input category-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-categories" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-categories">All Category</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
 
                                                 @foreach ($jobCategories as $category)
                                                     <div class="form-check">
@@ -145,10 +150,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="titleList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input title-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-titles" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-titles">All Titles</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input class="form-check-input title-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        id="all-titles" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label class="form-check-label" for="all-titles">All Titles</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div> -->
                                                 @foreach ($jobTitles as $title)
                                                     <div class="form-check">
                                                         <input class="form-check-input title-filter" type="checkbox"
@@ -794,6 +799,13 @@
                     .join(' ');
 
                 $('#showFilterStatus').html(formattedText);
+                if (currentFilter === 'deleted') {
+                    $('#bulkRestoreActionButtons').removeClass('d-none');
+                    $('#bulkActionButtons').addClass('d-none');
+                } else {
+                    $('#bulkRestoreActionButtons').addClass('d-none');
+                    $('#bulkActionButtons').removeClass('d-none');
+                }
                 table.ajax.reload(); // Reload with updated status filter
             });
             /*** Category filter handler ***/
@@ -1949,6 +1961,52 @@
             });
         }
 
+        function restoreSale(id) {
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This sale will be restored! If you restore this sale then it will restore its contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, Restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.sale.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: id,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Sale(s) has been restored.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#sales_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+
         function openEmailModal(saleId) {
             $('#sale_id').val(saleId);
 
@@ -2025,18 +2083,25 @@
         let selectedIds = [];
 
         // Individual checkbox
-        $(document).on('change', '.sale-checkbox', function() {
+        $(document).on('change', '.sale-checkbox', function () {
+
+            let total = $('.sale-checkbox').length;
+            let checked = $('.sale-checkbox:checked').length;
+
+            // If any checkbox is unchecked → uncheck select-all
+            $('#select-all').prop('checked', total === checked);
+
             toggleBulkButtons();
         });
 
         // Select all checkbox
-        $(document).on('change', '#select-all', function() {
+        $(document).on('change', '#select-all', function () {
             $('.sale-checkbox')
                 .prop('checked', this.checked)
-                .trigger('change'); // 🔥 important
+                .trigger('change'); // keep your existing logic
         });
 
-        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn');
+        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn, #bulk-restore-btn');
 
         function toggleBulkButtons() {
             bulkButtons.prop('disabled', $('.sale-checkbox:checked').length === 0);
@@ -2045,9 +2110,10 @@
         function getSelectedSales() {
             let ids = [];
 
-            $('.sale-checkbox:checked').each(function() {
+            $('.sale-checkbox:checked').each(function () {
                 ids.push($(this).val());
             });
+
             return ids;
         }
 
@@ -2126,6 +2192,17 @@
                 },
                 success: function(res) {
                     $('#bulkEmailModal').modal('hide');
+                    
+                    // ✅ Uncheck all checkboxes
+                    $('.sale-checkbox').prop('checked', false);
+                    $('#select-all').prop('checked', false);
+                    
+                    // Optional: reset indeterminate state (if you used it)
+                    $('#select-all').prop('indeterminate', false);
+                    
+                    // Trigger change if you rely on it
+                    $('.sale-checkbox').trigger('change');
+                    
                     toastr.success(res.message || 'Email sent successfully!');
                 },
                 error: function(xhr) {
@@ -2173,6 +2250,16 @@
                                 response.message || 'Sale(s) has been deleted.',
                                 'success'
                             );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.sale-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.sale-checkbox').trigger('change');
 
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);
@@ -2225,6 +2312,78 @@
                                 response.message || 'Sale(s) has been approved.',
                                 'success'
                             );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.sale-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.sale-checkbox').trigger('change');
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#sales_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#bulk-restore-btn').on('click', function() {
+            let ids = getSelectedSales();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This sale will be permanently restored! If you restore this sale then it will restore its contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#45c5cd',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.sale.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Sale(s) has been restored.',
+                                'success'
+                            );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.sale-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.sale-checkbox').trigger('change');
 
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);

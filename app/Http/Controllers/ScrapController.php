@@ -1235,9 +1235,11 @@ class ScrapController extends Controller
                     if (Gate::allows('office-view-manager-details')) {
                         $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $office->id . ')">Manager Details</a></li>';
                     }
-
-                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteOffice(' . $office->id . ')">Delete</a></li>';
-
+                    if ($office->deleted_at != null) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="restoreOffice(' . $office->id . ')">Restore</a></li>';
+                    } else {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteOffice(' . $office->id . ')">Delete</a></li>';
+                    }
 
                     $html .= '</ul></div>';
                     return $html;
@@ -1475,7 +1477,11 @@ class ScrapController extends Controller
                 if (Gate::allows('unit-view-manager-details')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewManagerDetails(' . $u->id . ')">Manager Details</a></li>';
                 }
-                $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteUnit(' . $u->id . ')">Delete</a></li>';
+                if ($u->deleted_at != null) {
+                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="restoreUnit(' . $u->id . ')">Restore</a></li>';
+                } else {
+                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteUnit(' . $u->id . ')">Delete</a></li>';
+                }
 
                 $html .= '</ul></div>';
 
@@ -1600,6 +1606,7 @@ class ScrapController extends Controller
                 'sales.sale_notes',
                 'sales.created_at',
                 'sales.updated_at',
+                'sales.deleted_at',
                 // Rich HTML fields (needed for modals)
                 'sales.experience',
                 'sales.salary',
@@ -1981,7 +1988,11 @@ class ScrapController extends Controller
                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->office_id . ')">Manager Details</a></li>';
                     }
 
-                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteSale(' . $sale->id . ')">Delete</a></li>';
+                    if ($sale->deleted_at != null) {
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="restoreSale(' . $sale->id . ')">Restore</a></li>';
+                    } else {
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteSale(' . $sale->id . ')">Delete</a></li>';
+                    }
 
                     $action .= '</ul></div>';
 
@@ -2191,6 +2202,259 @@ class ScrapController extends Controller
 
             // Always delete the requested sales
             Sale::whereIn('id', $foundIds)->delete();
+
+            DB::commit();
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' sale(s) deleted successfully',
+                'deleted_sales' => $foundIds,
+                'deleted_offices' => $soloOfficeIds,  // offices that were also deleted
+                'deleted_units' => $soloUnitIds,    // units that were also deleted
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // scrap restore
+    public function scrappedOfficeRestore(Request $request)
+    {
+        try {
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
+
+            $offices = Office::withTrashed()
+                ->whereIn('id', $ids)
+                ->where('status', 4)
+                ->get();
+
+            if ($offices->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Office(s) not found'
+                ], 404);
+            }
+
+            $foundIds = $offices->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            DB::beginTransaction();
+
+            // Restore Office
+            Office::withTrashed()
+                ->whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->restore();
+
+            // Restore related Contacts
+            Contact::withTrashed()
+                ->whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Office::class)
+                ->restore();
+
+            // Restore related Sales
+            Sale::withTrashed()
+                ->whereIn('office_id', $foundIds)
+                ->where('status', 4)
+                ->restore();
+
+            // Restore related Units
+            Unit::withTrashed()
+                ->whereIn('office_id', $foundIds)
+                ->where('status', 4)
+                ->restore();
+
+            DB::commit();
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' office(s) restored successfully',
+                'restored' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function scrappedUnitRestore(Request $request)
+    {
+        try {
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No IDs provided'
+                ], 400);
+            }
+
+            $units = Unit::withTrashed()
+                ->whereIn('id', $ids)
+                ->where('status', 4)
+                ->get();
+
+            if ($units->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unit(s) not found'
+                ], 404);
+            }
+
+            $foundIds = $units->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            DB::beginTransaction();
+
+            Contact::withTrashed()
+                ->whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Unit::class)
+                ->restore();
+
+            Sale::withTrashed()
+                ->whereIn('unit_id', $foundIds)
+                ->where('status', 4)
+                ->restore();
+
+            Unit::withTrashed()
+                ->whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->restore();
+
+            DB::commit();
+
+            $response = [
+                'status' => true,
+                'message' => count($foundIds) . ' unit(s) restored successfully',
+                'restored' => $foundIds,
+            ];
+
+            if (!empty($notFoundIds)) {
+                $response['not_found'] = array_values($notFoundIds);
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function scrappedSaleRestore(Request $request)
+    {
+        try {
+            $ids = $request->has('id')
+                ? (is_array($request->id) ? $request->id : [$request->id])
+                : [];
+
+            if (empty($ids)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No IDs provided'
+                ], 400);
+            }
+
+            $sales = Sale::withTrashed()
+                ->whereIn('id', $ids)
+                ->where('status', 4)
+                ->get();
+
+            if ($sales->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Sale(s) not found or not scrapped'
+                ], 404);
+            }
+
+            $foundIds = $sales->pluck('id')->toArray();
+            $notFoundIds = array_diff($ids, $foundIds);
+
+            $officeIds = $sales->pluck('office_id')->filter()->unique()->toArray();
+            $unitIds = $sales->pluck('unit_id')->filter()->unique()->toArray();
+
+            DB::beginTransaction();
+
+            // Check which offices have ONLY the requested sales linked
+            $soloOfficeIds = [];
+            foreach ($officeIds as $officeId) {
+                $totalSalesForOffice = Sale::withTrashed()->where('office_id', $officeId)->count();
+                $requestedSalesForOffice = $sales->where('office_id', $officeId)->count();
+
+                // If all sales for this office are in the requested deletion list
+                if ($totalSalesForOffice === $requestedSalesForOffice) {
+                    $soloOfficeIds[] = $officeId; // safe to delete office
+                }
+            }
+
+            // Check which units have ONLY the requested sales linked
+            $soloUnitIds = [];
+            foreach ($unitIds as $unitId) {
+                $totalSalesForUnit = Sale::where('unit_id', $unitId)->count();
+                $requestedSalesForUnit = $sales->where('unit_id', $unitId)->count();
+
+                // If all sales for this unit are in the requested deletion list
+                if ($totalSalesForUnit === $requestedSalesForUnit) {
+                    $soloUnitIds[] = $unitId; // safe to delete unit
+                }
+            }
+
+            // Delete sale contacts
+            Contact::withTrashed()
+                ->whereIn('contactable_id', $foundIds)
+                ->where('contactable_type', Sale::class)
+                ->restore();
+
+            // Delete office contacts and offices only if no other sales reference them
+            if (!empty($soloOfficeIds)) {
+                Contact::withTrashed()
+                    ->whereIn('contactable_id', $soloOfficeIds)
+                    ->where('contactable_type', Office::class)
+                    ->restore();
+
+                Office::withTrashed()
+                    ->whereIn('id', $soloOfficeIds)
+                    ->restore();
+            }
+
+            // Delete units only if no other sales reference them
+            if (!empty($soloUnitIds)) {
+                Unit::withTrashed()
+                    ->whereIn('id', $soloUnitIds)
+                    ->restore();
+            }
+
+            // Always delete the requested sales
+            Sale::withTrashed()
+                ->whereIn('id', $foundIds)
+                ->restore();
 
             DB::commit();
 

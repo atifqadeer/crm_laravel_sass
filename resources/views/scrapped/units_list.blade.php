@@ -33,13 +33,18 @@
                         <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- buttons Dropdown -->
-                                <div class="dropdown d-inline">
+                                <div class="dropdown d-inline" id="bulkActionButtons">
                                     <button class="btn btn-success me-1 my-1" id="bulk-approve-btn" disabled>
                                         <i class="ri-check-line me-1"></i> Bulk Approve
                                     </button>
 
                                     <button class="btn btn-danger me-1 my-1" id="bulk-delete-btn" disabled>
                                         <i class="ri-delete-bin-line me-1"></i> Bulk Delete
+                                    </button>
+                                </div>
+                                <div class="dropdown d-inline d-none" id="bulkRestoreActionButtons">
+                                    <button class="btn btn-info me-1 my-1" id="bulk-restore-btn" disabled>
+                                        <i class="ri-refresh-line me-1"></i> Bulk Restore
                                     </button>
                                 </div>
                                 <!-- head office Filter Dropdown -->
@@ -502,6 +507,15 @@
                     .join(' ');
 
                 $('#showFilterStatus').html(formattedText);
+
+                if (currentFilter === 'deleted') {
+                    $('#bulkRestoreActionButtons').removeClass('d-none');
+                    $('#bulkActionButtons').addClass('d-none');
+                } else {
+                    $('#bulkRestoreActionButtons').addClass('d-none');
+                    $('#bulkActionButtons').removeClass('d-none');
+                }
+
                 table.ajax.reload(); // Reload with updated status filter
             });
 
@@ -1055,6 +1069,13 @@
 
         // Individual checkbox
         $(document).on('change', '.unit-checkbox', function() {
+
+            let total = $('.unit-checkbox').length;
+            let checked = $('.unit-checkbox:checked').length;
+
+            // If any checkbox is unchecked → uncheck select-all
+            $('#select-all').prop('checked', total === checked);
+
             toggleBulkButtons();
         });
 
@@ -1062,10 +1083,10 @@
         $(document).on('change', '#select-all', function() {
             $('.unit-checkbox')
                 .prop('checked', this.checked)
-                .trigger('change'); // 🔥 important
+                .trigger('change'); // keep your existing logic
         });
 
-        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn');
+        const bulkButtons = $('#bulk-approve-btn, #bulk-delete-btn, #bulk-email-btn, #bulk-restore-btn');
 
         function toggleBulkButtons() {
             bulkButtons.prop('disabled', $('.unit-checkbox:checked').length === 0);
@@ -1077,6 +1098,7 @@
             $('.unit-checkbox:checked').each(function() {
                 ids.push($(this).val());
             });
+
             return ids;
         }
 
@@ -1106,6 +1128,51 @@
                             Swal.fire(
                                 'Deleted!',
                                 response.message || 'Unit has been deleted.',
+                                'success'
+                            );
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#units_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+
+        function restoreUnit(id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This unit will be restored! If you restore this unit then it will restore its contacts and sales.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.unit.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: id,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Unit has been restored.',
                                 'success'
                             );
 
@@ -1161,6 +1228,16 @@
                                 'success'
                             );
 
+                            // ✅ Uncheck all checkboxes
+                            $('.unit-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.unit-checkbox').trigger('change');
+
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#units_table').DataTable().ajax.reload(null, false);
                         },
@@ -1212,6 +1289,78 @@
                                 response.message || 'Unit(s) has been approved.',
                                 'success'
                             );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.unit-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.unit-checkbox').trigger('change');
+
+                            // ✅ Reload DataTable WITHOUT refreshing page
+                            $('#units_table').DataTable().ajax.reload(null, false);
+                        },
+
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#bulk-restore-btn').on('click', function() {
+            let ids = getSelectedUnits();
+
+            if (ids.length === 0) {
+                alert('Select at least one record');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This unit will be permanently restored! If you restore this unit then it will restore its sales and its contacts.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#45c5cd',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, restore it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "{{ route('scrapped.unit.restore') }}",
+                        type: 'PUT',
+                        data: {
+                            id: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            Swal.fire(
+                                'Restored!',
+                                response.message || 'Unit(s) has been restored.',
+                                'success'
+                            );
+
+                            // ✅ Uncheck all checkboxes
+                            $('.unit-checkbox').prop('checked', false);
+                            $('#select-all').prop('checked', false);
+
+                            // Optional: reset indeterminate state (if you used it)
+                            $('#select-all').prop('indeterminate', false);
+
+                            // Trigger change if you rely on it
+                            $('.unit-checkbox').trigger('change');
 
                             // ✅ Reload DataTable WITHOUT refreshing page
                             $('#units_table').DataTable().ajax.reload(null, false);
