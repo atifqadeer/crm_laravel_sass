@@ -1825,7 +1825,7 @@ class ApplicantController extends Controller
                     $id = 'note-' . $row->crm_notes_id;
 
                     return '
-                        <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog-top modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -1858,7 +1858,7 @@ class ApplicantController extends Controller
 
                     $modalHtml = $this->generateJobDetailsModal($row);
 
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
+                    return '<a href="javascript:void(0);" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
                         . (int)$row->sale_id . ','
                         . '\'' . htmlspecialchars(Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars($row->office_name, ENT_QUOTES) . '\','
@@ -1882,7 +1882,7 @@ class ApplicantController extends Controller
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
                 })
                 ->addColumn('action', function ($row) {
-                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(' . (int)$row->app_id . ',' . (int)$row->sale_id . ')">
+                    return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int)$row->app_id . ',' . (int)$row->sale_id . ')">
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
@@ -2425,7 +2425,7 @@ class ApplicantController extends Controller
                     $id = 'exp-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2456,7 +2456,7 @@ class ApplicantController extends Controller
                     $id = 'qalf-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2487,7 +2487,7 @@ class ApplicantController extends Controller
                     $id = 'slry-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2533,7 +2533,7 @@ class ApplicantController extends Controller
                     $id = 'notes-' . $sale->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2618,12 +2618,12 @@ class ApplicantController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                     if ($status_value == 'open') {
-                        $html .= '<li><a href="#" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
+                        $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
                                                     </a></li>';
                         if ($applicant->is_in_nurse_home == false) {
-                            $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
                         if ($sale->is_on_hold != 0) {
@@ -2634,7 +2634,7 @@ class ApplicantController extends Controller
                                         <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                         } else {
                             $html .= '<li>
-                                            <a href="#"
+                                            <a href="javascript:void(0);"
                                             class="dropdown-item"
                                             onclick="sendCVModal('
                                 . (int) $applicant->id . ','
@@ -2647,7 +2647,7 @@ class ApplicantController extends Controller
                                         </li>';
                         }
                         if ($applicant->is_callback_enable == false) {
-                            $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                         $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
@@ -2943,7 +2943,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -2997,7 +2997,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -3051,7 +3051,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -3093,7 +3093,7 @@ class ApplicantController extends Controller
                     $unit_name = $unit ? ucwords($unit->unit_name) : '-';
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                ' . $shortNotes . '
                             </a>';
                 })
@@ -3166,20 +3166,20 @@ class ApplicantController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                     if ($status_value == 'open') {
-                        $html .= '<li><a href="#" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
+                        $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
                                                     </a></li>';
                         if ($applicant->is_in_nurse_home == false) {
-                            $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
 
-                        $html .= '<li><a href="#" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
+                        $html .= '<li><a href="javascript:void(0);" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
                                                     <span>Send CV</span></a></li>';
 
                         if ($applicant->is_callback_enable == false) {
-                            $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                         $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">

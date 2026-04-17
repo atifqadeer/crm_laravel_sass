@@ -178,7 +178,7 @@ class UserController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
                                             \'' . (int)$user->id . '\',
                                             \'' . addslashes(htmlspecialchars($name)) . '\',
                                             \'' . addslashes(htmlspecialchars($email)) . '\',
@@ -186,7 +186,7 @@ class UserController extends Controller
                                             \'' . addslashes(htmlspecialchars($roleName)) . '\'
                                         )">Edit</a>
                                     </li>
-                                    <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                         \'' . (int)$user->id . '\',
                                         \'' . addslashes(htmlspecialchars($name)) . '\',
                                         \'' . addslashes(htmlspecialchars($email)) . '\',
@@ -194,11 +194,11 @@ class UserController extends Controller
                                         \'' . addslashes(htmlspecialchars($status)) . '\'
                                     )">View</a></li>';
                     if ($user->is_active == true) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="changeStatusModal(
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
                                             \'' . (int)$user->id . '\', \'0\'
                                         )">Mark as Inctive</a></li>';
                     } else {
-                        $html .=  '<li><a class="dropdown-item" href="#" onclick="changeStatusModal(
+                        $html .=  '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
                                             \'' . (int)$user->id . '\', \'1\'
                                         )">Mark as Active</a></li>';
                     }
@@ -230,7 +230,7 @@ class UserController extends Controller
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn('details', function ($audit) {
                     $content = "";
-                    $content .= '<a href="#" class=""
+                    $content .= '<a href="javascript:void(0);" class=""
                         data-controls-modal="#modal_audit_details'.$audit->id.'"
                         data-bs-backdrop="static" data-bs-keyboard="false" data-bs-toggle="modal"
                         data-bs-target="#modal_audit_details'.$audit->id.'">

@@ -1036,11 +1036,29 @@
                 title: 'Are you sure?',
                 text: "This office will be restored! If you restore this office then it will restore its units, contacts and sales.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 reason input
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
-                confirmButtonColor: '#28a745',
+                confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason || reason.trim() === '') {
+                        Swal.showValidationMessage('Reason is required!');
+                        return false;
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1050,8 +1068,10 @@
                         type: 'PUT',
                         data: {
                             id: id,
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1060,11 +1080,11 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#headOffice_table').DataTable().ajax.reload(null, false);
                         },
 
                         error: function(xhr) {
+
                             Swal.fire(
                                 'Error!',
                                 xhr.responseJSON?.message || 'Something went wrong.',
@@ -1082,22 +1102,40 @@
                 title: 'Are you sure?',
                 text: "This office will be permanently deleted! If you delete this office then it will delete its units, contacts and sales.",
                 icon: 'warning',
+                input: 'textarea', // ✅ textarea added
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason here...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation (optional but recommended)
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please enter a reason!';
+                    }
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
+
+                    let reason = result.value; // ✅ get textarea value
 
                     $.ajax({
                         url: "{{ route('scrapped.office.destroy') }}",
                         type: 'DELETE',
                         data: {
                             id: id,
+                            reason: reason, // ✅ send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1106,7 +1144,6 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#headOffice_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1269,22 +1306,43 @@
                 title: 'Are you sure?',
                 text: "This office will be permanently deleted! If you delete this office then it will delete its units, sales and contacts.",
                 icon: 'warning',
+
+                // ✅ Add textarea
+                input: 'textarea',
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason here...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please enter a reason!';
+                    }
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
+
+                    let reason = result.value; // ✅ get reason
 
                     $.ajax({
                         url: "{{ route('scrapped.office.destroy') }}",
                         type: 'DELETE',
                         data: {
                             id: ids,
+                            reason: reason, // ✅ send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1295,15 +1353,11 @@
 
                             // ✅ Uncheck all checkboxes
                             $('.office-checkbox').prop('checked', false);
-                            $('#select-all').prop('checked', false);
+                            $('#select-all').prop('checked', false).prop('indeterminate',
+                            false);
 
-                            // Optional: reset indeterminate state (if you used it)
-                            $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.office-checkbox').trigger('change');
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#headOffice_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1391,13 +1445,31 @@
 
             Swal.fire({
                 title: 'Are you sure?',
-                text: "This office will be permanently restored! If you restore this office then it will restore its units, sales and contacts.",
+                text: "This office will be restored! If you restore this office then it will restore its units, sales and contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason || reason.trim() === '') {
+                        Swal.showValidationMessage('Reason is required!');
+                        return false;
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1406,9 +1478,11 @@
                         url: "{{ route('scrapped.office.restore') }}",
                         type: 'PUT',
                         data: {
-                            id: ids,
+                            id: ids,                 // 👈 multiple IDs
+                            reason: result.value,    // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1420,19 +1494,15 @@
                             // ✅ Uncheck all checkboxes
                             $('.office-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false);
-
-                            // Optional: reset indeterminate state (if you used it)
                             $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.office-checkbox').trigger('change');
 
-
-                            // ✅ Reload DataTable WITHOUT refreshing page
+                            // ✅ Reload DataTable
                             $('#headOffice_table').DataTable().ajax.reload(null, false);
                         },
 
                         error: function(xhr) {
+
                             Swal.fire(
                                 'Error!',
                                 xhr.responseJSON?.message || 'Something went wrong.',

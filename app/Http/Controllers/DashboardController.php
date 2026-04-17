@@ -950,7 +950,7 @@ class DashboardController extends Controller
                     $modalHtml = $this->generateJobDetailsModal($notification);
 
                     // Return the action link with a modal trigger and the modal HTML
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
+                    return '<a href="javascript:void(0);" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
                         . (int)$notification->sale_id . ','
                         . '\'' . htmlspecialchars(Carbon::parse($notification->sale->created_at)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars((string)$notification->sale->office->office_name, ENT_QUOTES) . '\','
@@ -975,7 +975,7 @@ class DashboardController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmMarkRequestConfirmOrRejectModal' . (int)$notification->applicant_id . '-' . (int)$notification->sale_id . '"
                                         data-applicant-id="' . (int)$notification->applicant_id . '"
@@ -2317,7 +2317,7 @@ class DashboardController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2389,7 +2389,7 @@ class DashboardController extends Controller
 
                     return '
                         <div>
-                            <a href="#" class="text-primary" 
+                            <a href="javascript:void(0);" class="text-primary" 
                             data-bs-toggle="modal" 
                             data-bs-target="#' . $modalId . '">
                                 ' . $short . '
@@ -2516,7 +2516,7 @@ class DashboardController extends Controller
                         $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
                     }
                     if (Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
                     }
                     $html .= '</ul>
                         </div>';

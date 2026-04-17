@@ -1117,11 +1117,26 @@
                 title: 'Are you sure?',
                 text: "This unit will be permanently deleted! If you delete this unit then it will delete its contacts and sales.",
                 icon: 'warning',
+                input: 'textarea', // 👈 add input
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validate input
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1131,6 +1146,7 @@
                         type: 'DELETE',
                         data: {
                             id: id,
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
@@ -1141,7 +1157,6 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#units_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1162,11 +1177,28 @@
                 title: 'Are you sure?',
                 text: "This unit will be restored! If you restore this unit then it will restore its contacts and sales.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
-                confirmButtonColor: '#28a745',
+                confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1176,8 +1208,10 @@
                         type: 'PUT',
                         data: {
                             id: id,
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1186,7 +1220,6 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#units_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1214,11 +1247,29 @@
                 title: 'Are you sure?',
                 text: "This unit will be permanently deleted! If you delete this unit then it will delete its contacts and sales.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason || reason.trim() === '') {
+                        Swal.showValidationMessage('Reason is required!');
+                        return false;
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1227,9 +1278,11 @@
                         url: "{{ route('scrapped.unit.destroy') }}",
                         type: 'DELETE',
                         data: {
-                            id: ids,
+                            id: ids, // 👈 multiple IDs
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1241,14 +1294,10 @@
                             // ✅ Uncheck all checkboxes
                             $('.unit-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false);
-
-                            // Optional: reset indeterminate state (if you used it)
                             $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.unit-checkbox').trigger('change');
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
+                            // ✅ Reload DataTable
                             $('#units_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1336,13 +1385,31 @@
 
             Swal.fire({
                 title: 'Are you sure?',
-                text: "This unit will be permanently restored! If you restore this unit then it will restore its sales and its contacts.",
+                text: "This unit will be restored! If you restore this unit then it will restore its sales and its contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason || reason.trim() === '') {
+                        Swal.showValidationMessage('Reason is required!');
+                        return false;
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1351,9 +1418,11 @@
                         url: "{{ route('scrapped.unit.restore') }}",
                         type: 'PUT',
                         data: {
-                            id: ids,
+                            id: ids, // 👈 multiple IDs
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1365,14 +1434,10 @@
                             // ✅ Uncheck all checkboxes
                             $('.unit-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false);
-
-                            // Optional: reset indeterminate state (if you used it)
                             $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.unit-checkbox').trigger('change');
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
+                            // ✅ Reload DataTable
                             $('#units_table').DataTable().ajax.reload(null, false);
                         },
 

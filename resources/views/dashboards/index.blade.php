@@ -626,7 +626,7 @@
     </div>
 
     <div class="modal fade" id="statusDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="statusDetailsLabel" data-crm-status=""></h5>

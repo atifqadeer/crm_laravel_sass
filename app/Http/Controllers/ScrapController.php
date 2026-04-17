@@ -11,6 +11,7 @@ use Horsefly\JobTitle;
 use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\EmailTemplate;
+use Horsefly\ModuleNote;
 use Horsefly\Sale;
 use Horsefly\Contact;
 use Horsefly\User;
@@ -1553,7 +1554,7 @@ class ScrapController extends Controller
         }
 
         return '<div class="d-flex flex-column align-items-start">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>' . $urlCTA . '
+                    <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>' . $urlCTA . '
                 </div>
                 <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -1901,7 +1902,7 @@ class ScrapController extends Controller
                     $unit_name = ucwords($sale->unit_name ?? '-');
 
                     return '<div class="d-flex flex-column align-items-start">
-                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                    <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                         ' . $shortNotes . '
                                     </a>
                                 </div>' . $urlCTA . '
@@ -1984,6 +1985,8 @@ class ScrapController extends Controller
                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int) $sale->id . ')">View Documents</a></li>';
                     }
 
+                    $action .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>';
+
                     if (Gate::allows('sale-view-manager-details')) {
                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int) $sale->office_id . ')">Manager Details</a></li>';
                     }
@@ -2012,6 +2015,7 @@ class ScrapController extends Controller
     // scrap destroy
     public function scrappedOfficeDestroy(Request $request)
     {
+        $user = Auth::user();
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2029,7 +2033,34 @@ class ScrapController extends Controller
             $foundIds = $offices->pluck('id')->toArray();
             $notFoundIds = array_diff($ids, $foundIds);
 
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' | Date: ' . Carbon::now()->format('Y-m-d H:i A');
+
             DB::beginTransaction();
+
+            // ✅ Save reason first
+            Office::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['office_notes' => $reason]);
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Office::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($officeId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $officeId,
+                        'module_noteable_type' => Office::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             Contact::whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Office::class)
@@ -2070,6 +2101,8 @@ class ScrapController extends Controller
     }
     public function scrappedUnitDestroy(Request $request)
     {
+        $user = Auth::user();
+
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2084,6 +2117,10 @@ class ScrapController extends Controller
 
             $units = Unit::whereIn('id', $ids)->where('status', 4)->get();
 
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' Date: ' . Carbon::now()->format('Y-m-d H:i A');
+
             if ($units->isEmpty()) {
                 return response()->json([
                     'status' => false,
@@ -2095,6 +2132,29 @@ class ScrapController extends Controller
             $notFoundIds = array_diff($ids, $foundIds);
 
             DB::beginTransaction();
+
+            // ✅ Save reason first
+            Unit::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['unit_notes' => $reason]);
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Unit::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($unitId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $unitId,
+                        'module_noteable_type' => Unit::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             Contact::whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Unit::class)
@@ -2128,6 +2188,8 @@ class ScrapController extends Controller
     }
     public function scrappedSaleDestroy(Request $request)
     {
+        $user = Auth::user();
+
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2141,6 +2203,10 @@ class ScrapController extends Controller
             }
 
             $sales = Sale::whereIn('id', $ids)->where('status', 4)->get();
+
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' Date: ' . Carbon::now()->format('Y-m-d H:i A');
 
             if ($sales->isEmpty()) {
                 return response()->json([
@@ -2156,6 +2222,29 @@ class ScrapController extends Controller
             $unitIds = $sales->pluck('unit_id')->filter()->unique()->toArray();
 
             DB::beginTransaction();
+
+            // ✅ Save reason first
+            Sale::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['sale_notes' => $reason]);
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Sale::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($saleId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $saleId,
+                        'module_noteable_type' => Sale::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             // Check which offices have ONLY the requested sales linked
             $soloOfficeIds = [];
@@ -2231,6 +2320,8 @@ class ScrapController extends Controller
     // scrap restore
     public function scrappedOfficeRestore(Request $request)
     {
+        $user = Auth::user();
+
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2251,7 +2342,34 @@ class ScrapController extends Controller
             $foundIds = $offices->pluck('id')->toArray();
             $notFoundIds = array_diff($ids, $foundIds);
 
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' | Date: ' . Carbon::now()->format('Y-m-d H:i A');
+
             DB::beginTransaction();
+
+            // ✅ Save reason first
+            Office::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['office_notes' => $reason]);
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Office::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($officeId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $officeId,
+                        'module_noteable_type' => Office::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             // Restore Office
             Office::withTrashed()
@@ -2302,6 +2420,8 @@ class ScrapController extends Controller
     }
     public function scrappedUnitRestore(Request $request)
     {
+        $user = Auth::user();
+
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2313,6 +2433,10 @@ class ScrapController extends Controller
                     'message' => 'No IDs provided'
                 ], 400);
             }
+
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' | Date: ' . Carbon::now()->format('Y-m-d H:i A');
 
             $units = Unit::withTrashed()
                 ->whereIn('id', $ids)
@@ -2331,6 +2455,12 @@ class ScrapController extends Controller
 
             DB::beginTransaction();
 
+            // ✅ Save reason first
+            Unit::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['unit_notes' => $reason]);
+
+
             Contact::withTrashed()
                 ->whereIn('contactable_id', $foundIds)
                 ->where('contactable_type', Unit::class)
@@ -2345,6 +2475,24 @@ class ScrapController extends Controller
                 ->whereIn('id', $foundIds)
                 ->where('status', 4)
                 ->restore();
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Unit::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($unitId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $unitId,
+                        'module_noteable_type' => Unit::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             DB::commit();
 
@@ -2370,6 +2518,8 @@ class ScrapController extends Controller
     }
     public function scrappedSaleRestore(Request $request)
     {
+        $user = Auth::user();
+
         try {
             $ids = $request->has('id')
                 ? (is_array($request->id) ? $request->id : [$request->id])
@@ -2381,6 +2531,10 @@ class ScrapController extends Controller
                     'message' => 'No IDs provided'
                 ], 400);
             }
+
+            $reason = $request->reason
+                . ' | By: ' . $user->name
+                . ' | Date: ' . Carbon::now()->format('Y-m-d H:i A');
 
             $sales = Sale::withTrashed()
                 ->whereIn('id', $ids)
@@ -2401,6 +2555,11 @@ class ScrapController extends Controller
             $unitIds = $sales->pluck('unit_id')->filter()->unique()->toArray();
 
             DB::beginTransaction();
+
+            // ✅ Save reason first
+            Sale::whereIn('id', $foundIds)
+                ->where('status', 4)
+                ->update(['sale_notes' => $reason]);
 
             // Check which offices have ONLY the requested sales linked
             $soloOfficeIds = [];
@@ -2450,6 +2609,25 @@ class ScrapController extends Controller
                     ->whereIn('id', $soloUnitIds)
                     ->restore();
             }
+
+            ModuleNote::whereIn('module_noteable_id', $foundIds)
+                ->where('module_noteable_type', Sale::class)
+                ->update(['status' => 0]); // example of updating existing notes if needed
+
+
+            // ✅ Insert notes (bulk)
+            ModuleNote::insert(
+                array_map(function ($saleId) use ($request, $user, $reason) {
+                    return [
+                        'module_noteable_id'   => $saleId,
+                        'module_noteable_type' => Sale::class,
+                        'details'         => $reason,
+                        'user_id'   => $user->id, // 🔥 important
+                        'created_at'   => Carbon::now(),
+                        'updated_at'   => Carbon::now(),
+                    ];
+                }, $foundIds)
+            );
 
             // Always delete the requested sales
             Sale::withTrashed()

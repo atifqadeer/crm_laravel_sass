@@ -67,10 +67,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="officesList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input office-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-offices" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-offices">All Head Office</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input office-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-offices" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-offices">All Head Office</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
 
                                                 @foreach ($offices as $office)
                                                     <div class="form-check">
@@ -108,10 +108,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="categoryList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input category-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-categories" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-categories">All Category</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input category-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-categories" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-categories">All Category</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
 
                                                 @foreach ($jobCategories as $category)
                                                     <div class="form-check">
@@ -150,10 +150,10 @@
                                             <!-- Scrollable checkbox list -->
                                             <div id="titleList">
                                                 <!-- <div class="form-check">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input title-filter" type="checkbox" value=""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-titles" data-title-id="">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-titles">All Titles</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input class="form-check-input title-filter" type="checkbox" value=""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                id="all-titles" data-title-id="">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label class="form-check-label" for="all-titles">All Titles</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div> -->
                                                 @foreach ($jobTitles as $title)
                                                     <div class="form-check">
                                                         <input class="form-check-input title-filter" type="checkbox"
@@ -1657,25 +1657,25 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(
                     `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="modal-content">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="modal-header">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <h5 class="modal-title" id="${modalLabelId}">Sale Notes History</h5>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="modal-body text-center">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div class="spinner-border text-primary my-4" role="status">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <span class="visually-hidden">Loading...</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div class="modal-footer">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalLabelId}">Sale Notes History</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div class="spinner-border text-primary my-4" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
                 );
             } else {
                 // Reset modal content with loader if already exists
@@ -1932,11 +1932,28 @@
                 title: 'Are you sure?',
                 text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1946,8 +1963,10 @@
                         type: 'DELETE',
                         data: {
                             id: id,
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -1956,7 +1975,6 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -1978,11 +1996,28 @@
                 title: 'Are you sure?',
                 text: "This sale will be restored! If you restore this sale then it will restore its contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
-                confirmButtonColor: '#28a745',
+                confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, Restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -1992,8 +2027,10 @@
                         type: 'PUT',
                         data: {
                             id: id,
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -2002,7 +2039,6 @@
                                 'success'
                             );
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -2238,11 +2274,28 @@
                 title: 'Are you sure?',
                 text: "This sale will be permanently deleted! If you delete this sale then it will delete its contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for deletion',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validate reason
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -2251,9 +2304,11 @@
                         url: "{{ route('scrapped.sale.destroy') }}",
                         type: 'DELETE',
                         data: {
-                            id: ids,
+                            id: ids,                 // 👈 multiple IDs
+                            reason: result.value,    // 👈 common reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -2262,17 +2317,11 @@
                                 'success'
                             );
 
-                            // ✅ Uncheck all checkboxes
                             $('.sale-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false);
-
-                            // Optional: reset indeterminate state (if you used it)
                             $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.sale-checkbox').trigger('change');
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);
                         },
 
@@ -2360,13 +2409,30 @@
 
             Swal.fire({
                 title: 'Are you sure?',
-                text: "This sale will be permanently restored! If you restore this sale then it will restore its contacts.",
+                text: "This sale will be restored! If you restore this sale then it will restore its contacts.",
                 icon: 'warning',
+
+                input: 'textarea', // 👈 add this
+                inputLabel: 'Reason for restore',
+                inputPlaceholder: 'Enter reason...',
+                inputAttributes: {
+                    'aria-label': 'Type your reason here'
+                },
+
                 showCancelButton: true,
                 confirmButtonColor: '#45c5cd',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, restore it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+
+                // ✅ validation
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required!');
+                    }
+                    return reason;
+                }
+
             }).then((result) => {
 
                 if (result.isConfirmed) {
@@ -2375,9 +2441,11 @@
                         url: "{{ route('scrapped.sale.restore') }}",
                         type: 'PUT',
                         data: {
-                            id: ids,
+                            id: ids,                 // 👈 multiple IDs
+                            reason: result.value,    // 👈 common reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
+
                         success: function(response) {
 
                             Swal.fire(
@@ -2386,17 +2454,11 @@
                                 'success'
                             );
 
-                            // ✅ Uncheck all checkboxes
                             $('.sale-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false);
-
-                            // Optional: reset indeterminate state (if you used it)
                             $('#select-all').prop('indeterminate', false);
-
-                            // Trigger change if you rely on it
                             $('.sale-checkbox').trigger('change');
 
-                            // ✅ Reload DataTable WITHOUT refreshing page
                             $('#sales_table').DataTable().ajax.reload(null, false);
                         },
 

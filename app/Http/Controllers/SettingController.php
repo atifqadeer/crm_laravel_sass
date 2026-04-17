@@ -295,7 +295,7 @@ class SettingController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                      <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
                                             \'' . $cat->id . '\',
                                             \'' . addslashes(htmlspecialchars($name)) . '\',
                                             \'' . addslashes(htmlspecialchars($cat->is_active)) . '\'
@@ -394,7 +394,7 @@ class SettingController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick=\'showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick=\'showEditModal(
                                             ' . json_encode($title->id) . ',
                                             ' . json_encode(ucwords($title->name)) . ',
                                             ' . json_encode($title->job_category_id) . ',
@@ -480,7 +480,7 @@ class SettingController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                      <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
                                             \'' . $source->id . '\',
                                             \'' . addslashes(htmlspecialchars($name)) . '\',
                                             \'' . addslashes(htmlspecialchars($source->is_active)) . '\'
@@ -560,10 +560,10 @@ class SettingController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
                                   <!--  <li>
-                                        <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
                                     </li> -->
                                 </ul>
                             </div>';
@@ -774,10 +774,10 @@ class SettingController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                      <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(' . $row->id . ')">Edit</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(' . $row->id . ')">Edit</a>
                                     </li>
                                     <!-- <li>
-                                         <a class="dropdown-item" href="#" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
+                                         <a class="dropdown-item" href="javascript:void(0);" onclick="deleteTemplate(' . $row->id . ')">Delete</a>
                                      </li>-->
                                 </ul>
                             </div>';
