@@ -2052,6 +2052,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($officeId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($officeId),
                         'module_noteable_id'   => $officeId,
                         'module_noteable_type' => Office::class,
                         'details'         => $reason,
@@ -2146,6 +2147,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($unitId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($unitId),
                         'module_noteable_id'   => $unitId,
                         'module_noteable_type' => Unit::class,
                         'details'         => $reason,
@@ -2236,6 +2238,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($saleId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($saleId),
                         'module_noteable_id'   => $saleId,
                         'module_noteable_type' => Sale::class,
                         'details'         => $reason,
@@ -2361,6 +2364,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($officeId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($officeId),
                         'module_noteable_id'   => $officeId,
                         'module_noteable_type' => Office::class,
                         'details'         => $reason,
@@ -2484,6 +2488,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($unitId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($unitId),
                         'module_noteable_id'   => $unitId,
                         'module_noteable_type' => Unit::class,
                         'details'         => $reason,
@@ -2619,6 +2624,7 @@ class ScrapController extends Controller
             ModuleNote::insert(
                 array_map(function ($saleId) use ($request, $user, $reason) {
                     return [
+                        'module_note_uid' => md5($saleId),
                         'module_noteable_id'   => $saleId,
                         'module_noteable_type' => Sale::class,
                         'details'         => $reason,

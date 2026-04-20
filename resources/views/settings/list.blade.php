@@ -316,7 +316,7 @@
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Base URL</label>
                                             <input type="text" class="form-control scraper-base-url"
-                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2/dataset">
+                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2/datasets">
                                         </div>
                                     </div>
                                 </div>
@@ -416,7 +416,7 @@
                             source: 'indeed',
                             actor_id: '',
                             token: '',
-                            base_url: 'https://api.apify.com/v2/dataset'
+                            base_url: 'https://api.apify.com/v2/datasets'
                         }];
                     }
 
@@ -642,7 +642,7 @@
                 $card.find('.scraper-source').val(sourceValue);
                 $card.find('.scraper-actor-id').val(actor.actor_id || '');
                 $card.find('.scraper-token').val(actor.token || '');
-                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/dataset');
+                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/datasets');
 
                 // ✅ Check if existing record
                 const isExisting = !!actor.key;
