@@ -232,219 +232,227 @@ class UserController extends Controller
         return view('users.activity-logs', compact('user_id'));
     }
     public function getUserActivityLogs(Request $request)
-    {
-        if (!$request->ajax()) {
-            abort(400);
-        }
+{
+    if (!$request->ajax()) {
+        abort(400);
+    }
 
-        $model = Audit::query()
-            ->where('user_id', $request->id)
-            ->latest('created_at');
+    // 🔥 cache status maps per request (NOT per row)
+    $statusCache = [];
 
-        return DataTables::eloquent($model)
-            ->addIndexColumn()
+    $model = Audit::query()
+        ->where('user_id', $request->id)
+        ->latest('created_at');
 
-            ->addColumn('details', function ($audit) {
+    return DataTables::eloquent($model)
+        ->addIndexColumn()
 
-                $data = is_array($audit->data)
-                    ? $audit->data
-                    : json_decode($audit->data, true) ?? [];
+        ->addColumn('details', function ($audit) use (&$statusCache) {
 
-                $old = data_get($data, 'old_values', []);
-                $new = data_get($data, 'new_values', []);
-                $changes = data_get($data, 'changes_made', []);
+            // ---------- SAFE JSON DECODE ----------
+            $data = $this->decodeAuditData($audit->data);
 
-                // ---------- MODEL CONTEXT ----------
-                $modelClass = $audit->auditable_type;
-                $statusMap = $this->getStatusMapFromComment($modelClass);
+            $old     = is_array($data['old_values'] ?? null) ? $data['old_values'] : [];
+            $new     = is_array($data['new_values'] ?? null) ? $data['new_values'] : [];
+            $changes = is_array($data['changes_made'] ?? null) ? $data['changes_made'] : [];
 
-                $allowedTags = '<b><strong><i><em><br><ul><ol><li>';
+            // ---------- STATUS MAP CACHE ----------
+            $modelClass = $audit->auditable_type;
 
-                // ---------- FORMATTER ----------
-                $format = function ($key, $value) use ($allowedTags, $statusMap) {
+            if (!isset($statusCache[$modelClass])) {
+                $statusCache[$modelClass] = $this->getStatusMapFromComment($modelClass);
+            }
 
-                    // ---------- ARRAY ----------
-                    if (is_array($value)) {
-                        $value = implode(', ', $value);
-                    }
+            $statusMap = $statusCache[$modelClass];
 
-                    // ---------- BOOLEAN (CRITICAL FIX) ----------
-                    if (is_bool($value)) {
-                        return $value
-                            ? '<span class="badge bg-success">True</span>'
-                            : '<span class="badge bg-danger">False</span>';
-                    }
+            $allowedTags = '<b><strong><i><em><br><ul><ol><li>';
 
-                    // ---------- NULL ----------
-                    if ($value === null || $value === '') {
-                        return '<span class="text-muted">-</span>';
-                    }
+            // ---------- FORMATTER ----------
+            $format = function ($key, $value) use ($allowedTags, $statusMap) {
 
-                    // ---------- STATUS (DB COMMENT MAP) ----------
-                    if ($key === 'status' && !empty($statusMap)) {
-                        return '<span class="badge bg-primary">'
-                            . ($statusMap[$value] ?? $value)
-                            . '</span>';
-                    }
+                // ARRAY
+                if (is_array($value)) {
+                    $value = implode(', ', $value);
+                }
 
-                    // ---------- URL ----------
-                    if (filter_var($value, FILTER_VALIDATE_URL)) {
-                        return "<a href='{$value}' target='_blank' class='btn btn-sm btn-primary'>Open Link</a>";
-                    }
+                // BOOLEAN
+                if (is_bool($value)) {
+                    return $value
+                        ? '<span class="badge bg-success">True</span>'
+                        : '<span class="badge bg-danger">False</span>';
+                }
 
-                    // ---------- DATE ----------
-                    if ($this->isDate($value)) {
+                // NULL / EMPTY
+                if ($value === null || $value === '') {
+                    return '<span class="text-muted">-</span>';
+                }
+
+                // STATUS
+                if ($key === 'status' && !empty($statusMap)) {
+                    return '<span class="badge bg-primary">'
+                        . ($statusMap[$value] ?? $value)
+                        . '</span>';
+                }
+
+                // URL
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return "<a href='{$value}' target='_blank' class='btn btn-sm btn-primary'>Open</a>";
+                }
+
+                // DATE (strict pattern check first)
+                if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+                    try {
                         return \Carbon\Carbon::parse($value)->format('d M Y, h:i A');
-                    }
-
-                    // ---------- STRING ----------
-                    return strip_tags((string)$value, $allowedTags);
-                };
-
-                $rows = '';
-
-                // ---------- OLD vs NEW ----------
-                if (!empty($old) && !empty($new)) {
-
-                    $rows .= '<h5><strong>Changes</strong></h5>';
-
-                    foreach ($new as $key => $newVal) {
-
-                        $oldVal = $old[$key] ?? null;
-
-                        if ($oldVal == $newVal) continue;
-
-                        $label = ucwords(str_replace('_', ' ', $key));
-
-                        $rows .= "
-                            <div class='mb-3 text-start'>
-                                <strong>{$label}</strong><br>
-                                <span class='text-danger'>Old: {$format($key, $oldVal)}</span><br>
-                                <span class='text-success'>New: {$format($key, $newVal)}</span>
-                            </div>
-                        ";
-                    }
-
-                }
-                elseif (!empty($changes)) {
-
-                    $rows .= '<h5><strong>Changes</strong></h5>';
-
-                    foreach ($changes as $key => $val) {
-
-                        $label = ucwords(str_replace('_', ' ', $key));
-
-                        $rows .= "
-                            <div class='mb-2 text-start'>
-                                <strong>{$label}</strong><br>
-                                {$format($key, $val)}
-                            </div>
-                        ";
-                    }
-
-                }
-                else {
-
-                    $rows .= '<h5><strong>Details</strong></h5>';
-
-                    foreach ($data as $key => $val) {
-
-                        $label = ucwords(str_replace('_', ' ', $key));
-
-                        $rows .= "
-                            <div class='mb-2 text-start'>
-                                <strong>{$label}</strong><br>
-                                {$format($key, $val)}
-                            </div>
-                        ";
-                    }
+                    } catch (\Exception $e) {}
                 }
 
-                return "
-                    <a href='#' data-bs-toggle='modal' data-bs-target='#modal_{$audit->id}'>
-                        <iconify-icon icon='solar:square-arrow-right-up-bold' class='text-info fs-24'></iconify-icon>
-                    </a>
+                return strip_tags((string)$value, $allowedTags);
+            };
 
-                    <div id='modal_{$audit->id}' class='modal fade'>
-                        <div class='modal-dialog modal-lg'>
-                            <div class='modal-content'>
+            $rows = '';
 
-                                <div class='modal-header'>
-                                    <h5 class='modal-title'>Audit Details</h5>
-                                    <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
-                                </div>
+            // ---------- OLD vs NEW ----------
+            if (!empty($old) && !empty($new)) {
 
-                                <div class='modal-body text-start'>
-                                    {$rows}
-                                </div>
+                $rows .= '<h5><strong>Changes</strong></h5>';
 
-                                <div class='modal-footer'>
-                                    <button class='btn btn-dark' data-bs-dismiss='modal'>Close</button>
-                                </div>
+                foreach ($new as $key => $newVal) {
 
-                            </div>
+                    $oldVal = $old[$key] ?? null;
+
+                    if ($oldVal == $newVal) continue;
+
+                    $label = ucwords(str_replace('_', ' ', $key));
+
+                    $rows .= "
+                        <div class='mb-3 text-start'>
+                            <strong>{$label}</strong><br>
+                            <span class='text-danger'>Old: {$format($key, $oldVal)}</span><br>
+                            <span class='text-success'>New: {$format($key, $newVal)}</span>
                         </div>
-                    </div>
-                ";
-            })
+                    ";
+                }
 
-            ->addColumn('created_at', fn($audit) =>
-                $audit->created_at->format('d M Y, h:i A')
-            )
+            }
+            elseif (!empty($changes) && is_array($changes)) {
 
-            ->addColumn('auditable_type', fn($audit) =>
-                class_basename($audit->auditable_type)
-            )
+                $rows .= '<h5><strong>Changes</strong></h5>';
 
-            ->rawColumns(['details'])
-            ->make(true);
-    }
-    private function isDate($value): bool
-    {
-        if (!is_string($value) && !is_numeric($value)) {
-            return false;
-        }
+                foreach ($changes as $key => $val) {
 
-        try {
-            \Carbon\Carbon::parse($value);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-    private function getStatusMapFromComment($modelClass)
-    {
-        if (!class_exists($modelClass)) {
-            return [];
-        }
+                    $label = ucwords(str_replace('_', ' ', $key));
 
-        $table = (new $modelClass)->getTable();
+                    $rows .= "
+                        <div class='mb-2 text-start'>
+                            <strong>{$label}</strong><br>
+                            {$format($key, $val)}
+                        </div>
+                    ";
+                }
 
-        return cache()->remember("status_map_{$table}", 3600, function () use ($table) {
+            }
+            else {
 
-            $result = DB::select("
-                SELECT COLUMN_COMMENT 
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_NAME = ?
-                AND COLUMN_NAME = 'status'
-            ", [$table]);
+                $rows .= '<h5><strong>Details</strong></h5>';
 
-            if (empty($result)) return [];
+                foreach ($data as $key => $val) {
 
-            $comment = $result[0]->COLUMN_COMMENT ?? '';
+                    $label = ucwords(str_replace('_', ' ', $key));
 
-            $map = [];
-
-            foreach (explode(',', $comment) as $pair) {
-                if (str_contains($pair, '=')) {
-                    [$key, $value] = explode('=', $pair);
-                    $map[trim($key)] = trim($value);
+                    $rows .= "
+                        <div class='mb-2 text-start'>
+                            <strong>{$label}</strong><br>
+                            {$format($key, $val)}
+                        </div>
+                    ";
                 }
             }
 
-            return $map;
-        });
+            return "
+                <a href='#' data-bs-toggle='modal' data-bs-target='#modal_{$audit->id}'>
+                    <iconify-icon icon='solar:square-arrow-right-up-bold' class='text-info fs-24'></iconify-icon>
+                </a>
+
+                <div id='modal_{$audit->id}' class='modal fade'>
+                    <div class='modal-dialog modal-lg'>
+                        <div class='modal-content'>
+
+                            <div class='modal-header'>
+                                <h5 class='modal-title'>Audit Details</h5>
+                                <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+                            </div>
+
+                            <div class='modal-body text-start'>
+                                {$rows}
+                            </div>
+
+                            <div class='modal-footer'>
+                                <button class='btn btn-dark' data-bs-dismiss='modal'>Close</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            ";
+        })
+
+        ->addColumn('created_at', fn($audit) =>
+            $audit->created_at->format('d M Y, h:i A')
+        )
+
+        ->addColumn('auditable_type', fn($audit) =>
+            class_basename($audit->auditable_type)
+        )
+
+        ->rawColumns(['details'])
+        ->make(true);
+}
+private function decodeAuditData($data): array
+{
+    if (is_array($data)) return $data;
+
+    if (!is_string($data)) return [];
+
+    $decoded = json_decode($data, true);
+
+    if (is_string($decoded)) {
+        $decoded = json_decode($decoded, true);
     }
+
+    return is_array($decoded) ? $decoded : [];
+}
+private function getStatusMapFromComment($modelClass)
+{
+    if (!class_exists($modelClass)) return [];
+
+    $table = (new $modelClass)->getTable();
+
+    return cache()->remember("status_map_{$table}", 3600, function () use ($table) {
+
+        $result = DB::select("
+            SELECT COLUMN_COMMENT 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ?
+            AND COLUMN_NAME = 'status'
+        ", [$table]);
+
+        if (empty($result)) return [];
+
+        $comment = $result[0]->COLUMN_COMMENT ?? '';
+
+        $map = [];
+
+        foreach (explode(',', $comment) as $pair) {
+            if (str_contains($pair, '=')) {
+                [$key, $value] = explode('=', $pair);
+                $map[trim($key)] = trim($value);
+            }
+        }
+
+        return $map;
+    });
+}
     public function changeUserStatus(Request $request)
     {
         $user_id = $request->input('user_id');
