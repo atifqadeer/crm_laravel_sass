@@ -1438,7 +1438,7 @@ class ScrapController extends Controller
                 'unit_notes',
                 fn($u) =>
                 '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
-                    . nl2br(e($u->unit_notes)) . '</a>'
+                . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn('action', function ($u) {
                 $postcode = $u->formatted_postcode;
@@ -2053,12 +2053,12 @@ class ScrapController extends Controller
                 array_map(function ($officeId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($officeId),
-                        'module_noteable_id'   => $officeId,
+                        'module_noteable_id' => $officeId,
                         'module_noteable_type' => Office::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
@@ -2148,12 +2148,12 @@ class ScrapController extends Controller
                 array_map(function ($unitId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($unitId),
-                        'module_noteable_id'   => $unitId,
+                        'module_noteable_id' => $unitId,
                         'module_noteable_type' => Unit::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
@@ -2239,12 +2239,12 @@ class ScrapController extends Controller
                 array_map(function ($saleId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($saleId),
-                        'module_noteable_id'   => $saleId,
+                        'module_noteable_id' => $saleId,
                         'module_noteable_type' => Sale::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
@@ -2365,12 +2365,12 @@ class ScrapController extends Controller
                 array_map(function ($officeId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($officeId),
-                        'module_noteable_id'   => $officeId,
+                        'module_noteable_id' => $officeId,
                         'module_noteable_type' => Office::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
@@ -2489,12 +2489,12 @@ class ScrapController extends Controller
                 array_map(function ($unitId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($unitId),
-                        'module_noteable_id'   => $unitId,
+                        'module_noteable_id' => $unitId,
                         'module_noteable_type' => Unit::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
@@ -2625,12 +2625,12 @@ class ScrapController extends Controller
                 array_map(function ($saleId) use ($request, $user, $reason) {
                     return [
                         'module_note_uid' => md5($saleId),
-                        'module_noteable_id'   => $saleId,
+                        'module_noteable_id' => $saleId,
                         'module_noteable_type' => Sale::class,
-                        'details'         => $reason,
-                        'user_id'   => $user->id, // 🔥 important
-                        'created_at'   => Carbon::now(),
-                        'updated_at'   => Carbon::now(),
+                        'details' => $reason,
+                        'user_id' => $user->id, // 🔥 important
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ];
                 }, $foundIds)
             );
