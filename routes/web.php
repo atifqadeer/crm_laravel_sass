@@ -223,7 +223,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     });
     Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
     Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
-    Route::get('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
+    Route::post('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
 
     Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
     Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');

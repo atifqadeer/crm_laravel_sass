@@ -11,8 +11,24 @@
 @endsection
 @section('content')
     <div class="row">
-        <div class="col-lg-12">
-        
+        <div class="card">
+            <div class="card-header border-0">
+                <div class="row justify-content-between">
+                    <div class="col-lg-3">
+                        <div class="text-md-start mt-3 pt-1">
+                            <div class="input-group">
+                                <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                <!-- Absolutely positioned over the input field -->
+                                <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                    <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                </span>
+                                <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -97,10 +113,10 @@
                 serverSide: true,  // Enables server-side processing
                 ajax: {
                     url: @json(route('getUserActivityLogs')),  // Fetch data from the backend
-                    type: 'GET',
+                    type: 'POST',
                     data: function(d) {
-                        // Add the current filter to the request parameters
                         d.id = user_id;  // Send the current filter value as a parameter
+                        d._token = $('meta[name="csrf-token"]').attr('content');
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -128,7 +144,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -206,6 +222,41 @@
                         </div>`;
                     pagination.html(paginationHtml);
                 },
+            });
+
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
             });
 
             // Handle filter button clicks and send filter parameters to the DataTable

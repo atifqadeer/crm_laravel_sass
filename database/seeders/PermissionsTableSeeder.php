@@ -390,6 +390,7 @@ class PermissionsTableSeeder extends Seeder
             'administrator-user-delete',
             'administrator-user-change-password',
             'administrator-user-view',
+            'administrator-user-activity-log',
             'administrator-user-export',
             'administrator-user-export-all',
             'administrator-user-import',

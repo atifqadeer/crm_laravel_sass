@@ -15,35 +15,65 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- Button Dropdown -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i>  <span id="showFilterStatus">All</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                        <a class="dropdown-item" href="#">All</a>
-                                        <a class="dropdown-item" href="#">Active</a>
-                                        <a class="dropdown-item" href="#">Inactive</a>
+                                @canany(['administrator-user-filters'])
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i>  <span id="showFilterStatus">Active</span>
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <a class="dropdown-item" href="#">Active</a>
+                                            <a class="dropdown-item" href="#">Inactive</a>
+                                        </div>
                                     </div>
-                                </div>
+                                @endcanany
                                 <!-- Button Dropdown -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-download-line me-1"></i> Export
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                        <a class="dropdown-item" href="{{ route('usersExport', ['type' => 'all']) }}">Export All Data</a>
+                                @canany(['administrator-user-export', 'administrator-user-export-all'])
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle"
+                                            type="button"
+                                            id="exportDropdown"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                            <i class="ri-download-line me-1"></i> Export
+                                        </button>
+
+                                        <div class="dropdown-menu" aria-labelledby="exportDropdown">
+                                            @canany(['administrator-user-export', 'administrator-user-export-all'])
+                                                <a class="dropdown-item" href="{{ route('usersExport', ['type' => 'all']) }}">
+                                                    Export All Data
+                                                </a>
+                                            @endcanany
+
+                                        </div>
                                     </div>
-                                </div>
-                                <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
-                                    <i class="ri-upload-line"></i>
-                                </button>
-                                <!-- Create User Button triggers modal -->
-                                <button type="button" class="btn btn-success ml-1 my-1" onclick="createUser()">
-                                    <i class="ri-add-line"></i> Create User
-                                </button>
+                                @endcanany
+                                @canany(['administrator-user-import'])
+                                    <button type="button" class="btn btn-outline-primary me-1 my-1" data-bs-toggle="modal" data-bs-target="#csvImportModal" title="Import CSV">
+                                        <i class="ri-upload-line"></i>
+                                    </button>
+                                @endcanany
+                                @canany(['administrator-user-create'])
+                                    <!-- Create User Button triggers modal -->
+                                    <button type="button" class="btn btn-success ml-1 my-1" onclick="createUser()">
+                                        <i class="ri-add-line"></i> Create User
+                                    </button>
+                                @endcanany
                             </div>
                         </div>
                         <!-- end col-->
@@ -341,7 +371,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -417,6 +447,41 @@
 
                     pagination.html(paginationHtml);
                 },
+            });
+
+             // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
             });
 
             // Handle filter button clicks and send filter parameters to the DataTable
@@ -524,7 +589,7 @@
             });
         });
 
-        function showDetailsModal(id, name, email, role, status) {
+        function showDetailsModal(id, created_at, name, email, role, status) {
             const modalId = `showDetailsModal-${id}`;
             const modalSelector = `#${modalId}`;
 
@@ -535,7 +600,7 @@
                         <div class="modal-dialog modal-lg modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">Unit Details</h5>
+                                    <h5 class="modal-title" id="${modalId}Label">User Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body modal-body-text-left">
@@ -561,7 +626,8 @@
             setTimeout(() => {
                 $(modalSelector + ' .modal-body').html(`
                     <table class="table table-bordered mb-0">
-                        <tr><th>Unit ID</th><td>${id}</td></tr>
+                        <tr><th>User ID</th><td>${id}</td></tr>
+                        <tr><th>Created At</th><td>${created_at}</td></tr>
                         <tr><th>User Name</th><td>${name}</td></tr>
                         <tr><th>Email</th><td>${email}</td></tr>
                         <tr><th>Role</th><td>${role}</td></tr>
