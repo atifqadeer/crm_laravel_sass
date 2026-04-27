@@ -23,6 +23,7 @@ use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\Sale;
 use App\Observers\ActionObserver;
+use Exception;
 
 class ModuleNotesController extends Controller
 {
@@ -182,11 +183,11 @@ class ModuleNotesController extends Controller
             ]);
 
             $model_class = 'Horsefly\\' . $request->module;
-            
+
             // Fetch the module notes by the given ID
             $moduleNote = ModuleNote::where('module_noteable_id', $request->id)
-                    ->where('module_noteable_type', $model_class)
-                    ->latest()->get();
+                ->where('module_noteable_type', $model_class)
+                ->latest()->get();
 
             // Check if the module note was found
             if (!$moduleNote) {
@@ -199,7 +200,7 @@ class ModuleNotesController extends Controller
                 'success' => true
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',
@@ -221,8 +222,8 @@ class ModuleNotesController extends Controller
             $model_class = 'Horsefly\\' . $module;
             $audit_data = [];
 
-            if($module == 'Sale'){
-                $model = $model_class::with('unit', 'office', 'updated_by_audits.user', 'created_by_audit.user')
+            if ($module == 'Sale') {
+                $model = $model_class::with('unit', 'office', 'audits.user')
                     ->find($request->input('module_key'));
 
                 if (!$model) {
@@ -233,67 +234,328 @@ class ModuleNotesController extends Controller
                 }
 
                 $index = 0;
-                foreach ($model->updated_by_audits as $audit) {
-                    if (!empty($audit->data['changes_made'])) {
-                        $changes_made = Arr::except($audit->data['changes_made'], ['user_id', 'created_at', 'updated_at', 'sale_uid', 'lat', 'lng']);
-                        if (count($changes_made) == 1) continue;
-                        if (isset($changes_made['office_id'])) {
-                            $changes_made['office_name'] = @Office::find($changes_made['office_id'])->office_name;
-                        }
-                        if (isset($changes_made['job_category_id'])) {
-                            $changes_made['job_category'] = @JobCategory::find($changes_made['job_category_id'])->name;
-                        }
-                        if (isset($changes_made['job_title_id'])) {
-                            $changes_made['job_title'] = @JobTitle::find($changes_made['job_title_id'])->name;
-                        }
-                        if (isset($changes_made['unit_id'])) {
-                            $changes_made['unit_name'] = @Unit::find($changes_made['unit_id'])->unit_name;
-                        }
-                        if (isset($changes_made['updated_at'])) {
-                            $changes_made['updated_at'] = @Carbon::parse($changes_made['updated_at'])->format('d M Y, h:i A');
-                        }
-                        if (isset($changes_made['status'])) {
-                            switch($changes_made['status']){
-                                case '0':
-                                    $status_string = "Inactive";
-                                    break;
-                                case '1':
-                                    $status_string = "Active";
-                                    break;
-                                case '2':
-                                    $status_string = "Pending";
-                                    break;
-                                case '3':
-                                    $status_string = "Rejected";
-                                    break;
-                            }
-                            $changes_made['status'] = $status_string;
-                        }
-                        if (isset($changes_made['is_on_hold'])) {
-                            switch($changes_made['is_on_hold']){
-                                case '0':
-                                    $hold_string = "No";
-                                    break;
-                                case '1':
-                                    $hold_string = "Yes";
-                                    break;
-                                case '2':
-                                    $hold_string = "Pending";
-                                    break;
-                            }
-                            $changes_made['is_on_hold'] = $hold_string;
-                        }
-                        if (isset($changes_made['created_at'])) {
-                            $changes_made['created_at'] = @Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
-                        }
-                        $audit_data[$index]['changes_made'] = $changes_made;
-                        $audit_data[$index++]['changes_made_by'] = $audit->user->name;
+                $audit_history_collection = [];
+
+                foreach ($model->audits as $audit) {
+
+                    // ✅ Handle both string and array for data column
+                    $auditData = is_string($audit->data)
+                        ? json_decode($audit->data, true)
+                        : (is_array($audit->data) ? $audit->data : []);
+
+                    if (empty($auditData)) {
+                        continue;
                     }
+
+                    $is_created = is_string($audit->message)
+                        && str_contains($audit->message, 'has been created');
+
+                    // "created" entry — parse auditData directly
+                    if (!isset($auditData['changes_made'])) {
+
+                        $created_data = Arr::except($auditData, [
+                            'user_id',
+                            'created_at',
+                            'updated_at',
+                            'sale_uid',
+                            'lat',
+                            'lng',
+                            'job_source_id',
+                            'job_category_id',
+                            'job_title_id'
+                        ]);
+
+                        // FK label resolution
+                        if (isset($created_data['office_id'])) {
+                            $created_data['office_name'] = optional(Office::find($created_data['office_id']))->office_name;
+                            unset($created_data['office_id']);
+                        }
+                        if (isset($created_data['job_category_id'])) {
+                            $created_data['job_category'] = optional(JobCategory::find($created_data['job_category_id']))->name;
+                            unset($created_data['job_category_id']);
+                        }
+                        if (isset($created_data['job_title_id'])) {
+                            $created_data['job_title'] = optional(JobTitle::find($created_data['job_title_id']))->name;
+                            unset($created_data['job_title_id']);
+                        }
+                        if (isset($created_data['unit_id'])) {
+                            $created_data['unit_name'] = optional(Unit::find($created_data['unit_id']))->unit_name;
+                            unset($created_data['unit_id']);
+                        }
+
+                        // Format dates
+                        if (isset($created_data['updated_at'])) {
+                            $created_data['updated_at'] = Carbon::parse($created_data['updated_at'])->format('d M Y, h:i A');
+                        }
+                        if (isset($created_data['created_at'])) {
+                            $created_data['created_at'] = Carbon::parse($created_data['created_at'])->format('d M Y, h:i A');
+                        }
+
+                        // Status mapping
+                        if (isset($created_data['status'])) {
+                            $created_data['status'] = match ((string) $created_data['status']) {
+                                '0', 'false' => 'Inactive',
+                                '1', 'true' => 'Active',
+                                '2' => 'Pending',
+                                '3' => 'Rejected',
+                                '4' => 'Scraped',
+                                default => $created_data['status']
+                            };
+                        }
+                        if (isset($created_data['is_on_hold'])) {
+                            $created_data['is_on_hold'] = match ((string) $created_data['is_on_hold']) {
+                                '0', 'false' => 'No',
+                                '1', 'true' => 'Yes',
+                                '2' => 'Pending',
+                                default => $created_data['is_on_hold']
+                            };
+                        }
+
+                        // ✅ Pass parsed data + is_created flag
+                        $audit_history_collection[$index]['is_created'] = true;
+                        $audit_history_collection[$index]['changes_made'] = !empty($created_data) ? $created_data : null;
+                        $audit_history_collection[$index]['changes_made_by'] = ucwords(optional($audit->user)->name ?? 'Unknown');
+                        $audit_history_collection[$index]['date'] = $audit->created_at->format('d M Y, h:i A');
+                        $index++;
+                        continue;
+                    }
+
+                    // "updated" entry
+                    $changes_made_raw = is_string($auditData['changes_made'])
+                        ? json_decode($auditData['changes_made'], true)
+                        : $auditData['changes_made'];
+
+                    if (!is_array($changes_made_raw)) {
+                        $changes_made_raw = [];
+                    }
+
+                    $changes_made = Arr::except($changes_made_raw, [
+                        'user_id',
+                        'created_at',
+                        'updated_at',
+                        'sale_uid',
+                        'lat',
+                        'lng',
+                        'job_source_id',
+                        'job_category_id',
+                        'job_title_id'
+                    ]);
+
+                    // FK label resolution
+                    if (isset($changes_made['office_id'])) {
+                        $changes_made['office_name'] = optional(Office::find($changes_made['office_id']))->office_name;
+                        unset($changes_made['office_id']);
+                    }
+                    if (isset($changes_made['job_category_id'])) {
+                        $changes_made['job_category'] = optional(JobCategory::find($changes_made['job_category_id']))->name;
+                        unset($changes_made['job_category_id']);
+                    }
+                    if (isset($changes_made['job_title_id'])) {
+                        $changes_made['job_title'] = optional(JobTitle::find($changes_made['job_title_id']))->name;
+                        unset($changes_made['job_title_id']);
+                    }
+                    if (isset($changes_made['unit_id'])) {
+                        $changes_made['unit_name'] = optional(Unit::find($changes_made['unit_id']))->unit_name;
+                        unset($changes_made['unit_id']);
+                    }
+
+                    // Format dates
+                    if (isset($changes_made['updated_at'])) {
+                        $changes_made['updated_at'] = Carbon::parse($changes_made['updated_at'])->format('d M Y, h:i A');
+                    }
+                    if (isset($changes_made['created_at'])) {
+                        $changes_made['created_at'] = Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
+                    }
+
+                    // Status mapping
+                    if (isset($changes_made['status'])) {
+                        $changes_made['status'] = match ((string) $changes_made['status']) {
+                            '0', 'false' => 'Inactive',
+                            '1', 'true' => 'Active',
+                            '2' => 'Pending',
+                            '3' => 'Rejected',
+                            '4' => 'Scraped',
+                            default => $changes_made['status']
+                        };
+                    }
+                    if (isset($changes_made['is_on_hold'])) {
+                        $changes_made['is_on_hold'] = match ((string) $changes_made['is_on_hold']) {
+                            '0', 'false' => 'No',
+                            '1', 'true' => 'Yes',
+                            '2' => 'Pending',
+                            default => $changes_made['is_on_hold']
+                        };
+                    }
+
+                    // ✅ is_created from message check for update entries
+                    $audit_history_collection[$index]['is_created'] = $is_created;
+                    $audit_history_collection[$index]['changes_made'] = !empty($changes_made) ? $changes_made : null;
+                    $audit_history_collection[$index]['changes_made_by'] = ucwords(optional($audit->user)->name ?? 'Unknown');
+                    $audit_history_collection[$index]['date'] = $audit->created_at->format('d M Y, h:i A');
+                    $index++;
                 }
 
-                $audit_data = array_reverse($audit_data); // latest first
-                $original_sale = $model->created_by_audit;
-            }elseif($module == 'Applicant'){
+                // ✅ latest first
+                $audit_data = array_reverse($audit_history_collection);
+
+            } elseif ($module == 'Applicant') {
+                $model = $model_class::with([
+                    'jobCategory',
+                    'jobTitle',
+                    'jobSource',
+                    'audits.user'
+                ])->find($request->input('module_key'));
+
+                if (!$model) {
+                    return response()->json([
+                        'error' => 'Record not found.',
+                        'success' => false
+                    ], 404);
+                }
+
+                $index = 0;
+                $audit_history_collection = [];
+
+                foreach ($model->audits as $audit) {
+
+                    $auditData = is_string($audit->data)
+                        ? json_decode($audit->data, true)
+                        : (is_array($audit->data) ? $audit->data : []);
+
+                    $is_created = is_string($audit->message)
+                        && str_contains($audit->message, 'has been created');
+
+                    // "created" entry — parse auditData directly
+                    if (!isset($auditData['changes_made'])) {
+
+                        $created_data = Arr::except($auditData, [
+                            'user_id',
+                            'created_at',
+                            'updated_at',
+                            'sale_uid',
+                            'lat',
+                            'lng',
+                            'job_source_id',
+                            'job_category_id',
+                            'job_title_id'
+                        ]);
+
+                        // FK label resolution
+                        if (isset($created_data['office_id'])) {
+                            $created_data['office_name'] = optional(Office::find($created_data['office_id']))->office_name;
+                            unset($created_data['office_id']);
+                        }
+                        if (isset($created_data['unit_id'])) {
+                            $created_data['unit_name'] = optional(Unit::find($created_data['unit_id']))->unit_name;
+                            unset($created_data['unit_id']);
+                        }
+
+                        // Status mapping
+                        if (isset($created_data['status'])) {
+                            $created_data['status'] = match ((string) $created_data['status']) {
+                                '0', 'false' => 'Inactive',
+                                '1', 'true' => 'Active',
+                                '2' => 'Pending',
+                                '3' => 'Rejected',
+                                '4' => 'Scrapped',
+                                default => $created_data['status']
+                            };
+                        }
+                        if (isset($created_data['is_on_hold'])) {
+                            $created_data['is_on_hold'] = match ((string) $created_data['is_on_hold']) {
+                                '0', 'false' => 'No',
+                                '1', 'true' => 'Yes',
+                                default => $created_data['is_on_hold']
+                            };
+                        }
+
+                        // ✅ Pass parsed data + is_created flag
+                        $audit_history_collection[$index]['is_created'] = true;
+                        $audit_history_collection[$index]['changes_made'] = !empty($created_data) ? $created_data : null;
+                        $audit_history_collection[$index]['changes_made_by'] = ucwords(optional($audit->user)->name ?? 'Unknown');
+                        $audit_history_collection[$index]['date'] = $audit->created_at->format('d M Y, h:i A');
+                        $index++;
+                        continue;
+                    }
+
+                    $changes_made_raw = is_string($auditData['changes_made'])
+                        ? json_decode($auditData['changes_made'], true)
+                        : $auditData['changes_made'];
+
+                    if (!is_array($changes_made_raw)) {
+                        $changes_made_raw = [];
+                    }
+
+                    $changes_made = Arr::except($changes_made_raw, [
+                        'user_id',
+                        'created_at',
+                        'updated_at',
+                        'sale_uid',
+                        'lat',
+                        'lng',
+                        'job_source_id',
+                        'job_category_id',
+                        'job_title_id'
+                    ]);
+
+                    // FK label resolution
+                    if (isset($changes_made['office_id'])) {
+                        $changes_made['office_name'] = optional(Office::find($changes_made['office_id']))->office_name;
+                        unset($changes_made['office_id']);
+                    }
+                    if (isset($changes_made['job_category_id'])) {
+                        $changes_made['job_category'] = optional(JobCategory::find($changes_made['job_category_id']))->name;
+                        unset($changes_made['job_category_id']);
+                    }
+                    if (isset($changes_made['job_title_id'])) {
+                        $changes_made['job_title'] = optional(JobTitle::find($changes_made['job_title_id']))->name;
+                        unset($changes_made['job_title_id']);
+                    }
+                    if (isset($changes_made['unit_id'])) {
+                        $changes_made['unit_name'] = optional(Unit::find($changes_made['unit_id']))->unit_name;
+                        unset($changes_made['unit_id']);
+                    }
+
+                    // Format dates
+                    if (isset($changes_made['updated_at'])) {
+                        $changes_made['updated_at'] = Carbon::parse($changes_made['updated_at'])->format('d M Y, h:i A');
+                    }
+                    if (isset($changes_made['created_at'])) {
+                        $changes_made['created_at'] = Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
+                    }
+
+                    // Status mapping
+                    if (isset($changes_made['status'])) {
+                        $changes_made['status'] = match ((string) $changes_made['status']) {
+                            '0', 'false' => 'Inactive',
+                            '1', 'true' => 'Active',
+                            '2' => 'Pending',
+                            '3' => 'Rejected',
+                            '4' => 'Scrapped',
+                            default => $changes_made['status']
+                        };
+                    }
+                    if (isset($changes_made['is_on_hold'])) {
+                        $changes_made['is_on_hold'] = match ((string) $changes_made['is_on_hold']) {
+                            '0', 'false' => 'No',
+                            '1', 'true' => 'Yes',
+                            '2' => 'Pending',
+                            default => $changes_made['is_on_hold']
+                        };
+                    }
+
+                    // ✅ is_created = false for update entries
+                    $audit_history_collection[$index]['is_created'] = $is_created;
+                    $audit_history_collection[$index]['changes_made'] = !empty($changes_made) ? $changes_made : null;
+                    $audit_history_collection[$index]['changes_made_by'] = ucwords(optional($audit->user)->name ?? 'Unknown');
+                    $audit_history_collection[$index]['date'] = $audit->created_at->format('d M Y, h:i A');
+                    $index++;
+                }
+
+                $audit_data = array_reverse($audit_history_collection);
+
+
+            } else {
                 $model = $model_class::with([
                     'jobCategory',
                     'jobTitle',
@@ -313,87 +575,9 @@ class ModuleNotesController extends Controller
 
                 foreach ($model->updated_by_audits as $audit) {
                     if (!empty($audit->data['changes_made'])) {
-
-                        $changes_made = Arr::except($audit->data['changes_made'], [
-                            'user_id', 'created_at', 'updated_at',
-                            'lat', 'lng',
-                            'job_source_id', 'job_category_id', 'job_title_id'
-                        ]);
-
-                        if (empty($changes_made)) continue;   // <-- FIXED
-
-                        // Replace foreign keys with names
-                        if (isset($changes_made['job_source_id'])) {
-                            $changes_made['job_source'] = @JobSource::find($changes_made['job_source_id'])->name;
-                        }
-
-                        if (isset($changes_made['job_category_id'])) {
-                            $changes_made['job_category'] = @JobCategory::find($changes_made['job_category_id'])->name;
-                        }
-
-                        if (isset($changes_made['job_title_id'])) {
-                            $changes_made['job_title'] = @JobTitle::find($changes_made['job_title_id'])->name;
-                        }
-
-                        // Date formatting
-                        if (isset($changes_made['updated_at'])) {
-                            $changes_made['updated_at'] = @Carbon::parse($changes_made['updated_at'])->format('d M Y, h:i A');
-                        }
-
-                        if (isset($changes_made['created_at'])) {
-                            $changes_made['created_at'] = @Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
-                        }
-
-                        // Interview Attended
-                        if (isset($changes_made['is_crm_interview_attended'])) {
-                            $changes_made['is_crm_interview_attended'] = match($changes_made['is_crm_interview_attended']) {
-                                '0' => 'No',
-                                '1' => 'Yes',
-                                '2' => 'Pending',
-                            };
-                        }
-
-                        // Status
-                        if (isset($changes_made['status'])) {
-                            $changes_made['status'] = match($changes_made['status']) {
-                                '0' => 'Inactive',
-                                '1' => 'Active',
-                            };
-                        }
-
-                        // Append to audit result
-                        $audit_data[$index]['changes_made'] = $changes_made;
-                        $audit_data[$index++]['changes_made_by'] = $audit->user->name;
-                    }
-                }
-
-                // Latest first
-                $audit_data = array_reverse($audit_data);
-
-                $original_sale = $model->created_by_audit;
-            }else{
-                $model = $model_class::with([
-                        'jobCategory',
-                        'jobTitle',
-                        'jobSource',
-                        'updated_by_audits.user',
-                        'created_by_audit.user',
-                    ])->find($request->input('module_key'));
-
-                if (!$model) {
-                    return response()->json([
-                        'error' => 'Record not found.',
-                        'success' => false
-                    ], 404);
-                }
-
-                $index = 0;
-
-                foreach ($model->updated_by_audits as $audit) {
-                    if (!empty($audit->data['changes_made'])) {
                         $changes_made = Arr::except($audit->data['changes_made'], ['user_id', 'created_at', 'updated_at', 'lat', 'lng', 'job_source_id', 'job_category_id', 'job_title_id']);
-                        // if (count($changes_made) == 1) continue;
-                        if (empty($changes_made)) continue;
+                        if (empty($changes_made))
+                            continue;
 
                         if (isset($changes_made['job_source_id'])) {
                             $changes_made['job_source'] = @JobSource::find($changes_made['job_source_id'])->name;
@@ -411,7 +595,7 @@ class ModuleNotesController extends Controller
                             $changes_made['created_at'] = @Carbon::parse($changes_made['created_at'])->format('d M Y, h:i A');
                         }
                         if (isset($changes_made['is_crm_interview_attended'])) {
-                            switch($changes_made['is_crm_interview_attended']){
+                            switch ($changes_made['is_crm_interview_attended']) {
                                 case '0':
                                     $interview_attended_string = "No";
                                     break;
@@ -422,11 +606,10 @@ class ModuleNotesController extends Controller
                                     $interview_attended_string = "Pending";
                                     break;
                             }
-
                             $changes_made['is_crm_interview_attended'] = $interview_attended_string;
                         }
                         if (isset($changes_made['status'])) {
-                            switch($changes_made['status']){
+                            switch ($changes_made['status']) {
                                 case '0':
                                     $status_string = "Inactive";
                                     break;
@@ -436,31 +619,29 @@ class ModuleNotesController extends Controller
                             }
                             $changes_made['status'] = $status_string;
                         }
-                  
+
                         $audit_data[$index]['changes_made'] = $changes_made;
-                        $audit_data[$index++]['changes_made_by'] = $audit->user->name;
+                        $audit_data[$index]['changes_made_by'] = $audit->user->name;
+                        $audit_data[$index]['date'] = $audit->created_at->format('d M Y, h:i A'); // ✅ ADDED
+                        $index++;
                     }
                 }
 
-                $audit_data = array_reverse($audit_data); // latest first
-                $original_sale = $model->created_by_audit;
-            
+                $audit_data = array_reverse($audit_data);
             }
 
             return response()->json([
                 'data' => $model,
                 'audit_history' => $audit_data,
-                'created_by_audit' => $original_sale,
                 'success' => true
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'error' => 'An unexpected error occurred.',
                 'message' => $e->getMessage(),
                 'success' => false
             ], 500);
         }
-
     }
 }

@@ -147,7 +147,7 @@ class IPAddressController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
                                             \'' . $ip->id . '\',
                                             \'' . addslashes(htmlspecialchars($ip_address)) . '\',
                                             \'' . addslashes(htmlspecialchars($user_id)) . '\',
@@ -155,7 +155,7 @@ class IPAddressController extends Controller
                                         )">Edit</a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="deleteIpAddress('. $ip->id .'); return false;">Delete</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="deleteIpAddress('. $ip->id .'); return false;">Delete</a>
                                     </li>
                                 </ul>
                             </div>';

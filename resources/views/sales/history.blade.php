@@ -1,121 +1,129 @@
 @section('content')
 
-@extends('layouts.vertical', ['title' => $office->office_name. '`s Sale History ' , 'subTitle' => 'Sales'])
+    @extends('layouts.vertical', ['title' => $office->office_name . '`s Sale History ', 'subTitle' => 'Sales'])
 
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card card-highlight">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="row">
-                            <div class="col-md-6 col-xs-12 mb-3">
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>Posted Date:</strong> {{ \Carbon\Carbon::parse($sale->created_at)->format('d M Y, h:i A') }}</li>
-                                    <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
-                                    <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
-                                    <li><strong>PostCode:</strong> {{ $postcode ?? 'N/A' }}</li>
-                                    <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
-                                    <li><strong>Title:</strong> {{ $jobTitle ? strtoupper($jobTitle->name) : 'N/A' }}</li>
-                                    <li><strong>Qualification:</strong> {!! $sale->qualification !!}</li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6 col-xs-12 mb-3">
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
-                                    <li><strong>Position Type:</strong> {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}</li>
-                                    <li><strong>Salary:</strong> {!! $sale->salary !!}</li>
-                                    <li><strong>Timing:</strong> {!! $sale->timing !!}</li>
-                                    <li><strong>Experience:</strong> {!! $sale->experience !!}</li>
-                                    <li><strong>Status:</strong>
-                                        @php
-                                            $status = $sale->status;
-                                            if ($status == '1') {
-                                                $statusClass = '<span class="badge bg-success">Active</span>';
-                                            }elseif ($status == '2') {
-                                                $statusClass = '<span class="badge bg-warning">Pending</span>';
-                                            } else {
-                                                $statusClass = '<span class="badge bg-danger">Inactive</span>';
-                                            }
-                                        @endphp
-                                        {!! $statusClass !!}
-                                    </li>
-                                    <li>
-                                        @php
-                                            if($cv_limit == $active_cvs_count){
-                                                $limit = 0;  
-                                            }else{
-                                                $limit = $cv_limit - $active_cvs_count;
-                                            }
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card card-highlight">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="row">
+                                <div class="col-md-6 col-xs-12 mb-3">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Posted Date:</strong>
+                                            {{ \Carbon\Carbon::parse($sale->created_at)->format('d M Y, h:i A') }}</li>
+                                        <li><strong>Head Office Name:</strong> {{ $office->office_name ?? 'N/A' }}</li>
+                                        <li><strong>Unit Name:</strong> {{ $unit->unit_name ?? 'N/A' }}</li>
+                                        <li><strong>PostCode:</strong> {{ $postcode ?? 'N/A' }}</li>
+                                        <li><strong>Category:</strong>
+                                            {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
+                                        <li><strong>Title:</strong> {{ $jobTitle ? strtoupper($jobTitle->name) : 'N/A' }}
+                                        </li>
+                                        <li><strong>Qualification:</strong> {!! $sale->qualification !!}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6 col-xs-12 mb-3">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Sale ID#:</strong> {{ $sale->id ?? 'N/A' }}</li>
+                                        <li><strong>Position Type:</strong>
+                                            {!! $sale->position_type ? '<span class="badge bg-primary text-white fs-12">' . ucwords(str_replace('-', ' ', $sale->position_type)) . '</span>' : 'N/A' !!}
+                                        </li>
+                                        <li><strong>Salary:</strong> {!! $sale->salary !!}</li>
+                                        <li><strong>Timing:</strong> {!! $sale->timing !!}</li>
+                                        <li><strong>Experience:</strong> {!! $sale->experience !!}</li>
+                                        <li><strong>Status:</strong>
+                                            @php
+                                                $status = $sale->status;
+                                                if ($status == '1') {
+                                                    $statusClass = '<span class="badge bg-success">Active</span>';
+                                                } elseif ($status == '2') {
+                                                    $statusClass = '<span class="badge bg-warning">Pending</span>';
+                                                } else {
+                                                    $statusClass = '<span class="badge bg-danger">Inactive</span>';
+                                                }
+                                            @endphp
+                                            {!! $statusClass !!}
+                                        </li>
+                                        <li>
+                                            @php
+                                                if ($cv_limit == $active_cvs_count) {
+                                                    $limit = 0;
+                                                } else {
+                                                    $limit = $cv_limit - $active_cvs_count;
+                                                }
 
-                                            $percentage = $limit > 0 ? ($active_cvs_count / $limit) * 100 : 0;
+                                                $percentage = $limit > 0 ? ($active_cvs_count / $limit) * 100 : 0;
 
-                                            $badgeClass = 'bg-success';
-                                            $blinkClass = '';
+                                                $badgeClass = 'bg-success';
+                                                $blinkClass = '';
 
-                                            if ($percentage >= 80 && $percentage < 100) {
-                                                $badgeClass = 'bg-warning text-dark';
-                                                $blinkClass = 'badge-blink';
-                                            } elseif ($percentage >= 100) {
-                                                $badgeClass = 'bg-danger';
-                                                $blinkClass = 'badge-blink';
-                                            }
-                                        @endphp
+                                                if ($percentage >= 80 && $percentage < 100) {
+                                                    $badgeClass = 'bg-warning text-dark';
+                                                    $blinkClass = 'badge-blink';
+                                                } elseif ($percentage >= 100) {
+                                                    $badgeClass = 'bg-danger';
+                                                    $blinkClass = 'badge-blink';
+                                                }
+                                            @endphp
                                         <li>
                                             <strong>Sent CV Status:</strong>
                                             <span class="badge {{ $badgeClass }} {{ $blinkClass }}">
                                                 {{ $limit }}/{{ $cv_limit }}
                                             </span>
                                         </li>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row d-flex justify-content-start">
-                    <div class="col-lg-12">
-                        <button class="btn btn-md btn-primary" onclick="showSaleAllNotes('{{ $sale->id }}')">All Sale Notes</button>
-                        <button class="btn btn-md btn-secondary" onclick="showSaleUpdateHistory('{{ $sale->id }}')">Update History</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row justify-content-center">
-    <div class="col-xl-12 col-lg-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-xl-12">
-                        <div class="card">
-                            <div class="card-body p-3">
-                                <div class="table-responsive">
-                                    <table id="history_table" class="table align-middle mb-3">
-                                        <thead class="bg-light-subtle">
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Date</th>
-                                                <th>Applicant Name</th>
-                                                <th>PostCode</th>
-                                                <th>Title</th>
-                                                <th>Category</th>
-                                                <th>Phone</th>
-                                                <th>Landline</th>
-                                                <th>Stage</th>
-                                                <th>Sub Stage</th>
-                                                <th>Notes</th>
-                                                <th>Notes History</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {{-- The data will be populated here by DataTables --}}
-                                        </tbody>
-                                    </table>
+                                        </li>
+                                    </ul>
                                 </div>
-                                <!-- end table-responsive -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row d-flex justify-content-start">
+                        <div class="col-lg-12">
+                            <button class="btn btn-md btn-primary" onclick="showSaleAllNotes('{{ $sale->id }}')">All Sale
+                                Notes</button>
+                            <button class="btn btn-md btn-secondary"
+                                onclick="showSaleUpdateHistory('{{ $sale->id }}')">Update History</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="card">
+                                <div class="card-body p-3">
+                                    <div class="table-responsive">
+                                        <table id="history_table" class="table align-middle mb-3">
+                                            <thead class="bg-light-subtle">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Date</th>
+                                                    <th>Applicant Name</th>
+                                                    <th>PostCode</th>
+                                                    <th>Title</th>
+                                                    <th>Category</th>
+                                                    <th>Phone</th>
+                                                    <th>Landline</th>
+                                                    <th>Stage</th>
+                                                    <th>Sub Stage</th>
+                                                    <th>Notes</th>
+                                                    <th>Notes History</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {{-- The data will be populated here by DataTables --}}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- end table-responsive -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -123,134 +131,135 @@
             </div>
         </div>
     </div>
-</div>
-@section('script')
-    <!-- jQuery CDN (make sure this is loaded before DataTables) -->
-    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
+    @section('script')
+        <!-- jQuery CDN (make sure this is loaded before DataTables) -->
+        <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
-    <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+        <!-- DataTables CSS (for styling the table) -->
+        <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
 
-    <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+        <!-- DataTables JS (for the table functionality) -->
+        <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
 
-    <!-- Toastify CSS -->
-    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
+        <!-- Toastify CSS -->
+        <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
-    <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+        <!-- SweetAlert2 CDN -->
+        <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
 
-    <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+        <!-- Toastr JS -->
+        <script src="{{ asset('js/toastr.min.js')}}"></script>
 
-    <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+        <!-- Moment JS -->
+        <script src="{{ asset('js/moment.min.js')}}"></script>
 
-    <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+        <!-- Summernote CSS -->
+        <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
 
-    <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+        <!-- Summernote JS -->
+        <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
-    <script>
-        $(document).ready(function() {
-            // Create loader row
-            const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td></tr>`;
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
-            // Function to show loader
-            function showLoader() {
-                $('#history_table tbody').empty().append(loadingRow);
-            }
+        <script>
+            $(document).ready(function () {
+                // Create loader row
+                const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </td></tr>`;
 
-            // Initialize DataTable with server-side processing
-            var table = $('#history_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
-                ajax: {
-                    url: "{{ route('getSaleHistoryAjaxRequest')}}",
-                    type: 'GET',
-                    data: function(d) {
-                        d.sale_id = {{ $sale->id }};
-                        // Clean up search parameter
-                        if (d.search && d.search.value) {
-                            d.search.value = d.search.value.toString().trim();
+                // Function to show loader
+                function showLoader() {
+                    $('#history_table tbody').empty().append(loadingRow);
+                }
+
+                // Initialize DataTable with server-side processing
+                var table = $('#history_table').DataTable({
+                    processing: false,  // Disable default processing state
+                    serverSide: true,  // Enables server-side processing
+                    ajax: {
+                        url: "{{ route('getSaleHistoryAjaxRequest')}}",
+                        type: 'GET',
+                        data: function (d) {
+                            d.sale_id = {{ $sale->id }};
+                            // Clean up search parameter
+                            if (d.search && d.search.value) {
+                                d.search.value = d.search.value.toString().trim();
+                            }
+                        },
+                        beforeSend: function () {
+                            showLoader(); // Show loader before AJAX request starts
+                        },
+                        error: function (xhr) {
+                            console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
+                            $('#history_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                         }
                     },
-                    beforeSend: function() {
-                        showLoader(); // Show loader before AJAX request starts
-                    },
-                    error: function(xhr) {
-                        console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#history_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
-                    }
-                },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'history.created_at' },
-                    { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_postcode', name: 'applicants.applicant_postcode'},
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'applicant_phone', name: 'applicants.applicant_phone'},
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline'},
-                    { data: 'stage', name: 'history.stage' },
-                    { data: 'sub_stage', name: 'history.sub_stage' },
-                    { data: 'details', name: 'crm_notes.details', orderable: false},
-                    { data: 'action', name: 'action', orderable: false},
-                ],
-                columnDefs: [
-                    {
-                        targets: 9,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                    columns: [
+                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                        { data: 'created_at', name: 'history.created_at' },
+                        { data: 'applicant_name', name: 'applicants.applicant_name' },
+                        { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
+                        { data: 'job_title', name: 'job_titles.name' },
+                        { data: 'job_category', name: 'job_categories.name' },
+                        { data: 'applicant_phone', name: 'applicants.applicant_phone' },
+                        { data: 'applicant_landline', name: 'applicants.applicant_landline' },
+                        { data: 'stage', name: 'history.stage' },
+                        { data: 'sub_stage', name: 'history.sub_stage' },
+                        { data: 'details', name: 'crm_notes.details', orderable: false },
+                        { data: 'action', name: 'action', orderable: false },
+                    ],
+                    columnDefs: [
+                        {
+                            targets: 9,  // Column index for 'job_details'
+                            createdCell: function (td, cellData, rowData, row, col) {
+                                $(td).css('text-align', 'center');  // Center the text in this column
+                            }
+                        },
+                        {
+                            targets: 11,  // Column index for 'job_details'
+                            createdCell: function (td, cellData, rowData, row, col) {
+                                $(td).css('text-align', 'center');  // Center the text in this column
+                            }
                         }
+                    ],
+                    rowId: function (data) {
+                        return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                     },
-                    {
-                        targets: 11,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                    dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                    drawCallback: function (settings) {
+                        const api = this.api();
+                        const pagination = $(api.table().container()).find('.dataTables_paginate');
+                        pagination.empty();
+
+                        const pageInfo = api.page.info();
+                        const currentPage = pageInfo.page + 1;
+                        const totalPages = pageInfo.pages;
+
+                        if (pageInfo.recordsTotal === 0) {
+                            $('#history_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                            return;
                         }
-                    }
-                ],
-                rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
-                },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
-                    const api = this.api();
-                    const pagination = $(api.table().container()).find('.dataTables_paginate');
-                    pagination.empty();
 
-                    const pageInfo = api.page.info();
-                    const currentPage = pageInfo.page + 1;
-                    const totalPages = pageInfo.pages;
-
-                    if (pageInfo.recordsTotal === 0) {
-                        $('#history_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
-                        return;
-                    }
-
-                    let paginationHtml = `
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <nav aria-label="Page navigation">
-                                    <ul class="pagination pagination-rounded mb-0">
-                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>`;
+                        let paginationHtml = `
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                <nav aria-label="Page navigation">
+                                                    <ul class="pagination pagination-rounded mb-0">
+                                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                                                <span aria-hidden="true">&laquo;</span>
+                                                            </a>
+                                                        </li>`;
 
                         const visiblePages = 3;
                         const showDots = totalPages > visiblePages + 2;
 
                         // Always show page 1
                         paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                        </li>`;
+                                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                                        </li>`;
 
                         let start = Math.max(2, currentPage - 1);
                         let end = Math.min(totalPages - 1, currentPage + 1);
@@ -261,8 +270,8 @@
 
                         for (let i = start; i <= end; i++) {
                             paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                            </li>`;
+                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                                            </li>`;
                         }
 
                         if (end < totalPages - 1) {
@@ -271,367 +280,372 @@
 
                         if (totalPages > 1) {
                             paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                            </li>`;
+                                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                                            </li>`;
                         }
 
                         // Next button
                         paginationHtml += `
-                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                        </nav>
+                                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                        </nav>
 
-                        <div class="d-flex align-items-center ms-3 text-primary">
-                            <span class="me-2">Go to page:</span>
-                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                        </div>
-                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                        </div>`;
+                                        <div class="d-flex align-items-center ms-3 text-primary">
+                                            <span class="me-2">Go to page:</span>
+                                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                                        </div>
+                                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                                        </div>`;
 
-                    pagination.html(paginationHtml);
-                },
+                        pagination.html(paginationHtml);
+                    },
+                });
             });
-        });
 
-        function goToPage(totalPages) {
-            const input = document.getElementById('goToPageInput');
-            const errorMessage = document.getElementById('goToPageError');
-            let page = parseInt(input.value);
+            function goToPage(totalPages) {
+                const input = document.getElementById('goToPageInput');
+                const errorMessage = document.getElementById('goToPageError');
+                let page = parseInt(input.value);
 
-            if (!isNaN(page) && page >= 1 && page <= totalPages) {
-                $('#history_table').DataTable().page(page - 1).draw('page');
-                input.classList.remove('is-invalid');
-            } else {
-                input.classList.add('is-invalid');
+                if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                    $('#history_table').DataTable().page(page - 1).draw('page');
+                    input.classList.remove('is-invalid');
+                } else {
+                    input.classList.add('is-invalid');
+                }
             }
-        }
 
-        // Function to move the page forward or backward
-        function movePage(page) {
-            var table = $('#history_table').DataTable();
-            var currentPage = table.page.info().page + 1;
-            var totalPages = table.page.info().pages;
+            // Function to move the page forward or backward
+            function movePage(page) {
+                var table = $('#history_table').DataTable();
+                var currentPage = table.page.info().page + 1;
+                var totalPages = table.page.info().pages;
 
-            if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
-            } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
-            } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                if (page === 'previous' && currentPage > 1) {
+                    table.page(currentPage - 2).draw('page');  // Move to the previous page
+                } else if (page === 'next' && currentPage < totalPages) {
+                    table.page(currentPage).draw('page');  // Move to the next page
+                } else if (typeof page === 'number' && page !== currentPage) {
+                    table.page(page - 1).draw('page');  // Move to the selected page
+                }
             }
-        }
-        
-        // Function to show the notes modal
-        function showNotesModal(applicantID, notes, applicantName, applicantPostcode, createdAt) {
-            const modalID = `showNotesModal${applicantID}`;
-            const created = moment(createdAt).format('DD MMM YYYY, h:mm A');
-            // Add the modal HTML to the page only once
-            if ($('#' + modalID).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalID}Label">CRM Notes</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="text-center py-3">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Loading...</span>
+
+            // Function to show the notes modal
+            function showNotesModal(applicantID, notes, applicantName, applicantPostcode, createdAt) {
+                const modalID = `showNotesModal${applicantID}`;
+                const created = moment(createdAt).format('DD MMM YYYY, h:mm A');
+                // Add the modal HTML to the page only once
+                if ($('#' + modalID).length === 0) {
+                    $('body').append(`
+                                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-top">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="${modalID}Label">CRM Notes</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="text-center py-3">
+                                                        <div class="spinner-border" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            }
+                                `);
+                }
 
-            // Set the notes content in the modal with proper line breaks using HTML
-            $('#' + modalID + ' .modal-body').html(`
-                Applicant Name: <strong>${applicantName}</strong><br>
-                Postcode: <strong>${applicantPostcode}</strong><br>
-                Dated: <strong>${created}</strong><br>
-                Notes Detail: <p>${notes}</p>
-            `);
-
-            // Show the modal
-            $('#' + modalID).modal('show');
-        }
-
-        // Function to show the notes modal
-        function showSaleUpdateHistory(sale_id) {
-            const modalID = 'showSaleUpdateHistoryModal' + sale_id;
-
-            // Add the modal HTML to the page only once
-            if ($('#' + modalID).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalID}Label">Sale Update History</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="text-center py-3 loader">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            } else {
-                // If modal already exists, reset body to loader in case of repeated calls
+                // Set the notes content in the modal with proper line breaks using HTML
                 $('#' + modalID + ' .modal-body').html(`
-                    <div class="text-center py-3 loader">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                `);
+                                Applicant Name: <strong>${applicantName}</strong><br>
+                                Postcode: <strong>${applicantPostcode}</strong><br>
+                                Dated: <strong>${created}</strong><br>
+                                Notes Detail: <p>${notes}</p>
+                            `);
+
+                // Show the modal
+                $('#' + modalID).modal('show');
             }
 
-            // ✅ Show the modal *immediately*, so loader is visible while data loads
-            $('#' + modalID).modal('show');
+            // Function to show the notes modal
+            function showSaleUpdateHistory(sale_id) {
+                const modalID = 'showSaleUpdateHistoryModal' + sale_id;
 
-            // Make AJAX call to load content
-            $.ajax({
-                url: '{{ route("getModuleUpdateHistory") }}',
-                type: 'GET',
-                data: {
-                    module_key: sale_id,
-                    module: 'Sale'
-                },
-                success: function(response) {
-                    let notesHtml = '';
+                if ($('#' + modalID).length === 0) {
+                    $('body').append(`
+                            <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="${modalID}Label">Sale Update History</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="text-center py-3 loader">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                } else {
+                    $('#' + modalID + ' .modal-body').html(`
+                            <div class="text-center py-3 loader">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        `);
+                }
 
-                    if (!response.audit_history || response.audit_history.length === 0) {
-                        notesHtml = '<p>No record found.</p>';
-                    } else {
-                        response.audit_history.forEach(function(entry) {
-                            const user = entry.changes_made_by;
-                            const changes = entry.changes_made;
+                $('#' + modalID).modal('show');
 
-                            notesHtml += `
-                                <div class="note-entry mb-3">
-                                    <p><strong>Updated By:</strong> ${user}</p>
-                                    <ul class="mb-2">`;
+                $.ajax({
+                    url: '{{ route("getModuleUpdateHistory") }}',
+                    type: 'GET',
+                    data: {
+                        module_key: sale_id,
+                        module: 'Sale'
+                    },
+                    success: function (response) {
+                        let html = '';
 
-                            for (const field in changes) {
-                                const value = changes[field];
-                                notesHtml += `<li><strong>${field.replace(/_/g, ' ')}:</strong> ${value}</li>`;
-                            }
+                        if (!response.audit_history || response.audit_history.length === 0) {
+                            html = '<p class="text-muted text-center">No audit history found.</p>';
+                        } else {
+                            response.audit_history.forEach(function (audit, index) {
+                                // ✅ Last index = first/created entry (since array is reversed)
+                                const isCreated = audit.is_created;
 
-                            notesHtml += `</ul><hr></div>`;
-                        });
+                                html += `
+                                                    <div class="mb-3 border-bottom pb-2">
+                                                        <p class="mb-1">
+                                                            <strong>${audit.changes_made_by}</strong>
+                                                            <small class="text-muted ms-1">(${audit.date})</small>
+                                                            ${isCreated ? '<span class="badge bg-success ms-1">Created</span>' : '<span class="badge bg-warning ms-1">Updated</span>'}
+                                                        </p>`;
+
+                                if (audit.changes_made && Object.keys(audit.changes_made).length > 0) {
+                                    html += `<ul class="mb-2">`;
+                                    Object.entries(audit.changes_made).forEach(([key, value]) => {
+                                        // Sanitize to prevent XSS
+                                        let safeValue = DOMPurify.sanitize(value ?? '');
+                                        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                        html += `<li><strong>${label}:</strong> ${safeValue}</li>`;
+                                    });
+                                    html += `</ul>`;
+                                }
+
+                                html += `</div>`;
+                            });
+                        }
+
+                        $('#' + modalID + ' .modal-body').html(html);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error fetching sale history: ", error);
+                        $('#' + modalID + ' .modal-body').html(
+                            '<p class="text-danger text-center">There was an error retrieving the history. Please try again later.</p>'
+                        );
                     }
+                });
+            }
+            function showSaleAllNotes(sale_id) {
+                const modalID = 'showSaleAllNotesModal' + sale_id;
 
-                    $('#' + modalID + ' .modal-body').html(notesHtml);
-                },
-                error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    $('#' + modalID + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                }
-            });
-
-        }
-
-        function showSaleAllNotes(sale_id) {
-            const modalID = 'showSaleAllNotesModal' + sale_id;
-
-            // Add the modal HTML to the page only once
-            if ($('#' + modalID).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalID}Label">Sale Notes History</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
+                // Add the modal HTML to the page only once
+                if ($('#' + modalID).length === 0) {
+                    $('body').append(`
+                                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="${modalID}Label">Sale Notes History</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="text-center py-3 loader">
+                                                        <div class="spinner-border" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `);
+                } else {
+                    // If modal already exists, reset body to loader in case of repeated calls
+                    $('#' + modalID + ' .modal-body').html(`
                                     <div class="text-center py-3 loader">
                                         <div class="spinner-border" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            } else {
-                // If modal already exists, reset body to loader in case of repeated calls
-                $('#' + modalID + ' .modal-body').html(`
-                    <div class="text-center py-3 loader">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                `);
-            }
+                                `);
+                }
 
-            // ✅ Show the modal *immediately*, so loader is visible while data loads
-            $('#' + modalID).modal('show');
+                // ✅ Show the modal *immediately*, so loader is visible while data loads
+                $('#' + modalID).modal('show');
 
-            // Make AJAX call to load content
-            $.ajax({
-                url: '{{ route("getModuleNotesHistory") }}',
-                type: 'GET',
-                data: {
-                    id: sale_id,
-                    module: 'Sale'
-                },
-                success: function(response) {
-                    let notesHtml = '';
+                // Make AJAX call to load content
+                $.ajax({
+                    url: '{{ route("getModuleNotesHistory") }}',
+                    type: 'GET',
+                    data: {
+                        id: sale_id,
+                        module: 'Sale'
+                    },
+                    success: function (response) {
+                        let notesHtml = '';
 
-                    if (response.data.length === 0) {
-                        notesHtml = '<p>No record found.</p>';
-                    } else {
-                        response.data.forEach(function(note) {
-                            const notes = note.details;
-                            const created = moment(note.created_at).format('DD MMM YYYY, h:mm A');
-                            const status = note.status;
+                        if (response.data.length === 0) {
+                            notesHtml = '<p>No record found.</p>';
+                        } else {
+                            response.data.forEach(function (note) {
+                                const notes = note.details;
+                                const created = moment(note.created_at).format('DD MMM YYYY, h:mm A');
+                                const status = note.status;
 
-                            const statusClass = (status == 1) ? 'bg-success' : 'bg-dark';
-                            const statusText = (status == 1) ? 'Active' : 'Inactive';
+                                const statusClass = (status == 1) ? 'bg-success' : 'bg-dark';
+                                const statusText = (status == 1) ? 'Active' : 'Inactive';
 
-                            notesHtml += `
-                                <div class="note-entry">
-                                    <p><strong>Dated:</strong> ${created} &nbsp;&nbsp; <span class="badge ${statusClass}">${statusText}</span></p>
-                                    <p><strong>Notes Detail:</strong><br>${notes}</p>
-                                </div><hr>
-                            `;
+                                notesHtml += `
+                                                <div class="note-entry">
+                                                    <p><strong>Dated:</strong> ${created} &nbsp;&nbsp; <span class="badge ${statusClass}">${statusText}</span></p>
+                                                    <p><strong>Notes Detail:</strong><br>${notes}</p>
+                                                </div><hr>
+                                            `;
+                            });
+                        }
+
+                        $('#' + modalID + ' .modal-body').html(notesHtml);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Error fetching notes history: " + error);
+                        $('#' + modalID + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
+                    }
                 });
             }
 
-            $('#' + modalID + ' .modal-body').html(notesHtml);
-                },
-                error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    $('#' + modalID + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                }
-            });
-        }
-        
-        function viewNotesHistory(applicant_id, sale_id) {
-            const modalID = 'viewNotesHistoryModal' + applicant_id + '-' + sale_id;
+            function viewNotesHistory(applicant_id, sale_id) {
+                const modalID = 'viewNotesHistoryModal' + applicant_id + '-' + sale_id;
 
-            // Add the modal HTML to the page only once
-            if ($('#' + modalID).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalID}Label">CRM Notes History</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
+                // Add the modal HTML to the page only once
+                if ($('#' + modalID).length === 0) {
+                    $('body').append(`
+                                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="${modalID}Label" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="${modalID}Label">CRM Notes History</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="text-center py-3 loader">
+                                                        <div class="spinner-border" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `);
+                } else {
+                    // If modal already exists, reset body to loader in case of repeated calls
+                    $('#' + modalID + ' .modal-body').html(`
                                     <div class="text-center py-3 loader">
                                         <div class="spinner-border" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            } else {
-                // If modal already exists, reset body to loader in case of repeated calls
-                $('#' + modalID + ' .modal-body').html(`
-                    <div class="text-center py-3 loader">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                `);
-            }
+                                `);
+                }
 
-            // ✅ Show the modal *immediately*, so loader is visible while data loads
-            $('#' + modalID).modal('show');
+                // ✅ Show the modal *immediately*, so loader is visible while data loads
+                $('#' + modalID).modal('show');
 
-            // Make AJAX call to load content
-            $.ajax({
-                url: '{{ route("getApplicantCrmNotes") }}',
-                type: 'GET',
-                data: {
-                    applicant_id: applicant_id,
-                    sale_id: sale_id,
-                },
-                success: function(response) {
-                    let notesHtml = '';
+                // Make AJAX call to load content
+                $.ajax({
+                    url: '{{ route("getApplicantCrmNotes") }}',
+                    type: 'GET',
+                    data: {
+                        applicant_id: applicant_id,
+                        sale_id: sale_id,
+                    },
+                    success: function (response) {
+                        let notesHtml = '';
 
-                    if (response.data.length === 0) {
-                        notesHtml = '<p>No record found.</p>';
-                    } else {
-                        response.data.forEach(function(note) {
-                            const notes = note.details;
-                            const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
-                            const status = note.status;
-                            const moved_tab_to = note.moved_tab_to;
-                            const formattedTab = moved_tab_to.replace(/_/g, ' ')
-                               .replace(/\b\w/g, char => char.toUpperCase());
+                        if (response.data.length === 0) {
+                            notesHtml = '<p>No record found.</p>';
+                        } else {
+                            response.data.forEach(function (note) {
+                                const notes = note.details;
+                                const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
+                                const status = note.status;
+                                const moved_tab_to = note.moved_tab_to;
+                                const formattedTab = moved_tab_to.replace(/_/g, ' ')
+                                    .replace(/\b\w/g, char => char.toUpperCase());
 
-                            const statusClass = (status == 1) ? 'bg-success' : 'bg-dark';
-                            const statusText = (status == 1) ? 'Active' : 'Inactive';
+                                const statusClass = (status == 1) ? 'bg-success' : 'bg-dark';
+                                const statusText = (status == 1) ? 'Active' : 'Inactive';
 
-                            notesHtml += `
-                                <div class="note-entry mb-3">
-                                    <div class="row justify-content-between align-items-center mb-2">
-                                        <div class="col-auto">
-                                            <p class="mb-0"><strong>Dated:</strong> ${created} &nbsp;&nbsp; <span class="badge ${statusClass}">${statusText}</span></p>
-                                        </div>
-                                        <div class="col-auto">
-                                           <p class="mb-0"><strong>Stage:</strong> 
-                                            <span class="badge bg-primary">${formattedTab}</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p><strong>Notes Detail:</strong><br>${notes}</p>
-                                </div>
-                                <hr>
-                            `;
+                                notesHtml += `
+                                                <div class="note-entry mb-3">
+                                                    <div class="row justify-content-between align-items-center mb-2">
+                                                        <div class="col-auto">
+                                                            <p class="mb-0"><strong>Dated:</strong> ${created} &nbsp;&nbsp; <span class="badge ${statusClass}">${statusText}</span></p>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                           <p class="mb-0"><strong>Stage:</strong> 
+                                                            <span class="badge bg-primary">${formattedTab}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <p><strong>Notes Detail:</strong><br>${notes}</p>
+                                                </div>
+                                                <hr>
+                                            `;
+                            });
+                        }
+
+                        $('#' + modalID + ' .modal-body').html(notesHtml);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Error fetching notes history: " + error);
+                        $('#' + modalID + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
+                    }
                 });
             }
 
-            $('#' + modalID + ' .modal-body').html(notesHtml);
-                },
-                error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    $('#' + modalID + ' .modal-body').html('<p>There was an error retrieving the notes. Please try again later.</p>');
-                }
-            });
-        }
 
-
-    </script>
-@endsection
+        </script>
+    @endsection
 @endsection
 
 @section('script-bottom')
-@vite(['resources/js/pages/agent-detail.js'])
+    @vite(['resources/js/pages/agent-detail.js'])
 @endsection

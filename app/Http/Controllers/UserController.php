@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;  
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 
@@ -180,43 +180,43 @@ class UserController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>';
-                                    if (Gate::allows('administrator-user-edit')) {
-                                        $html .= ' <a class="dropdown-item" href="#" onclick="showEditModal(
-                                                \'' . (int)$user->id . '\',
+                    if (Gate::allows('administrator-user-edit')) {
+                        $html .= ' <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
+                                                \'' . (int) $user->id . '\',
                                                 \'' . addslashes(htmlspecialchars($name)) . '\',
                                                 \'' . addslashes(htmlspecialchars($email)) . '\',
                                                 \'' . addslashes(htmlspecialchars($user->is_active)) . '\',
                                                 \'' . addslashes(htmlspecialchars($roleName)) . '\'
                                             )">Edit</a>
                                         </li>';
-                                    }
-                                    if (Gate::allows('administrator-user-view')) {
-                                        $html .= '<li><a class="dropdown-item" href="#" onclick="showDetailsModal(
-                                            \'' . (int)$user->id . '\',
+                    }
+                    if (Gate::allows('administrator-user-view')) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
+                                            \'' . (int) $user->id . '\',
                                             \'' . $user->formatted_created_at . '\',
                                             \'' . addslashes(htmlspecialchars($name)) . '\',
                                             \'' . addslashes(htmlspecialchars($email)) . '\',
                                             \'' . addslashes(htmlspecialchars($roleName)) . '\',
                                             \'' . addslashes(htmlspecialchars($status)) . '\'
                                         )">View</a></li>';
-                                    }
-                                    if (Gate::allows('administrator-user-change-status')) {
-                                        if ($user->is_active == true) {
-                                            $html .= '<li><a class="dropdown-item" href="#" onclick="changeStatusModal(
-                                                                \'' . (int)$user->id . '\', \'0\'
+                    }
+                    if (Gate::allows('administrator-user-change-status')) {
+                        if ($user->is_active == true) {
+                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
+                                                                \'' . (int) $user->id . '\', \'0\'
                                                             )">Mark as Inctive</a></li>';
-                                        } else {
-                                            $html .=  '<li><a class="dropdown-item" href="#" onclick="changeStatusModal(
-                                                                \'' . (int)$user->id . '\', \'1\'
+                        } else {
+                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
+                                                                \'' . (int) $user->id . '\', \'1\'
                                                             )">Mark as Active</a></li>';
-                                        }
-                                    }
+                        }
+                    }
 
-                                    if (Gate::allows('administrator-user-activity-log')) {
-                                        $url = route('users.activity_log', ['id' => $user->id]);
-                                        $html .= '<li><a target="_blank" class="dropdown-item" href="' . e($url) . '">Activity Log</a></li>';
-                                    }
-                                '</ul>
+                    if (Gate::allows('administrator-user-activity-log')) {
+                        $url = route('users.activity_log', ['id' => $user->id]);
+                        $html .= '<li><a target="_blank" class="dropdown-item" href="' . e($url) . '">Activity Log</a></li>';
+                    }
+                    '</ul>
                             </div>';
 
                     return $html;
@@ -232,149 +232,149 @@ class UserController extends Controller
         return view('users.activity-logs', compact('user_id'));
     }
     public function getUserActivityLogs(Request $request)
-{
-    if (!$request->ajax()) {
-        abort(400);
-    }
+    {
+        if (!$request->ajax()) {
+            abort(400);
+        }
 
-    // 🔥 cache status maps per request (NOT per row)
-    $statusCache = [];
+        // 🔥 cache status maps per request (NOT per row)
+        $statusCache = [];
 
-    $model = Audit::query()
-        ->where('user_id', $request->id)
-        ->latest('created_at');
+        $model = Audit::query()
+            ->where('user_id', $request->id)
+            ->latest('created_at');
 
-    return DataTables::eloquent($model)
-        ->addIndexColumn()
+        return DataTables::eloquent($model)
+            ->addIndexColumn()
 
-        ->addColumn('details', function ($audit) use (&$statusCache) {
+            ->addColumn('details', function ($audit) use (&$statusCache) {
 
-            // ---------- SAFE JSON DECODE ----------
-            $data = $this->decodeAuditData($audit->data);
+                // ---------- SAFE JSON DECODE ----------
+                $data = $this->decodeAuditData($audit->data);
 
-            $old     = is_array($data['old_values'] ?? null) ? $data['old_values'] : [];
-            $new     = is_array($data['new_values'] ?? null) ? $data['new_values'] : [];
-            $changes = is_array($data['changes_made'] ?? null) ? $data['changes_made'] : [];
+                $old = is_array($data['old_values'] ?? null) ? $data['old_values'] : [];
+                $new = is_array($data['new_values'] ?? null) ? $data['new_values'] : [];
+                $changes = is_array($data['changes_made'] ?? null) ? $data['changes_made'] : [];
 
-            // ---------- STATUS MAP CACHE ----------
-            $modelClass = $audit->auditable_type;
+                // ---------- STATUS MAP CACHE ----------
+                $modelClass = $audit->auditable_type;
 
-            if (!isset($statusCache[$modelClass])) {
-                $statusCache[$modelClass] = $this->getStatusMapFromComment($modelClass);
-            }
-
-            $statusMap = $statusCache[$modelClass];
-
-            $allowedTags = '<b><strong><i><em><br><ul><ol><li>';
-
-            // ---------- FORMATTER ----------
-            $format = function ($key, $value) use ($allowedTags, $statusMap) {
-
-                // ARRAY
-                if (is_array($value)) {
-                    $value = implode(', ', $value);
+                if (!isset($statusCache[$modelClass])) {
+                    $statusCache[$modelClass] = $this->getStatusMapFromComment($modelClass);
                 }
 
-                // BOOLEAN
-                if (is_bool($value)) {
-                    return $value
-                        ? '<span class="badge bg-success">True</span>'
-                        : '<span class="badge bg-danger">False</span>';
-                }
+                $statusMap = $statusCache[$modelClass];
 
-                // NULL / EMPTY
-                if ($value === null || $value === '') {
-                    return '<span class="text-muted">-</span>';
-                }
+                $allowedTags = '<b><strong><i><em><br><ul><ol><li>';
 
-                // STATUS
-                if ($key === 'status' && !empty($statusMap)) {
-                    return '<span class="badge bg-primary">'
-                        . ($statusMap[$value] ?? $value)
-                        . '</span>';
-                }
+                // ---------- FORMATTER ----------
+                $format = function ($key, $value) use ($allowedTags, $statusMap) {
 
-                // URL
-                if (filter_var($value, FILTER_VALIDATE_URL)) {
-                    return "<a href='{$value}' target='_blank' class='btn btn-sm btn-primary'>Open</a>";
-                }
+                    // ARRAY
+                    if (is_array($value)) {
+                        $value = implode(', ', $value);
+                    }
 
-                // DATE (strict pattern check first)
-                if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
-                    try {
-                        return \Carbon\Carbon::parse($value)->format('d M Y, h:i A');
-                    } catch (\Exception $e) {}
-                }
+                    // BOOLEAN
+                    if (is_bool($value)) {
+                        return $value
+                            ? '<span class="badge bg-success">True</span>'
+                            : '<span class="badge bg-danger">False</span>';
+                    }
 
-                return strip_tags((string)$value, $allowedTags);
-            };
+                    // NULL / EMPTY
+                    if ($value === null || $value === '') {
+                        return '<span class="text-muted">-</span>';
+                    }
 
-            $rows = '';
+                    // STATUS
+                    if ($key === 'status' && !empty($statusMap)) {
+                        return '<span class="badge bg-primary">'
+                            . ($statusMap[$value] ?? $value)
+                            . '</span>';
+                    }
 
-            // ---------- OLD vs NEW ----------
-            if (!empty($old) && !empty($new)) {
+                    // URL
+                    if (filter_var($value, FILTER_VALIDATE_URL)) {
+                        return "<a href='{$value}' target='_blank' class='btn btn-sm btn-primary'>Open</a>";
+                    }
 
-                $rows .= '<h5><strong>Changes</strong></h5>';
+                    // DATE (strict pattern check first)
+                    if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+                        try {
+                            return \Carbon\Carbon::parse($value)->format('d M Y, h:i A');
+                        } catch (\Exception $e) {
+                        }
+                    }
 
-                foreach ($new as $key => $newVal) {
+                    return strip_tags((string) $value, $allowedTags);
+                };
 
-                    $oldVal = $old[$key] ?? null;
+                $rows = '';
 
-                    if ($oldVal == $newVal) continue;
+                // ---------- OLD vs NEW ----------
+                if (!empty($old) && !empty($new)) {
 
-                    $label = ucwords(str_replace('_', ' ', $key));
+                    $rows .= '<h5><strong>Changes</strong></h5>';
 
-                    $rows .= "
+                    foreach ($new as $key => $newVal) {
+
+                        $oldVal = $old[$key] ?? null;
+
+                        if ($oldVal == $newVal)
+                            continue;
+
+                        $label = ucwords(str_replace('_', ' ', $key));
+
+                        $rows .= "
                         <div class='mb-3 text-start'>
                             <strong>{$label}</strong><br>
                             <span class='text-danger'>Old: {$format($key, $oldVal)}</span><br>
                             <span class='text-success'>New: {$format($key, $newVal)}</span>
                         </div>
                     ";
-                }
+                    }
 
-            }
-            elseif (!empty($changes) && is_array($changes)) {
+                } elseif (!empty($changes) && is_array($changes)) {
 
-                $rows .= '<h5><strong>Changes</strong></h5>';
+                    $rows .= '<h5><strong>Changes</strong></h5>';
 
-                foreach ($changes as $key => $val) {
+                    foreach ($changes as $key => $val) {
 
-                    $label = ucwords(str_replace('_', ' ', $key));
+                        $label = ucwords(str_replace('_', ' ', $key));
 
-                    $rows .= "
+                        $rows .= "
                         <div class='mb-2 text-start'>
                             <strong>{$label}</strong><br>
                             {$format($key, $val)}
                         </div>
                     ";
-                }
+                    }
 
-            }
-            else {
+                } else {
 
-                $rows .= '<h5><strong>Details</strong></h5>';
+                    $rows .= '<h5><strong>Details</strong></h5>';
 
-                foreach ($data as $key => $val) {
+                    foreach ($data as $key => $val) {
 
-                    $label = ucwords(str_replace('_', ' ', $key));
+                        $label = ucwords(str_replace('_', ' ', $key));
 
-                    $rows .= "
+                        $rows .= "
                         <div class='mb-2 text-start'>
                             <strong>{$label}</strong><br>
                             {$format($key, $val)}
                         </div>
                     ";
+                    }
                 }
-            }
 
-            return "
+                return "
                 <a href='#' data-bs-toggle='modal' data-bs-target='#modal_{$audit->id}'>
                     <iconify-icon icon='solar:square-arrow-right-up-bold' class='text-info fs-24'></iconify-icon>
                 </a>
 
                 <div id='modal_{$audit->id}' class='modal fade'>
-                    <div class='modal-dialog modal-lg'>
+                    <div class='modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg'>
                         <div class='modal-content'>
 
                             <div class='modal-header'>
@@ -394,42 +394,49 @@ class UserController extends Controller
                     </div>
                 </div>
             ";
-        })
+            })
 
-        ->addColumn('created_at', fn($audit) =>
-            $audit->created_at->format('d M Y, h:i A')
-        )
+            ->addColumn(
+                'created_at',
+                fn($audit) =>
+                $audit->created_at->format('d M Y, h:i A')
+            )
 
-        ->addColumn('auditable_type', fn($audit) =>
-            class_basename($audit->auditable_type)
-        )
+            ->addColumn(
+                'auditable_type',
+                fn($audit) =>
+                class_basename($audit->auditable_type)
+            )
 
-        ->rawColumns(['details'])
-        ->make(true);
-}
-private function decodeAuditData($data): array
-{
-    if (is_array($data)) return $data;
-
-    if (!is_string($data)) return [];
-
-    $decoded = json_decode($data, true);
-
-    if (is_string($decoded)) {
-        $decoded = json_decode($decoded, true);
+            ->rawColumns(['details'])
+            ->make(true);
     }
+    private function decodeAuditData($data): array
+    {
+        if (is_array($data))
+            return $data;
 
-    return is_array($decoded) ? $decoded : [];
-}
-private function getStatusMapFromComment($modelClass)
-{
-    if (!class_exists($modelClass)) return [];
+        if (!is_string($data))
+            return [];
 
-    $table = (new $modelClass)->getTable();
+        $decoded = json_decode($data, true);
 
-    return cache()->remember("status_map_{$table}", 3600, function () use ($table) {
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
 
-        $result = DB::select("
+        return is_array($decoded) ? $decoded : [];
+    }
+    private function getStatusMapFromComment($modelClass)
+    {
+        if (!class_exists($modelClass))
+            return [];
+
+        $table = (new $modelClass)->getTable();
+
+        return cache()->remember("status_map_{$table}", 3600, function () use ($table) {
+
+            $result = DB::select("
             SELECT COLUMN_COMMENT 
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE()
@@ -437,22 +444,23 @@ private function getStatusMapFromComment($modelClass)
             AND COLUMN_NAME = 'status'
         ", [$table]);
 
-        if (empty($result)) return [];
+            if (empty($result))
+                return [];
 
-        $comment = $result[0]->COLUMN_COMMENT ?? '';
+            $comment = $result[0]->COLUMN_COMMENT ?? '';
 
-        $map = [];
+            $map = [];
 
-        foreach (explode(',', $comment) as $pair) {
-            if (str_contains($pair, '=')) {
-                [$key, $value] = explode('=', $pair);
-                $map[trim($key)] = trim($value);
+            foreach (explode(',', $comment) as $pair) {
+                if (str_contains($pair, '=')) {
+                    [$key, $value] = explode('=', $pair);
+                    $map[trim($key)] = trim($value);
+                }
             }
-        }
 
-        return $map;
-    });
-}
+            return $map;
+        });
+    }
     public function changeUserStatus(Request $request)
     {
         $user_id = $request->input('user_id');
@@ -499,30 +507,30 @@ private function getStatusMapFromComment($modelClass)
                 ->addIndexColumn()
                 ->editColumn('user_name', fn($row) => e($row->user_name))
                 ->editColumn('created_at', fn($row) => Carbon::parse($row->created_at)->format('d M Y'))
-               ->addColumn('credit_hours', function ($row) {
-    if ($row->login_at && $row->logout_at) {
-        try {
-            // Parse times as Carbon instances, assuming the same day
-            $login = Carbon::parse($row->login_at);
-            $logout = Carbon::parse($row->logout_at);
+                ->addColumn('credit_hours', function ($row) {
+                    if ($row->login_at && $row->logout_at) {
+                        try {
+                            // Parse times as Carbon instances, assuming the same day
+                            $login = Carbon::parse($row->login_at);
+                            $logout = Carbon::parse($row->logout_at);
 
-            // If logout < login, assume logout is on the next day
-            if ($logout->lessThan($login)) {
-                $logout->addDay();
-            }
+                            // If logout < login, assume logout is on the next day
+                            if ($logout->lessThan($login)) {
+                                $logout->addDay();
+                            }
 
-            // Difference in total minutes
-            $diffInMinutes = $logout->diffInMinutes($login);
-            $hours = intdiv($diffInMinutes, 60);
-            $minutes = $diffInMinutes % 60;
+                            // Difference in total minutes
+                            $diffInMinutes = $logout->diffInMinutes($login);
+                            $hours = intdiv($diffInMinutes, 60);
+                            $minutes = $diffInMinutes % 60;
 
-            return "{$hours}h {$minutes}m";
-        } catch (\Exception $e) {
-            return '0h 0m';
-        }
-    }
-    return '0h 0m';
-})
+                            return "{$hours}h {$minutes}m";
+                        } catch (\Exception $e) {
+                            return '0h 0m';
+                        }
+                    }
+                    return '0h 0m';
+                })
 
                 ->addColumn('action', function ($row) {
                     return '<div class="btn-group dropstart">
@@ -603,29 +611,29 @@ private function getStatusMapFromComment($modelClass)
                 ->editColumn('user_name', fn($row) => e($row->user_name))
                 ->editColumn('created_at', fn($row) => Carbon::parse($row->created_at)->format('d M Y'))
                 ->addColumn('credit_hours', function ($row) {
-    if ($row->login_at && $row->logout_at) {
-        try {
-            // Parse times as Carbon instances, assuming the same day
-            $login = Carbon::parse($row->login_at);
-            $logout = Carbon::parse($row->logout_at);
+                    if ($row->login_at && $row->logout_at) {
+                        try {
+                            // Parse times as Carbon instances, assuming the same day
+                            $login = Carbon::parse($row->login_at);
+                            $logout = Carbon::parse($row->logout_at);
 
-            // If logout < login, assume logout is on the next day
-            if ($logout->lessThan($login)) {
-                $logout->addDay();
-            }
+                            // If logout < login, assume logout is on the next day
+                            if ($logout->lessThan($login)) {
+                                $logout->addDay();
+                            }
 
-            // Difference in total minutes
-            $diffInMinutes = $logout->diffInMinutes($login);
-            $hours = intdiv($diffInMinutes, 60);
-            $minutes = $diffInMinutes % 60;
+                            // Difference in total minutes
+                            $diffInMinutes = $logout->diffInMinutes($login);
+                            $hours = intdiv($diffInMinutes, 60);
+                            $minutes = $diffInMinutes % 60;
 
-            return "{$hours}h {$minutes}m";
-        } catch (\Exception $e) {
-            return '0h 0m';
-        }
-    }
-    return '0h 0m';
-})
+                            return "{$hours}h {$minutes}m";
+                        } catch (\Exception $e) {
+                            return '0h 0m';
+                        }
+                    }
+                    return '0h 0m';
+                })
 
 
                 ->rawColumns(['created_at', 'user_name', 'credit_hours'])

@@ -313,7 +313,7 @@ class ResourceController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -367,7 +367,7 @@ class ResourceController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -421,7 +421,7 @@ class ResourceController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -699,7 +699,7 @@ class ResourceController extends Controller
                     $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
                     return '
-                        <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -720,7 +720,7 @@ class ResourceController extends Controller
                     $notes = $applicant->module_notes_details ?? $applicant->applicant_notes ?? '-';
                     if ($applicant->is_blocked == 0 && in_array($statusValue, ['open', 'reject'])) {
                         return '
-                            <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                            <a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
                                 ' . $notes . '
                             </a>
                         ';
@@ -812,7 +812,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name ?? '-')) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email ?? '-')) . '\',
@@ -827,7 +827,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -1158,7 +1158,7 @@ class ResourceController extends Controller
                     $postcode = htmlspecialchars($a->applicant_postcode, ENT_QUOTES, 'UTF-8');
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$a->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$a->id . '\',\'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
                                ' . $shortNotes . '
                             </a>';
                 })
@@ -1174,7 +1174,7 @@ class ResourceController extends Controller
                     $id    = 'exp-' . $a->id;
 
                     return '
-                        <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -1229,7 +1229,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . $a->id . ',
                                     \'' . addslashes(e($a->applicant_name)) . '\',
                                     \'' . addslashes(e($a->applicant_email)) . '\',
@@ -1244,7 +1244,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(e($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $a->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $a->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -1459,10 +1459,10 @@ class ResourceController extends Controller
                     $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . ucwords($name) . '\', \'' . strtoupper($postcode) . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . ucwords($name) . '\', \'' . strtoupper($postcode) . '\')">
                             <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
                         </a>
-                        <a href="#" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                        <a href="javascript:void(0);" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
                             <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
                         </a>';
                 })
@@ -1482,7 +1482,7 @@ class ResourceController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -1564,7 +1564,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
@@ -1579,7 +1579,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -1707,7 +1707,7 @@ class ResourceController extends Controller
                     $notes = e(htmlspecialchars($applicant->details, ENT_QUOTES, 'UTF-8'));
                     $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
                     $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . $name . '\', \'' . $postcode . '\')">
                             <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
                         </a>';
                 })
@@ -1719,7 +1719,7 @@ class ResourceController extends Controller
                     $full = e($applicant->applicant_experience);
                     $id = 'exp-' . $applicant->id;
                     return '
-                        <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
@@ -1792,7 +1792,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
@@ -1807,7 +1807,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -1987,7 +1987,7 @@ class ResourceController extends Controller
                     $id = 'note-' . $applicant->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2102,7 +2102,7 @@ class ResourceController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2184,7 +2184,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
@@ -2199,7 +2199,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -2378,7 +2378,7 @@ class ResourceController extends Controller
                     $modalHtml = $this->generateJobDetailsModal($applicant);
 
                     // Return the action link with a modal trigger and the modal HTML
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showJobDetailsModal('
+                    return '<a href="javascript:void(0);" class="dropdown-item" style="color: blue;" onclick="showJobDetailsModal('
                         . (int)$applicant->sale_id . ','
                         . '\'' . htmlspecialchars(Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
                         . '\'' . htmlspecialchars((string)$applicant->office_name, ENT_QUOTES) . '\','
@@ -2451,7 +2451,7 @@ class ResourceController extends Controller
                     $notesEscaped = nl2br(e($notes_detail));
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $modalId . '">
                             ' . $short . '
@@ -2502,7 +2502,7 @@ class ResourceController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2584,7 +2584,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
@@ -2599,7 +2599,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -2987,7 +2987,7 @@ class ResourceController extends Controller
                     // Decide whether to show modal link or plain text
                     if (($applicant->is_blocked == 0 && $status_value == 'open') || $status_value == 'reject') {
                         return '
-                            <a href="#" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                            <a href="javascript:void(0);" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                                 ' . $notes . '
                             </a>
                         ';
@@ -3049,7 +3049,7 @@ class ResourceController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -3172,7 +3172,7 @@ class ResourceController extends Controller
                             <ul class="dropdown-menu">';
                     if(Gate::allows('resource-category-view')){
                         $html .= '<li>
-                                <a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email ?? '-')) . '\',
@@ -3190,20 +3190,20 @@ class ResourceController extends Controller
                     }
                     if(Gate::allows('resource-category-upload-applicant-resume')){
                         $html .= '<li>
-                                    <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                     <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                 </li>';
                     }
                     if(Gate::allows('resource-category-upload-crm-resume')){
                         $html .= '<li>
-                                    <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
                                     <!-- Hidden File Input -->
                                     <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                 </li>';
                     }
                     if(Gate::allows('resource-category-view-notes-history')){
                         $html .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
                                 </ul>
                             </div>';
                     }

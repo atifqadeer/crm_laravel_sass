@@ -2346,7 +2346,7 @@ class CrmController extends Controller
 
                     return '
                         <div>
-                            <a href="#" class="text-primary" 
+                            <a href="javascript:void(0);" class="text-primary" 
                             data-bs-toggle="modal" 
                             data-bs-target="#' . $modalId . '">
                                 ' . $short . '
@@ -2434,7 +2434,7 @@ class CrmController extends Controller
                         'benefits'      => $applicant->benefits,
                     ];
 
-                        return '<a href="#"
+                        return '<a href="javascript:void(0);"
                             class="dropdown-item job-details"
                             data-job=\'' . json_encode(
                                                 $jobData,
@@ -2474,7 +2474,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
                                 $actionButtons = '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#updateCrmNotesModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2489,7 +2489,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmSendRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2504,7 +2504,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertInQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2513,17 +2513,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>
                             ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-email="' . $applicant->applicant_email . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                 ';
@@ -2533,7 +2533,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                         <li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#updateCrmNoJobNotesModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -2545,7 +2545,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                         <li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmSendNoJobRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -2556,7 +2556,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmSentCvNoJobRevertInQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -2566,17 +2566,17 @@ class CrmController extends Controller
                                         </a></li>';
                             }
                             $actionButtons .= '
-                                <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                <li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>
                             ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                         data-email="' . $applicant->applicant_email . '"
                                         data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                     ';
@@ -2586,7 +2586,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                         <li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmRevertRejectedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -2598,7 +2598,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRejectedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2608,17 +2608,17 @@ class CrmController extends Controller
                                     </a></li>';
                             }
                             $actionButtons .= '
-                                <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                <li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>
                             ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -2656,7 +2656,7 @@ class CrmController extends Controller
                                     if ($sentEmail) {
                                         // If the email is successfully sent (status = '1'), skip the email modal
                                         $actionButtons .= '<li>
-                                            <a href="#" class="dropdown-item" 
+                                            <a href="javascript:void(0);" class="dropdown-item" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
                                                 data-applicant-id="' . (int)$applicant->id . '"
@@ -2668,7 +2668,7 @@ class CrmController extends Controller
                                     } else {
                                         // If no email has been sent yet, open the email modal first
                                         $actionButtons .= '<li>
-                                            <a href="#" class="dropdown-item" 
+                                            <a href="javascript:void(0);" class="dropdown-item" 
                                                 data-bs-toggle="modal"  
                                                 data-bs-target="#crmSendApplicantEmailRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                                 data-applicant-id="' . (int)$applicant->id . '"
@@ -2682,7 +2682,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-schedule-interview', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2692,7 +2692,7 @@ class CrmController extends Controller
                                     </a></li>';
                             }
                             $actionButtons .= '
-                                <li><a class="dropdown-item" href="#" 
+                                <li><a class="dropdown-item" href="javascript:void(0);" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#crmMoveRequestToNoResponseModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                     data-applicant-id="' . (int)$applicant->id . '"
@@ -2703,7 +2703,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2714,7 +2714,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2724,16 +2724,16 @@ class CrmController extends Controller
                                     </a></li>';
                             }
                             $actionButtons .= '
-                                <li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                <li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -2773,7 +2773,7 @@ class CrmController extends Controller
                                     if ($sentEmail) {
                                         // If the email is successfully sent (status = '1'), skip the email modal
                                         $actionButtons .= '<li>
-                                            <a href="#" class="dropdown-item" 
+                                            <a href="javascript:void(0);" class="dropdown-item" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
                                                 data-applicant-id="' . (int)$applicant->id . '"
@@ -2785,7 +2785,7 @@ class CrmController extends Controller
                                     } else {
                                         // If no email has been sent yet, open the email modal first
                                         $actionButtons .= '<li>
-                                            <a href="#" class="dropdown-item" 
+                                            <a href="javascript:void(0);" class="dropdown-item" 
                                                 data-bs-toggle="modal"  
                                                 data-bs-target="#crmSendApplicantEmailRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                                 data-applicant-id="' . (int)$applicant->id . '"
@@ -2798,7 +2798,7 @@ class CrmController extends Controller
                                 }
                             }
                             if (Gate::allows('crm-send-confirmation', [$applicant, $tabFilter])) {
-                                $actionButtons .= '<li><a class="dropdown-item" href="#" 
+                                $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmMoveToconfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -2809,7 +2809,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2818,7 +2818,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2827,17 +2827,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
@@ -2854,7 +2854,7 @@ class CrmController extends Controller
 
 
                             $actionButtons .= '<li><a class="dropdown-item" 
-                                    href="#" 
+                                    href="javascript:void(0);" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#crmMarkRequestConfirmOrRejectModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                     data-applicant-id="' . (int)$applicant->id . '"
@@ -2865,7 +2865,7 @@ class CrmController extends Controller
 
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2874,7 +2874,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRequestedCvToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2883,17 +2883,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
@@ -2902,7 +2902,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRejectRequestRevertToSentCvModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2911,7 +2911,7 @@ class CrmController extends Controller
                                         Revert In Sent Cv
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRejectRequestRevertToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2920,7 +2920,7 @@ class CrmController extends Controller
                                         Revert In Request
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRejectRequestRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2929,7 +2929,7 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>
@@ -2937,17 +2937,17 @@ class CrmController extends Controller
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
                             break;
                         case 'confirmation':
                             if (Gate::allows('crm-accept-confirmation', [$applicant, $tabFilter])) {
-                                $actionButtons .= '<li><a class="dropdown-item" href="#" 
+                                $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmConfirmationAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2958,7 +2958,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertConfirmationToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2967,7 +2967,7 @@ class CrmController extends Controller
                                         Revert In Request
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmConfirmationRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -2976,17 +2976,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>
                             ';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-email="' . $applicant->applicant_email . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                 ';
@@ -2994,7 +2994,7 @@ class CrmController extends Controller
                         case 'rebook':
                             if (Gate::allows('crm-accept-rebook', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRebookAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3006,7 +3006,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertRebookToConfirmationModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3015,7 +3015,7 @@ class CrmController extends Controller
                                         Revert In Confirmation
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRebookRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3024,16 +3024,16 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                                 </li>';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
@@ -3041,7 +3041,7 @@ class CrmController extends Controller
                         case 'attended to pre-start date':
                             if (Gate::allows('crm-accept-attended', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                        <li><a class="dropdown-item" href="#" 
+                                        <li><a class="dropdown-item" href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmAttendedPreStartDateAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -3052,7 +3052,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmRevertAttendToRebookModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -3061,7 +3061,7 @@ class CrmController extends Controller
                                             Revert In Rebook
                                         </a></li>
                                         <li><a class="dropdown-item" 
-                                            href="#" 
+                                            href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmAttendedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                             data-applicant-id="' . (int)$applicant->id . '"
@@ -3070,17 +3070,17 @@ class CrmController extends Controller
                                             Revert In Quality
                                         </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
@@ -3089,7 +3089,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertDeclinedToAttendedModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3098,7 +3098,7 @@ class CrmController extends Controller
                                         Revert In Attended
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmDeclinedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3107,17 +3107,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3126,7 +3126,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertNotAttendedToAttendedModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3135,7 +3135,7 @@ class CrmController extends Controller
                                         Revert In Attended
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmNotAttendedToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3144,17 +3144,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                             data-email="' . $applicant->applicant_email . '"
                                             data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                         ';
@@ -3162,7 +3162,7 @@ class CrmController extends Controller
                         case 'start date':
                             if (Gate::allows('crm-accept-start-date', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3173,7 +3173,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertStartDateToAttendedModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3182,7 +3182,7 @@ class CrmController extends Controller
                                         Revert In Attended
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3191,17 +3191,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3209,7 +3209,7 @@ class CrmController extends Controller
                         case 'start date hold':
                             if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateHoldAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3220,7 +3220,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertStartDateHoldToStartDateModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3229,7 +3229,7 @@ class CrmController extends Controller
                                         Revert In Start Date
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateHoldToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3239,17 +3239,17 @@ class CrmController extends Controller
                                     </a></li>';
                             }
 
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3257,7 +3257,7 @@ class CrmController extends Controller
                         case 'invoice':
                             if (Gate::allows('crm-accept-invoice', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmInvoiceAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3268,7 +3268,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertInvoiceToStartDateModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3277,7 +3277,7 @@ class CrmController extends Controller
                                         Revert In Start Date
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmInvoiceToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3286,17 +3286,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3304,7 +3304,7 @@ class CrmController extends Controller
                         case 'invoice sent':
                             if (Gate::allows('crm-accept-invoice-sent', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
-                                    <li><a class="dropdown-item" href="#" 
+                                    <li><a class="dropdown-item" href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmInvoiceSentAcceptCVModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3315,7 +3315,7 @@ class CrmController extends Controller
                             }
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmInvoiceSentToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3324,17 +3324,17 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3343,7 +3343,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertDisputeToInvoiceModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3352,7 +3352,7 @@ class CrmController extends Controller
                                         Revert In Invoice
                                     </a></li>
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmDisputeToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3362,16 +3362,16 @@ class CrmController extends Controller
                                     </a></li>';
                             }
 
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3382,7 +3382,7 @@ class CrmController extends Controller
                             if (Gate::allows('crm-paid-toggle-status', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmChangePaidStatusModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3394,22 +3394,22 @@ class CrmController extends Controller
                             if (Gate::allows('crm-paid-revert', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         onclick="crmRevertPaidApp(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Invoice Sent
                                     </a></li>';
                             }
-                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a>
                             </li>';
 
                             if (!empty($applicant_msgs)) {
                                 if ($applicant_msgs['is_read'] == 0) {
-                                    $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
                             }
-                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
@@ -3419,7 +3419,7 @@ class CrmController extends Controller
                                 if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
                                     $actionButtons .= '
                                         <li><a class="dropdown-item" 
-                                                href="#" 
+                                                href="javascript:void(0);" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#updateCrmNotesModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                                 data-applicant-id="' . (int)$applicant->id . '"
@@ -3433,7 +3433,7 @@ class CrmController extends Controller
                                 }
                                 if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
                                     // $actionButtons .= '<li><a class="dropdown-item" 
-                                    //     href="#" 
+                                    //     href="javascript:void(0);" 
                                     //     data-bs-toggle="modal" 
                                     //     data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                     //     data-applicant-id="' . (int)$applicant->id . '"
@@ -3446,7 +3446,7 @@ class CrmController extends Controller
                                     // </a></li>';
                                     $actionButtons .= '<li>
                                         <a class="dropdown-item"
-                                        href="#"
+                                        href="javascript:void(0);"
                                         data-bs-toggle="modal"
                                         data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3462,7 +3462,7 @@ class CrmController extends Controller
                                 }
                                 if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
                                     $actionButtons .= '<li><a class="dropdown-item" 
-                                        href="#" 
+                                        href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertInQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
                                         data-applicant-id="' . (int)$applicant->id . '"
@@ -3471,16 +3471,16 @@ class CrmController extends Controller
                                         Revert In Quality
                                     </a></li>';
                                 }
-                                $actionButtons .= '<li><a class="dropdown-item chat-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
                                 if (!empty($applicant_msgs)) {
                                     if ($applicant_msgs['is_read'] == 0) {
-                                        $actionButtons .= '<li><a class="dropdown-item" href="#" >Reply SMS</a></li>';
+                                        $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                     }
                                 }
-                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="#" data-applicant-id="' . (int)$applicant->id . '" 
+                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                         data-email="' . $applicant->applicant_email . '"
                                         data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                     ';
@@ -3492,7 +3492,7 @@ class CrmController extends Controller
                     $html .= '<li><hr class="dropdown-divider"></li>';
                     // Common actions
                     $html .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">Notes History</a></li>';
-                    $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
                     $html .= '</ul></div>';
 
                     /*** Update CRM Notes Modal */
@@ -5572,9 +5572,9 @@ class CrmController extends Controller
                         $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
                         if (!$is_save) {
                             Log::warning('Email saved to DB failed for sale ID: ' . $sale->id);
-                            throw new \Exception('Email is not stored in DB');
+                            throw new Exception('Email is not stored in DB');
                         }
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         DB::rollBack();
                         return response()->json([
                             'success' => false,
@@ -6088,12 +6088,12 @@ class CrmController extends Controller
                 if (!$is_save) {
                     // Optional: throw or log
                     Log::warning('Email saved to DB failed for applicant ID: ' . $validatedData['applicant_id']);
-                    throw new \Exception('Email is not stored in DB');
+                    throw new Exception('Email is not stored in DB');
                 }
 
                 return response()->json(['success' => true, 'message' => 'Email sent successfully']);
 
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to send email: ' . $e->getMessage()
@@ -8294,7 +8294,7 @@ class CrmController extends Controller
                 
             return response()->json(['success' => true]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error in crmPaidAction: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
@@ -8351,7 +8351,7 @@ class CrmController extends Controller
                     $id = 'exp-' . $row->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -8409,7 +8409,7 @@ class CrmController extends Controller
                 'data' => $model,
                 'success' => true
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',
@@ -8531,7 +8531,7 @@ class CrmController extends Controller
             $history->save();
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectedRevertToSentCvAction: " . $e->getMessage());
 
@@ -8607,7 +8607,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectedRevertToRequestAction: " . $e->getMessage());
 
@@ -8695,7 +8695,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmSentCvAction: " . $e->getMessage());
 
@@ -8757,7 +8757,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmSentRequestAction: " . $e->getMessage());
 
@@ -8946,7 +8946,7 @@ class CrmController extends Controller
         
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmSentRejectCvAction: " . $e->getMessage());
 
@@ -9025,7 +9025,7 @@ class CrmController extends Controller
                 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRevertRejectedToSentCvAction: " . $e->getMessage());
 
@@ -9440,7 +9440,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmOpenCvAction: " . $e->getMessage());
 
@@ -9469,7 +9469,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmOpenCvSentRequestAction: " . $e->getMessage());
 
@@ -9539,7 +9539,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectAction: " . $e->getMessage());
 
@@ -9587,7 +9587,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestNoResponseAction: " . $e->getMessage());
 
@@ -9643,7 +9643,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestConfirmAction: " . $e->getMessage());
 
@@ -9691,7 +9691,7 @@ class CrmController extends Controller
             $history->save();
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectAction: " . $e->getMessage());
 
@@ -9752,7 +9752,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRevertRequestToSentCvAction: " . $e->getMessage());
 
@@ -9826,7 +9826,7 @@ class CrmController extends Controller
             $history->save();
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectedRevertToSentCvAction: " . $e->getMessage());
 
@@ -9908,7 +9908,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRequestRejectedRevertToRequestAction: " . $e->getMessage());
 
@@ -9960,7 +9960,7 @@ class CrmController extends Controller
             
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmInterviewSaveAction: " . $e->getMessage());
 
@@ -10019,7 +10019,7 @@ class CrmController extends Controller
                     
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmConfirmationRevertToRequestAction: " . $e->getMessage());
 
@@ -10074,7 +10074,7 @@ class CrmController extends Controller
 
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmInterviewAttendedAction: " . $e->getMessage());
 
@@ -10129,7 +10129,7 @@ class CrmController extends Controller
 
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmInterviewRebookAction: " . $e->getMessage());
 
@@ -10188,7 +10188,7 @@ class CrmController extends Controller
 
             return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRevertRebookToConfirmationAction: " . $e->getMessage());
 
@@ -10238,7 +10238,7 @@ class CrmController extends Controller
             
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRebookSaveAction: " . $e->getMessage());
 
@@ -10360,7 +10360,7 @@ class CrmController extends Controller
             
            return true; // Indicate success
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error for debugging
             Log::error("Error in crmRebookToNotAttendedAction: " . $e->getMessage());
 

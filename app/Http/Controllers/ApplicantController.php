@@ -44,6 +44,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Str;
 use League\Csv\Reader;
+use Illuminate\Http\Response;
 
 class ApplicantController extends Controller
 {
@@ -73,6 +74,7 @@ class ApplicantController extends Controller
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+
         return view('applicants.list', compact('jobCategories', 'jobTitles'));
     }
     public function create()
@@ -247,12 +249,12 @@ class ApplicantController extends Controller
                     $result = $this->geocode($request->applicant_postcode);
                     // If geocode fails, throw
                     if (!isset($result['lat']) || !isset($result['lng'])) {
-                        throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        throw new Exception('Geolocation failed. Latitude and longitude not found.');
                     }
 
                     $applicantData['lat'] = $result['lat'];
                     $applicantData['lng'] = $result['lng'];
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unable to locate address: ' . $e->getMessage()
@@ -286,7 +288,7 @@ class ApplicantController extends Controller
                     }
                 })
                     ->update([
-                        'module_id'   => $applicant->id,
+                        'module_id' => $applicant->id,
                         'module_type' => Applicant::class,
                     ]);
             }
@@ -337,7 +339,7 @@ class ApplicantController extends Controller
                 if (!$is_save) {
                     // Optional: throw or log
                     Log::warning('Email saved to DB failed for applicant ID: ' . $applicant->id);
-                    throw new \Exception('Email is not stored in DB');
+                    throw new Exception('Email is not stored in DB');
                 }
             }
 
@@ -368,7 +370,7 @@ class ApplicantController extends Controller
                 if (!$is_save) {
                     // Optional: throw or log
                     Log::warning('SMS saved to DB failed for applicant ID: ' . $applicant->id);
-                    throw new \Exception('SMS is not stored in DB');
+                    throw new Exception('SMS is not stored in DB');
                 }
             }
 
@@ -378,7 +380,7 @@ class ApplicantController extends Controller
                 'success' => true,
                 'message' => 'Applicant created successfully.'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error creating applicant: ' . $e->getMessage());
 
@@ -468,9 +470,9 @@ class ApplicantController extends Controller
                     ->where('applicants.is_blocked', false)
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
-                            ->from('histories')
-                            ->whereRaw('histories.applicant_id = applicants.id')
-                            ->where('histories.stage', 'crm')
+                            ->from('history')
+                            ->whereRaw('history.applicant_id = applicants.id')
+                            ->where('history.stage', 'crm')
                             ->limit(1);
                     });
                 break;
@@ -593,7 +595,7 @@ class ApplicantController extends Controller
         // }
 
         if ($request->filled('search.value')) {
-            $searchTerm  = trim($request->input('search.value'));
+            $searchTerm = trim($request->input('search.value'));
             $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
             $isDigitOnly = !empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
             $firstWord = explode(' ', $searchTerm)[0];
@@ -669,17 +671,20 @@ class ApplicantController extends Controller
             return DataTables::eloquent($model)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn('job_title', function ($applicant) {
-                    if (!$applicant->jobTitle) return '-';
-                    return  e($applicant->jobTitle->name);
+                    if (!$applicant->jobTitle)
+                        return '-';
+                    return e($applicant->jobTitle->name);
                 })
                 ->addColumn('job_category', function ($applicant) {
                     $type = $applicant->job_type;
                     $stype = $type && $type == 'specialist' ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size: 10px;">' . ucwords('Specialist') . '</span>' : '';
-                    if (!$applicant->jobCategory) return '-';
+                    if (!$applicant->jobCategory)
+                        return '-';
                     return e($applicant->jobCategory->name);
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    if (!$applicant->jobSource) return '-';
+                    if (!$applicant->jobSource)
+                        return '-';
                     return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
                 })
                 ->editColumn('applicant_name', function ($applicant) {
@@ -775,7 +780,8 @@ class ApplicantController extends Controller
                 // ───────────────────────────────────────────────────────────────────
                 ->editColumn('applicant_postcode', function ($applicant) {
                     $rawPostcode = trim($applicant->applicant_postcode);
-                    if (empty($rawPostcode)) return '<div class="text-center w-100">-</div>';
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
 
                     $postcode = $applicant->formatted_postcode;
                     $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
@@ -813,7 +819,7 @@ class ApplicantController extends Controller
                     if ($status_value == 'open' || $status_value == 'reject') {
                         return '
                             <a href="javascript:void(0);" class="active_postcode" title="Add/Edit Note"
-                            onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                            onclick="addShortNotesModal(' . (int) $applicant->id . ')">
                                 ' . $notes . '
                             </a>
                         ';
@@ -844,7 +850,7 @@ class ApplicantController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-
+    
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -859,7 +865,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-
+    
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -867,7 +873,7 @@ class ApplicantController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-
+    
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -970,11 +976,11 @@ class ApplicantController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                     if (Gate::allows('applicant-edit')) {
-                        $html .= '<li><a class="dropdown-item" href="' . route('applicants.edit', ['id' => (int)$applicant->id]) . '">Edit</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="' . route('applicants.edit', ['id' => (int) $applicant->id]) . '">Edit</a></li>';
                     }
                     if (Gate::allows('applicant-view')) {
                         $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
-                                        ' . (int)$applicant->id . ',
+                                        ' . (int) $applicant->id . ',
                                         \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
                                         \'' . addslashes(htmlspecialchars($emailstatus)) . '\',
                                         \'' . addslashes(htmlspecialchars($secondaryemailstatus)) . '\',
@@ -988,18 +994,18 @@ class ApplicantController extends Controller
                                     )">View</a></li>';
                     }
                     if (Gate::allows('applicant-add-note')) {
-                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int)$applicant->id . ')">Add Note</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="addNotesModal(' . (int) $applicant->id . ')">Add Note</a></li>';
                     }
                     if (Gate::allows('applicant-upload-resume')) {
                         $html .= '<li>
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int) $applicant->id . ')">Upload Applicant Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                     </li>';
                     }
                     if (Gate::allows('applicant-upload-crm-resume')) {
                         $html .= '<li>
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int) $applicant->id . ')">Upload CRM Resume</a>
                                         <!-- Hidden File Input -->
                                         <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                     </li>';
@@ -1008,12 +1014,12 @@ class ApplicantController extends Controller
                         $html .= '<li><hr class="dropdown-divider"></li>';
                     }
 
-                    $html .= '<!-- <li><a class="dropdown-item" target="_blank" href="' . route('applicants.available_no_job', ['id' => (int)$applicant->id, 'radius' => 15]) . '">Go to No Job</a></li> -->';
+                    $html .= '<!-- <li><a class="dropdown-item" target="_blank" href="' . route('applicants.available_no_job', ['id' => (int) $applicant->id, 'radius' => 15]) . '">Go to No Job</a></li> -->';
                     if (Gate::allows('applicant-view-history')) {
-                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int)$applicant->id]) . '">View History</a></li>';
+                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int) $applicant->id]) . '">View History</a></li>';
                     }
                     if (Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int) $applicant->id . ')">Notes History</a></li>';
                     }
                     $html .= '</ul>
                         </div>';
@@ -1177,7 +1183,7 @@ class ApplicantController extends Controller
             DB::commit();
 
             return redirect()->to(url()->previous());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Failed to store notes: ' . $e->getMessage());
 
@@ -1425,7 +1431,7 @@ class ApplicantController extends Controller
                     }
                 })
                     ->update([
-                        'module_id'   => $applicant->id,
+                        'module_id' => $applicant->id,
                         'module_type' => Applicant::class,
                     ]);
             }
@@ -1505,7 +1511,7 @@ class ApplicantController extends Controller
                 'message' => 'Applicant updated successfully',
                 'redirect' => route('applicants.list')
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
@@ -1573,8 +1579,8 @@ class ApplicantController extends Controller
         ]);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'File uploaded successfully',
+            'success' => true,
+            'message' => 'File uploaded successfully',
             'file_path' => $filePath,
             'file_url' => asset($filePath),
         ]);
@@ -1621,7 +1627,7 @@ class ApplicantController extends Controller
 
         // 🧾 Generate filename
         $extension = $file->getClientOriginalExtension();
-        $fileName  = $applicantId . '_' . time() . '.' . $extension;
+        $fileName = $applicantId . '_' . time() . '.' . $extension;
 
         // 🚚 Move file to public directory
         $file->move($destinationPath, $fileName);
@@ -1632,10 +1638,10 @@ class ApplicantController extends Controller
 
         // 📤 Response
         return response()->json([
-            'success'   => true,
-            'message'   => 'File uploaded successfully',
+            'success' => true,
+            'message' => 'File uploaded successfully',
             'file_path' => $relativePath,
-            'file_url'  => asset($relativePath),
+            'file_url' => asset($relativePath),
         ]);
     }
     public function export(Request $request)
@@ -1701,11 +1707,9 @@ class ApplicantController extends Controller
         // Subquery: get latest CRM note per applicant-sale (status = 1)
         $latestCrmNotes = DB::table('crm_notes')
             ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
-            // ->where('status', 1)
             ->whereIn('id', function ($query) {
                 $query->selectRaw('MAX(id)')
                     ->from('crm_notes')
-                    // ->where('status', 1)
                     ->groupBy('applicant_id', 'sale_id');
             });
 
@@ -1822,13 +1826,13 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('details', function ($row) {
                     $short = Str::limit(strip_tags($row->crm_note_details), 100);
-                    $full  = e($row->crm_note_details);
+                    $full = e($row->crm_note_details);
                     $id = 'note-' . $row->crm_notes_id;
 
                     return '
-                        <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
                         <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog-top modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Notes</h5>
@@ -1843,47 +1847,42 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-                ->addColumn('job_details', function ($row) {
-                    $position_type = strtoupper(str_replace('-', ' ', $row->position_type));
-                    $position = '<span class="badge bg-primary">' . htmlspecialchars($position_type, ENT_QUOTES) . '</span>';
-
-                    $status = match ($row->sale_status) {
-                        1 => '<span class="badge bg-success">Active</span>',
-                        0 => '<span class="badge bg-danger">Closed</span>',
-                        2 => '<span class="badge bg-warning">Pending</span>',
-                        3 => '<span class="badge bg-danger">Rejected</span>',
-                        default => '<span class="badge bg-secondary">Unknown</span>',
+               ->addColumn('job_details', function ($row) {
+                    $status = match ((int) $row->sale_status) {
+                        1 => 'Active|bg-success',
+                        0 => 'Closed|bg-danger',
+                        2 => 'Pending|bg-warning',
+                        3 => 'Rejected|bg-danger',
+                        default => 'Unknown|bg-secondary',
                     };
 
-                    $escapedStatus = htmlspecialchars($status, ENT_QUOTES);
+                    $data = htmlspecialchars(json_encode([
+                        'sale_id'       => $row->sale_id,
+                        'posted_date'   => Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'),
+                        'office'        => $row->office_name,
+                        'unit'          => $row->unit_name,
+                        'postcode'      => $row->sale_postcode,
+                        'category'      => $row->job_category_name,
+                        'title'         => $row->job_title_name,
+                        'status'        => $status,
+                        'timing'        => strip_tags($row->timing ?? ''),
+                        'experience'    => strip_tags($row->sale_experience ?? ''),
+                        'salary'        => strip_tags($row->salary ?? ''),
+                        'position'      => strtoupper(str_replace('-', ' ', $row->position_type ?? '')),
+                        'qualification' => strip_tags($row->sale_qualification ?? ''),
+                        'benefits'      => strip_tags($row->benefits ?? ''),
+                    ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
 
-                    $modalHtml = $this->generateJobDetailsModal($row);
-
-                    return '<a href="#" class="dropdown-item" style="color: blue;" onclick="showDetailsModal('
-                        . (int)$row->sale_id . ','
-                        . '\'' . htmlspecialchars(Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'), ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->office_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->unit_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_postcode, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->job_category_name, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->job_title_name, ENT_QUOTES) . '\','
-                        . '\'' . $escapedStatus . '\','
-                        . '\'' . htmlspecialchars($row->timing, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_experience, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->salary, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($position, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->sale_qualification, ENT_QUOTES) . '\','
-                        . '\'' . htmlspecialchars($row->benefits, ENT_QUOTES) . '\')">'
-                        . '<iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>'
-                        . '</a>' . $modalHtml;
+                    return '<a href="javascript:void(0);" class="show-job-details" data-info="' . $data . '">
+                                <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                            </a>';
                 })
-
                 ->addColumn('job_category', function ($row) {
                     $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
                 })
                 ->addColumn('action', function ($row) {
-                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(' . (int)$row->app_id . ',' . (int)$row->sale_id . ')">
+                    return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int) $row->app_id . ',' . (int) $row->sale_id . ')">
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })
@@ -1922,14 +1921,14 @@ class ApplicantController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'applicant_id' => "required|integer|exists:applicants,id",
-                'sale_id'      => "required|integer|exists:sales,id",
-                'details'      => "required",
+                'sale_id' => "required|integer|exists:sales,id",
+                'details' => "required",
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'errors'  => $validator->errors(),
+                    'errors' => $validator->errors(),
                     'message' => 'Please fix the errors in the form.'
                 ], 422);
             }
@@ -1980,12 +1979,12 @@ class ApplicantController extends Controller
                 // ✅ Check CV limits
                 $sent_cv_count = CVNote::where([
                     'sale_id' => $sale->id,
-                    'status'  => 1
+                    'status' => 1
                 ])->count();
 
                 $open_cv_count = History::where([
-                    'sale_id'   => $sale->id,
-                    'status'    => 1,
+                    'sale_id' => $sale->id,
+                    'status' => 1,
                     'sub_stage' => 'quality_cvs_hold'
                 ])->count();
 
@@ -2007,10 +2006,10 @@ class ApplicantController extends Controller
                 $applicant->update(['is_cv_in_quality' => true]);
 
                 $cv_note = CVNote::create([
-                    'sale_id'      => $sale->id,
-                    'user_id'      => $user->id,
+                    'sale_id' => $sale->id,
+                    'user_id' => $user->id,
                     'applicant_id' => $applicant->id,
-                    'details'      => $noteDetail,
+                    'details' => $noteDetail,
                 ]);
 
                 $cv_note->update(['cv_uid' => md5($cv_note->id)]);
@@ -2018,11 +2017,11 @@ class ApplicantController extends Controller
                 // History::where('applicant_id', $applicant->id)->update(['status' => 0]);
 
                 $history = History::create([
-                    'sale_id'      => $sale->id,
+                    'sale_id' => $sale->id,
                     'applicant_id' => $applicant->id,
-                    'user_id'      => $user->id,
-                    'stage'        => 'quality',
-                    'sub_stage'    => 'quality_cvs',
+                    'user_id' => $user->id,
+                    'stage' => 'quality',
+                    'sub_stage' => 'quality_cvs',
                 ]);
 
                 $history->update(['history_uid' => md5($history->id)]);
@@ -2040,8 +2039,8 @@ class ApplicantController extends Controller
 
                 Log::error('Transaction failed in sendCVtoQuality', [
                     'error' => $e->getMessage(),
-                    'file'  => $e->getFile(),
-                    'line'  => $e->getLine(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString(),
                     'input' => $request->all(),
                 ]);
@@ -2052,8 +2051,8 @@ class ApplicantController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => $debug ? $e->getMessage() : 'An error occurred while sending CV to quality.',
-                    'file'    => $debug ? $e->getFile() : null,
-                    'line'    => $debug ? $e->getLine() : null,
+                    'file' => $debug ? $e->getFile() : null,
+                    'line' => $debug ? $e->getLine() : null,
                 ], 500);
             }
         } catch (ModelNotFoundException $e) {
@@ -2066,8 +2065,8 @@ class ApplicantController extends Controller
             // Handles any other outer exception
             Log::error('Outer error in sendCVtoQuality', [
                 'error' => $e->getMessage(),
-                'file'  => $e->getFile(),
-                'line'  => $e->getLine(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
@@ -2076,8 +2075,8 @@ class ApplicantController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $debug ? $e->getMessage() : 'Unexpected error occurred.',
-                'file'    => $debug ? $e->getFile() : null,
-                'line'    => $debug ? $e->getLine() : null,
+                'file' => $debug ? $e->getFile() : null,
+                'line' => $debug ? $e->getLine() : null,
             ], 500);
         }
     }
@@ -2214,7 +2213,7 @@ class ApplicantController extends Controller
                 'success' => true,
                 'message' => 'Marked as no nursing home experience successfully!',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error marking applicant as no nursing home: ' . $e->getMessage());
 
             return response()->json([
@@ -2255,7 +2254,7 @@ class ApplicantController extends Controller
     {
         $statusFilter = $request->input('status_filter', '');
         $applicant_id = $request->input('applicant_id');
-        $radius       = $request->input('radius');
+        $radius = $request->input('radius');
 
         $applicant = Applicant::with('cv_notes')->findOrFail($applicant_id);
 
@@ -2374,7 +2373,7 @@ class ApplicantController extends Controller
 
         /** 🔹 Sorting */
         if ($request->has('order')) {
-            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
             $orderDirection = $request->input('order.0.dir', 'asc');
 
             if ($orderColumn === 'job_source') {
@@ -2406,7 +2405,7 @@ class ApplicantController extends Controller
                     return $unit ? $unit->unit_name : '-';
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >0/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('job_title', function ($sale) {
@@ -2417,7 +2416,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('experience', function ($sale) {
@@ -2426,7 +2425,7 @@ class ApplicantController extends Controller
                     $id = 'exp-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2457,7 +2456,7 @@ class ApplicantController extends Controller
                     $id = 'qalf-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2488,7 +2487,7 @@ class ApplicantController extends Controller
                     $id = 'slry-' . $sale->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2534,7 +2533,7 @@ class ApplicantController extends Controller
                     $id = 'notes-' . $sale->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -2559,7 +2558,7 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-                ->addColumn('status', function ($sale)  use ($applicant) {
+                ->addColumn('status', function ($sale) use ($applicant) {
                     $status_value = 'Open';
                     /***if cv_notes status is 3 then it will be apply on that too***/
                     $status_clr = 'bg-dark';
@@ -2619,12 +2618,12 @@ class ApplicantController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                     if ($status_value == 'open') {
-                        $html .= '<li><a href="#" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
+                        $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
                                                     </a></li>';
                         if ($applicant->is_in_nurse_home == false) {
-                            $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
                         if ($sale->is_on_hold != 0) {
@@ -2635,7 +2634,7 @@ class ApplicantController extends Controller
                                         <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                         } else {
                             $html .= '<li>
-                                            <a href="#"
+                                            <a href="javascript:void(0);"
                                             class="dropdown-item"
                                             onclick="sendCVModal('
                                 . (int) $applicant->id . ','
@@ -2648,7 +2647,7 @@ class ApplicantController extends Controller
                                         </li>';
                         }
                         if ($applicant->is_callback_enable == false) {
-                            $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                         $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
@@ -2890,7 +2889,7 @@ class ApplicantController extends Controller
                     return $unit ? $unit->unit_name : '-';
                 })
                 ->addColumn('cv_limit', function ($sale) {
-                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int)$sale->cv_limit - (int)$sale->no_of_sent_cv . '/' . (int)$sale->cv_limit) . "<br>Limit Remains</span>";
+                    $status = $sale->no_of_sent_cv == $sale->cv_limit ? '<span class="badge w-100 bg-danger" style="font-size:90%" >' . $sale->no_of_sent_cv . '/' . $sale->cv_limit . '<br>Limit Reached</span>' : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                     return $status;
                 })
                 ->addColumn('job_title', function ($sale) {
@@ -2901,7 +2900,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
@@ -2944,7 +2943,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -2998,7 +2997,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -3052,7 +3051,7 @@ class ApplicantController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -3094,7 +3093,7 @@ class ApplicantController extends Controller
                     $unit_name = $unit ? ucwords($unit->unit_name) : '-';
 
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int) $sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                ' . $shortNotes . '
                             </a>';
                 })
@@ -3124,14 +3123,16 @@ class ApplicantController extends Controller
                             $status_value = 'reject_job';
                             $color_class = 'bg-danger';
                             break;
-                        } elseif (($value['status'] == 2) && //2 for paid
+                        } elseif (
+                            ($value['status'] == 2) && //2 for paid
                             ($value['sale_id'] == $sale->id) &&
                             ($applicant->paid_status == 'paid')
                         ) {
                             $status_value = 'paid';
                             $color_class = 'bg-primary';
                             break;
-                        } elseif (($value['status'] == 3) && //3 for open
+                        } elseif (
+                            ($value['status'] == 3) && //3 for open
                             ($value['sale_id'] == $sale->id) &&
                             ($applicant->paid_status == 'open')
                         ) {
@@ -3167,20 +3168,20 @@ class ApplicantController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                     if ($status_value == 'open') {
-                        $html .= '<li><a href="#" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
+                        $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale->id . ')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
                                                     </a></li>';
                         if ($applicant->is_in_nurse_home == false) {
-                            $html .= '<li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
                         }
 
-                        $html .= '<li><a href="#" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
+                        $html .= '<li><a href="javascript:void(0);" onclick="sendCVModal(' . $applicant->id . ', ' . $sale->id . ')" class="dropdown-item" >
                                                     <span>Send CV</span></a></li>';
 
                         if ($applicant->is_callback_enable == false) {
-                            $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item"  onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale->id . ')">Mark Callback</a></li>';
                         }
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                         $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
@@ -3221,7 +3222,7 @@ class ApplicantController extends Controller
                 'data' => $applicant_notes,
                 'success' => true
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',
@@ -3254,7 +3255,7 @@ class ApplicantController extends Controller
                 'data' => $applicant_notes,
                 'success' => true
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',

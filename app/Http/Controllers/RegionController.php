@@ -203,7 +203,7 @@ class RegionController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" 
+                        <a href="javascript:void(0);" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -234,7 +234,7 @@ class RegionController extends Controller
 
                     // Return HTML-safe output
                     return '
-                        <a href="#" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
+                        <a href="javascript:void(0);" style="color:blue" onclick="addShortNotesModal(' . (int)$applicant->id . ')">
                             ' . $notes . '
                         </a>
                     ';
@@ -392,7 +392,7 @@ class RegionController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes($created_at) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
@@ -407,7 +407,7 @@ class RegionController extends Controller
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
                 })
@@ -663,7 +663,7 @@ class RegionController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -735,7 +735,7 @@ class RegionController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -789,7 +789,7 @@ class RegionController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -843,7 +843,7 @@ class RegionController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -903,7 +903,7 @@ class RegionController extends Controller
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$sale->id . ',
                                     \'' . addslashes(htmlspecialchars($office_name)) . '\',
                                     \'' . addslashes(htmlspecialchars($unit_name)) . '\',
@@ -916,9 +916,9 @@ class RegionController extends Controller
                                     \'' . addslashes(htmlspecialchars($position)) . '\',
                                     )">View</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . (int)$sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$sale->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
 

@@ -3,17 +3,20 @@
 @section('content')
     <!-- start page title -->
     <style>
-        .logo-box{
+        .logo-box {
             padding-top: 21px;
             padding-bottom: 19px;
         }
+
         .card {
             margin-bottom: 1.5625rem;
             box-shadow: 0 0.5rem 3.25rem rgba(0, 0, 0, 0.05);
         }
+
         .collapse {
             visibility: visible;
         }
+
         /* ApexCharts legend in 4 columns */
         #statisticsChart .apexcharts-legend {
             display: grid !important;
@@ -28,6 +31,7 @@
             padding: 2px 0;
             white-space: nowrap;
         }
+
         @media (max-width: 768px) {
             #statisticsChart .apexcharts-legend {
                 grid-template-columns: repeat(2, 1fr);
@@ -40,12 +44,15 @@
             }
         }
 
-        .stat-box:hover, .clickable:hover{
+        .stat-box:hover,
+        .clickable:hover {
             cursor: pointer;
         }
+
         .stat-box span:hover {
-            color: var(--bs-info)   !important;
+            color: var(--bs-info) !important;
         }
+
         #statusDetailsLabel {
             font-size: 18px;
             font-weight: 500;
@@ -65,7 +72,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-primary bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:user-plus-broken" class="fs-32 text-primary avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:user-plus-broken"
+                                        class="fs-32 text-primary avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -84,7 +92,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-warning bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:buildings-2-bold-duotone" class="fs-32 text-warning avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:buildings-2-bold-duotone"
+                                        class="fs-32 text-warning avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -103,7 +112,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-success bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:graph-new-broken" class="fs-32 text-success avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:graph-new-broken"
+                                        class="fs-32 text-success avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -122,7 +132,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-info bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:chart-2-broken" class="fs-32 text-info avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:chart-2-broken"
+                                        class="fs-32 text-info avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +154,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-info bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:calendar-date-broken" class="fs-32 text-info avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:calendar-date-broken"
+                                        class="fs-32 text-info avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +174,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-primary bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:calendar-date-broken" class="fs-32 text-primary avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:calendar-date-broken"
+                                        class="fs-32 text-primary avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -181,7 +194,8 @@
                             </div>
                             <div>
                                 <div class="avatar-md bg-success bg-opacity-10 rounded">
-                                    <iconify-icon icon="solar:calendar-date-broken" class="fs-32 text-success avatar-title"></iconify-icon>
+                                    <iconify-icon icon="solar:calendar-date-broken"
+                                        class="fs-32 text-success avatar-title"></iconify-icon>
                                 </div>
                             </div>
                         </div>
@@ -202,9 +216,8 @@
                         <div class="d-flex align-items-center gap-2">
                             <!-- Stats Range Filter -->
                             <div class="dropdown">
-                                <a href="#" id="statsRangeBtn" 
-                                class="dropdown-toggle btn btn-sm btn-outline-light rounded"
-                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <a href="#" id="statsRangeBtn" class="dropdown-toggle btn btn-sm btn-outline-light rounded"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
                                     Daily
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
@@ -217,18 +230,21 @@
                             </div>
 
                             <!-- Adaptive Calendar -->
-                            <input type="text" id="statsDateRange" class="form-control form-control-sm" 
+                            <input type="text" id="statsDateRange" class="form-control form-control-sm"
                                 placeholder="Select date" style="width: 220px;" />
                         </div>
                     </div>
                     <div class="card-body p-2 mx-3">
                         <!-- Applicants Statistics Created -->
                         <div class="row">
-                            <h6 class="mt-3 mb-1">Applicants Statistics (Created)</h6><hr>
+                            <h6 class="mt-3 mb-1">Applicants Statistics (Created)</h6>
+                            <hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses" data-filter-type="nurses-created">
+                                    <iconify-icon icon="solar:stethoscope-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses"
+                                        data-filter-type="nurses-created">
                                         <span class="fs-4 fw-bold text-primary stats-nurses-created"></span>
                                         <small class="text-muted">Nurses</small>
                                     </div>
@@ -237,7 +253,8 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses" data-filter-type="non-nurses-created">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses"
+                                        data-filter-type="non-nurses-created">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-created"></span>
                                         <small class="text-muted">Non Nurses</small>
                                     </div>
@@ -245,7 +262,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:history-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="callbacks">
                                         <span class="fs-4 fw-bold text-primary stats-callbacks-created"></span>
                                         <small class="text-muted">Callbacks</small>
@@ -254,7 +272,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:forbidden-circle-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="not_interested">
                                         <span class="fs-4 fw-bold text-primary stats-not-interested-created"></span>
                                         <small class="text-muted">Not Interested</small>
@@ -264,11 +283,14 @@
                         </div>
                         <!-- Applicants Statistics Updated -->
                         <div class="row">
-                            <h6 class="mt-3 mb-1">Applicants Statistics (Updated)</h6><hr>
+                            <h6 class="mt-3 mb-1">Applicants Statistics (Updated)</h6>
+                            <hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:stethoscope-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses" data-filter-type="nurses-updated">
+                                    <iconify-icon icon="solar:stethoscope-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="nurses"
+                                        data-filter-type="nurses-updated">
                                         <span class="fs-4 fw-bold text-primary stats-nurses-updated"></span>
                                         <small class="text-muted">Nurses</small>
                                     </div>
@@ -277,7 +299,8 @@
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses" data-filter-type="non-nurses-updated">
+                                    <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses"
+                                        data-filter-type="non-nurses-updated">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-updated"></span>
                                         <small class="text-muted">Non Nurses</small>
                                     </div>
@@ -285,7 +308,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:history-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:history-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="callbacks">
                                         <span class="fs-4 fw-bold text-primary stats-callbacks-updated"></span>
                                         <small class="text-muted">Callbacks</small>
@@ -294,7 +318,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:forbidden-circle-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:forbidden-circle-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="not_interested">
                                         <span class="fs-4 fw-bold text-primary stats-not-interested-updated"></span>
                                         <small class="text-muted">Not Interested</small>
@@ -304,7 +329,8 @@
                         </div>
                         <!-- Sales Statistics Created -->
                         <div class="row">
-                            <h6 class="mt-2 mb-1">Sales Statistics (Created)</h6><hr>
+                            <h6 class="mt-2 mb-1">Sales Statistics (Created)</h6>
+                            <hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
@@ -316,7 +342,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:bag-cross-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="close_sale">
                                         <span class="fs-4 fw-bold text-primary stats-close-created"></span>
                                         <small class="text-muted">Close</small>
@@ -325,7 +352,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:hourglass-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="pending_sale">
                                         <span class="fs-4 fw-bold text-primary stats-pending-created"></span>
                                         <small class="text-muted">Pending</small>
@@ -334,7 +362,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:shield-cross-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="rejected_sale">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-created"></span>
                                         <small class="text-muted">Rejected</small>
@@ -344,18 +373,21 @@
                         </div>
                         <!-- Sales Statistics Updated -->
                         <div class="row">
-                            <h6 class="mt-2 mb-1">Sales Statistics (Updated)</h6><hr>
-                           <div class="col-md-3 mb-3">
+                            <h6 class="mt-2 mb-1">Sales Statistics (Updated)</h6>
+                            <hr>
+                            <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center rounded p-3 h-100 bg-light-primary border-0">
                                     <iconify-icon icon="solar:bag-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
-                                    
+
                                     <div class="d-flex w-100">
-                                        <div class="d-flex flex-column justify-content-center border-end pe-3" data-type="open_sale_updated" style="flex: 1;">
+                                        <div class="d-flex flex-column justify-content-center border-end pe-3"
+                                            data-type="open_sale_updated" style="flex: 1;">
                                             <span class="fs-4 fw-bold text-primary stats-open-updated">0</span>
                                             <small class="text-muted fw-semibold">Open</small>
                                         </div>
 
-                                        <div class="d-flex flex-column justify-content-center ps-3" data-type="reopen_sale_updated" style="flex: 1;">
+                                        <div class="d-flex flex-column justify-content-center ps-3"
+                                            data-type="reopen_sale_updated" style="flex: 1;">
                                             <span class="fs-4 fw-bold text-primary stats-reopen-updated">0</span>
                                             <small class="text-muted fw-semibold">ReOpen</small>
                                         </div>
@@ -364,7 +396,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:bag-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:bag-cross-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="close_sale">
                                         <span class="fs-4 fw-bold text-primary stats-close-updated"></span>
                                         <small class="text-muted">Close</small>
@@ -373,7 +406,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:hourglass-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:hourglass-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="pending_sale">
                                         <span class="fs-4 fw-bold text-primary stats-pending-updated"></span>
                                         <small class="text-muted">Pending</small>
@@ -382,7 +416,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:shield-cross-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="rejected_sale">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-updated"></span>
                                         <small class="text-muted">Rejected</small>
@@ -392,10 +427,12 @@
                         </div>
                         <!-- Quality Statistics -->
                         <div class="row">
-                            <h6 class="mt-2 mb-1">Quality Statistics</h6><hr>
+                            <h6 class="mt-2 mb-1">Quality Statistics</h6>
+                            <hr>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:clipboard-check-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:clipboard-check-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="requested_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-requested-cvs"></span>
                                         <small class="text-muted">Requested CVs</small>
@@ -404,7 +441,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:folder-open-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:folder-open-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="open_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-open-cvs"></span>
                                         <small class="text-muted">Open CVs</small>
@@ -413,7 +451,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:shield-cross-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:shield-cross-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="rejected_cvs">
                                         <span class="fs-4 fw-bold text-primary stats-rejected-cvs"></span>
                                         <small class="text-muted">Rejected CVs</small>
@@ -422,7 +461,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:shield-check-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:shield-check-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center" data-type="cleared_sale">
                                         <span class="fs-4 fw-bold text-primary stats-cleared-cvs"></span>
                                         <small class="text-muted">Cleared CVs</small>
@@ -447,7 +487,7 @@
             </div>
         </div>
     @endcanany
-    @canany(['dashboard-sales-analytics-chart','dashboard-sales-weekly-analytics'])
+    @canany(['dashboard-sales-analytics-chart', 'dashboard-sales-weekly-analytics'])
         <div class="row">
             @canany(['dashboard-sales-analytics-chart'])
                 <div class="col-xl-9 col-lg-8">
@@ -458,7 +498,7 @@
                             </div>
                             <div class="dropdown">
                                 <a href="#" class="dropdown-sale-toggle btn btn-sm btn-outline-light rounded"
-                                data-bs-toggle="dropdown" aria-expanded="false">
+                                    data-bs-toggle="dropdown" aria-expanded="false">
                                     This Month
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
@@ -483,28 +523,33 @@
                             {{-- <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
                                 <div class="carousel-inner">
                                     <div class="carousel-item active">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_1.jpg') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
+                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_1.jpg') }}"
+                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
                                     </div>
                                     <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_2.jpg') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
+                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_2.jpg') }}"
+                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
                                     </div>
                                     <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_3.png') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
+                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_3.png') }}"
+                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
                                     </div>
                                     <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_4.jpg') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
+                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_4.jpg') }}"
+                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
                                     </div>
                                     <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_5.jpg') }}" class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
+                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_5.jpg') }}"
+                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
                                     </div>
                                 </div>
                                 <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions"
-                                        data-bs-slide="prev">
+                                    data-bs-slide="prev">
                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                     <span class="visually-hidden">Previous</span>
                                 </button>
                                 <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions"
-                                        data-bs-slide="next">
+                                    data-bs-slide="next">
                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                     <span class="visually-hidden">Next</span>
                                 </button>
@@ -517,7 +562,8 @@
                                 <span class="text-dark me-1">Total Sales :</span> <span id="weeklySalesCount">0</span>
                             </p>
                             <div>
-                                <a href="#!" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#weeklySalesModal">View More</a>
+                                <a href="#!" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#weeklySalesModal">View More</a>
                             </div>
                         </div>
                     </div>
@@ -550,8 +596,10 @@
                         </div>
                         <!-- Date Range filter -->
                         <div class="d-inline">
-                            <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
-                            <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
+                            <input type="text" id="dateRangePicker" class="form-control d-inline-block"
+                                style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
+                            <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange"
+                                title="Clear Date Range">
                                 <i class="ri-close-line"></i>
                             </button>
                         </div>
@@ -588,45 +636,48 @@
     @endcanany
 
     <!-- Modal -->
-    <div class="modal fade" id="applicantDetailsModal" tabindex="-1" aria-labelledby="applicantDetailsLabel" aria-hidden="true">
+    <div class="modal fade" id="applicantDetailsModal" tabindex="-1" aria-labelledby="applicantDetailsLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="applicantDetailsLabel">Applicants Detail</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Job Type Summary -->
-                <div class="row mb-4 text-center">
-                <div class="col-md-6">
-                    <h6>Regular</h6>
-                    <h3 id="regularCount">0</h3>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="applicantDetailsLabel">Applicants Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="col-md-6">
-                    <h6>Specialist</h6>
-                    <h3 id="specialistCount">0</h3>
-                </div>
-                </div>
+                <div class="modal-body">
+                    <!-- Job Type Summary -->
+                    <div class="row mb-4 text-center">
+                        <div class="col-md-6">
+                            <h6>Regular</h6>
+                            <h3 id="regularCount">0</h3>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Specialist</h6>
+                            <h3 id="specialistCount">0</h3>
+                        </div>
+                    </div>
 
-                <!-- Job Source Breakdown -->
-                <table class="table table-striped table-bordered">
-                <thead>
-                    <tr>
-                    <th>Job Source</th>
-                    <th>Count</th>
-                    </tr>
-                </thead>
-                <tbody id="jobSourceBreakdown">
-                    <tr><td colspan="2" class="text-center">No data available</td></tr>
-                </tbody>
-                </table>
-            </div>
+                    <!-- Job Source Breakdown -->
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Job Source</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobSourceBreakdown">
+                            <tr>
+                                <td colspan="2" class="text-center">No data available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="modal fade" id="statusDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="statusDetailsLabel" data-crm-status=""></h5>
@@ -637,22 +688,26 @@
                     <div class="row text-center g-3">
                         <div class="col-md-3 col-6 mb-3">
                             <h6>Nurses (Regular)</h6>
-                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses" data-type="regular">0</span>
+                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses"
+                                data-type="regular">0</span>
                         </div>
 
                         <div class="col-md-3 col-6 mb-3">
                             <h6>Nurses (Specialist)</h6>
-                            <span id="nursesSpecialistCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses" data-type="specialist">0</span>
+                            <span id="nursesSpecialistCount" class="fs-3 fw-bold text-primary clickable"
+                                data-category="nurses" data-type="specialist">0</span>
                         </div>
 
                         <div class="col-md-3 col-6 mb-3">
                             <h6>Non Nurses (Regular)</h6>
-                            <span id="nonNursesRegularCount" class="fs-3 fw-bold text-secondary clickable" data-category="non_nurses" data-type="regular">0</span>
+                            <span id="nonNursesRegularCount" class="fs-3 fw-bold text-secondary clickable"
+                                data-category="non_nurses" data-type="regular">0</span>
                         </div>
 
                         <div class="col-md-3 col-6 mb-3">
                             <h6>Non Nurses (Specialist)</h6>
-                            <span id="nonNursesSpecialistCount" class="fs-3 fw-bold text-secondary clickable" data-category="non_nurses" data-type="specialist">0</span>
+                            <span id="nonNursesSpecialistCount" class="fs-3 fw-bold text-secondary clickable"
+                                data-category="non_nurses" data-type="specialist">0</span>
                         </div>
 
                     </div>
@@ -711,7 +766,7 @@
     <!-- Month Select -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
-    
+
     <!-- Include ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
@@ -725,7 +780,7 @@
             });
 
             // Use $.when to handle deferred AJAX requests
-            $.when(fetchCounts).done(function(countsResponse) {
+            $.when(fetchCounts).done(function (countsResponse) {
                 // Log the response for debugging
                 console.log('Counts Response:', countsResponse);
 
@@ -740,7 +795,7 @@
                 $('#last7DaysCount').html(data.last7DaysCount !== undefined ? data.last7DaysCount : 0);
                 $('#last21DaysCount').html(data.last21DaysCount !== undefined ? data.last21DaysCount : 0);
                 $('#last3MonthsCount').html(data.last3MonthsCount !== undefined ? data.last3MonthsCount : 0);
-            }).fail(function(xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 console.error('Error fetching counts:', xhr.responseText, status, error);
                 $('#applicantsCount, #officesCount, #unitsCount, #salesCount, #last7DaysCount, #last21DaysCount, #last3MonthsCount')
                     .html('<span class="text-danger">Error</span>');
@@ -814,12 +869,12 @@
             $.ajax({
                 url: '/dashboard/statistics-details',
                 method: 'GET',
-                data: { 
-                    type : type, 
+                data: {
+                    type: type,
                     range: currentRange,
-                    date_range: currentDateRange 
+                    date_range: currentDateRange
                 },
-                success: function(resp) {
+                success: function (resp) {
                     // Set modal title
                     $('#applicantDetailsLabel').text(resp.title);
 
@@ -842,7 +897,7 @@
                     // Show modal
                     $('#applicantDetailsModal').modal('show');
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     console.error('Error:', xhr.responseText);
                 }
             });
@@ -859,7 +914,7 @@
                 const dd = String(today.getDate()).padStart(2, '0');
                 dateRange = `${yyyy}-${mm}-${dd}`;
             }
-            
+
             $.get('/statistics/chart-data', {
                 range: range,
                 date_range: dateRange
@@ -908,8 +963,8 @@
             chart = new ApexCharts(
                 document.querySelector("#statisticsChart"),
                 {
-                    chart: { 
-                        type: 'donut', 
+                    chart: {
+                        type: 'donut',
                         height: 680,
                         events: {
                             dataPointSelection: function (event, chartContext, config) {
@@ -1043,21 +1098,21 @@
 
                 if (resp.job_sources && resp.job_sources.length) {
                     jobSourceHtml += `
-                        <div class="row text-center">
-                            ${resp.job_sources.map(src => `
-                                <div class="col-md-3 col-6 mb-2">
-                                    <small class="text-muted d-block">${src.name}</small>
-                                    <span class="fw-bold fs-5">${src.total}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
+                            <div class="row text-center">
+                                ${resp.job_sources.map(src => `
+                                    <div class="col-md-3 col-6 mb-2">
+                                        <small class="text-muted d-block">${src.name}</small>
+                                        <span class="fw-bold fs-5">${src.total}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
                 } else {
                     jobSourceHtml = `
-                        <div class="col-12 text-center text-muted">
-                            No job source data
-                        </div>
-                    `;
+                            <div class="col-12 text-center text-muted">
+                                No job source data
+                            </div>
+                        `;
                 }
 
                 $('#jobSourceStats').html(jobSourceHtml);
@@ -1069,7 +1124,7 @@
         }
 
         // Listen to clicks on counts
-        $(document).on('click', '.clickable', function() {
+        $(document).on('click', '.clickable', function () {
             const category = $(this).data('category');  // nurses / non_nurses
             const type = $(this).data('type');          // regular / specialist
             const status = $('#statusDetailsLabel').attr('data-crm-status'); // current status
@@ -1119,24 +1174,24 @@
 
             if (mode === "daily") {
                 options.dateFormat = "Y-m-d";
-            } 
+            }
             else if (mode === "weekly") {
                 options.mode = "range";
                 options.dateFormat = "Y-m-d";
-            } 
+            }
             else if (mode === "monthly") {
                 options.plugins = [new monthSelectPlugin({
                     shorthand: true,
                     dateFormat: "Y-m",
                     altFormat: "F Y"
                 })];
-            } 
+            }
             else if (mode === "yearly") {
                 options.plugins = [new flatpickr.plugins.yearSelect({
                     shorthand: true,
                     dateFormat: "Y"
                 })];
-            } 
+            }
             else if (mode === "aggregate") {
                 options.mode = "range";
                 options.dateFormat = "Y-m-d";
@@ -1170,41 +1225,41 @@
 
             if ($(modalSelector).length === 0) {
                 $('body').append(`
-                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label">
-                        <div class="modal-dialog modal-lg modal-dialog-top">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">User Details</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body modal-body-text-left">
-                                    <div class="text-center my-3">
-                                        <div class="spinner-border text-primary my-3" role="status">
-                                            <span class="visually-hidden">Loading...</span>
+                        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label">
+                            <div class="modal-dialog modal-lg modal-dialog-top">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="${modalId}Label">User Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body modal-body-text-left">
+                                        <div class="text-center my-3">
+                                            <div class="spinner-border text-primary my-3" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `);
+                    `);
             }
 
             $(modalSelector).modal('show');
 
             setTimeout(() => {
                 $(modalSelector + ' .modal-body').html(`
-                    <table class="table table-bordered mb-0">
-                        <tr><th>User ID</th><td>${id}</td></tr>
-                        <tr><th>User Name</th><td>${name}</td></tr>
-                        <tr><th>Email</th><td>${email}</td></tr>
-                        <tr><th>Role</th><td>${role}</td></tr>
-                        <tr><th>Status</th><td>${status}</td></tr>
-                    </table>
-                `);
+                        <table class="table table-bordered mb-0">
+                            <tr><th>User ID</th><td>${id}</td></tr>
+                            <tr><th>User Name</th><td>${name}</td></tr>
+                            <tr><th>Email</th><td>${email}</td></tr>
+                            <tr><th>Role</th><td>${role}</td></tr>
+                            <tr><th>Status</th><td>${status}</td></tr>
+                        </table>
+                    `);
             }, 500);
         }
 
@@ -1253,26 +1308,26 @@
             $('#' + modalId).remove();
 
             const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">User Statistics</h5>
-                                <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <div class="spinner-border text-primary mb-3" role="status" id="${modalId}-loader">
-                                    <span class="visually-hidden">Loading...</span>
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="${modalId}Label">User Statistics</h5>
+                                    <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div id="${modalId}-content" class="note-history-content d-none text-start"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                <div class="modal-body text-center">
+                                    <div class="spinner-border text-primary mb-3" role="status" id="${modalId}-loader">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div id="${modalId}-content" class="note-history-content d-none text-start"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
 
             $('body').append(modalHtml);
             const modal = new bootstrap.Modal(document.getElementById(modalId));
@@ -1287,21 +1342,21 @@
                     date_range_filter: window.userStatisticsDateRange
                 },
                 success: function (response) {
-                    console.log('Response: '+ JSON.stringify(response));
+                    console.log('Response: ' + JSON.stringify(response));
                     let notesHtml = `
-                        <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
-                            <div class="col-sm-12 col-md-12 col-lg-4">
-                                ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
-                            </div>
+                            <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
+                                <div class="col-sm-12 col-md-12 col-lg-4">
+                                    ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
+                                </div>
 
-                            <div class="col-sm-12 col-md-12 col-lg-4">
-                                ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
-                            </div>
+                                <div class="col-sm-12 col-md-12 col-lg-4">
+                                    ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
+                                </div>
 
-                            <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
-                                ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
-                            </div>
-                        </div>`;
+                                <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
+                                    ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
+                                </div>
+                            </div>`;
 
 
                     const currentIcons = {
@@ -1349,23 +1404,23 @@
                             const icon = icons[key] || 'dot-line-duotone';
 
                             html += `
-                            <div class="${CARD_COL}">
-                                <div class="d-flex align-items-center border rounded p-3 h-100">
-                                    <iconify-icon 
-                                        icon="solar:${icon}" 
-                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                    </iconify-icon>
+                                <div class="${CARD_COL}">
+                                    <div class="d-flex align-items-center border rounded p-3 h-100">
+                                        <iconify-icon 
+                                            icon="solar:${icon}" 
+                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                        </iconify-icon>
 
-                                    <div class="d-flex flex-column justify-content-center text-truncate">
-                                        <span class="fs-4 fw-bold text-${badgeClass}">
-                                            ${value}
-                                        </span>
-                                        <small class="text-muted text-truncate">
-                                            ${label}
-                                        </small>
+                                        <div class="d-flex flex-column justify-content-center text-truncate">
+                                            <span class="fs-4 fw-bold text-${badgeClass}">
+                                                ${value}
+                                            </span>
+                                            <small class="text-muted text-truncate">
+                                                ${label}
+                                            </small>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>`;
+                                </div>`;
                         });
 
                         html += `</div>`;
@@ -1380,29 +1435,29 @@
                             const icon = icons[key] || 'dot-line-duotone';
 
                             html += `
-                            <div class="${CARD_COL}">
-                                <div class="d-flex align-items-center border rounded p-3 h-100">
-                                    <iconify-icon 
-                                        icon="solar:${icon}" 
-                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                    </iconify-icon>
+                                <div class="${CARD_COL}">
+                                    <div class="d-flex align-items-center border rounded p-3 h-100">
+                                        <iconify-icon 
+                                            icon="solar:${icon}" 
+                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                        </iconify-icon>
 
-                                    <div class="d-flex flex-column justify-content-center text-truncate">
-                                        <span class="fs-4 fw-bold text-${badgeClass}">
-                                            ${value}
-                                        </span>
-                                        <small class="text-muted text-truncate">
-                                            ${label}
-                                        </small>
+                                        <div class="d-flex flex-column justify-content-center text-truncate">
+                                            <span class="fs-4 fw-bold text-${badgeClass}">
+                                                ${value}
+                                            </span>
+                                            <small class="text-muted text-truncate">
+                                                ${label}
+                                            </small>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>`;
+                                </div>`;
                         });
 
                         html += `</div>`;
                         return html;
                     }
-                    
+
                     function renderDataEntryStatBlock(data, icons, badgeClass) {
                         let html = `<div class="row g-3">`;
                         Object.entries(data).forEach(([key, value]) => {
@@ -1410,23 +1465,23 @@
                             const icon = icons[key] || 'dot-line-duotone';
 
                             html += `
-                            <div class="${CARD_COL}">
-                                <div class="d-flex align-items-center border rounded p-3 h-100">
-                                    <iconify-icon 
-                                        icon="solar:${icon}" 
-                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                    </iconify-icon>
+                                <div class="${CARD_COL}">
+                                    <div class="d-flex align-items-center border rounded p-3 h-100">
+                                        <iconify-icon 
+                                            icon="solar:${icon}" 
+                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                        </iconify-icon>
 
-                                    <div class="d-flex flex-column justify-content-center text-truncate">
-                                        <span class="fs-4 fw-bold text-${badgeClass}">
-                                            ${value}
-                                        </span>
-                                        <small class="text-muted text-truncate">
-                                            ${label}
-                                        </small>
+                                        <div class="d-flex flex-column justify-content-center text-truncate">
+                                            <span class="fs-4 fw-bold text-${badgeClass}">
+                                                ${value}
+                                            </span>
+                                            <small class="text-muted text-truncate">
+                                                ${label}
+                                            </small>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>`;
+                                </div>`;
                         });
 
                         html += `</div>`;
@@ -1440,23 +1495,23 @@
                             const icon = icons[key] || 'dot-line-duotone';
 
                             html += `
-                            <div class="${CARD_COL}">
-                                <div class="d-flex align-items-center border rounded p-3 h-100">
-                                    <iconify-icon 
-                                        icon="solar:${icon}" 
-                                        class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                    </iconify-icon>
+                                <div class="${CARD_COL}">
+                                    <div class="d-flex align-items-center border rounded p-3 h-100">
+                                        <iconify-icon 
+                                            icon="solar:${icon}" 
+                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
+                                        </iconify-icon>
 
-                                    <div class="d-flex flex-column justify-content-center text-truncate">
-                                        <span class="fs-4 fw-bold text-${badgeClass}">
-                                            ${value}
-                                        </span>
-                                        <small class="text-muted text-truncate">
-                                            ${label}
-                                        </small>
+                                        <div class="d-flex flex-column justify-content-center text-truncate">
+                                            <span class="fs-4 fw-bold text-${badgeClass}">
+                                                ${value}
+                                            </span>
+                                            <small class="text-muted text-truncate">
+                                                ${label}
+                                            </small>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>`;
+                                </div>`;
                         });
 
                         html += `</div>`;
@@ -1468,16 +1523,16 @@
                         notesHtml += renderQualityStatBlock(response.quality_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent'|| response.user_role_type === 'team_lead' || response.user_role_type === 'crm'  && response.user_stats && Object.keys(response.user_stats).length > 0) {
+                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' || response.user_role_type === 'crm' && response.user_stats && Object.keys(response.user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">CRM Statistics</h6>';
                         notesHtml += renderStatBlock(response.user_stats, currentIcons, 'primary');
                     }
-                    
+
                     if (response.user_role_type === 'data_entry' && response.data_entry_stats && Object.keys(response.data_entry_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Applicants Statistics</h6>';
                         notesHtml += renderDataEntryStatBlock(response.data_entry_stats, currentIcons, 'primary');
                     }
-                    
+
                     if (response.user_role_type === 'sales' && response.sales_stats && Object.keys(response.sales_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Sales Statistics</h6>';
                         notesHtml += renderSaleStatBlock(response.sales_stats, currentIcons, 'primary');
@@ -1507,18 +1562,18 @@
                         document.getElementById('weeklySalesCount').textContent = data.total;
                         updateSalesChart(data.chartData);
                         let html = `<table class="table table-bordered">
-                                        <thead>
-                                            <tr><th>ID</th><th>Office Name</th><th>Unit Name</th><th>PostCode</th><th>Date</th></tr>
-                                        </thead>
-                                        <tbody>`;
+                                            <thead>
+                                                <tr><th>ID</th><th>Office Name</th><th>Unit Name</th><th>PostCode</th><th>Date</th></tr>
+                                            </thead>
+                                            <tbody>`;
                         data.details.forEach(sale => {
                             html += `<tr>
-                                <td>${sale.id}</td>
-                                <td>${sale.office?.office_name ?? ''}</td>
-                                <td>${sale.unit?.unit_name ?? ''}</td>
-                                <td>${sale.sale_postcode ?? ''}</td>
-                                <td>${moment(sale.created_at).format('DD-MM-YYYY hh:mm A')}</td>
-                            </tr>`;
+                                    <td>${sale.id}</td>
+                                    <td>${sale.office?.office_name ?? ''}</td>
+                                    <td>${sale.unit?.unit_name ?? ''}</td>
+                                    <td>${sale.sale_postcode ?? ''}</td>
+                                    <td>${moment(sale.created_at).format('DD-MM-YYYY hh:mm A')}</td>
+                                </tr>`;
                         });
                         html += '</tbody></table>';
                         document.getElementById('weeklySalesDetails').innerHTML = html;
@@ -1533,25 +1588,25 @@
         }
 
         // Initial call for weekly sales
-        $.when(fetchWeeklySales()).done(function() {
+        $.when(fetchWeeklySales()).done(function () {
             console.log('Weekly sales fetched successfully');
-        }).fail(function(error) {
+        }).fail(function (error) {
             console.error('Failed to fetch weekly sales:', error);
         });
 
-        setInterval(function() {
-            $.when(fetchWeeklySales()).done(function() {
+        setInterval(function () {
+            $.when(fetchWeeklySales()).done(function () {
                 console.log('Weekly sales updated');
             });
         }, 60000);
 
         $(document).ready(function () {
-             // Create loader row
+            // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td></tr>`;
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td></tr>`;
 
             // Function to show loader
             function showLoader() {
@@ -1565,13 +1620,13 @@
                 ajax: {
                     url: @json(route('getUsersForDashboard')),
                     type: 'GET',
-                    data: function(d) {
+                    data: function (d) {
                         d.status_filter = window.currentFilter || '';
                     },
-                    beforeSend: function() {
+                    beforeSend: function () {
                         showLoader(); // Show loader before AJAX request starts
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#users_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
                     }
@@ -1585,11 +1640,11 @@
                     { data: 'is_active', name: 'users.is_active', orderable: false },
                     { data: 'action', name: 'action', orderable: false }
                 ],
-                rowId: function(data) {
+                rowId: function (data) {
                     return 'row_' + data.id;
                 },
                 dom: 'flrtip',
-                drawCallback: function(settings) {
+                drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -1605,22 +1660,22 @@
                     }
 
                     let paginationHtml = `
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <nav aria-label="Page navigation">
-                                    <ul class="pagination pagination-rounded mb-0">
-                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>`;
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination pagination-rounded mb-0">
+                                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                                <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>`;
 
                     const visiblePages = 3;
                     const showDots = totalPages > visiblePages + 2;
 
                     // Always show page 1
                     paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                        </li>`;
+                                <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                            </li>`;
 
                     let start = Math.max(2, currentPage - 1);
                     let end = Math.min(totalPages - 1, currentPage + 1);
@@ -1632,8 +1687,8 @@
 
                     for (let i = start; i <= end; i++) {
                         paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                            </li>`;
+                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                                </li>`;
                     }
 
                     if (end < totalPages - 1) {
@@ -1643,27 +1698,27 @@
 
                     if (totalPages > 1) {
                         paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                            </li>`;
+                                    <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                                </li>`;
                     }
 
                     // Next button
                     paginationHtml += `
-                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                        </nav>
+                                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                    <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                            </nav>
 
-                        <div class="d-flex align-items-center ms-3 text-primary">
-                            <span class="me-2">Go to page:</span>
-                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                        </div>
-                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                        </div>`;
+                            <div class="d-flex align-items-center ms-3 text-primary">
+                                <span class="me-2">Go to page:</span>
+                                <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
+                                    onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                            </div>
+                            <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                            </div>`;
                     pagination.html(paginationHtml);
                 },
             });
@@ -1703,8 +1758,8 @@
         }
 
     </script>
-   @vite([
-    'resources/js/pages/dashboard-analytics.js',
-])
+    @vite([
+        'resources/js/pages/dashboard-analytics.js',
+    ])
 
 @endsection

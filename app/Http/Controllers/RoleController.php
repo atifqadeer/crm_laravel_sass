@@ -164,7 +164,7 @@ class RoleController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                      <li>
-                                        <a class="dropdown-item" href="#" onclick="showEditModal(
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
                                             \'' . $permission->id . '\',
                                             \'' . addslashes(htmlspecialchars($name)) . '\'
                                         )">Edit</a>

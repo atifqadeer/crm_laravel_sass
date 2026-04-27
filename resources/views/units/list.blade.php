@@ -521,7 +521,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-centered">' +
+                        '<div class="modal-dialog modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes</h5>' +
@@ -566,7 +566,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-centered">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
@@ -661,7 +661,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-lg modal-dialog-centered">' +
+                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Details</h5>' +
@@ -716,7 +716,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes History</h5>' +
@@ -795,7 +795,7 @@
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId + 'Label">' +
-                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">' +
+                        '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
                             '<div class="modal-content">' +
                                 '<div class="modal-header">' +
                                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Manager Details</h5>' +

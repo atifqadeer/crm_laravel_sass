@@ -92,7 +92,7 @@ class SaleController extends Controller
         }
 
         return '<div class="d-flex flex-column align-items-start">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>' . $urlCTA . '
+                    <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $shortText . '</a>' . $urlCTA . '
                 </div>
                 <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -1034,7 +1034,7 @@ class SaleController extends Controller
                     $unit_name = ucwords($sale->unit_name ?? '-');
 
                     return '<div class="d-flex flex-column align-items-start">
-                                    <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
+                                    <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . $office_name . '\', \'' . $unit_name . '\', \'' . $postcode . '\')">
                                         ' . $shortNotes . '
                                     </a>
                                 </div>' . $urlCTA . '
@@ -1436,7 +1436,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
                     
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -1778,7 +1778,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
                     
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -2052,7 +2052,7 @@ class SaleController extends Controller
                 $notes = nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8'));
                     $shortNotes = Str::limit(trim($notes), 80);
                 if (!empty($notes)) {
-                    return '<a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . ucwords($sale->office_name) . '\', \'' . ucwords($sale->unit_name) . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . $notes . '\', \'' . ucwords($sale->office_name) . '\', \'' . ucwords($sale->unit_name) . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                ' . $shortNotes . '
                             </a>';
                     }
@@ -2310,7 +2310,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -2673,7 +2673,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
                     
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -2725,7 +2725,7 @@ class SaleController extends Controller
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . $sale->id . ',
                                     \'' . e($posted_date) . '\',
                                     \'' . e($office_name) . '\',
@@ -2742,27 +2742,27 @@ class SaleController extends Controller
                                     \'' . e($sale->benefits) . '\'
                                 )">View</a></li>';
                      $action .= '<li>
-                            <a class="dropdown-item" href="#" title="Add Short Note" onclick="addNotesModal(' . $sale->id . ')">
+                            <a class="dropdown-item" href="javascript:void(0);" title="Add Short Note" onclick="addNotesModal(' . $sale->id . ')">
                                 Add Note
                             </a>
                         </li>';
                     $action .= '<li>
-                                    <a class="dropdown-item" href="#" data-sale-id="' . $sale->id . '" data-action="approve">
+                                    <a class="dropdown-item" href="javascript:void(0);" data-sale-id="' . $sale->id . '" data-action="approve">
                                         Mark Approved
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#" data-sale-id="' . $sale->id . '" data-action="disapprove">
+                                    <a class="dropdown-item" href="javascript:void(0);" data-sale-id="' . $sale->id . '" data-action="disapprove">
                                         Mark Disapproved
                                     </a>
                                 </li>';
 
                     $url = route('sales.history', [ 'id' => $sale->id ]);
                     $action .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="'. $url .'" target="_blank">View History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
 
@@ -2973,7 +2973,7 @@ class SaleController extends Controller
                     $urlCTA = $url ? '<a href="' . $url . '" target="_blank" class="btn btn-xs btn-info rounded-pill px-2 ms-1" title="Open Link"><iconify-icon icon="mdi:link-variant"></iconify-icon> URL</a>' : '';
 
                     return '<div class="d-flex flex-column align-items-start">
-                                <a href="#" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
+                                <a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$sale->id . '\',\'' . nl2br(htmlspecialchars($notesIndex, ENT_QUOTES, 'UTF-8')) . '\', \'' . ucwords($sale->office_name ?? '-') . '\', \'' . ucwords($sale->unit_name ?? '-') . '\', \'' . htmlspecialchars($sale->sale_postcode, ENT_QUOTES, 'UTF-8') . '\')">
                                     ' . $shortNotes . '
                                 </a>
                             </div>' . $urlCTA . '</div>';
@@ -3043,7 +3043,7 @@ class SaleController extends Controller
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="showDetailsModal(
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . $sale->id . ',
                                     \'' . e($posted_date) . '\',
                                     \'' . e($office_name) . '\',
@@ -3060,17 +3060,17 @@ class SaleController extends Controller
                                     \'' . e($sale->benefits) . '\'
                                 )">View</a></li>';
                     $action .= '<li>
-                            <a class="dropdown-item" href="#" title="Add Short Note" onclick="addNotesModal(' . $sale->id . ')">
+                            <a class="dropdown-item" href="javascript:void(0);" title="Add Short Note" onclick="addNotesModal(' . $sale->id . ')">
                                 Add Note
                             </a>
                         </li>';
-                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleOnHoldStatusModal(' . $sale->id . ', 0)">Mark as Unhold</a></li>';
+                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleOnHoldStatusModal(' . $sale->id . ', 0)">Mark as Unhold</a></li>';
                     $url = route('sales.history', [ 'id' => $sale->id ]);
                     $action .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>
                                     <li><a class="dropdown-item" href="'. $url .'" target="_blank">View History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>
                                 </ul>
                             </div>';
 
@@ -3319,7 +3319,7 @@ class SaleController extends Controller
                     $id = 'exp-' . $applicant->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -3356,7 +3356,7 @@ class SaleController extends Controller
                 ->addColumn('applicant_notes', function ($applicant) {
                     $notes = nl2br(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
                     return '
-                        <a href="#" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                        <a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
                             ' . $notes . '
                         </a>
                     ';
@@ -3523,12 +3523,12 @@ class SaleController extends Controller
                             </button>
                             <ul class="dropdown-menu">';
                                 if ($status_value == 'open') {
-                                    $html .= '<li><a href="#" onclick="markNotInterestedModal('. $applicant->id .', '. $sale_id .')" 
+                                    $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal('. $applicant->id .', '. $sale_id .')" 
                                                         class="dropdown-item">
                                                         Mark Not Interested On Sale
                                                     </a></li>
 
-                                                <li><a href="#" class="dropdown-item" onclick="markNoNursingHomeModal('. $applicant->id .')">
+                                                <li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal('. $applicant->id .')">
                                                         Mark No Nursing Home</a></li>';
                                     if($sale->is_on_hold != 0){
                                         $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >
@@ -3538,7 +3538,7 @@ class SaleController extends Controller
                                                     <span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                                     }else{
                                         $html .= '<li>
-                                            <a href="#"
+                                            <a href="javascript:void(0);"
                                             class="dropdown-item"
                                             onclick="sendCVModal('
                                                 . (int) $applicant->id . ','
@@ -3551,7 +3551,7 @@ class SaleController extends Controller
                                         </li>';
 
                                     }
-                                               $html .= '<li><a href="#" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
+                                               $html .= '<li><a href="javascript:void(0);" class="dropdown-item"  onclick="markApplicantCallbackModal('. $applicant->id .', '. $sale_id .')">Mark Callback</a></li>';
                                 } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
                                     $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                             <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
@@ -3980,7 +3980,7 @@ class SaleController extends Controller
                     $id = 'exp-' . $row->id;
 
                     return '
-                        <a href="#" class="text-primary" 
+                        <a href="javascript:void(0);" class="text-primary" 
                         data-bs-toggle="modal" 
                         data-bs-target="#' . $id . '">
                             ' . $short . '
@@ -4009,7 +4009,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('action', function ($row) use ($sale_id) {
                     // Tooltip content with additional data-bs-placement and title
-                    return '<a href="#" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->id . '\',\'' . (int)$sale_id . '\')">
+                    return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(\'' . (int)$row->id . '\',\'' . (int)$sale_id . '\')">
                                 <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
                             </a>';
                 })

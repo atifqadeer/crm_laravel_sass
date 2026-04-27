@@ -605,7 +605,7 @@ class QualityController extends Controller
 
     //                     return '
     //                     <div>
-    //                         <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+    //                         <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
     //                             ' . $shortPreviewHtml . '
     //                         </a>
     //                         <br>
@@ -755,7 +755,7 @@ class QualityController extends Controller
     //                 ];
 
     //                 $html .= '<li>
-    //                     <a href="#"
+    //                     <a href="javascript:void(0);"
     //                     class="dropdown-item job-details"
     //                     data-job=\'' . json_encode(
     //                                         $jobData,
@@ -817,14 +817,14 @@ class QualityController extends Controller
     //                 }
     //                 // if (Gate::allows('quality-assurance-resource-upload-resume')) {
     //                 //     $html .= '<li>
-    //                 //                 <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+    //                 //                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
     //                 //                 <!-- Hidden File Input -->
     //                 //                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
     //                 //             </li>';
     //                 // }
     //                 if (Gate::allows('quality-assurance-resource-upload-resume')) {
     //                     $html .= '<li>
-    //                                 <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+    //                                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
     //                                 <!-- Hidden File Input -->
     //                                 <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
     //                             </li>';
@@ -834,10 +834,10 @@ class QualityController extends Controller
     //                     $html .= '<li><hr class="dropdown-divider"></li>';
     //                 }
     //                 if (Gate::allows('applicant-view-history')) {
-    //                     $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
+    //                     $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
     //                 }
     //                 if (Gate::allows('applicant-view-notes-history')) {
-    //                     $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+    //                     $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
     //                 }
 
     //                 $html .= '</ul></div>';
@@ -1297,7 +1297,7 @@ class QualityController extends Controller
 
                         return '
                         <div>
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                            <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
                                 ' . $shortPreviewHtml . '
                             </a>
                             <br>
@@ -1489,7 +1489,7 @@ class QualityController extends Controller
                     ];
 
                     $html .= '<li>
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         class="dropdown-item job-details"
                         data-job=\'' . json_encode(
                                             $jobData,
@@ -1551,14 +1551,14 @@ class QualityController extends Controller
                     }
                     // if (Gate::allows('quality-assurance-resource-upload-resume')) {
                     //     $html .= '<li>
-                    //                 <a class="dropdown-item" href="#" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+                    //                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                     //                 <!-- Hidden File Input -->
                     //                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                     //             </li>';
                     // }
                     if (Gate::allows('quality-assurance-resource-upload-resume')) {
                         $html .= '<li>
-                                    <a class="dropdown-item" href="#" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
                                     <!-- Hidden File Input -->
                                     <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                 </li>';
@@ -1568,10 +1568,10 @@ class QualityController extends Controller
                         $html .= '<li><hr class="dropdown-divider"></li>';
                     }
                     if (Gate::allows('applicant-view-history')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
                     }
                     if (Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
                     }
 
                     $html .= '</ul></div>';
@@ -1824,7 +1824,7 @@ class QualityController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -1878,7 +1878,7 @@ class QualityController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -1932,7 +1932,7 @@ class QualityController extends Controller
                     $shortText = nl2br($preview);
 
                     return '
-                        <a href="#"
+                        <a href="javascript:void(0);"
                         data-bs-toggle="modal"
                         data-bs-target="#' . $id . '">'
                         . $shortText . '
@@ -1993,7 +1993,7 @@ class QualityController extends Controller
 
                     return '
                     <div>
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                        <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
                             ' . $shortPreviewHtml . '
                         </a>
                         <br>
@@ -2072,7 +2072,7 @@ class QualityController extends Controller
                     ];
 
                     if (Gate::allows('quality-assurance-sale-view')) {
-                        return '<a href="#"
+                        return '<a href="javascript:void(0);"
                             class="dropdown-item job-details"
                             data-job=\'' . json_encode(
                                                 $jobData,
@@ -2155,7 +2155,7 @@ class QualityController extends Controller
                     }
                     if (Gate::allows('quality-assurance-sale-view')) {
                         $action .= '<li>
-                            <a href="#"
+                            <a href="javascript:void(0);"
                             class="dropdown-item job-details"
                             data-job=\'' . json_encode(
                                                 $jobData,
@@ -2172,8 +2172,8 @@ class QualityController extends Controller
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
                                 if (Gate::allows('quality-assurance-sale-change-status')) {
-                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
-                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
                                 }
                             }
                             break;
@@ -2189,8 +2189,8 @@ class QualityController extends Controller
                             // Filter by status if it's not empty
                             if (in_array($sale->status, [1, 2]) || $sale->is_re_open == true) {
                                 if (Gate::allows('quality-assurance-sale-change-status')) {
-                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
-                                    $action .= '<li><a class="dropdown-item" href="#" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatus(' . $sale->id . ', \'clear\')">Mark Clear Sale</a></li>';
+                                    $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeSaleStatus(' . $sale->id . ', \'reject\')">Mark Reject Sale</a></li>';
                                 }
                             }
                             break;
@@ -2198,13 +2198,13 @@ class QualityController extends Controller
 
                     $action .= '<li><hr class="dropdown-divider"></li>';
                     if (Gate::allows('quality-assurance-sale-view-documents')) {
-                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>';
                     }
                     if (Gate::allows('quality-assurance-sale-view-notes-history')) {
-                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $sale->id . ')">Notes History</a></li>';
                     }
                     if (Gate::allows('quality-assurance-sale-manager-details')) {
-                        $action .= '<li><a class="dropdown-item" href="#" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . $sale->unit_id . ')">Manager Details</a></li>';
                     }
                         $action .= '</ul>
                         </div>';

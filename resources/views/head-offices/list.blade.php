@@ -420,7 +420,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-dialog modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalLabelId}">Head Office Notes</h5>
@@ -474,7 +474,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-dialog modal-lg modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalId}Label">Add Notes</h5>
@@ -568,7 +568,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-dialog modal-lg modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${labelId}">Head Office Details</h5>
@@ -634,7 +634,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${labelId}">Head Office Notes History</h5>
@@ -712,7 +712,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${labelId}">Manager Details</h5>
