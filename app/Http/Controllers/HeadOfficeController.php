@@ -18,6 +18,7 @@ use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\ActionObserver;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\Cache;
 
 class HeadOfficeController extends Controller
@@ -107,12 +108,12 @@ class HeadOfficeController extends Controller
 
                     // If geocode fails, throw
                     if (!isset($result['lat']) || !isset($result['lng'])) {
-                        throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        throw new Exception('Geolocation failed. Latitude and longitude not found.');
                     }
 
                     $officeData['office_lat'] = $result['lat'];
                     $officeData['office_lng'] = $result['lng'];
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unable to locate address: ' . $e->getMessage()

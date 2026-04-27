@@ -28,7 +28,8 @@ use League\Csv\Reader;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
 use App\Traits\SendEmails;
-
+use Illuminate\Support\Facades\Http;
+use Exception;
 
 class ScrapController extends Controller
 {
@@ -134,14 +135,45 @@ class ScrapController extends Controller
                 $companyName = $job['companyName'] ?? 'Unknown Company';
                 $companyUrl = $job['companyLinks']['corporateWebsite'] ?? null;
                 $companyDesc = $job['descriptionText'] ?? null;
+                $descriptionHtml = $job['descriptionHtml'] ?? null;
 
-                $postcode = $job['location']['postalCode'] ?? 'UNKNOWN';
                 $lat = $job['location']['latitude'] ?? null;
                 $lng = $job['location']['longitude'] ?? null;
+                $rawPostcode = $job['location']['postalCode'] ?? null; // ✅ null safe
+
+                $postcode = null; // ✅ start as null, not 'UNKNOWN'
+
+                // ✅ If rawPostcode exists, use it directly
+                if ($rawPostcode) {
+                    $postcode = trim($rawPostcode);
+                }
+
+                // ✅ If postcode still null, try reverse geocode from lat/lng
+                if (!$postcode && $lat && $lng) {
+                    try {
+                        $geoResponse = Http::get("https://api.postcodes.io/postcodes", [
+                            'lon' => $lng,
+                            'lat' => $lat,
+                            'limit' => 1
+                        ]);
+
+                        if ($geoResponse->successful()) {
+                            $geoData = $geoResponse->json();
+                            $postcode = $geoData['result'][0]['postcode'] ?? null;
+                        }
+
+                    } catch (Exception $e) {
+                        Log::warning('Reverse geocode failed: ' . $e->getMessage());
+                    }
+                }
+
+                // ✅ Final fallback if everything fails
+                $postcode = $postcode ?? 'UNKNOWN';
+
                 $city = $job['location']['city'] ?? null;
 
                 $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])
-                    ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    // ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
                 if (!$office) {
@@ -282,12 +314,19 @@ class ScrapController extends Controller
                 // ===============================
                 // UNIT
                 // ===============================
-                $validCity = $city && !in_array(strtolower($city), ['unknown city', 'null']);
-                $unitName = $validCity ? $city : $companyName . ' Main Unit';
+                $unitName = null;
+
+                if ($descriptionHtml) {
+                    if (preg_match('/<b>Branch:\s*<\/b>\s*([^<]+)/i', $descriptionHtml, $matches)) {
+                        $unitName = trim(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                    }
+                }
+
+                $unitName = $unitName ?: ($city ?? 'Main Unit');
 
                 $unit = Unit::where('office_id', $office->id)
-                    ->whereRaw('LOWER(unit_name)=?', [strtolower(trim($unitName))])
-                    ->whereRaw("REPLACE(unit_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
+                    ->whereRaw('LOWER(unit_name) = ?', [strtolower(trim($unitName))])
+                    ->whereRaw("REPLACE(unit_postcode, ' ', '') = ?", [str_replace(' ', '', $postcode)])
                     ->first();
 
                 if (!$unit) {
@@ -300,10 +339,9 @@ class ScrapController extends Controller
                         'unit_notes' => 'Scrapped from Indeed',
                         'lat' => $lat,
                         'lng' => $lng,
-                        'status' => 4, // 4=Scrapped
+                        'status' => 4, // 4 = Scrapped
+                        'unit_uid' => md5(uniqid()), // ✅ set at creation, no extra update query
                     ]);
-
-                    $unit->update(['unit_uid' => md5($unit->id)]);
                 }
 
                 // ===============================
