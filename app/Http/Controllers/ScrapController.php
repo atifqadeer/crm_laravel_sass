@@ -1189,6 +1189,8 @@ class ScrapController extends Controller
 
         if ($response->ok()) {
             $results = $response->json();
+            $email = null;
+            $phone = null;
 
             // ✅ 1. First organic result link
             $companyUrl = $results['organic_results'][0]['link'] ?? null;
@@ -1205,10 +1207,10 @@ class ScrapController extends Controller
                 }
             }
 
-            $contactDetails = $this->fetchContactDetails($contactUrl);
+            // $contactDetails = $this->fetchContactDetails($contactUrl);
 
-            $email = $contactDetails['email']; // e.g. info@busybeeschildcare.co.uk
-            $phone = $contactDetails['phone']; // e.g. +44 1234 567890
+            // $email = $contactDetails['email']; // e.g. info@busybeeschildcare.co.uk
+            // $phone = $contactDetails['phone']; // e.g. +44 1234 567890
 
 
             // ✅ 3. Return results array
@@ -1221,8 +1223,8 @@ class ScrapController extends Controller
 
         return [
             'company_url' => null,
-            'contact_page' => null,
-            'raw_data' => null,
+            'company_email' => null,
+            'company_contact' => null,
         ];
     }
     private function getScrappedPostcodes($lat, $lng)
