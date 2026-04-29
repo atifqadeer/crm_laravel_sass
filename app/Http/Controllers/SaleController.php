@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
 use League\Csv\Reader;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
+use Exception;
 
 class SaleController extends Controller
 {
@@ -242,7 +243,7 @@ class SaleController extends Controller
             'qualification' => 'required',
             'sale_notes' => 'required',
             'job_description' => 'nullable|string',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:5120', // max 5MB
+            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:10000', // max 10MB
         ]);
 
         if ($validator->fails()) {
@@ -294,12 +295,12 @@ class SaleController extends Controller
 
                     // If geocode fails, throw
                     if (!isset($result['lat']) || !isset($result['lng'])) {
-                        throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                        throw new Exception('Geolocation failed. Latitude and longitude not found.');
                     }
 
                     $saleData['lat'] = $result['lat'];
                     $saleData['lng'] = $result['lng'];
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unable to locate address: ' . $e->getMessage()
@@ -339,38 +340,6 @@ class SaleController extends Controller
                 'module_note_uid' => md5($moduleNote->id)
             ]);
 
-            // Handle attachments if provided
-            // if ($request->hasFile('attachments')) {
-            //     $attachments = $request->file('attachments');
-
-            //     foreach ($attachments as $attachment) {
-            //         // Get the original filename
-            //         $filenameWithExt = $attachment->getClientOriginalName();
-            //         $size = $attachment->getSize();
-
-            //         // Get just the filename without extension
-            //         $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-
-            //         // Get just the extension
-            //         $extension = $attachment->getClientOriginalExtension();
-
-            //         // Create a new filename with timestamp
-            //         $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-
-            //         // Upload file to public/uploads directory
-            //         $path = $attachment->storeAs('uploads/docs/', $fileNameToStore, 'public');
-
-            //         // Save document details in sale_documents table
-            //         SaleDocument::create([
-            //             'sale_id' => $sale->id,
-            //             'document_name' => $fileNameToStore,
-            //             'document_path' => $path,
-            //             'document_extension' => $extension,
-            //             'document_size' => $size
-            //         ]);
-            //     }
-            // }
-
             if ($request->hasFile('attachments')) {
 
                 foreach ($request->file('attachments') as $attachment) {
@@ -407,8 +376,9 @@ class SaleController extends Controller
                     // 💾 Save document record
                     SaleDocument::create([
                         'sale_id' => $sale->id,
+                        'user_id' => Auth::id(),
                         'document_name' => $fileNameToStore,
-                        'document_path' => $path, // e.g. uploads/docs/file.pdf
+                        'document_path' => $path,
                         'document_extension' => $extension,
                         'document_size' => $size,
                     ]);
@@ -470,7 +440,7 @@ class SaleController extends Controller
             'qualification' => 'required',
             'sale_notes' => 'required',
             'job_description' => 'nullable',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:5120',
+            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:10000',
         ]);
 
         if ($validator->fails()) {
@@ -1388,11 +1358,14 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->addColumn('qualification', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification'); })
+                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
+                })
                 ->addColumn('experience', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience'); })
+                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
+                })
                 ->addColumn('salary', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary'); })
+                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary');
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
@@ -1732,11 +1705,14 @@ class SaleController extends Controller
                     return $sale->formatted_updated_at; // Using accessor
                 })
                 ->addColumn('qualification', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification'); })
+                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
+                })
                 ->addColumn('experience', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience'); })
+                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
+                })
                 ->addColumn('salary', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary'); })
+                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary');
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
@@ -2649,11 +2625,14 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->addColumn('qualification', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification'); })
+                    return $this->formatWithUrlCTA($sale->qualification, 'qua', $sale->id, 'Sale Qualification');
+                })
                 ->addColumn('experience', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience'); })
+                    return $this->formatWithUrlCTA($sale->experience, 'exp', $sale->id, 'Sale Experience');
+                })
                 ->addColumn('salary', function ($sale) {
-                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary'); })
+                    return $this->formatWithUrlCTA($sale->salary, 'slry', $sale->id, 'Sale Salary');
+                })
                 ->addColumn('sale_notes', function ($sale) {
                     $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
