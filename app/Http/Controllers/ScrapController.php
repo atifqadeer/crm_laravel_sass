@@ -615,6 +615,8 @@ class ScrapController extends Controller
                     }
                 }
 
+                $postcode = $postcode ?? 'UNKNOWN';
+
                 $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])
                     // ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
@@ -883,14 +885,21 @@ class ScrapController extends Controller
                 // COMPANY / OFFICE
                 // ===============================
                 $companyName = trim($job['company'] ?? $job['ouName'] ?? 'Unknown Company');
-                $companyUrl = $job['job_profileUrl'] ?? $job['employerUrl'] ?? null;
+                // $companyUrl = $job['job_profileUrl'] ?? $job['employerUrl'] ?? null;
                 $companyDesc = $job['description_text'] ?? 'Scrapped from Reed';
+                $descriptionText = $job['description_text'] ?? '';
+                $descriptionHtml = $job['description_html'] ?? '';
+
+                $companyDetails = $this->getScrappedCompanyWebsiteData($companyName);
+                $companyUrl = $companyDetails['company_url'] ?? null;
+                $companyEmail = $companyDetails['company_email'] ?? null;
+                $companyPhone = $companyDetails['company_contact'] ?? null;
 
                 // ===============================
                 // LOCATION
                 // ===============================
                 $locationRaw = $job['location'] ?? null;
-                $postcode = 'UNKNOWN'; // Reed doesn't provide postcode
+                $postcode = null;
                 $lat = null;
                 $lng = null;
 
@@ -937,6 +946,8 @@ class ScrapController extends Controller
                     }
                 }
 
+                $postcode = $postcode ?? 'UNKNOWN';
+
                 // ===============================
                 // OFFICE
                 // ===============================
@@ -954,7 +965,7 @@ class ScrapController extends Controller
                         'office_notes' => substr($companyDesc, 0, 500),
                         'office_lat' => $lat,
                         'office_lng' => $lng,
-                        'status' => 4,
+                        'status' => 4, // scrapped
                     ]);
 
                     $office->update(['office_uid' => md5($office->id)]);
@@ -964,7 +975,22 @@ class ScrapController extends Controller
                 // CONTACTS (same logic, just change source)
                 // ===============================
                 $contactsMap = [];
-                $descriptionText = $job['description_text'] ?? '';
+
+                // ✅ Source 0: scraped company email/phone (was never saved before)
+                if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
+                    $email = strtolower(trim($companyEmail));
+                    $exists = Contact::where('contact_email', $email)
+                        ->where('contactable_type', Office::class)
+                        ->exists();
+
+                    if (!$exists) {
+                        $contactsMap[$email] = [
+                            'contact_name' => $companyName,
+                            'contact_phone' => $companyPhone ?? null,
+                            'contact_email' => $email,
+                        ];
+                    }
+                }
 
                 if (!empty($descriptionText)) {
 
@@ -1000,10 +1026,19 @@ class ScrapController extends Controller
                 // ===============================
                 // UNIT
                 // ===============================
-                $unitName = $city ?: ($companyName . ' Main Unit');
+                $unitName = null;
+
+                if ($descriptionHtml) {
+                    if (preg_match('/<b>Branch:\s*<\/b>\s*([^<]+)/i', $descriptionHtml, $matches)) {
+                        $unitName = trim(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                    }
+                }
+
+                $unitName = $unitName ?: ($city ?? 'Main Unit');
 
                 $unit = Unit::where('office_id', $office->id)
-                    ->whereRaw('LOWER(unit_name)=?', [strtolower($unitName)])
+                    ->whereRaw('LOWER(unit_name) = ?', [strtolower(trim($unitName))])
+                    ->whereRaw("REPLACE(unit_postcode, ' ', '') = ?", [str_replace(' ', '', $postcode)])
                     ->first();
 
                 if (!$unit) {
@@ -1016,7 +1051,7 @@ class ScrapController extends Controller
                         'unit_notes' => 'Scrapped from Reed',
                         'lat' => $lat,
                         'lng' => $lng,
-                        'status' => 4,
+                        'status' => 4, // scrapped
                     ]);
 
                     $unit->update(['unit_uid' => md5($unit->id)]);
@@ -1098,7 +1133,6 @@ class ScrapController extends Controller
                 $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['reed'])->first();
 
                 if (!$existingSale) {
-
                     $sale = Sale::create([
                         'user_id' => $user->id,
                         'office_id' => $office->id,
@@ -1127,7 +1161,7 @@ class ScrapController extends Controller
                 }
 
                 DB::commit();
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 Log::error('[ScrapImport] persistJobsReed error: ' . $e->getMessage(), [
                     'job_id' => $job['jobId'] ?? null,
