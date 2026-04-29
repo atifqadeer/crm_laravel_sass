@@ -697,9 +697,6 @@
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
-    <!-- Tailwind CSS CDN (for skeleton loader styling) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Daterangepicker CSS/JS -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
     <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
