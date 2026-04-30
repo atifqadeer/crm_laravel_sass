@@ -390,7 +390,7 @@ class SaleController extends Controller
                 'success' => true,
                 'message' => 'Sale created successfully',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error creating sale: ' . $e->getMessage());
 
             return response()->json([
@@ -496,7 +496,7 @@ class SaleController extends Controller
 
             // If the applicant doesn't exist, throw an exception
             if (!$sale) {
-                throw new \Exception("Sale not found with ID: " . $id);
+                throw new Exception("Sale not found with ID: " . $id);
             }
 
             $postcode = preg_replace('/\s+/', '', $request->sale_postcode);
@@ -520,12 +520,12 @@ class SaleController extends Controller
 
                         // If geocode fails, throw
                         if (!isset($result['lat']) || !isset($result['lng'])) {
-                            throw new \Exception('Geolocation failed. Latitude and longitude not found.');
+                            throw new Exception('Geolocation failed. Latitude and longitude not found.');
                         }
 
                         $saleData['lat'] = $result['lat'];
                         $saleData['lng'] = $result['lng'];
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Unable to locate address: ' . $e->getMessage()
@@ -583,7 +583,8 @@ class SaleController extends Controller
 
                     // Ensure directory exists
                     if (!file_exists($publicPath)) {
-                        mkdir($publicPath, 0755, true);
+                        // mkdir($publicPath, 0755, true);
+                        mkdir($publicPath, 0777, true);
                     }
 
                     // 🚚 Move file to public/sale_docs
@@ -619,7 +620,7 @@ class SaleController extends Controller
                 'message' => 'Sale updated successfully',
                 'redirect' => route('sales.list')
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error updating sale: ' . $e->getMessage());
 
             return response()->json([

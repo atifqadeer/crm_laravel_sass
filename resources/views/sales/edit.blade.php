@@ -216,11 +216,11 @@
                             <div class="col-lg-12">
                                 <div class="mb-3">
                                     <!-- <div class="form-group">
-                                            <label for="attachment">Attachment</label>
-                                            <input type="file" class="form-control" name="attachments[]" id="attachment"
-                                                multiple>
-                                            <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-                                        </div> -->
+                                                <label for="attachment">Attachment</label>
+                                                <input type="file" class="form-control" name="attachments[]" id="attachment"
+                                                    multiple>
+                                                <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
+                                            </div> -->
                                     @if($sale->documents->isNotEmpty())
                                         <div class="col-lg-12">
                                             <div class="mt-3">
@@ -229,7 +229,7 @@
                                                     @foreach($sale->documents as $document)
                                                         <li
                                                             class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <a href="{{ asset('storage/' . $document->document_path) }}"
+                                                            <a href="{{ asset($document->document_path) }}"
                                                                 target="_blank">{{ $document->document_name }}</a>
                                                             <div>
                                                                 <span
