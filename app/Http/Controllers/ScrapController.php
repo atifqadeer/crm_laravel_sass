@@ -120,7 +120,7 @@ class ScrapController extends Controller
     {
         $importedCount = 0;
 
-        foreach (array_slice($jobs, 0, 50) as $job) {
+        foreach ($jobs as $job) {
 
             DB::beginTransaction();
 
