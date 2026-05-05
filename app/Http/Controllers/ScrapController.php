@@ -170,8 +170,19 @@ class ScrapController extends Controller
     {
         $importedCount = 0;
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
+        $startTime = microtime(true);
+        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
-        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            // Check if we're running too long
+            if ((microtime(true) - $startTime) > $maxExecutionTime) {
+                Log::warning('[ScrapImport] persistJobsIndeed stopped early due to time limit', [
+                    'processed_chunks' => $chunkIndex,
+                    'imported_count' => $importedCount,
+                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
+                ]);
+                break;
+            }
 
             DB::beginTransaction();
 
@@ -658,8 +669,19 @@ class ScrapController extends Controller
     {
         $importedCount = 0;
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
+        $startTime = microtime(true);
+        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
-        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            // Check if we're running too long
+            if ((microtime(true) - $startTime) > $maxExecutionTime) {
+                Log::warning('[ScrapImport] persistJobsTotalJob stopped early due to time limit', [
+                    'processed_chunks' => $chunkIndex,
+                    'imported_count' => $importedCount,
+                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
+                ]);
+                break;
+            }
 
             DB::beginTransaction();
 
@@ -1046,8 +1068,19 @@ class ScrapController extends Controller
     {
         $importedCount = 0;
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
+        $startTime = microtime(true);
+        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
-        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            // Check if we're running too long
+            if ((microtime(true) - $startTime) > $maxExecutionTime) {
+                Log::warning('[ScrapImport] persistJobsReed stopped early due to time limit', [
+                    'processed_chunks' => $chunkIndex,
+                    'imported_count' => $importedCount,
+                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
+                ]);
+                break;
+            }
 
             DB::beginTransaction();
 
@@ -1402,8 +1435,8 @@ class ScrapController extends Controller
 
         try {
             $response = Http::withOptions([
-                'connect_timeout' => 3,
-                'timeout' => 10,
+                'connect_timeout' => 2,  // Reduced from 3 to fail faster
+                'timeout' => 5,  // Reduced from 10 to fail faster
             ])->get('https://serpapi.com/search', [  // ✅ correct URL
                 'q' => $companyName . ' uk official website',
                 'api_key' => 'a7dde0e1efc3804c6388c6dad235a60e5d9a4a2f30f4c8141d0f2b28dd67b8ff', // SERPAPI_KEY
@@ -1499,8 +1532,8 @@ class ScrapController extends Controller
     {
         try {
             $response = Http::withOptions([
-                'connect_timeout' => 3,
-                'timeout' => 10,
+                'connect_timeout' => 2,  // Reduced to fail faster
+                'timeout' => 5,  // Reduced to fail faster
             ])->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept' => 'text/html,application/xhtml+xml',
