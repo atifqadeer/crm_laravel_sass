@@ -14,8 +14,8 @@ class ScrapService
     public function runByKey(string $key, array $input = []): array
     {
         $settings = Setting::where('key', $key)
-                           ->where('group', 'scraper')
-                           ->first();
+            ->where('group', 'scraper')
+            ->first();
 
         if (! $settings) {
             throw new \RuntimeException("Scraper actor [{$key}] not found in settings.");
@@ -36,9 +36,9 @@ class ScrapService
     public function runAll(array $input = []): array
     {
         $allSettings = Setting::where('group', 'scraper')
-                              ->where('type', 'json')
-                              ->where('key', 'like', 'scrap_%')
-                              ->get();
+            ->where('type', 'json')
+            ->where('key', 'like', 'scrap_%')
+            ->get();
 
         $results = [];
 
@@ -47,6 +47,7 @@ class ScrapService
 
             if (empty($actor['base_url'])) {
                 Log::warning("[Scraper] Skipping [{$setting->key}] — missing base_url.");
+
                 continue;
             }
 
@@ -67,16 +68,16 @@ class ScrapService
      */
     public function runConfig(array $actor, array $input = []): array
     {
-        $token    = trim($actor['token']    ?? '');
-        $baseUrl  = trim($actor['base_url'] ?? '') ?: config('services.scrap.base_url', 'https://api.apify.com/v2');
-        $actorId  = trim($actor['actor_id'] ?? '');
+        $token = trim($actor['token'] ?? '');
+        $baseUrl = trim($actor['base_url'] ?? '') ?: config('services.scrap.base_url', 'https://api.apify.com/v2');
+        $actorId = trim($actor['actor_id'] ?? '');
 
         if (empty($baseUrl)) {
             throw new \RuntimeException('Missing base URL in actor configuration.');
         }
 
         // Extract token from URL query string if not set explicitly
-        $parsedUrl   = parse_url($baseUrl);
+        $parsedUrl = parse_url($baseUrl);
         $queryParams = [];
         if (! empty($parsedUrl['query'])) {
             parse_str($parsedUrl['query'], $queryParams);
@@ -86,12 +87,16 @@ class ScrapService
             $token = trim($queryParams['token']);
         }
 
-        $baseUrl  = rtrim($baseUrl, '/');
+        $baseUrl = rtrim($baseUrl, '/');
         $pathOnly = explode('?', $baseUrl, 2)[0];
-        $urlPath  = rtrim($pathOnly, '/');
+        $urlPath = rtrim($pathOnly, '/');
 
-        // Build HTTP client
-        $request = Http::acceptJson()->timeout(120)->retry(3, 5000);
+        // Build HTTP client with stricter timeouts to avoid long-hanging Guzzle requests
+        $request = Http::acceptJson()->withOptions([
+            'connect_timeout' => 5,
+            'timeout' => 60,
+        ])->retry(2, 2000);
+
         if (! empty($token)) {
             $request = $request->withToken($token);
         }
@@ -110,9 +115,9 @@ class ScrapService
                 if (empty($actorId)) {
                     throw new \RuntimeException('Dataset ID (actor_id) is required when base_url ends with /datasets.');
                 }
-                $endpoint = rtrim($urlPath, '/') . "/{$actorId}/items";
+                $endpoint = rtrim($urlPath, '/')."/{$actorId}/items";
 
-            // URL already contains /datasets/{id}/... — just ensure /items suffix
+                // URL already contains /datasets/{id}/... — just ensure /items suffix
             } else {
                 $endpoint = $urlPath;
                 if (! str_ends_with($endpoint, '/items')) {
@@ -124,14 +129,14 @@ class ScrapService
                 $queryParams['token'] = $token;
             }
             if (! empty($queryParams)) {
-                $endpoint .= '?' . http_build_query($queryParams);
+                $endpoint .= '?'.http_build_query($queryParams);
             }
 
             $response = $request->get($endpoint);
 
-        // ---------------------------------------------------------------
-        // ACTOR endpoint → POST /runs
-        // ---------------------------------------------------------------
+            // ---------------------------------------------------------------
+            // ACTOR endpoint → POST /runs
+            // ---------------------------------------------------------------
         } else {
             if (empty($actorId)) {
                 throw new \RuntimeException('Missing actor_id in configuration.');
@@ -151,7 +156,7 @@ class ScrapService
             }
 
             if (! empty($queryParams)) {
-                $endpoint .= '?' . http_build_query($queryParams);
+                $endpoint .= '?'.http_build_query($queryParams);
             }
 
             $response = $request->post($endpoint, ['input' => $input]);
@@ -161,12 +166,12 @@ class ScrapService
             Log::error('[Scraper] Request failed', [
                 'actor_id' => $actorId,
                 'endpoint' => $endpoint,
-                'status'   => $response->status(),
-                'body'     => $response->body(),
+                'status' => $response->status(),
+                'body' => $response->body(),
             ]);
 
             throw new \RuntimeException(
-                'Scraper request failed: ' . json_encode($response->json() ?: $response->body())
+                'Scraper request failed: '.json_encode($response->json() ?: $response->body())
             );
         }
 

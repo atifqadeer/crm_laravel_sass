@@ -77,17 +77,74 @@ class ScrapController extends Controller
                 ], 400);
             }
 
-            $importedCount = match (true) {
-                str_contains($actorKey, 'scrap_apify_indeed') => $this->persistJobsIndeed($jobs),
-                str_contains($actorKey, 'scrap_apify_totaljobs') => $this->persistJobsTotalJob($jobs),
-                str_contains($actorKey, 'scrap_apify_reed') => $this->persistJobsReed($jobs),
-                default => throw new InvalidArgumentException("No persist handler found for actor_key: [{$actorKey}]"),
-            };
+            // ---------------------------------------------------------------
+            // 2. PROCESS JOBS IN MANAGEABLE CHUNKS TO AVOID TIMEOUT
+            // ---------------------------------------------------------------
+            $totalCount = count($jobs);
+            $chunkSize = 25; // Smaller chunks to prevent timeout
+            $jobChunks = array_chunk($jobs, $chunkSize);
+            $importedCount = 0;
+            $failedChunks = [];
 
-            return response()->json([
+            foreach ($jobChunks as $chunkIndex => $jobChunk) {
+                try {
+                    $result = match (true) {
+                        str_contains($actorKey, 'scrap_apify_indeed') => $this->persistJobsIndeed($jobChunk),
+                        str_contains($actorKey, 'scrap_apify_totaljobs') => $this->persistJobsTotalJob($jobChunk),
+                        str_contains($actorKey, 'scrap_apify_reed') => $this->persistJobsReed($jobChunk),
+                        default => throw new InvalidArgumentException("No persist handler found for actor_key: [{$actorKey}]"),
+                    };
+
+                    $importedCount += $result;
+
+                    Log::info('[ScrapImport] Chunk processed', [
+                        'actor_key' => $actorKey,
+                        'chunk_index' => $chunkIndex + 1,
+                        'total_chunks' => count($jobChunks),
+                        'chunk_size' => count($jobChunk),
+                        'imported' => $result,
+                    ]);
+                } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                    // Handle timeout/connection errors
+                    $failedChunks[] = [
+                        'chunk' => $chunkIndex + 1,
+                        'error' => 'Timeout/Connection Error: ' . $e->getMessage(),
+                    ];
+
+                    Log::warning('[ScrapImport] Chunk timeout/connection error', [
+                        'actor_key' => $actorKey,
+                        'chunk_index' => $chunkIndex + 1,
+                        'error' => $e->getMessage(),
+                    ]);
+                } catch (\Throwable $e) {
+                    // Handle other errors
+                    $failedChunks[] = [
+                        'chunk' => $chunkIndex + 1,
+                        'error' => $e->getMessage(),
+                    ];
+
+                    Log::error('[ScrapImport] Chunk processing error', [
+                        'actor_key' => $actorKey,
+                        'chunk_index' => $chunkIndex + 1,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $response = [
                 'success' => true,
-                'message' => "Imported {$importedCount} jobs from [{$actorKey}]",
-            ]);
+                'message' => "Imported {$importedCount} out of {$totalCount} jobs from [{$actorKey}]",
+                'imported' => $importedCount,
+                'total' => $totalCount,
+                'chunks_processed' => count($jobChunks),
+            ];
+
+            if (! empty($failedChunks)) {
+                $response['failed_chunks'] = $failedChunks;
+                $response['warning'] = 'Some chunks failed to process due to timeout or errors';
+            }
+
+            return response()->json($response);
         } catch (\Throwable $e) {
             Log::error('[ScrapImport] importJobs failed', [
                 'actor_key' => $actorKey,
@@ -104,8 +161,9 @@ class ScrapController extends Controller
     public function persistJobsIndeed(array $jobs)
     {
         $importedCount = 0;
+        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
 
-        foreach (array_chunk($jobs, 100) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
 
             DB::beginTransaction();
 
@@ -519,8 +577,9 @@ class ScrapController extends Controller
     public function persistJobsTotalJob(array $jobs)
     {
         $importedCount = 0;
+        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
 
-        foreach (array_chunk($jobs, 100) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
 
             DB::beginTransaction();
 
@@ -865,8 +924,9 @@ class ScrapController extends Controller
     public function persistJobsReed(array $jobs)
     {
         $importedCount = 0;
+        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
 
-        foreach (array_chunk($jobs, 100) as $jobChunk) {
+        foreach (array_chunk($jobs, $dbChunkSize) as $jobChunk) {
 
             DB::beginTransaction();
 
@@ -1172,17 +1232,31 @@ class ScrapController extends Controller
 
     private function getScrappedCompanyWebsiteData(string $companyName)
     {
-        $response = $response = Http::withOptions([
-            'connect_timeout' => 3,
-            'timeout' => 15,
-        ])->get('https://serpapi.com/search', [  // ✅ correct URL
-            'q' => $companyName . ' uk official website',
-            'api_key' => '2b73a1ae05a503795daee6586521bf78f111ddf748bbfd9b489452c3f7c42945', // SERPAPI_KEY
-            'num' => 1,   // ✅ only fetch 1 result to save credits
-            'engine' => 'google', // ✅ explicitly set engine
-        ]);
+        try {
+            $response = Http::withOptions([
+                'connect_timeout' => 3,
+                'timeout' => 10,
+            ])->get('https://serpapi.com/search', [  // ✅ correct URL
+                'q' => $companyName . ' uk official website',
+                'api_key' => '7bba24fff97305bf4b8ff2e64035d3df121f0fe443e18127eccb8462162d4edf', // SERPAPI_KEY
+                'num' => 1,   // ✅ only fetch 1 result to save credits
+                'engine' => 'google', // ✅ explicitly set engine
+            ]);
 
-        if ($response->ok()) {
+            if (! $response->ok()) {
+                Log::warning('[ScrapImport] Company lookup failed', [
+                    'company_name' => $companyName,
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 500),
+                ]);
+
+                return [
+                    'company_url' => null,
+                    'company_email' => null,
+                    'company_contact' => null,
+                ];
+            }
+
             $results = $response->json();
             $email = null;
             $phone = null;
@@ -1202,24 +1276,39 @@ class ScrapController extends Controller
                 }
             }
 
-            // $contactDetails = $this->fetchContactDetails($contactUrl);
+            $contactDetails = $this->fetchContactDetails($contactUrl);
 
-            // $email = $contactDetails['email']; // e.g. info@busybeeschildcare.co.uk
-            // $phone = $contactDetails['phone']; // e.g. +44 1234 567890
+            $email = $contactDetails['email']; // e.g. info@busybeeschildcare.co.uk
+            $phone = $contactDetails['phone']; // e.g. +44 1234 567890
 
-            // ✅ 3. Return results array
             return [
                 'company_url' => $companyUrl,
                 'company_email' => $email,
                 'company_contact' => $phone,
             ];
-        }
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::warning('[ScrapImport] Company lookup timed out', [
+                'company_name' => $companyName,
+                'error' => $e->getMessage(),
+            ]);
 
-        return [
-            'company_url' => null,
-            'company_email' => null,
-            'company_contact' => null,
-        ];
+            return [
+                'company_url' => null,
+                'company_email' => null,
+                'company_contact' => null,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[ScrapImport] Company lookup failed unexpectedly', [
+                'company_name' => $companyName,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'company_url' => null,
+                'company_email' => null,
+                'company_contact' => null,
+            ];
+        }
     }
 
     private function getScrappedPostcodes(float $lat, float $lng)
@@ -1963,7 +2052,7 @@ class ScrapController extends Controller
             ->make(true);
     }
 
-    private function formatWithUrlCTA(string $fullHtml, int $idPrefix, int $saleId, string $modalTitle)
+    private function formatWithUrlCTA(string $fullHtml, string $idPrefix, int $saleId, string $modalTitle)
     {
         // 0. Remove inline styles and <span> tags (to avoid affecting layout)
         $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
