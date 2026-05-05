@@ -58,6 +58,12 @@ class ScrapController extends Controller
             ], 422);
         }
 
+        // Allow this import action to run longer than PHP's default request limit.
+        // The actual HTTP requests inside the import are still bounded by per-request timeouts.
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+
         $input = $request->input('input', []);
         if (is_string($input)) {
             $input = json_decode($input, true) ?: [];
@@ -173,8 +179,13 @@ class ScrapController extends Controller
                     // ===============================
                     // COMPANY / OFFICE
                     // ===============================
-                    $companyName = trim($job['companyName'] ?? 'Unknown Company'); // ✅ null safe
+                    $companyName = trim(
+                        $job['companyName']
+                            ?? $job['source']
+                            ?? 'Unknown Company'
+                    );
                     $companyUrl = $job['companyLinks']['corporateWebsite'] ?? null; // ✅ null safe
+                    $emails = $job['emails'] ?? [];
 
                     $companyWebsite = null;
                     $companyEmail = null;
@@ -194,6 +205,7 @@ class ScrapController extends Controller
                         ?? $job['companyBriefDescription']
                         ?? $job['descriptionText'] // ← also try full description as last resort
                         ?? '';
+
                     $descriptionHtml = $job['descriptionHtml'] ?? null;
                     $descriptionText = $job['descriptionText'] ?? '';
 
@@ -277,6 +289,29 @@ class ScrapController extends Controller
                     // COLLECT ALL CONTACTS
                     // ===============================
                     $contactsMap = [];
+
+                    // ✅ Source 0: scraped company email/phone (was never saved before)
+                    if (is_array($emails)) {
+                        foreach ($emails as $email) {
+                            $email = strtolower(trim($email));
+
+                            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                continue;
+                            }
+
+                            $exists = Contact::where('contact_email', $email)
+                                ->where('contactable_type', Office::class)
+                                ->exists();
+
+                            if (!$exists && !isset($contactsMap[$email])) {
+                                $contactsMap[$email] = [
+                                    'contact_name' => $companyName,
+                                    'contact_phone' => $companyPhone ?? null,
+                                    'contact_email' => $email,
+                                ];
+                            }
+                        }
+                    }
 
                     // ✅ Source 0: scraped company email/phone (was never saved before)
                     if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
@@ -447,18 +482,61 @@ class ScrapController extends Controller
                         ->first();
 
                     if (! $unit) {
+                        $unitWebsite = null;
+                        $unitEmail = null;
+                        $unitPhone = null;
+
+                        if ($unitName) {
+                            $unitDetails = $this->getScrappedCompanyWebsiteData($unitName);
+                            $unitWebsite = $unitDetails['company_url'] ?? null;
+                            $unitEmail = $unitDetails['company_email'] ?? null;
+                            $unitPhone = $unitDetails['company_contact'] ?? null;
+                        }
+
                         $unit = Unit::create([
                             'office_id' => $office->id,
                             'unit_name' => $unitName,
                             'unit_postcode' => $postcode,
                             'user_id' => Auth::id(),
-                            'unit_website' => null,
+                            'unit_website' => $unitWebsite,
                             'unit_notes' => 'Scrapped from Indeed',
                             'lat' => $lat,
                             'lng' => $lng,
                             'status' => 4,
                             'unit_uid' => md5(uniqid()),
                         ]);
+
+                        $contactsUnitMap = [];
+
+                        // ✅ Source 0: scraped company email/phone (was never saved before)
+                        if ($unitEmail && filter_var($unitEmail, FILTER_VALIDATE_EMAIL)) {
+                            $email = strtolower(trim($unitEmail));
+                            $exists = Contact::where('contact_email', $email)
+                                ->where('contactable_type', Unit::class)
+                                ->exists();
+
+                            if (! $exists) {
+                                $contactsUnitMap[$email] = [
+                                    'contact_name' => $unitName,
+                                    'contact_phone' => $unitPhone ?? null,
+                                    'contact_email' => $email,
+                                ];
+                            }
+                        }
+
+                        foreach ($contactsUnitMap as $email => $contact) {
+                            Contact::updateOrCreate(
+                                [
+                                    'contactable_id' => $unit->id,
+                                    'contactable_type' => Unit::class,
+                                    'contact_email' => $email,
+                                ],
+                                [
+                                    'contact_name' => $contact['contact_name'],
+                                    'contact_phone' => $contact['contact_phone'],
+                                ]
+                            );
+                        }
                     }
 
                     // ===============================
@@ -800,12 +878,23 @@ class ScrapController extends Controller
                         ->first();
 
                     if (! $unit) {
+                        $unitWebsite = null;
+                        $unitEmail = null;
+                        $unitPhone = null;
+
+                        if ($unitName) {
+                            $unitDetails = $this->getScrappedCompanyWebsiteData($unitName);
+                            $unitWebsite = $unitDetails['company_url'] ?? null;
+                            $unitEmail = $unitDetails['company_email'] ?? null;
+                            $unitPhone = $unitDetails['company_contact'] ?? null;
+                        }
+
                         $unit = Unit::create([
                             'office_id' => $office->id,
                             'unit_name' => $unitName,
                             'unit_postcode' => $postcode,
                             'user_id' => Auth::id(),
-                            'unit_website' => null,
+                            'unit_website' => $unitWebsite,
                             'unit_notes' => 'Scrapped from TotalJobs',
                             'lat' => $lat,
                             'lng' => $lng,
@@ -813,6 +902,38 @@ class ScrapController extends Controller
                         ]);
 
                         $unit->update(['unit_uid' => md5($unit->id)]);
+
+                        $contactsUnitMap = [];
+
+                        // ✅ Source 0: scraped company email/phone (was never saved before)
+                        if ($unitEmail && filter_var($unitEmail, FILTER_VALIDATE_EMAIL)) {
+                            $email = strtolower(trim($unitEmail));
+                            $exists = Contact::where('contact_email', $email)
+                                ->where('contactable_type', Unit::class)
+                                ->exists();
+
+                            if (! $exists) {
+                                $contactsUnitMap[$email] = [
+                                    'contact_name' => $unitName,
+                                    'contact_phone' => $unitPhone ?? null,
+                                    'contact_email' => $email,
+                                ];
+                            }
+                        }
+
+                        foreach ($contactsUnitMap as $email => $contact) {
+                            Contact::updateOrCreate(
+                                [
+                                    'contactable_id' => $unit->id,
+                                    'contactable_type' => Unit::class,
+                                    'contact_email' => $email,
+                                ],
+                                [
+                                    'contact_name' => $contact['contact_name'],
+                                    'contact_phone' => $contact['contact_phone'],
+                                ]
+                            );
+                        }
                     }
 
                     // ===============================
@@ -1094,12 +1215,23 @@ class ScrapController extends Controller
                         ->first();
 
                     if (! $unit) {
+                        $unitWebsite = null;
+                        $unitEmail = null;
+                        $unitPhone = null;
+
+                        if ($unitName) {
+                            $unitDetails = $this->getScrappedCompanyWebsiteData($unitName);
+                            $unitWebsite = $unitDetails['company_url'] ?? null;
+                            $unitEmail = $unitDetails['company_email'] ?? null;
+                            $unitPhone = $unitDetails['company_contact'] ?? null;
+                        }
+
                         $unit = Unit::create([
                             'office_id' => $office->id,
                             'unit_name' => $unitName,
                             'unit_postcode' => $postcode,
                             'user_id' => Auth::id(),
-                            'unit_website' => $companyUrl,
+                            'unit_website' => $unitWebsite,
                             'unit_notes' => 'Scrapped from Reed',
                             'lat' => $lat,
                             'lng' => $lng,
@@ -1107,6 +1239,38 @@ class ScrapController extends Controller
                         ]);
 
                         $unit->update(['unit_uid' => md5($unit->id)]);
+
+                        $contactsUnitMap = [];
+
+                        // ✅ Source 0: scraped company email/phone (was never saved before)
+                        if ($unitEmail && filter_var($unitEmail, FILTER_VALIDATE_EMAIL)) {
+                            $email = strtolower(trim($unitEmail));
+                            $exists = Contact::where('contact_email', $email)
+                                ->where('contactable_type', Unit::class)
+                                ->exists();
+
+                            if (! $exists) {
+                                $contactsUnitMap[$email] = [
+                                    'contact_name' => $unitName,
+                                    'contact_phone' => $unitPhone ?? null,
+                                    'contact_email' => $email,
+                                ];
+                            }
+                        }
+
+                        foreach ($contactsUnitMap as $email => $contact) {
+                            Contact::updateOrCreate(
+                                [
+                                    'contactable_id' => $unit->id,
+                                    'contactable_type' => Unit::class,
+                                    'contact_email' => $email,
+                                ],
+                                [
+                                    'contact_name' => $contact['contact_name'],
+                                    'contact_phone' => $contact['contact_phone'],
+                                ]
+                            );
+                        }
                     }
 
                     // ===============================
@@ -1232,13 +1396,19 @@ class ScrapController extends Controller
 
     private function getScrappedCompanyWebsiteData(string $companyName)
     {
+        $blank = [
+            'company_url' => null,
+            'company_email' => null,
+            'company_contact' => null,
+        ];
+
         try {
             $response = Http::withOptions([
                 'connect_timeout' => 3,
                 'timeout' => 10,
             ])->get('https://serpapi.com/search', [  // ✅ correct URL
                 'q' => $companyName . ' uk official website',
-                'api_key' => '7bba24fff97305bf4b8ff2e64035d3df121f0fe443e18127eccb8462162d4edf', // SERPAPI_KEY
+                'api_key' => 'a7dde0e1efc3804c6388c6dad235a60e5d9a4a2f30f4c8141d0f2b28dd67b8ff', // SERPAPI_KEY
                 'num' => 1,   // ✅ only fetch 1 result to save credits
                 'engine' => 'google', // ✅ explicitly set engine
             ]);
@@ -1250,36 +1420,60 @@ class ScrapController extends Controller
                     'body' => substr($response->body(), 0, 500),
                 ]);
 
-                return [
-                    'company_url' => null,
-                    'company_email' => null,
-                    'company_contact' => null,
-                ];
+                return $blank;
             }
 
             $results = $response->json();
-            $email = null;
-            $phone = null;
-
-            // ✅ 1. First organic result link
             $companyUrl = $results['organic_results'][0]['link'] ?? null;
 
-            // ✅ 2. Contact page link from sitelinks expanded
+            if (empty($companyUrl)) {
+                return $blank;
+            }
+
+            $email = null;
+            $phone = null;
             $contactUrl = null;
             $sitelinks = $results['organic_results'][0]['sitelinks']['expanded'] ?? [];
 
             foreach ($sitelinks as $sitelink) {
                 $link = $sitelink['link'] ?? '';
-                if (str_contains(strtolower($link), 'contact')) {
+                $title = strtolower($sitelink['title'] ?? '');
+
+                if (str_contains(strtolower($link), 'contact') || str_contains($title, 'contact') || str_contains($link, 'about') || str_contains($title, 'about')) {
                     $contactUrl = $link;
                     break;
                 }
             }
 
-            $contactDetails = $this->fetchContactDetails($contactUrl);
+            $homeHtml = $this->fetchHtml($companyUrl);
+            if ($homeHtml) {
+                $homeDetails = $this->extractContactDetailsFromHtml($homeHtml);
+                $email = $homeDetails['email'] ?? $email;
+                $phone = $homeDetails['phone'] ?? $phone;
 
-            $email = $contactDetails['email']; // e.g. info@busybeeschildcare.co.uk
-            $phone = $contactDetails['phone']; // e.g. +44 1234 567890
+                if (empty($contactUrl)) {
+                    $contactUrl = $this->guessContactPageFromHtml($companyUrl, $homeHtml);
+                }
+            }
+
+            $candidateUrls = array_filter(array_unique(array_merge([
+                $contactUrl,
+                $companyUrl,
+            ], $this->discoverContactPageUrls($companyUrl, $homeHtml ?? ''))));
+
+            foreach ($candidateUrls as $url) {
+                if (empty($url) || $url === $companyUrl) {
+                    continue;
+                }
+
+                $details = $this->fetchContactDetails($url);
+                $email = $email ?? $details['email'];
+                $phone = $phone ?? $details['phone'];
+
+                if ($email && $phone) {
+                    break;
+                }
+            }
 
             return [
                 'company_url' => $companyUrl,
@@ -1292,23 +1486,148 @@ class ScrapController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return [
-                'company_url' => null,
-                'company_email' => null,
-                'company_contact' => null,
-            ];
+            return $blank;
         } catch (\Throwable $e) {
             Log::warning('[ScrapImport] Company lookup failed unexpectedly', [
                 'company_name' => $companyName,
                 'error' => $e->getMessage(),
             ]);
 
-            return [
-                'company_url' => null,
-                'company_email' => null,
-                'company_contact' => null,
-            ];
+            return $blank;
         }
+    }
+
+    private function fetchHtml(string $url): ?string
+    {
+        try {
+            $response = Http::withOptions([
+                'connect_timeout' => 3,
+                'timeout' => 10,
+            ])->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml',
+            ])->get($url);
+
+            if (! $response->ok()) {
+                return null;
+            }
+
+            return $response->body();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function extractContactDetailsFromHtml(string $html): array
+    {
+        $plainText = $this->htmlToPlainText($html);
+
+        return [
+            'email' => $this->extractEmail($html, $plainText),
+            'phone' => $this->extractPhone($plainText),
+        ];
+    }
+
+    private function htmlToPlainText(string $html): string
+    {
+        $html = preg_replace('/<(script|style)[^>]*>.*?<\/\1>/is', ' ', $html);
+        $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $html = preg_replace('/<\/p>|<\/div>|<\/li>|<\/tr>|<\/h[1-6]>/i', "\n", $html);
+
+        $text = strip_tags($html);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[\r\t]+/', "\n", $text);
+        $text = preg_replace('/\n+/', "\n", $text);
+        $text = trim($text);
+
+        return $text;
+    }
+
+    private function discoverContactPageUrls(string $baseUrl, string $html): array
+    {
+        if (empty($html)) {
+            return [];
+        }
+
+        $keywords = [
+            'contact',
+            'about',
+            'team',
+            'support',
+            'help',
+            'newsletter',
+            'subscribe',
+            'location',
+            'enquiry',
+            'careers',
+        ];
+
+        preg_match_all('/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is', $html, $matches, PREG_SET_ORDER);
+
+        $urls = [];
+        foreach ($matches as $match) {
+            $href = trim($match[1]);
+            $text = strtolower(strip_tags($match[2]));
+
+            if (empty($href) || str_starts_with($href, 'mailto:') || str_starts_with($href, 'tel:') || str_starts_with($href, 'javascript:') || str_starts_with($href, '#')) {
+                continue;
+            }
+
+            $normalized = $this->normalizeUrl($href, $baseUrl);
+            if (empty($normalized)) {
+                continue;
+            }
+
+            foreach ($keywords as $keyword) {
+                if (str_contains(strtolower($href), $keyword) || str_contains($text, $keyword)) {
+                    $urls[] = $normalized;
+                    break;
+                }
+            }
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    private function normalizeUrl(string $href, string $baseUrl): ?string
+    {
+        $href = trim($href);
+
+        if (str_starts_with($href, '//')) {
+            $scheme = parse_url($baseUrl, PHP_URL_SCHEME) ?: 'https';
+            return $scheme . ':' . $href;
+        }
+
+        if (preg_match('#^https?://#i', $href)) {
+            return $href;
+        }
+
+        $baseParts = parse_url($baseUrl);
+        if (empty($baseParts['scheme']) || empty($baseParts['host'])) {
+            return null;
+        }
+
+        $scheme = $baseParts['scheme'];
+        $host = $baseParts['host'];
+        $baseRoot = $scheme . '://' . $host;
+
+        if (str_starts_with($href, '/')) {
+            return $baseRoot . $href;
+        }
+
+        $path = $baseParts['path'] ?? '/';
+        $dirname = rtrim(str_replace('\\', '/', dirname($path)), '/');
+        if ($dirname === '') {
+            $dirname = '/';
+        }
+
+        return $baseRoot . $dirname . '/' . ltrim($href, '/');
+    }
+
+    private function guessContactPageFromHtml(string $baseUrl, string $html): ?string
+    {
+        $urls = $this->discoverContactPageUrls($baseUrl, $html);
+        return $urls[0] ?? null;
     }
 
     private function getScrappedPostcodes(float $lat, float $lng)
@@ -1420,7 +1739,7 @@ class ScrapController extends Controller
 
             // ✅ Strip HTML tags and decode entities before parsing
             $html = $response->body();
-            $plainText = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $plainText = $this->htmlToPlainText($html);
 
             return [
                 'email' => $this->extractEmail($html, $plainText),
@@ -1494,31 +1813,65 @@ class ScrapController extends Controller
 
     private function extractPhone(string $plainText): ?string
     {
-        // ✅ UK-specific patterns — ordered best to worst
-        $patterns = [
-            // International format: +44 1234 567890
-            '/(\+44\s?[\d\s\-().]{8,15})/',
+        $plainText = trim($plainText);
+        if ($plainText === '') {
+            return null;
+        }
 
-            // UK 11-digit starting with 0: 01234 567890 / 07700 900000
-            '/(0[1-9]\d[\s\-.]?\d{3,4}[\s\-.]?\d{3,4})/',
+        $found = [];
 
-            // Freephone: 0800 / 0808 / 0300
-            '/(0(?:800|808|300|330|345|370)\s?\d{3}\s?\d{4})/',
-        ];
+        // Match labeled phone entries like "Office: 0330 055 2205" or "Jenna - 01923 603 765"
+        preg_match_all(
+            '/(?:^|\n)\s*([A-Za-z][A-Za-z0-9\s&()\/\-]{1,50}?)\s*[:\-]\s*(\+44\s?[0-9\s\-.()]{7,}|0[0-9\s\-.()]{9,})(?=\s|$|\n)/i',
+            $plainText,
+            $labelMatches,
+            PREG_SET_ORDER
+        );
 
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $plainText, $m)) {
-                $phone = trim(preg_replace('/\s+/', ' ', $m[1]));
+        foreach ($labelMatches as $match) {
+            $label = trim($match[1]);
+            $phone = $this->normalizePhone($match[2]);
 
-                // ✅ Must have at least 10 digits (ignore matched noise)
-                $digitsOnly = preg_replace('/\D/', '', $phone);
-                if (strlen($digitsOnly) >= 10 && strlen($digitsOnly) <= 14) {
-                    return $phone;
-                }
+            if ($phone === null) {
+                continue;
             }
+
+            $found[] = $label . ': ' . $phone;
+        }
+
+        if (! empty($found)) {
+            return implode(' | ', array_unique($found));
+        }
+
+        $phones = [];
+        preg_match_all('/(\+44\s?[0-9\s\-.()]{7,}|0[0-9\s\-.()]{9,})/', $plainText, $matches);
+        foreach ($matches[1] as $match) {
+            $phone = $this->normalizePhone($match);
+            if ($phone === null) {
+                continue;
+            }
+            $phones[] = $phone;
+        }
+
+        $phones = array_values(array_unique($phones));
+        if (! empty($phones)) {
+            return implode(' | ', $phones);
         }
 
         return null;
+    }
+
+    private function normalizePhone(string $phone): ?string
+    {
+        $digitsOnly = preg_replace('/\D+/', '', $phone);
+        if (strlen($digitsOnly) < 10 || strlen($digitsOnly) > 14) {
+            return null;
+        }
+
+        $clean = preg_replace('/[^\d+ ]+/', '', trim($phone));
+        $clean = preg_replace('/\s+/', ' ', $clean);
+
+        return $clean;
     }
 
     // -------------------------------------------------------
@@ -1917,13 +2270,34 @@ class ScrapController extends Controller
                 return '<input type="checkbox" class="unit-checkbox" value="' . (int) $u->id . '" id="unit_' . (int) $u->id . '">';
             })
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
+            ->addColumn('office_name', function ($u) {
+                $output = $u->office?->formatted_office_name;
+
+                if ($u->office?->office_website) {
+                    $output .= '<br><a href="' . $u->office->office_website . '" target="_blank" class="text-info fs-24">
+                    <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                    </a>';
+                }
+
+                return $output;
+            })
             ->filterColumn('office_name', function ($query, $keyword) {
                 $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
                 foreach ($words as $word) {
                     $query->where('offices.office_name', 'LIKE', "%{$word}%");
                 }
             })
-            ->addColumn('unit_name', fn($u) => $u->formatted_unit_name)
+            ->addColumn('unit_name', function ($u) {
+                $output = $u->formatted_unit_name;
+
+                if ($u->unit_website) {
+                    $output .= '<br><a href="' . $u->unit_website . '" target="_blank" class="text-info fs-24">
+                    <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                    </a>';
+                }
+
+                return $output;
+            })
             ->addColumn('unit_postcode', fn($u) => $u->formatted_postcode)
             ->editColumn('unit_postcode', function ($u) {
                 $rawPostcode = trim($u->formatted_postcode);
@@ -2054,6 +2428,7 @@ class ScrapController extends Controller
 
     private function formatWithUrlCTA(string $fullHtml, string $idPrefix, int $saleId, string $modalTitle)
     {
+
         // 0. Remove inline styles and <span> tags (to avoid affecting layout)
         $cleanedHtml = preg_replace('/<(span|[^>]+) style="[^"]*"[^>]*>/i', '<$1>', $fullHtml);
         $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
@@ -2135,9 +2510,11 @@ class ScrapController extends Controller
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
         $sourceFilter = $request->input('source_filter', ''); // Default is empty (no filter)
 
+        // 🚀 OPTIMIZED: Fetch only essential columns for list view
+        // Removed expensive JOINs: latest_notes, office_contacts, audits
+        // These can be lazy-loaded or fetched on-demand
         $model = Sale::withTrashed()
             ->select([
-                // Core identifiers
                 'sales.id',
                 'sales.sale_uid',
                 'sales.office_id',
@@ -2148,6 +2525,9 @@ class ScrapController extends Controller
                 'sales.job_type',
                 'sales.position_type',
                 'sales.sale_postcode',
+                'sales.qualification',
+                'sales.salary',
+                'sales.experience',
                 'sales.cv_limit',
                 'sales.timing',
                 'sales.status',
@@ -2159,43 +2539,12 @@ class ScrapController extends Controller
                 'sales.created_at',
                 'sales.updated_at',
                 'sales.deleted_at',
-                // Rich HTML fields (needed for modals)
-                'sales.experience',
-                'sales.salary',
-                'sales.qualification',
-                'sales.benefits',
-                // Joined aliases
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-                'offices.office_name as office_name',
-                'units.unit_name as unit_name',
-                'users.name as user_name',
-                // Latest note (joined subquery)
-                'updated_notes.sale_note as latest_note',
-                // offices contacts
-                'office_contacts.office_emails as office_emails',   // "email1@x.com, email2@x.com"
-                'office_contacts.office_phones as office_phones',   // "07700, 07800"
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
-            // Latest sale note via indexed join
-            ->leftJoin(DB::raw('(SELECT sale_id, MAX(id) AS latest_id FROM sale_notes GROUP BY sale_id) AS latest_notes'), 'sales.id', '=', 'latest_notes.sale_id')
-            ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
-            // Latest open-audit per sale — avoids raw string escaping of backslash namespace
-            ->leftJoinSub(
-                DB::table('audits')
-                    ->selectRaw('MAX(id) as id, auditable_id')
-                    ->where('auditable_type', 'Horsefly\\Sale')
-                    ->whereIn('message', ['scrapped'])
-                    ->groupBy('auditable_id'),
-                'latest_open_audit_ids',
-                'latest_open_audit_ids.auditable_id',
-                '=',
-                'sales.id'
-            )
             ->leftJoinSub(
                 DB::table('contacts')
                     ->select([
@@ -2204,15 +2553,23 @@ class ScrapController extends Controller
                         DB::raw('GROUP_CONCAT(DISTINCT contact_phone SEPARATOR ", ") as office_phones'),
                     ])
                     ->where('contactable_type', 'Horsefly\\Office')
-                    ->whereNotNull('contact_email')
-                    ->where('contact_email', '!=', '')
                     ->groupBy('contactable_id'),
                 'office_contacts',
                 'office_contacts.contactable_id',
                 '=',
                 'offices.id'
             )
-            ->leftJoin('audits as open_audits', 'open_audits.id', '=', 'latest_open_audit_ids.id');
+            ->addSelect(
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'offices.office_name as office_name',
+                'offices.office_website as office_website',
+                'units.unit_website as unit_website',
+                'units.unit_name as unit_name',
+                'users.name as user_name',
+                'office_contacts.office_emails as office_emails',
+                'office_contacts.office_phones as office_phones'
+            );
 
         if ($statusFilter === 'deleted') {
             $model->where('sales.status', 4)
@@ -2261,22 +2618,6 @@ class ScrapController extends Controller
             $model->whereIn('sales.job_source_id', $sourceFilter);
         }
 
-        // CV limit filter — use HAVING on the pre-aggregated cv_counts join
-        switch ($limitCountFilter) {
-            case 'max':
-                // Limit reached: sent CVs == cv_limit
-                $model->havingRaw('COALESCE(cv_counts.cv_count, 0) >= sales.cv_limit');
-                break;
-            case 'not max':
-                // Not at limit but has some CVs sent
-                $model->havingRaw('COALESCE(cv_counts.cv_count, 0) > 0 AND COALESCE(cv_counts.cv_count, 0) < sales.cv_limit');
-                break;
-            case 'zero':
-                // No CVs sent yet
-                $model->havingRaw('COALESCE(cv_counts.cv_count, 0) = 0');
-                break;
-        }
-
         // Filter by category if it's not empty
         if ($categoryFilter) {
             $model->whereIn('sales.job_category_id', $categoryFilter);
@@ -2309,8 +2650,7 @@ class ScrapController extends Controller
                 'unit_name' => 'units.unit_name',
                 'job_title' => 'job_titles.name',
                 'job_category' => 'job_categories.name',
-                'job_source' => 'sales.job_source_id',
-                'open_date' => 'sales.open_date',
+                'open_date' => 'sales.created_at',
                 'created_at' => 'sales.created_at',
                 'updated_at' => 'sales.updated_at',
             ];
@@ -2325,25 +2665,12 @@ class ScrapController extends Controller
             ];
 
             if (in_array($orderColumn, $nonSortable)) {
-                $model->orderBy('sales.updated_at', 'desc'); // fallback
-            }
-            // ✅ If mapped column exists
-            elseif (isset($columnMap[$orderColumn])) {
-                $model->orderBy($columnMap[$orderColumn], $orderDirection);
-            }
-            // ✅ Direct DB column (safe fallback)
-            elseif (! empty($orderColumn) && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy("sales.$orderColumn", $orderDirection);
+                $model->orderBy('sales.updated_at', 'desc');
             } elseif (isset($columnMap[$orderColumn])) {
-
-                if (in_array($orderColumn, ['office_emails', 'office_phones'])) {
-                    $model->orderByRaw($columnMap[$orderColumn] . ' ' . $orderDirection);
-                } else {
-                    $model->orderBy($columnMap[$orderColumn], $orderDirection);
-                }
-            }
-            // ✅ Final fallback
-            else {
+                $model->orderBy($columnMap[$orderColumn], $orderDirection);
+            } elseif (! empty($orderColumn) && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy("sales.$orderColumn", $orderDirection);
+            } else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
@@ -2358,10 +2685,36 @@ class ScrapController extends Controller
                     return '<input type="checkbox" class="sale-checkbox" value="' . (int) $sale->id . '" id="sale_' . (int) $sale->id . '">';
                 })
                 ->addColumn('office_name', function ($sale) {
-                    return $sale->office_name ? ucwords($sale->office_name) : '-';
+                    $output = $sale->office_name ? ucwords($sale->office_name) : '-';
+
+                    if ($sale->office_website) {
+                        $output .= '<br><a href="' . $sale->office_website . '" target="_blank" class="text-info fs-24">
+                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
+                    }
+
+                    return $output;
+                })
+                ->addColumn('office_emails', function ($sale) {
+                    if (!$sale->office_emails) return '-';
+                    $emails = explode(', ', $sale->office_emails);
+                    return implode('<br>', array_map('htmlspecialchars', $emails));
+                })
+                ->addColumn('office_phones', function ($sale) {
+                    if (!$sale->office_phones) return '-';
+                    $phones = explode(', ', $sale->office_phones);
+                    return implode('<br>', array_map('htmlspecialchars', $phones));
                 })
                 ->addColumn('unit_name', function ($sale) {
-                    return $sale->unit_name ? ucwords($sale->unit_name) : '-';
+                    $output = $sale->unit_name ? ucwords($sale->unit_name) : '-';
+
+                    if ($sale->unit_website) {
+                        $output .= '<br><a href="' . $sale->unit_website . '" target="_blank" class="text-info fs-24">
+                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
+                    }
+
+                    return $output;
                 })
                 ->addColumn('job_title', function ($sale) {
                     return $sale->job_title_name ? strtoupper($sale->job_title_name) : '-';
@@ -2434,7 +2787,7 @@ class ScrapController extends Controller
                     return $badges;
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notesIndex = ! empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
+                    $notesIndex = ! empty($sale->sale_notes) ? $sale->sale_notes : '-';
 
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
                     $url = $matches[0] ?? null;
@@ -2555,13 +2908,7 @@ class ScrapController extends Controller
 
                     return $action;
                 })
-                ->addColumn('office_emails', function ($sale) {
-                    return $sale->office_emails ? $sale->office_emails : '-';
-                })
-                ->addColumn('office_phones', function ($sale) {
-                    return $sale->office_phones ? $sale->office_phones : '-';
-                })
-                ->rawColumns(['checkbox', 'office_phones', 'office_emails', 'sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'action', 'statusFilter'])
+                ->rawColumns(['checkbox', 'sale_notes', 'experience', 'office_emails', 'office_phones', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
