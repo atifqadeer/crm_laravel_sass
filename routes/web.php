@@ -43,7 +43,8 @@ Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
+Route::get('message_receive', [CommunicationController::class, 'messageReceive']);
+/**This route is using to retrieve messages from openVox */
 
 // Route group with authentication middleware
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
@@ -488,6 +489,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('save-scraper-settings', [SettingController::class, 'saveScraperSettings'])->name('settings.scraper.save');
     Route::delete('delete-scraper-actor/{key}', [SettingController::class, 'deleteScraperActor'])->name('settings.scraper.delete');
     Route::post('run-scraper-actor/{key}', [SettingController::class, 'runScraperActor'])->name('settings.scraper.run');
+    Route::post('save-serpapi-settings', [SettingController::class, 'saveSerpApiSettings'])->name('settings.serpapi.save');
     Route::post('save-smtp-settings', [SettingController::class, 'saveSmtpSettings'])->name('settings.smtp.save');
     Route::post('delete-smtp-settings', [SettingController::class, 'deleteSmtp'])->name('settings.smtp.delete');
 

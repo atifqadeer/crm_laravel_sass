@@ -1434,14 +1434,16 @@ class ScrapController extends Controller
         ];
 
         try {
+            $serpapiSettings = $this->getSerpApiSettings();
+
             $response = Http::withOptions([
                 'connect_timeout' => 2,  // Reduced from 3 to fail faster
                 'timeout' => 5,  // Reduced from 10 to fail faster
-            ])->get('https://serpapi.com/search', [  // ✅ correct URL
-                'q' => $companyName . ' uk official website',
-                'api_key' => 'a7dde0e1efc3804c6388c6dad235a60e5d9a4a2f30f4c8141d0f2b28dd67b8ff', // SERPAPI_KEY
+            ])->get($serpapiSettings['url'], [  // ✅ use dynamic URL
+                'q' => $companyName . ' ' . $serpapiSettings['keywords'],
+                'api_key' => $serpapiSettings['api_key'], // ✅ use dynamic API key
                 'num' => 1,   // ✅ only fetch 1 result to save credits
-                'engine' => 'google', // ✅ explicitly set engine
+                'engine' => $serpapiSettings['engine'], // ✅ use dynamic engine
             ]);
 
             if (! $response->ok()) {
@@ -4166,5 +4168,28 @@ class ScrapController extends Controller
                 'failed' => $failed,
             ], 500);
         }
+    }
+
+    private function getSerpApiSettings(): array
+    {
+        $setting = Setting::where('key', 'serpapi_settings')->first();
+
+        if ($setting && $setting->type === 'json') {
+            $settings = json_decode($setting->value, true);
+            return [
+                'api_key' => $settings['api_key'] ?? '',
+                'engine' => $settings['engine'] ?? 'google',
+                'keywords' => $settings['keywords'] ?? 'uk official website',
+                'url' => $settings['url'] ?? 'https://serpapi.com',
+            ];
+        }
+
+        // Fallback to defaults if no settings found
+        return [
+            'api_key' => '',
+            'engine' => 'google',
+            'keywords' => 'uk official website',
+            'url' => 'https://serpapi.com',
+        ];
     }
 }

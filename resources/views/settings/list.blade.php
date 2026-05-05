@@ -52,8 +52,8 @@
                             type="button" id="menu-general" aria-controls="form-general">General Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-profile" type="button"
                             id="menu-profile" aria-controls="form-profile">Profile Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-google-maps" type="button"
-                            id="menu-profile" aria-controls="form-google-maps">Google Maps Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-google-maps"
+                            type="button" id="menu-profile" aria-controls="form-google-maps">Google Maps Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-notifications"
                             type="button" id="menu-notifications" aria-controls="form-notifications">Notification
                             Settings</button>
@@ -61,6 +61,8 @@
                             id="menu-sms" aria-controls="form-sms">SMS Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-smtp" type="button"
                             id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-serpapi" type="button"
+                            id="menu-serpapi" aria-controls="form-serpapi">SerpApi Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button"
                             id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
                     </div>
@@ -234,12 +236,61 @@
                                     <div>
                                         <button type="button" class="btn btn-secondary" id="addSmtpBtn">+ Add More
                                             SMTP</button>
-                                        <button type="button" class="btn btn-danger d-none" id="removeSmtpBtn">− Remove Last
+                                        <button type="button" class="btn btn-danger d-none" id="removeSmtpBtn">− Remove
+                                            Last
                                             SMTP</button>
                                     </div>
                                     <div class="text-end">
                                         <button type="submit" class="btn btn-success">Save SMTP Settings</button>
                                     </div>
+                                </div>
+                            </form>
+                        </section>
+                        <!-- SerpApi Settings Form -->
+                        <section id="form-serpapi" class="settings-form-section">
+                            <form id="serpapiSettingsForm" data-type="serpapi">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="serpapi_api_key" class="form-label">API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="serpapi_api_key"
+                                            name="serpapi_api_key" value="{{ old('serpapi_api_key') }}">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="ri-eye-line"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Your SerpApi API key for search functionality</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="serpapi_engine" class="form-label">Engine</label>
+                                    <select class="form-select" id="serpapi_engine" name="serpapi_engine">
+                                        <option value="google" {{ old('serpapi_engine') == 'google' ? 'selected' : '' }}>
+                                            Google</option>
+                                        <option value="bing" {{ old('serpapi_engine') == 'bing' ? 'selected' : '' }}>
+                                            Bing</option>
+                                        <option value="duckduckgo"
+                                            {{ old('serpapi_engine') == 'duckduckgo' ? 'selected' : '' }}>DuckDuckGo
+                                        </option>
+                                        <option value="yahoo" {{ old('serpapi_engine') == 'yahoo' ? 'selected' : '' }}>
+                                            Yahoo</option>
+                                    </select>
+                                    <small class="text-muted">Search engine to use for SerpApi requests</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="serpapi_keywords" class="form-label">Keywords</label>
+                                    <input type="text" class="form-control" id="serpapi_keywords"
+                                        name="serpapi_keywords" value="{{ old('serpapi_keywords') }}"
+                                        placeholder="company website, contact information">
+                                    <small class="text-muted">Default keywords for company search queries</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="serpapi_url" class="form-label">URL</label>
+                                    <input type="url" class="form-control" id="serpapi_url" name="serpapi_url"
+                                        value="{{ old('serpapi_url') }}" placeholder="https://serpapi.com">
+                                    <small class="text-muted">SerpApi base URL (usually https://serpapi.com)</small>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-success">Save SerpApi Settings</button>
                                 </div>
                             </form>
                         </section>
@@ -283,7 +334,8 @@
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Provider</label>
-                                            <select class="form-select scraper-provider" name="actors[__INDEX__][provider]">
+                                            <select class="form-select scraper-provider"
+                                                name="actors[__INDEX__][provider]">
                                                 <option value="apify">Apify</option>
                                                 <option value="other">Other</option>
                                             </select>
@@ -316,7 +368,8 @@
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Base URL</label>
                                             <input type="text" class="form-control scraper-base-url"
-                                                name="actors[__INDEX__][base_url]" value="https://api.apify.com/v2/datasets">
+                                                name="actors[__INDEX__][base_url]"
+                                                value="https://api.apify.com/v2/datasets">
                                         </div>
                                     </div>
                                 </div>
@@ -334,27 +387,27 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     {{-- @vite(['resources/js/pages/settings.js']) --}}
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Ensure jQuery is loaded
             if (typeof jQuery === 'undefined') {
                 console.error('jQuery is not loaded.');
@@ -382,9 +435,9 @@
 
             // Load existing settings
             $.ajax({
-                url: '{{ route("settings.get") }}',
+                url: '{{ route('settings.get') }}',
                 method: 'GET',
-                success: function (data) {
+                success: function(data) {
                     console.log('Settings data:', data); // Debug: Log full response
 
                     // General Settings
@@ -407,7 +460,8 @@
                     // Scraper Settings
                     let scraperActors = [];
 
-                    if (data.scraper && Array.isArray(data.scraper.actors) && data.scraper.actors.length > 0) {
+                    if (data.scraper && Array.isArray(data.scraper.actors) && data.scraper.actors
+                        .length > 0) {
                         scraperActors = data.scraper.actors;
                     } else {
                         // Default row if nothing saved yet
@@ -424,7 +478,8 @@
 
                     // Notification Settings
                     if (data.notifications) {
-                        $('#email_notifications').val(data.notifications.email_notifications ? '1' : '0');
+                        $('#email_notifications').val(data.notifications.email_notifications ? '1' :
+                            '0');
                         $('#sms_notifications').val(data.notifications.sms_notifications ? '1' : '0');
                     }
 
@@ -436,28 +491,47 @@
                         $('#sms_password').val(data.sms.sms_password || '');
                     }
 
+                    // SerpApi Settings
+                    if (data.serpapi && data.serpapi.serpapi_settings) {
+                        const serpapiSettings = data.serpapi.serpapi_settings;
+                        $('#serpapi_api_key').val(serpapiSettings.api_key || '');
+                        $('#serpapi_engine').val(serpapiSettings.engine || 'google');
+                        $('#serpapi_keywords').val(serpapiSettings.keywords || '');
+                        $('#serpapi_url').val(serpapiSettings.url || 'https://serpapi.com');
+                    }
+
                     // SMTP Settings
                     if (data.smtp && Array.isArray(data.smtp) && data.smtp.length > 0) {
                         console.log('Populating SMTP settings:', data.smtp);
                         $('#smtp-entries').empty(); // Clear existing entries
                         data.smtp.forEach((setting, index) => {
                             const $entry = $smtpTemplate.clone();
-                            $entry.find('input[name="smtp[0][id]"]').val(setting.id || '').attr('name', `smtp[${index}][id]`);
-                            $entry.find('input[name="smtp[0][mailer]"]').val(setting.mailer || '').attr('name', `smtp[${index}][mailer]`);
-                            $entry.find('input[name="smtp[0][host]"]').val(setting.host || '').attr('name', `smtp[${index}][host]`);
-                            $entry.find('input[name="smtp[0][port]"]').val(setting.port || '').attr('name', `smtp[${index}][port]`);
-                            $entry.find('input[name="smtp[0][username]"]').val(setting.username || '').attr('name', `smtp[${index}][username]`);
-                            $entry.find('input[name="smtp[0][password]"]').val(setting.password || '').attr('name', `smtp[${index}][password]`);
-                            $entry.find('select[name="smtp[0][encryption]"]').val(setting.encryption || '').attr('name', `smtp[${index}][encryption]`);
+                            $entry.find('input[name="smtp[0][id]"]').val(setting.id || '').attr(
+                                'name', `smtp[${index}][id]`);
+                            $entry.find('input[name="smtp[0][mailer]"]').val(setting.mailer ||
+                                '').attr('name', `smtp[${index}][mailer]`);
+                            $entry.find('input[name="smtp[0][host]"]').val(setting.host || '')
+                                .attr('name', `smtp[${index}][host]`);
+                            $entry.find('input[name="smtp[0][port]"]').val(setting.port || '')
+                                .attr('name', `smtp[${index}][port]`);
+                            $entry.find('input[name="smtp[0][username]"]').val(setting
+                                .username || '').attr('name', `smtp[${index}][username]`);
+                            $entry.find('input[name="smtp[0][password]"]').val(setting
+                                .password || '').attr('name', `smtp[${index}][password]`);
+                            $entry.find('select[name="smtp[0][encryption]"]').val(setting
+                                .encryption || '').attr('name',
+                                `smtp[${index}][encryption]`);
                             // ✅ FROM EMAIL (disable if exists)
-                            const $fromEmail = $entry.find('input[name="smtp[0][from_address]"]')
+                            const $fromEmail = $entry.find(
+                                    'input[name="smtp[0][from_address]"]')
                                 .val(setting.from_address || '')
                                 .attr('name', `smtp[${index}][from_address]`);
 
                             if (setting.from_address) {
                                 $fromEmail.prop('readonly', true);
                             }
-                            $entry.find('input[name="smtp[0][from_name]"]').val(setting.from_name || '').attr('name', `smtp[${index}][from_name]`);
+                            $entry.find('input[name="smtp[0][from_name]"]').val(setting
+                                .from_name || '').attr('name', `smtp[${index}][from_name]`);
                             $('#smtp-entries').append($entry);
                         });
                         smtpIndex = data.smtp.length;
@@ -468,14 +542,14 @@
 
                     toggleRemoveButton();
                 },
-                error: function (xhr) {
+                error: function(xhr) {
                     console.error('Error loading settings:', xhr.responseText);
                     toastr.error('Failed to load settings.');
                 }
             });
 
             // Handle menu button clicks
-            $menuButtons.on('click', function (e) {
+            $menuButtons.on('click', function(e) {
                 e.preventDefault();
                 const $this = $(this);
                 const target = $this.data('target');
@@ -498,9 +572,9 @@
             });
 
             // Add new SMTP entry
-            $('#addSmtpBtn').on('click', function () {
+            $('#addSmtpBtn').on('click', function() {
                 const $newEntry = $smtpTemplate.clone();
-                $newEntry.find('input, select').each(function () {
+                $newEntry.find('input, select').each(function() {
                     const name = $(this).attr('name').replace('[0]', `[${smtpIndex}]`);
                     $(this).attr('name', name).val('');
                 });
@@ -510,7 +584,7 @@
             });
 
             // Remove SMTP entry
-            $(document).on('click', '.remove-smtp-btn', function () {
+            $(document).on('click', '.remove-smtp-btn', function() {
                 const $entry = $(this).closest('.smtp-entry');
                 const id = $entry.find('input[name$="[id]"]').val();
 
@@ -526,13 +600,13 @@
                     if (result.isConfirmed) {
                         if (id && id !== '') {
                             $.ajax({
-                                url: '{{ route("settings.smtp.delete") }}',
+                                url: '{{ route('settings.smtp.delete') }}',
                                 method: 'POST',
                                 data: {
                                     id: id,
                                     _token: $('meta[name="csrf-token"]').attr('content')
                                 },
-                                success: function (response) {
+                                success: function(response) {
                                     $entry.remove();
                                     smtpIndex--;
                                     toggleRemoveButton();
@@ -543,8 +617,9 @@
                                         'success'
                                     );
                                 },
-                                error: function (xhr) {
-                                    console.error('Error deleting SMTP setting:', xhr.responseText);
+                                error: function(xhr) {
+                                    console.error('Error deleting SMTP setting:', xhr
+                                        .responseText);
                                     toastr.error('Failed to delete SMTP setting.');
                                 }
                             });
@@ -564,7 +639,7 @@
             });
 
             // Remove last SMTP entry
-            $('#removeSmtpBtn').on('click', function () {
+            $('#removeSmtpBtn').on('click', function() {
                 if ($('.smtp-entry').length > 1) {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -581,13 +656,13 @@
 
                             if (id && id !== '') {
                                 $.ajax({
-                                    url: '{{ route("settings.smtp.delete") }}',
+                                    url: '{{ route('settings.smtp.delete') }}',
                                     method: 'POST',
                                     data: {
                                         id: id,
                                         _token: $('meta[name="csrf-token"]').attr('content')
                                     },
-                                    success: function (response) {
+                                    success: function(response) {
                                         $lastEntry.remove();
                                         smtpIndex--;
                                         toggleRemoveButton();
@@ -598,8 +673,9 @@
                                             'success'
                                         );
                                     },
-                                    error: function (xhr) {
-                                        console.error('Error deleting SMTP setting:', xhr.responseText);
+                                    error: function(xhr) {
+                                        console.error('Error deleting SMTP setting:',
+                                            xhr.responseText);
                                         toastr.error('Failed to delete SMTP setting.');
                                     }
                                 });
@@ -653,7 +729,8 @@
                     $card.find('.scraper-source').prop('disabled', true);
 
                     // Add hidden inputs so values still submit
-                    $card.append(`<input type="hidden" name="actors[${index}][provider]" value="${providerValue}">`);
+                    $card.append(
+                        `<input type="hidden" name="actors[${index}][provider]" value="${providerValue}">`);
                     $card.append(`<input type="hidden" name="actors[${index}][source]" value="${sourceValue}">`);
                 } else {
                     // New card → keep editable + proper name attributes
@@ -679,23 +756,23 @@
                 if (!Array.isArray(actors) || actors.length === 0) {
                     actors = [{}];
                 }
-                actors.forEach(function (actor) {
+                actors.forEach(function(actor) {
                     $scraperCards.append(createScraperCard(actor));
                 });
                 updateScraperRemoveButtons();
             }
 
-            $('#addScraperCardBtn').on('click', function () {
+            $('#addScraperCardBtn').on('click', function() {
                 $scraperCards.append(createScraperCard({}));
                 updateScraperRemoveButtons();
             });
 
-            $scraperCards.on('change', '.scraper-provider', function () {
+            $scraperCards.on('change', '.scraper-provider', function() {
                 toggleCardFields($(this).closest('.scraper-card'));
             });
 
             // Toggle show/hide token
-            $scraperCards.on('click', '.toggle-token', function () {
+            $scraperCards.on('click', '.toggle-token', function() {
                 const $btn = $(this);
                 const $input = $btn.closest('.input-group').find('.scraper-token');
                 const $icon = $btn.find('i');
@@ -709,7 +786,22 @@
                 }
             });
 
-            $scraperCards.on('click', '.run-scraper-actor', function () {
+            // Toggle show/hide SerpApi API key
+            $(document).on('click', '.toggle-password', function() {
+                const $btn = $(this);
+                const $input = $btn.closest('.input-group').find('#serpapi_api_key');
+                const $icon = $btn.find('i');
+
+                if ($input.attr('type') === 'password') {
+                    $input.attr('type', 'text');
+                    $icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    $input.attr('type', 'password');
+                    $icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+
+            $scraperCards.on('click', '.run-scraper-actor', function() {
                 const $btn = $(this);
                 const $card = $btn.closest('.scraper-card');
                 const $cardStatus = $card.find('.card-scraper-status');
@@ -719,45 +811,56 @@
 
                 if (!key || key === '') {
                     $cardStatus.html('<span class="text-warning">Please save settings first</span>');
-                    $('#scraperStatus').html('<span class="text-warning">Actor not saved yet. Please save settings first.</span>');
+                    $('#scraperStatus').html(
+                        '<span class="text-warning">Actor not saved yet. Please save settings first.</span>'
+                    );
                     return;
                 }
 
                 // Highlight only this card
                 $card.addClass('border-primary shadow-sm');
-                $cardStatus.html('<span class="spinner-border spinner-border-sm text-info"></span> <span class="ms-1">Running...</span>');
+                $cardStatus.html(
+                    '<span class="spinner-border spinner-border-sm text-info"></span> <span class="ms-1">Running...</span>'
+                );
                 $('#scraperStatus').html('<span class="text-info">Running specific scraper...</span>');
 
                 const originalBtnHtml = $btn.html();
                 $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
                 $.ajax({
-                    url: '{{ route("settings.scraper.run", ":key") }}'.replace(':key', key),
+                    url: '{{ route('settings.scraper.run', ':key') }}'.replace(':key', key),
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             const fetched = response.fetched || 0;
                             const imported = response.imported || 0;
                             const skipped = response.skipped || 0;
-                            const resText = `Total:${fetched} Imported:${imported} Skipped:${skipped}`;
+                            const resText =
+                                `Total:${fetched} Imported:${imported} Skipped:${skipped}`;
 
-                            $cardStatus.html(`<span class="text-success fw-bold ms-1" title="Fetched: ${fetched}, Imported: ${imported}, Skipped: ${skipped}">${resText}</span>`);
-                            $('#scraperStatus').html(`<span class="text-success">Import success: ${resText}</span>`);
+                            $cardStatus.html(
+                                `<span class="text-success fw-bold ms-1" title="Fetched: ${fetched}, Imported: ${imported}, Skipped: ${skipped}">${resText}</span>`
+                            );
+                            $('#scraperStatus').html(
+                                `<span class="text-success">Import success: ${resText}</span>`
+                            );
                             toastr.success(`Run completed: ${resText}`);
                         } else {
                             $cardStatus.html('<span class="text-danger ms-1">Failed</span>');
-                            $('#scraperStatus').html('<span class="text-danger">Error: ' + response.message + '</span>');
+                            $('#scraperStatus').html('<span class="text-danger">Error: ' +
+                                response.message + '</span>');
                         }
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         $cardStatus.html('<span class="text-danger ms-1">Error</span>');
-                        $('#scraperStatus').html('<span class="text-danger">Error running scraper.</span>');
+                        $('#scraperStatus').html(
+                            '<span class="text-danger">Error running scraper.</span>');
                         toastr.error('Connection error running scraper.');
                     },
-                    complete: function () {
+                    complete: function() {
                         $btn.prop('disabled', false).html(originalBtnHtml);
                         setTimeout(() => {
                             $card.removeClass('border-primary shadow-sm');
@@ -766,7 +869,7 @@
                 });
             });
 
-            $scraperCards.on('click', '.remove-scraper-card', function () {
+            $scraperCards.on('click', '.remove-scraper-card', function() {
                 const $card = $(this).closest('.scraper-card');
                 const key = $card.data('key');
 
@@ -782,12 +885,14 @@
                     }).then((result) => {
                         if (result.isConfirmed) {
                             $.ajax({
-                                url: '{{ route("settings.scraper.delete", ":key") }}'.replace(':key', key),
+                                url: '{{ route('settings.scraper.delete', ':key') }}'
+                                    .replace(':key', key),
                                 method: 'DELETE',
                                 headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
+                                        'content')
                                 },
-                                success: function (response) {
+                                success: function(response) {
                                     if (response.success) {
                                         $card.remove();
                                         updateScraperRemoveButtons();
@@ -796,7 +901,7 @@
                                         toastr.error(response.message);
                                     }
                                 },
-                                error: function (xhr) {
+                                error: function(xhr) {
                                     toastr.error('Error deleting scraper actor.');
                                 }
                             });
@@ -809,7 +914,7 @@
             });
 
             // Handle form submissions
-            $formSections.find('form').submit(function (e) {
+            $formSections.find('form').submit(function(e) {
                 e.preventDefault();
                 const $form = $(this);
                 const formType = $form.data('type');
@@ -827,12 +932,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.smtp.save") }}',
+                        url: '{{ route('settings.smtp.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -840,11 +945,12 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving SMTP settings:', xhr.responseText);
-                            toastr.error('Failed to save SMTP settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                            toastr.error('Failed to save SMTP settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -858,12 +964,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.general.save") }}',
+                        url: '{{ route('settings.general.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -871,11 +977,12 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving general settings:', xhr.responseText);
-                            toastr.error('Failed to save general settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                            toastr.error('Failed to save general settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -889,12 +996,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.profile.save") }}',
+                        url: '{{ route('settings.profile.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -902,11 +1009,12 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving profile settings:', xhr.responseText);
-                            toastr.error('Failed to save profile settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                            toastr.error('Failed to save profile settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -920,12 +1028,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.google.save") }}',
+                        url: '{{ route('settings.google.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -933,11 +1041,13 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
-                            console.error('Error saving Google Map settings:', xhr.responseText);
-                            toastr.error('Failed to save Google Map settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                        error: function(xhr) {
+                            console.error('Error saving Google Map settings:', xhr
+                                .responseText);
+                            toastr.error('Failed to save Google Map settings: ' + (xhr
+                                .responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -951,12 +1061,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.notification.save") }}',
+                        url: '{{ route('settings.notification.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -964,20 +1074,23 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
-                            console.error('Error saving notifications settings:', xhr.responseText);
-                            toastr.error('Failed to save notifications settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                        error: function(xhr) {
+                            console.error('Error saving notifications settings:', xhr
+                                .responseText);
+                            toastr.error('Failed to save notifications settings: ' + (xhr
+                                .responseJSON?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
                 } else if (formType === 'scraper') {
                     // ── Re-index cards before serializing ─────────────────────────────
-                    $('#scraperCards .scraper-card').each(function (index) {
-                        $(this).find('[name*="actors["]').each(function () {
-                            const newName = $(this).attr('name').replace(/actors\[\d+\]/, `actors[${index}]`);
+                    $('#scraperCards .scraper-card').each(function(index) {
+                        $(this).find('[name*="actors["]').each(function() {
+                            const newName = $(this).attr('name').replace(/actors\[\d+\]/,
+                                `actors[${index}]`);
                             $(this).attr('name', newName);
                         });
                     });
@@ -989,23 +1102,24 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.scraper.save") }}',
+                        url: '{{ route('settings.scraper.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                             } else {
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving scraper settings:', xhr.responseText);
-                            toastr.error('Failed to save scraper settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                            toastr.error('Failed to save scraper settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
                             $btn.prop('disabled', false).html(originalText);
                         }
                     });
@@ -1018,12 +1132,12 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.sms.save") }}',
+                        url: '{{ route('settings.sms.save') }}',
                         method: 'POST',
                         data: formData,
                         processData: false,
                         contentType: false,
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // ... (reload SMTP entries code remains same)
@@ -1031,11 +1145,43 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving sms settings:', xhr.responseText);
-                            toastr.error('Failed to save sms settings: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                            toastr.error('Failed to save sms settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
                         },
-                        complete: function () {
+                        complete: function() {
+                            // restore button
+                            $btn.prop('disabled', false).html(originalText);
+                        }
+                    });
+                } else if (formType === 'serpapi') {
+                    const formData = new FormData(this);
+
+                    // disable + show loader
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+                    );
+
+                    $.ajax({
+                        url: '{{ route('settings.serpapi.save') }}',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                toastr.success(response.message);
+                            } else {
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error('Error saving SerpApi settings:', xhr.responseText);
+                            toastr.error('Failed to save SerpApi settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
+                        },
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }
@@ -1047,17 +1193,17 @@
                     );
 
                     $.ajax({
-                        url: '{{ route("settings.save") }}',
+                        url: '{{ route('settings.save') }}',
                         method: 'POST',
                         data: $form.serialize() + '&form_type=' + formType,
-                        success: function (response) {
+                        success: function(response) {
                             toastr.success(response.message);
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             console.error('Error saving settings:', xhr.responseText);
                             toastr.error('Failed to save settings.');
                         },
-                        complete: function () {
+                        complete: function() {
                             // restore button
                             $btn.prop('disabled', false).html(originalText);
                         }

@@ -1149,7 +1149,7 @@ class SettingController extends Controller
 
                         // Optional: Add the key itself inside the actor data for easy reference
                         $decoded['key'] = $item->key;        // e.g. "scrap_apify_instagram"
-    
+
                         return [$item->key => $decoded];
                     })
                     ->values()           // This converts it back to a simple indexed array (0, 1, 2...)
@@ -1246,7 +1246,6 @@ class SettingController extends Controller
                 'success' => true,
                 'message' => 'SMTP settings saved successfully.'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1402,11 +1401,48 @@ class SettingController extends Controller
                 'success' => true,
                 'message' => 'Scraper settings saved successfully.',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function saveSerpApiSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'serpapi_api_key' => 'required|string',
+                'serpapi_engine' => 'required|string|in:google,bing,duckduckgo,yahoo',
+                'serpapi_keywords' => 'nullable|string',
+                'serpapi_url' => 'required|url',
+            ]);
+
+            // Save all SerpApi settings as JSON
+            Setting::updateOrCreate(
+                ['key' => 'serpapi_settings'],
+                [
+                    'value' => json_encode([
+                        'api_key' => $request->serpapi_api_key,
+                        'engine' => $request->serpapi_engine,
+                        'keywords' => $request->serpapi_keywords ?: '',
+                        'url' => $request->serpapi_url,
+                    ]),
+                    'group' => 'serpapi',
+                    'type' => 'json'
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'SerpApi settings saved successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving SerpApi settings.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1593,7 +1629,6 @@ class SettingController extends Controller
                 'imported' => $imported,
                 'skipped' => $skipped,
             ]);
-
         } catch (\Exception $e) {
             Log::error('[Scraper] runScraperActor failed', [
                 'key' => $key,
@@ -1628,7 +1663,6 @@ class SettingController extends Controller
                 'success' => true,
                 'message' => "Scraper actor {$key} deleted successfully.",
             ]);
-
         } catch (\Exception $e) {
             Log::error('[Scraper] deleteScraperActor failed', [
                 'key' => $key,
@@ -1642,5 +1676,4 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
 }
