@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Http\Client\ConnectionException;
+use Throwable;
 
 class ScrapController extends Controller
 {
@@ -110,7 +112,7 @@ class ScrapController extends Controller
                         'chunk_size' => count($jobChunk),
                         'imported' => $result,
                     ]);
-                } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                } catch (ConnectionException $e) {
                     // Handle timeout/connection errors
                     $failedChunks[] = [
                         'chunk' => $chunkIndex + 1,
@@ -122,7 +124,7 @@ class ScrapController extends Controller
                         'chunk_index' => $chunkIndex + 1,
                         'error' => $e->getMessage(),
                     ]);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     // Handle other errors
                     $failedChunks[] = [
                         'chunk' => $chunkIndex + 1,
@@ -743,9 +745,7 @@ class ScrapController extends Controller
 
                     $postcode = $postcode ?? 'UNKNOWN';
 
-                    $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])
-                        // ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
-                        ->first();
+                    $office = Office::whereRaw('LOWER(office_name)=?', [strtolower(trim($companyName))])->first();
 
                     if (! $office) {
                         $office = Office::create([
@@ -1124,9 +1124,7 @@ class ScrapController extends Controller
                     // ===============================
                     // OFFICE
                     // ===============================
-                    $office = Office::whereRaw('LOWER(office_name)=?', [strtolower($companyName)])
-                        ->whereRaw("REPLACE(office_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
-                        ->first();
+                    $office = Office::whereRaw('LOWER(office_name)=?', [strtolower($companyName)])->first();
 
                     if (! $office) {
                         $office = Office::create([
