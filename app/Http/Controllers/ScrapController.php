@@ -173,17 +173,34 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
-        $startTime = microtime(true);
-        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
+        $dbChunkSize = 5; // Reduced to 5 for faster processing
+        $maxChunkTime = 40; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            $chunkStartTime = microtime(true);
+            $chunkCount = count($jobChunk);
 
+            Log::info('[ScrapImport] Starting chunk processing', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+            ]);
 
-            DB::beginTransaction();
+            foreach ($jobChunk as $jobIndex => $job) {
+                // Check if THIS chunk is taking too long
+                $chunkElapsed = microtime(true) - $chunkStartTime;
+                if ($chunkElapsed > $maxChunkTime) {
+                    Log::warning('[ScrapImport] Chunk exceeded time limit, stopping this chunk', [
+                        'chunk_index' => $chunkIndex + 1,
+                        'processed_jobs' => $jobIndex,
+                        'chunk_size' => $chunkCount,
+                        'elapsed_seconds' => round($chunkElapsed, 2),
+                    ]);
+                    break;
+                }
 
-            try {
-                foreach ($jobChunk as $job) {
+                DB::beginTransaction();
+
+                try {
 
                     // ===============================
                     // COMPANY / OFFICE
@@ -733,15 +750,25 @@ class ScrapController extends Controller
 
                         $importedCount++;
                     }
-                }
 
-                DB::commit();
-            } catch (Exception $e) {
-                DB::rollBack();
-                Log::error('[ScrapImport] persistJobsIndeed row error: ' . $e->getMessage(), [
-                    'job' => $job['jobUrl'] ?? 'unknown', // ✅ log which job failed
-                ]);
+                    DB::commit();
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::error('[ScrapImport] persistJobsIndeed row error: ' . $e->getMessage(), [
+                        'job' => $job['jobUrl'] ?? 'unknown',
+                        'chunk_index' => $chunkIndex + 1,
+                        'job_index' => $jobIndex + 1,
+                    ]);
+                }
             }
+
+            $chunkElapsed = microtime(true) - $chunkStartTime;
+            Log::info('[ScrapImport] Chunk completed', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+                'imported_in_chunk' => count(array_filter($jobChunk, fn($j) => $j)) ?? $chunkCount,
+                'elapsed_seconds' => round($chunkElapsed, 2),
+            ]);
         }
 
         return $importedCount;
@@ -754,17 +781,33 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
-        $startTime = microtime(true);
-        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
+        $dbChunkSize = 5; // Reduced to 5 for faster processing
+        $maxChunkTime = 40; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            $chunkStartTime = microtime(true);
+            $chunkCount = count($jobChunk);
 
-            DB::beginTransaction();
+            Log::info('[ScrapImport] Starting TotalJobs chunk', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+            ]);
 
-            try {
+            foreach ($jobChunk as $jobIndex => $job) {
+                $chunkElapsed = microtime(true) - $chunkStartTime;
+                if ($chunkElapsed > $maxChunkTime) {
+                    Log::warning('[ScrapImport] TotalJobs chunk exceeded time limit', [
+                        'chunk_index' => $chunkIndex + 1,
+                        'processed_jobs' => $jobIndex,
+                        'chunk_size' => $chunkCount,
+                        'elapsed_seconds' => round($chunkElapsed, 2),
+                    ]);
+                    break;
+                }
 
-                foreach ($jobChunk as $job) {
+                DB::beginTransaction();
+
+                try {
                     // ===============================
                     // COMPANY / OFFICE
                     // ===============================
@@ -1176,15 +1219,24 @@ class ScrapController extends Controller
                         $sale->update(['sale_uid' => md5($sale->id)]);
                     }
                     $importedCount++;
-                }
 
-                DB::commit();
-            } catch (Exception $e) {
-                DB::rollBack();
-                Log::error('[ScrapImport] persistJobsTotalJob row error: ' . $e->getMessage(), [
-                    'job_id' => $job['id'] ?? null,
-                ]);
+                    DB::commit();
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::error('[ScrapImport] persistJobsTotalJob row error: ' . $e->getMessage(), [
+                        'job_id' => $job['id'] ?? null,
+                        'chunk_index' => $chunkIndex + 1,
+                        'job_index' => $jobIndex + 1,
+                    ]);
+                }
             }
+
+            $chunkElapsed = microtime(true) - $chunkStartTime;
+            Log::info('[ScrapImport] TotalJobs chunk completed', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+                'elapsed_seconds' => round($chunkElapsed, 2),
+            ]);
         }
 
         return $importedCount;
@@ -1197,17 +1249,33 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 10; // Reduced from 100 to prevent timeout
-        $startTime = microtime(true);
-        $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
+        $dbChunkSize = 5; // Reduced to 5 for faster processing
+        $maxChunkTime = 40; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
+            $chunkStartTime = microtime(true);
+            $chunkCount = count($jobChunk);
 
-            DB::beginTransaction();
+            Log::info('[ScrapImport] Starting Reed chunk', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+            ]);
 
-            try {
+            foreach ($jobChunk as $jobIndex => $job) {
+                $chunkElapsed = microtime(true) - $chunkStartTime;
+                if ($chunkElapsed > $maxChunkTime) {
+                    Log::warning('[ScrapImport] Reed chunk exceeded time limit', [
+                        'chunk_index' => $chunkIndex + 1,
+                        'processed_jobs' => $jobIndex,
+                        'chunk_size' => $chunkCount,
+                        'elapsed_seconds' => round($chunkElapsed, 2),
+                    ]);
+                    break;
+                }
 
-                foreach ($jobChunk as $job) {
+                DB::beginTransaction();
+
+                try {
                     // ===============================
                     // COMPANY / OFFICE
                     // ===============================
@@ -1568,15 +1636,24 @@ class ScrapController extends Controller
                         $sale->update(['sale_uid' => md5($sale->id)]);
                     }
                     $importedCount++;
-                }
 
-                DB::commit();
-            } catch (Exception $e) {
-                DB::rollBack();
-                Log::error('[ScrapImport] persistJobsReed error: ' . $e->getMessage(), [
-                    'job_id' => $job['jobId'] ?? null,
-                ]);
+                    DB::commit();
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::error('[ScrapImport] persistJobsReed error: ' . $e->getMessage(), [
+                        'job_id' => $job['jobId'] ?? null,
+                        'chunk_index' => $chunkIndex + 1,
+                        'job_index' => $jobIndex + 1,
+                    ]);
+                }
             }
+
+            $chunkElapsed = microtime(true) - $chunkStartTime;
+            Log::info('[ScrapImport] Reed chunk completed', [
+                'chunk_index' => $chunkIndex + 1,
+                'chunk_size' => $chunkCount,
+                'elapsed_seconds' => round($chunkElapsed, 2),
+            ]);
         }
 
         return $importedCount;
