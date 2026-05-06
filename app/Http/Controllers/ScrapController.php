@@ -169,20 +169,16 @@ class ScrapController extends Controller
     public function persistJobsIndeed(array $jobs)
     {
         $importedCount = 0;
+
+        // If this runs via HTTP, avoid PHP killing it
+        set_time_limit(0);
+
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
         $startTime = microtime(true);
         $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
-            // Check if we're running too long
-            if ((microtime(true) - $startTime) > $maxExecutionTime) {
-                Log::warning('[ScrapImport] persistJobsIndeed stopped early due to time limit', [
-                    'processed_chunks' => $chunkIndex,
-                    'imported_count' => $importedCount,
-                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
-                ]);
-                break;
-            }
+
 
             DB::beginTransaction();
 
@@ -211,6 +207,14 @@ class ScrapController extends Controller
                         $companyPhones = $companyDetails['company_phones'] ?? [];
                     } else {
                         $companyWebsite = $companyUrl;
+                    }
+
+                    if (!empty($emails) && is_array($emails)) {
+                        foreach ($emails as $email) {
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                $companyEmails[] = $email;
+                            }
+                        }
                     }
 
                     // ✅ Fixed — safely check both keys, fall back to empty string
@@ -582,19 +586,28 @@ class ScrapController extends Controller
 
                         foreach ($contactsUnitMap as $contact) {
                             // Clean phone number - remove spaces and non-numeric characters
-                            $cleanPhone = $contact['contact_phone'];
+                            $cleanPhone = $contact['contact_phone'] ?? null;
+
                             if ($cleanPhone) {
-                                // Keep only digits and leading +
+                                // remove ALL whitespace first
+                                $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                                // keep only digits and +
                                 $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
-                                // Remove multiple + signs, keep only the first one
+
+                                // keep only single leading +
                                 $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
                             }
+
+                            $email = !empty($contact['contact_email'])
+                                ? strtolower(preg_replace('/\s+/', '', trim($contact['contact_email'])))
+                                : null;
 
                             Contact::updateOrCreate(
                                 [
                                     'contactable_id' => $unit->id,
                                     'contactable_type' => Unit::class,
-                                    'contact_email' => $contact['contact_email'],
+                                    'contact_email' => $email,
                                 ],
                                 [
                                     'contact_name' => $contact['contact_name'],
@@ -720,20 +733,15 @@ class ScrapController extends Controller
     public function persistJobsTotalJob(array $jobs)
     {
         $importedCount = 0;
+
+        // If this runs via HTTP, avoid PHP killing it
+        set_time_limit(0);
+
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
         $startTime = microtime(true);
         $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
-            // Check if we're running too long
-            if ((microtime(true) - $startTime) > $maxExecutionTime) {
-                Log::warning('[ScrapImport] persistJobsTotalJob stopped early due to time limit', [
-                    'processed_chunks' => $chunkIndex,
-                    'imported_count' => $importedCount,
-                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
-                ]);
-                break;
-            }
 
             DB::beginTransaction();
 
@@ -928,10 +936,34 @@ class ScrapController extends Controller
                     // ===============================
                     // SAVE ALL CONTACTS
                     // ===============================
-                    foreach ($contactsMap as $email => $contact) {
+                    foreach ($contactsMap as $emailData => $contact) {
+                        $email = !empty($emailData)
+                            ? strtolower(preg_replace('/\s+/', '', trim($emailData)))
+                            : null;
+
+                        $cleanPhone = $contact['contact_phone'] ?? null;
+
+                        if ($cleanPhone) {
+                            // remove ALL whitespace first
+                            $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                            // keep only digits and +
+                            $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
+
+                            // keep only single leading +
+                            $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
+                        }
+
                         Contact::updateOrCreate(
-                            ['contactable_id' => $office->id, 'contactable_type' => Office::class, 'contact_email' => $email],
-                            ['contact_name' => $contact['contact_name'], 'contact_phone' => $contact['contact_phone']]
+                            [
+                                'contactable_id' => $office->id,
+                                'contactable_type' => Office::class,
+                                'contact_email' => $email
+                            ],
+                            [
+                                'contact_name' => $contact['contact_name'],
+                                'contact_phone' => $cleanPhone
+                            ]
                         );
                     }
 
@@ -1004,20 +1036,28 @@ class ScrapController extends Controller
                         }
 
                         foreach ($contactsUnitMap as $contact) {
-                            // Clean phone number - remove spaces and non-numeric characters
-                            $cleanPhone = $contact['contact_phone'];
+                            $cleanPhone = $contact['contact_phone'] ?? null;
+
                             if ($cleanPhone) {
-                                // Keep only digits and leading +
+                                // remove ALL whitespace first
+                                $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                                // keep only digits and +
                                 $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
-                                // Remove multiple + signs, keep only the first one
+
+                                // keep only single leading +
                                 $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
                             }
+
+                            $email = !empty($contact['contact_email'])
+                                ? strtolower(preg_replace('/\s+/', '', trim($contact['contact_email'])))
+                                : null;
 
                             Contact::updateOrCreate(
                                 [
                                     'contactable_id' => $unit->id,
                                     'contactable_type' => Unit::class,
-                                    'contact_email' => $contact['contact_email'],
+                                    'contact_email' => $email,
                                 ],
                                 [
                                     'contact_name' => $contact['contact_name'],
@@ -1136,20 +1176,15 @@ class ScrapController extends Controller
     public function persistJobsReed(array $jobs)
     {
         $importedCount = 0;
+
+        // If this runs via HTTP, avoid PHP killing it
+        set_time_limit(0);
+
         $dbChunkSize = 10; // Reduced from 100 to prevent timeout
         $startTime = microtime(true);
         $maxExecutionTime = 25; // Stop after 25 seconds to avoid gateway timeout
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
-            // Check if we're running too long
-            if ((microtime(true) - $startTime) > $maxExecutionTime) {
-                Log::warning('[ScrapImport] persistJobsReed stopped early due to time limit', [
-                    'processed_chunks' => $chunkIndex,
-                    'imported_count' => $importedCount,
-                    'elapsed_seconds' => round(microtime(true) - $startTime, 2),
-                ]);
-                break;
-            }
 
             DB::beginTransaction();
 
@@ -1284,7 +1319,24 @@ class ScrapController extends Controller
                         }
                     }
 
-                    foreach ($contactsMap as $email => $contact) {
+                    foreach ($contactsMap as $emailData => $contact) {
+                        $email = !empty($emailData)
+                            ? strtolower(preg_replace('/\s+/', '', trim($emailData)))
+                            : null;
+
+                        $cleanPhone = $contact['contact_phone'] ?? null;
+
+                        if ($cleanPhone) {
+                            // remove ALL whitespace first
+                            $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                            // keep only digits and +
+                            $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
+
+                            // keep only single leading +
+                            $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
+                        }
+
                         Contact::updateOrCreate(
                             [
                                 'contactable_id' => $office->id,
@@ -1293,7 +1345,7 @@ class ScrapController extends Controller
                             ],
                             [
                                 'contact_name' => $contact['contact_name'],
-                                'contact_phone' => $contact['contact_phone'],
+                                'contact_phone' => $cleanPhone,
                             ]
                         );
                     }
@@ -1366,20 +1418,28 @@ class ScrapController extends Controller
                         }
 
                         foreach ($contactsUnitMap as $contact) {
-                            // Clean phone number - remove spaces and non-numeric characters
-                            $cleanPhone = $contact['contact_phone'];
+                            $cleanPhone = $contact['contact_phone'] ?? null;
+
                             if ($cleanPhone) {
-                                // Keep only digits and leading +
+                                // remove ALL whitespace first
+                                $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                                // keep only digits and +
                                 $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
-                                // Remove multiple + signs, keep only the first one
+
+                                // keep only single leading +
                                 $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
                             }
+
+                            $email = !empty($contact['contact_email'])
+                                ? strtolower(preg_replace('/\s+/', '', trim($contact['contact_email'])))
+                                : null;
 
                             Contact::updateOrCreate(
                                 [
                                     'contactable_id' => $unit->id,
                                     'contactable_type' => Unit::class,
-                                    'contact_email' => $contact['contact_email'],
+                                    'contact_email' => $email,
                                 ],
                                 [
                                     'contact_name' => $contact['contact_name'],
