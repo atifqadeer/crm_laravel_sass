@@ -301,7 +301,15 @@ class ScrapController extends Controller
                     // ===============================
                     // OFFICE
                     // ===============================
-                    $office = Office::whereRaw('LOWER(office_name) = ?', [strtolower($companyName)])->first();
+                    $office = Office::whereRaw(
+                        "LOWER(REPLACE(office_name, ' ', '')) = ?",
+                        [strtolower(str_replace(' ', '', $companyName))]
+                    )
+                        ->whereRaw(
+                            "LOWER(REPLACE(office_postcode, ' ', '')) = ?",
+                            [strtolower(str_replace(' ', '', $postcode))]
+                        )
+                        ->first();
 
                     if (! $office) {
                         $office = Office::create([
@@ -568,8 +576,14 @@ class ScrapController extends Controller
                     $unitName = $unitName ?: ($city ?? 'Main Unit');
 
                     $unit = Unit::where('office_id', $office->id)
-                        ->whereRaw('LOWER(unit_name) = ?', [strtolower(trim($unitName))])
-                        ->whereRaw("REPLACE(unit_postcode, ' ', '') = ?", [str_replace(' ', '', $postcode)])
+                        ->whereRaw(
+                            "LOWER(REPLACE(unit_name, ' ', '')) = ?",
+                            [strtolower(str_replace(' ', '', trim($unitName)))]
+                        )
+                        ->whereRaw(
+                            "LOWER(REPLACE(unit_postcode, ' ', '')) = ?",
+                            [strtolower(str_replace(' ', '', trim($postcode)))]
+                        )
                         ->first();
 
                     if (! $unit) {
