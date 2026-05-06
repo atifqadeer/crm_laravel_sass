@@ -511,12 +511,29 @@ class ScrapController extends Controller
                     // SAVE ALL CONTACTS
                     // ===============================
                     foreach ($contactsList as $contactData) {
+                        $email = !empty($contactData['contact_email'])
+                            ? strtolower(preg_replace('/\s+/', '', trim($contactData['contact_email'])))
+                            : null;
+
+                        $cleanPhone = $contactData['contact_phone'] ?? null;
+
+                        if ($cleanPhone) {
+                            // remove ALL whitespace first
+                            $cleanPhone = preg_replace('/\s+/', '', trim($cleanPhone));
+
+                            // keep only digits and +
+                            $cleanPhone = preg_replace('/[^\d+]/', '', $cleanPhone);
+
+                            // keep only single leading +
+                            $cleanPhone = preg_replace('/\+{2,}/', '+', $cleanPhone);
+                        }
+
                         Contact::create([
                             'contactable_id' => $office->id,
                             'contactable_type' => Office::class,
                             'contact_name' => $contactData['contact_name'],
-                            'contact_phone' => $contactData['contact_phone'],
-                            'contact_email' => $contactData['contact_email'],
+                            'contact_phone' => $cleanPhone,
+                            'contact_email' => $email,
                         ]);
                     }
 
