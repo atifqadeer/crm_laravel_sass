@@ -301,7 +301,7 @@ class ScrapController extends Controller
                     // ===============================
                     // COLLECT ALL CONTACTS
                     // ===============================
-                    $contactsMap = [];
+                    $contactsList = [];
 
                     // ✅ Source 0: scraped company emails/phones from website
                     if (!empty($companyEmails)) {
@@ -317,22 +317,18 @@ class ScrapController extends Controller
 
                             $exists = Contact::where('contact_email', $email)
                                 ->where('contactable_type', Office::class)
+                                ->where('contactable_id', $office->id)
                                 ->exists();
 
-                            if (!$exists && !isset($contactsMap[$email])) {
+                            if (!$exists) {
                                 $matchingPhone = null;
                                 if (!empty($companyPhones)) {
-                                    $matchingPhone = $companyPhones[0];
+                                    $matchingPhone = $this->normalizePhone($companyPhones[0]);
                                 }
 
-                                // ✅ Remove ALL whitespaces from phone
-                                $cleanPhone = $matchingPhone
-                                    ? preg_replace('/\s+/', '', trim($matchingPhone))
-                                    : null;
-
-                                $contactsMap[$email] = [
+                                $contactsList[] = [
                                     'contact_name'  => trim($companyName),
-                                    'contact_phone' => $cleanPhone,
+                                    'contact_phone' => $matchingPhone,
                                     'contact_email' => $email,
                                 ];
                             }
@@ -341,12 +337,21 @@ class ScrapController extends Controller
 
                     // If we have phones but no emails, create contacts with just phone numbers
                     if (empty($companyEmails) && !empty($companyPhones)) {
-                        foreach ($companyPhones as $index => $phone) {
-                            $contactKey = 'phone_' . $index . '_' . md5($phone);
-                            if (!isset($contactsMap[$contactKey])) {
-                                $contactsMap[$contactKey] = [
+                        foreach ($companyPhones as $phone) {
+                            $cleanPhone = $this->normalizePhone($phone);
+                            if (empty($cleanPhone)) {
+                                continue;
+                            }
+
+                            $exists = Contact::where('contact_phone', $cleanPhone)
+                                ->where('contactable_type', Office::class)
+                                ->where('contactable_id', $office->id)
+                                ->exists();
+
+                            if (!$exists) {
+                                $contactsList[] = [
                                     'contact_name' => $companyName,
-                                    'contact_phone' => $phone,
+                                    'contact_phone' => $cleanPhone,
                                     'contact_email' => null,
                                 ];
                             }
@@ -371,17 +376,34 @@ class ScrapController extends Controller
                             if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                 $exists = Contact::where('contact_email', $email)
                                     ->where('contactable_type', Office::class)
+                                    ->where('contactable_id', $office->id)
                                     ->exists();
 
-                                if ($exists || isset($contactsMap[$email])) {
+                                if (!$exists) {
+                                    $contactsList[] = [
+                                        'contact_name'  => $name ?? $companyName,
+                                        'contact_phone' => $phone,
+                                        'contact_email' => $email,
+                                    ];
+                                }
+                            } elseif ($phone) {
+                                $cleanPhone = $this->normalizePhone($phone);
+                                if (empty($cleanPhone)) {
                                     continue;
                                 }
 
-                                $contactsMap[$email] = [
-                                    'contact_name'  => $name ?? $companyName,
-                                    'contact_phone' => $phone,
-                                    'contact_email' => $email,
-                                ];
+                                $exists = Contact::where('contact_phone', $cleanPhone)
+                                    ->where('contactable_type', Office::class)
+                                    ->where('contactable_id', $office->id)
+                                    ->exists();
+
+                                if (!$exists) {
+                                    $contactsList[] = [
+                                        'contact_name'  => $name ?? $companyName,
+                                        'contact_phone' => $cleanPhone,
+                                        'contact_email' => null,
+                                    ];
+                                }
                             }
                         }
                     }
@@ -402,13 +424,14 @@ class ScrapController extends Controller
                                 $email = preg_replace('/\s+/', '', strtolower(trim($m[2])));
                                 $name  = trim($m[1]);
 
-                                if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                     $exists = Contact::where('contact_email', $email)
-                                        ->where('contactable_type', Unit::class)
+                                        ->where('contactable_type', Office::class)
+                                        ->where('contactable_id', $office->id)
                                         ->exists();
 
                                     if (!$exists) {
-                                        $contactsMap[$email] = [
+                                        $contactsList[] = [
                                             'contact_name'  => $name,
                                             'contact_phone' => null,
                                             'contact_email' => $email,
@@ -423,9 +446,10 @@ class ScrapController extends Controller
                             foreach ($bareMatches[0] as $email) {
                                 $email = preg_replace('/\s+/', '', strtolower(trim($email)));
 
-                                if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                     $exists = Contact::where('contact_email', $email)
                                         ->where('contactable_type', Office::class)
+                                        ->where('contactable_id', $office->id)
                                         ->exists();
 
                                     if (!$exists) {
@@ -440,7 +464,7 @@ class ScrapController extends Controller
                                             $name = trim($nameMatch[1]);
                                         }
 
-                                        $contactsMap[$email] = [
+                                        $contactsList[] = [
                                             'contact_name'  => $name ?? $companyName,
                                             'contact_phone' => null,
                                             'contact_email' => $email,
@@ -461,13 +485,14 @@ class ScrapController extends Controller
                             foreach ($labeledMatches[1] as $email) {
                                 $email = preg_replace('/\s+/', '', strtolower(trim($email)));
 
-                                if (filter_var($email, FILTER_VALIDATE_EMAIL) && !isset($contactsMap[$email])) {
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                     $exists = Contact::where('contact_email', $email)
                                         ->where('contactable_type', Office::class)
+                                        ->where('contactable_id', $office->id)
                                         ->exists();
 
                                     if (!$exists) {
-                                        $contactsMap[$email] = [
+                                        $contactsList[] = [
                                             'contact_name'  => $companyName,
                                             'contact_phone' => null,
                                             'contact_email' => $email,
@@ -481,18 +506,14 @@ class ScrapController extends Controller
                     // ===============================
                     // SAVE ALL CONTACTS
                     // ===============================
-                    foreach ($contactsMap as $email => $contact) {
-                        Contact::updateOrCreate(
-                            [
-                                'contactable_id' => $office->id,
-                                'contactable_type' => Office::class,
-                                'contact_email' => $email,
-                            ],
-                            [
-                                'contact_name' => $contact['contact_name'],
-                                'contact_phone' => $contact['contact_phone'],
-                            ]
-                        );
+                    foreach ($contactsList as $contactData) {
+                        Contact::create([
+                            'contactable_id' => $office->id,
+                            'contactable_type' => Office::class,
+                            'contact_name' => $contactData['contact_name'],
+                            'contact_phone' => $contactData['contact_phone'],
+                            'contact_email' => $contactData['contact_email'],
+                        ]);
                     }
 
                     // ===============================
