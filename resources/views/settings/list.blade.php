@@ -289,6 +289,13 @@
                                         value="{{ old('serpapi_url') }}" placeholder="https://serpapi.com">
                                     <small class="text-muted">SerpApi base URL (usually https://serpapi.com)</small>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="serpapi_excluded_hosts" class="form-label">Excluded Hosts</label>
+                                    <textarea class="form-control" id="serpapi_excluded_hosts" name="serpapi_excluded_hosts" rows="3"
+                                        placeholder="wikipedia.org\nen.wikipedia.org\nexample.com">{{ old('serpapi_excluded_hosts') }}</textarea>
+                                    <small class="text-muted">List of hosts to ignore when resolving company websites, one
+                                        per line or comma separated.</small>
+                                </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save SerpApi Settings</button>
                                 </div>
@@ -498,6 +505,12 @@
                         $('#serpapi_engine').val(serpapiSettings.engine || 'google');
                         $('#serpapi_keywords').val(serpapiSettings.keywords || '');
                         $('#serpapi_url').val(serpapiSettings.url || 'https://serpapi.com');
+                        $('#serpapi_excluded_hosts').val(Array.isArray(serpapiSettings.excluded_hosts) ?
+                            serpapiSettings.excluded_hosts.join('\n') :
+                            (serpapiSettings.excluded_hosts || ''));
+
+                        console.log('Loaded SerpApi excluded hosts from DB:', serpapiSettings
+                            .excluded_hosts);
                     }
 
                     // SMTP Settings

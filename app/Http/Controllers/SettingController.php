@@ -1418,7 +1418,18 @@ class SettingController extends Controller
                 'serpapi_engine' => 'required|string|in:google,bing,duckduckgo,yahoo',
                 'serpapi_keywords' => 'nullable|string',
                 'serpapi_url' => 'required|url',
+                'serpapi_excluded_hosts' => 'nullable|string',
             ]);
+
+            $existingSetting = Setting::where('key', 'serpapi_settings')->first();
+            $existingSettings = [];
+            if ($existingSetting && $existingSetting->type === 'json') {
+                $existingSettings = json_decode($existingSetting->value, true) ?: [];
+            }
+
+            $excludedHosts = $this->normalizeSerpApiExcludedHosts(
+                $request->input('serpapi_excluded_hosts', $existingSettings['excluded_hosts'] ?? [])
+            );
 
             // Save all SerpApi settings as JSON
             Setting::updateOrCreate(
@@ -1429,6 +1440,7 @@ class SettingController extends Controller
                         'engine' => $request->serpapi_engine,
                         'keywords' => $request->serpapi_keywords ?: '',
                         'url' => $request->serpapi_url,
+                        'excluded_hosts' => $excludedHosts,
                     ]),
                     'group' => 'serpapi',
                     'type' => 'json'
@@ -1446,6 +1458,42 @@ class SettingController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function normalizeSerpApiExcludedHosts(array|string|null $excludedHosts): array
+    {
+        if (is_string($excludedHosts)) {
+            $excludedHosts = preg_split('/[\r\n,]+/', $excludedHosts);
+        }
+
+        if (! is_array($excludedHosts)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($excludedHosts as $host) {
+            $host = trim((string) $host);
+            if ($host === '') {
+                continue;
+            }
+
+            if (preg_match('#^https?://#i', $host)) {
+                $parsedHost = parse_url($host, PHP_URL_HOST);
+                if ($parsedHost) {
+                    $host = $parsedHost;
+                }
+            }
+
+            $host = strtolower($host);
+            $host = preg_replace('#^www\.#', '', $host);
+            $host = rtrim($host, '/');
+
+            if ($host !== '') {
+                $normalized[] = $host;
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 
     public function saveSmsSettings(Request $request)
