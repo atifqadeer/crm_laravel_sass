@@ -173,8 +173,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 5; // Reduced to 5 for faster processing
-        $maxChunkTime = 40; // Each chunk gets 40 seconds max
+        $dbChunkSize = 50; // Reduced to 5 for faster processing
+        $maxChunkTime = 80; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
@@ -762,8 +762,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 5; // Reduced to 5 for faster processing
-        $maxChunkTime = 40; // Each chunk gets 40 seconds max
+        $dbChunkSize = 50; // Reduced to 5 for faster processing
+        $maxChunkTime = 80; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
@@ -1231,8 +1231,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 5; // Reduced to 5 for faster processing
-        $maxChunkTime = 40; // Each chunk gets 40 seconds max
+        $dbChunkSize = 50; // Reduced to 5 for faster processing
+        $maxChunkTime = 80; // Each chunk gets 40 seconds max
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
