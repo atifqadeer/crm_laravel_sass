@@ -1124,11 +1124,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                                                                        <div class="col-md-3 col-6 mb-2">
-                                                                                            <small class="text-muted d-block">${src.name}</small>
-                                                                                            <span class="fw-bold fs-5">${src.total}</span>
-                                                                                        </div>
-                                                                                    `).join('')}
+                                                                                                <div class="col-md-3 col-6 mb-2">
+                                                                                                    <small class="text-muted d-block">${src.name}</small>
+                                                                                                    <span class="fw-bold fs-5">${src.total}</span>
+                                                                                                </div>
+                                                                                            `).join('')}
                             </div>
                         `;
                 } else {
@@ -1526,53 +1526,64 @@
 
             function createDrawer() {
                 const drawerHtml = `
-                    <div class="offcanvas offcanvas-end" tabindex="-1" id="${drawerId}" style="width: 80%; z-index: 1080;">
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="${drawerId}"
+                 style="width:80%; z-index:1080; visibility:hidden;">
 
-                        <div class="offcanvas-header bg-primary text-white">
-                            <h5 class="offcanvas-title">
-                                <iconify-icon icon="solar:list-line-duotone" class="me-2"></iconify-icon>
-                                ${label} — Details
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-                        </div>
+                <div class="offcanvas-header bg-primary text-white">
+                    <h5 class="offcanvas-title">
+                        <iconify-icon icon="solar:list-line-duotone" class="me-2"></iconify-icon>
+                        ${label} — Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white"
+                            data-bs-dismiss="offcanvas"></button>
+                </div>
 
-                        <div class="offcanvas-body" style="background-color:#e1e5ec;">
-
-                            <div class="text-center py-4" id="${drawerId}-loader">
-                                <div class="spinner-border text-primary"></div>
-                                <p class="mt-2 text-muted">Loading details...</p>
-                            </div>
-
-                            <div id="${drawerId}-content" class="d-none"></div>
-
-                        </div>
-
-                        <div class="border-top p-3 d-flex justify-content-between">
-                            <span class="text-muted small" id="${drawerId}-total"></span>
-                            <button class="btn btn-dark btn-sm" data-bs-dismiss="offcanvas">Close</button>
-                        </div>
-
+                <div class="offcanvas-body" style="background-color:#e1e5ec;">
+                    <div class="text-center py-4" id="${drawerId}-loader">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">Loading details...</p>
                     </div>
-                `;
+                    <div id="${drawerId}-content" class="d-none"></div>
+                </div>
+
+                <div class="border-top p-3 d-flex justify-content-between">
+                    <span class="text-muted small" id="${drawerId}-total"></span>
+                    <button class="btn btn-dark btn-sm"
+                            data-bs-dismiss="offcanvas">Close</button>
+                </div>
+            </div>
+        `;
 
                 $('body').append(drawerHtml);
 
                 const drawerEl = document.getElementById(drawerId);
-                drawerEl.addEventListener('hidden.bs.offcanvas', function() {
-                    const instance = bootstrap.Offcanvas.getInstance(drawerEl);
-                    if (instance) instance.dispose();
-                    drawerEl.remove();
-                }, {
-                    once: true
-                });
 
-                const drawer = new bootstrap.Offcanvas(drawerEl, {
-                    backdrop: false,
-                    scroll: true
-                });
+                // ✅ Two rAF calls: first lets the browser register the element in its
+                //    initial hidden/translated state; second triggers the transition.
+                //    A single rAF is sometimes still too early on slower devices.
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // ✅ Restore visibility now that the browser has the start state
+                        drawerEl.style.visibility = '';
 
-                drawer.show();
-                loadDrawerContent(drawerId);
+                        const drawer = new bootstrap.Offcanvas(drawerEl, {
+                            backdrop: false,
+                            scroll: true
+                        });
+
+                        // ✅ Clean up on close — dispose + remove from DOM
+                        drawerEl.addEventListener('hidden.bs.offcanvas', function() {
+                            const instance = bootstrap.Offcanvas.getInstance(drawerEl);
+                            if (instance) instance.dispose();
+                            drawerEl.remove();
+                        }, {
+                            once: true
+                        });
+
+                        drawer.show();
+                        loadDrawerContent(drawerId);
+                    });
+                });
             }
 
             function loadDrawerContent(id) {
@@ -1597,26 +1608,27 @@
                         }
 
                         let tableHtml = `
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-hover table-sm align-middle">
-                                    <thead class="bg-dark ">
-                                        <tr>
-                                            ${response.columns.map(col => `<th class="text-nowrap text-white">${col}</th>`).join('')}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                        `;
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead class="bg-dark">
+                                <tr>
+                                    ${response.columns.map(col =>
+                                        `<th class="text-nowrap text-white">${col}</th>`
+                                    ).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
 
                         response.rows.forEach(row => {
-                            tableHtml +=
-                                `<tr>${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}</tr>`;
+                            tableHtml += `<tr>${row.map(cell =>
+                        `<td>${cell ?? '—'}</td>`
+                    ).join('')}</tr>`;
                         });
 
                         tableHtml += `</tbody></table></div>`;
 
-                        $(`#${id}-content`)
-                            .removeClass('d-none')
-                            .html(tableHtml);
+                        $(`#${id}-content`).removeClass('d-none').html(tableHtml);
                     },
                     error: function(xhr) {
                         $(`#${id}-loader`).hide();

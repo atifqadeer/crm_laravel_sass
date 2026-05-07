@@ -613,11 +613,16 @@ class DashboardController extends Controller
         $user_id   = $request->input('user_key');
         $stat_key  = $request->input('stat_key');
 
+        // ── Shared eager-load set for History → sale relationships ────────────────
+        $saleWith = ['applicant', 'sale.jobTitle', 'sale.office', 'sale.unit'];
+
         try {
             $columns = [];
             $rows    = [];
 
-            // ── SALES STATS ───────────────────────────────────────────────────
+            // ══════════════════════════════════════════════════════════════════════
+            // SALES STATS
+            // ══════════════════════════════════════════════════════════════════════
             $salesStatMap = [
                 'open_sales'     => ['message' => '%has been created%', 'status' => 1, 'is_re_open' => null, 'is_on_hold' => null],
                 'reopen_sales'   => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 1,    'is_on_hold' => null],
@@ -629,69 +634,74 @@ class DashboardController extends Controller
             ];
 
             if (isset($salesStatMap[$stat_key])) {
-                $map = $salesStatMap[$stat_key];
 
+                $map    = $salesStatMap[$stat_key];
                 $audits = Audit::query()
-                    ->with(['auditable' => fn($q) => $q->with(['jobTitle', 'office', 'unit'])])
+                    ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
                     ->where('auditable_type', Sale::class)
                     ->where('user_id', $user_id)
                     ->where('message', 'LIKE', $map['message'])
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->whereHasMorph('auditable', [Sale::class], function ($q) use ($map) {
                         $q->where('status', $map['status']);
-                        if (!is_null($map['is_re_open'])) {
-                            $q->where('is_re_open', $map['is_re_open']);
-                        }
-                        if (!is_null($map['is_on_hold'])) {
-                            $q->where('is_on_hold', $map['is_on_hold']);
-                        }
+                        if (!is_null($map['is_re_open'])) $q->where('is_re_open', $map['is_re_open']);
+                        if (!is_null($map['is_on_hold'])) $q->where('is_on_hold', $map['is_on_hold']);
                     })
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Sale ID', 'Job Title', 'Office', 'Unit', 'Postcode', 'Status', 'Date'];
+                $columns = ['#', 'Sale ID', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+
                 foreach ($audits as $i => $audit) {
-                    $sale = $audit->auditable;
+                    $sale   = $audit->auditable;
                     $rows[] = [
                         $i + 1,
                         $sale->id                  ?? '—',
+                        $sale->jobCategory->name   ?? '—',
                         $sale->jobTitle->name      ?? '—',
+                        $sale->sale_postcode       ?? '—',
                         $sale->office->office_name ?? '—',
                         $sale->unit->unit_name     ?? '—',
-                        $sale->sale_postcode       ?? '—',
-                        $sale->status              ?? '—',
-                        $audit->created_at->format('d M Y H:i A'),
+                        $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
-            }
 
-            // ── CVS REQUESTED ─────────────────────────────────────────────────
-            // Mirror: CVNote::where('user_id')->whereBetween('created_at')->count()
-            elseif ($stat_key === 'cvs_requested') {
+                // ══════════════════════════════════════════════════════════════════════
+                // CVS REQUESTED
+                // Counter  : CVNote::where(user_id)->whereBetween(created_at)->count()
+                // Detail   : all rows — no unique needed (counter counts all rows too)
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif ($stat_key === 'cvs_requested') {
+
                 $cvNotes = CVNote::query()
-                    ->with(['applicant', 'sale.jobTitle'])
-                    ->where('user_id', $user_id)                           // ✅ scoped to this user
-                    ->whereBetween('created_at', [$startDate, $endDate])  // ✅ same date filter
+                    ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Title', 'Created At'];
+                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+
                 foreach ($cvNotes as $i => $cv) {
                     $rows[] = [
                         $i + 1,
-                        $cv->applicant->applicant_name ?? '—',
-                        $cv->sale->jobTitle->name      ?? '—',
-                        $cv->created_at->format('d M Y H:i A'),
+                        $cv->applicant->applicant_name  ?? '—',
+                        $cv->sale->jobCategory->name    ?? '—',
+                        $cv->sale->jobTitle->name       ?? '—',
+                        $cv->sale->sale_postcode        ?? '—',
+                        $cv->sale->office->office_name  ?? '—',
+                        $cv->sale->unit->unit_name      ?? '—',
+                        $cv->created_at->format('d M Y h:i A'),
                     ];
                 }
-            }
 
-            // ── CVS CLEARED ───────────────────────────────────────────────────
-            // Mirror: grouped cv_notes → history quality_cleared where updated_at in range
-            // and created_at != updated_at — one count per unique applicant+sale pair
-            elseif ($stat_key === 'cvs_cleared') {
+                // ══════════════════════════════════════════════════════════════════════
+                // CVS CLEARED
+                // Counter  : unique pairs → isNotEmpty() on quality_cleared → 1 per pair
+                // Detail   : first() per pair to match that 1-per-pair count
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif ($stat_key === 'cvs_cleared') {
 
-                // Step 1: get the same cv_notes the counter used
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
@@ -699,33 +709,38 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Title', 'Cleared At'];
+                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $cv) {
-
                     $cleared = History::query()
-                        ->with(['applicant', 'sale.jobTitle'])
+                        ->with($saleWith)
                         ->where('sub_stage', 'quality_cleared')
                         ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
                         ->whereBetween('updated_at', [$startDate, $endDate])
                         ->whereColumn('created_at', '!=', 'updated_at')
-                        ->first(); // IMPORTANT
+                        ->first(); // 1 per pair — mirrors isNotEmpty() in counter
 
                     if ($cleared) {
                         $rows[] = [
                             count($rows) + 1,
-                            $cleared->applicant->applicant_name ?? '—',
-                            $cleared->sale->jobTitle->name ?? '—',
-                            $cleared->updated_at->format('d M Y H:i A'),
+                            $cleared->applicant->applicant_name  ?? '—',
+                            $cleared->sale->jobCategory->name    ?? '—',
+                            $cleared->sale->jobTitle->name       ?? '—',
+                            $cleared->sale->sale_postcode        ?? '—',
+                            $cleared->sale->office->office_name  ?? '—',
+                            $cleared->sale->unit->unit_name      ?? '—',
+                            $cleared->updated_at->format('d M Y h:i A'),
                         ];
                     }
                 }
-            }
 
-            // ── CVS REJECTED ──────────────────────────────────────────────────
-            // Mirror: grouped cv_notes → history quality_reject where status=1
-            elseif ($stat_key === 'cvs_rejected') {
+                // ══════════════════════════════════════════════════════════════════════
+                // CVS REJECTED
+                // Counter  : unique pairs → keyBy(sub_stage) quality_reject status=1 → 1 per pair
+                // Detail   : first() per pair to match that 1-per-pair count
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif ($stat_key === 'cvs_rejected') {
 
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
@@ -734,44 +749,118 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Title', 'Rejected At'];
+                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $cv) {
-
                     $rejected = History::query()
-                        ->with(['applicant', 'sale.jobTitle'])
+                        ->with($saleWith)
                         ->where('sub_stage', 'quality_reject')
                         ->where('status', 1)
                         ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
                         ->whereBetween('created_at', [$startDate, $endDate])
-                        ->first(); // IMPORTANT
+                        ->first(); // 1 per pair — mirrors keyBy() in counter
 
                     if ($rejected) {
                         $rows[] = [
                             count($rows) + 1,
-                            $rejected->applicant->applicant_name ?? '—',
-                            $rejected->sale->jobTitle->name ?? '—',
+                            $rejected->applicant->applicant_name  ?? '—',
+                            $rejected->sale->jobCategory->name    ?? '—',
+                            $rejected->sale->jobTitle->name       ?? '—',
+                            $rejected->sale->sale_postcode        ?? '—',
+                            $rejected->sale->office->office_name  ?? '—',
+                            $rejected->sale->unit->unit_name      ?? '—',
                             $rejected->created_at->format('d M Y H:i A'),
                         ];
                     }
                 }
-            }
 
-            // ── CRM STATS ─────────────────────────────────────────────────────
-            // Mirror: grouped cv_notes → history per sub_stage, with crm_reject guard
-            elseif (str_starts_with($stat_key, 'CRM_')) {
+                // ══════════════════════════════════════════════════════════════════════
+                // CRM STATS
+                // All CRM_* keys share the same bulk-fetch strategy.
+                // Gates mirror getUserStatistics() exactly so counts always match.
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif (str_starts_with($stat_key, 'CRM_')) {
 
-                $subStageMap = [
-                    'CRM_sent_cvs'            => 'quality_cleared',
-                    'CRM_rejected_cv'         => 'crm_reject',
-                    'CRM_request'             => 'crm_request',
+                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
+
+                // ── Step 1: same cv_notes base as counter ─────────────────────────
+                $cvNotes = CVNote::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->select('applicant_id', 'sale_id')
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
+                    ->values();
+
+                if ($cvNotes->isEmpty()) {
+                    return response()->json([
+                        'stat_key' => $stat_key,
+                        'columns'  => $columns,
+                        'rows'     => [],
+                        'total'    => 0,
+                    ]);
+                }
+
+                $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
+                $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
+
+                // ── Step 2: bulk-fetch ALL regular history in ONE query ───────────
+                // Avoids N queries inside the loop; grouped by pair key
+                $allHistory = History::query()
+                    ->whereIn('sub_stage', [
+                        'quality_reject',
+                        'crm_reject',
+                        'crm_request',
+                        'crm_request_confirm',
+                        'crm_reebok',
+                        'crm_interview_attended',
+                        'crm_interview_not_attended',
+                        'crm_start_date',
+                        'crm_start_date_back',
+                        'crm_start_date_hold',
+                        'crm_invoice',
+                        'crm_dispute',
+                        'crm_paid',
+                        'crm_request_reject',
+                        'crm_declined',
+                    ])
+                    ->whereIn('applicant_id', $applicantIds)
+                    ->whereIn('sale_id', $saleIds)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->with($saleWith)
+                    ->get()
+                    ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
+
+                // ── Step 3: bulk-fetch quality_cleared in ONE query ───────────────
+                $allCleared = History::query()
+                    ->where('sub_stage', 'quality_cleared')
+                    ->whereIn('applicant_id', $applicantIds)
+                    ->whereIn('sale_id', $saleIds)
+                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereColumn('created_at', '!=', 'updated_at')
+                    ->with($saleWith)
+                    ->get()
+                    ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
+
+                // ── Step 4: bulk-fetch CrmNotes for crm_request gate ─────────────
+                $allCrmNotes = CrmNote::query()
+                    ->where('moved_tab_to', 'cv_sent')
+                    ->whereIn('applicant_id', $applicantIds)
+                    ->whereIn('sale_id', $saleIds)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->orderByDesc('id')
+                    ->get()
+                    ->groupBy(fn($n) => $n->applicant_id . '-' . $n->sale_id);
+
+                // ── Downstream stat → sub_stage map ──────────────────────────────
+                $downstreamMap = [
                     'CRM_rejected_by_request' => 'crm_request_reject',
                     'CRM_confirmation'        => 'crm_request_confirm',
                     'CRM_rebook'              => 'crm_reebok',
                     'CRM_attended'            => 'crm_interview_attended',
                     'CRM_not_attended'        => 'crm_interview_not_attended',
-                    'CRM_start_date'          => 'crm_start_date',
+                    'CRM_start_date'          => ['crm_start_date', 'crm_start_date_back'], // either qualifies
                     'CRM_start_date_hold'     => 'crm_start_date_hold',
                     'CRM_declined'            => 'crm_declined',
                     'CRM_invoice'             => 'crm_invoice',
@@ -779,256 +868,188 @@ class DashboardController extends Controller
                     'CRM_paid'                => 'crm_paid',
                 ];
 
-                $subStage = $subStageMap[$stat_key] ?? null;
+                // ── Step 5: process each unique pair ─────────────────────────────
+                foreach ($cvNotes as $cv) {
+                    $pairKey     = $cv->applicant_id . '-' . $cv->sale_id;
+                    $pairHistory = collect($allHistory->get($pairKey, []))->keyBy('sub_stage');
+                    $pairCleared = $allCleared->get($pairKey, collect());
+                    $pairCrmNote = $allCrmNotes->get($pairKey, collect())->first();
 
-                if ($subStage) {
-                    // Step 1: get the same cv_notes pairs the counter used
-                    $cvNotes = CVNote::query()
-                        ->where('user_id', $user_id)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->select('applicant_id', 'sale_id')
-                        ->get()
-                        ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
-                        ->values();
-
-                    $columns = ['#', 'Applicant', 'Job Title', 'Stage', 'Date'];
-
-                    if ($cvNotes->isEmpty()) {
-                        return response()->json([
-                            'stat_key' => $stat_key,
-                            'columns'  => $columns,
-                            'rows'     => [],
-                            'total'    => 0,
-                        ]);
+                    // ── CRM_sent_cvs ──────────────────────────────────────────────
+                    // Counter increments BEFORE the crm_reject guard, so no guard here.
+                    // 1 per pair — mirrors isNotEmpty() in counter.
+                    if ($stat_key === 'CRM_sent_cvs') {
+                        if ($pairCleared->isEmpty()) continue;
+                        $h      = $pairCleared->first();
+                        $rows[] = [
+                            count($rows) + 1,
+                            $h->applicant->applicant_name  ?? '—',
+                            $h->sale->jobCategory->name    ?? '—',
+                            $h->sale->jobTitle->name       ?? '—',
+                            $h->sale->sale_postcode        ?? '—',
+                            $h->sale->office->office_name  ?? '—',
+                            $h->sale->unit->unit_name      ?? '—',
+                            'Quality Cleared',
+                            $h->updated_at->format('d M Y h:i A'),
+                        ];
+                        continue;
                     }
 
-                    $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
-                    $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
-
-                    // ── Bulk fetch ALL history for all pairs in ONE query ─────────────
-                    $allHistory = History::query()
-                        ->whereIn('sub_stage', [
-                            'quality_reject',
-                            'crm_reject',
-                            'crm_request',
-                            'crm_request_confirm',
-                            'crm_reebok',
-                            'crm_interview_attended',
-                            'crm_interview_not_attended',
-                            'crm_start_date',
-                            'crm_start_date_back',
-                            'crm_start_date_hold',
-                            'crm_invoice',
-                            'crm_dispute',
-                            'crm_paid',
-                            'crm_request_reject',
-                            'crm_declined',
-                        ])
-                        ->whereIn('applicant_id', $applicantIds)
-                        ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->with(['applicant', 'sale.jobTitle'])
-                        ->get()
-                        ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
-
-                    // ── Bulk fetch quality_cleared ────────────────────────────────────
-                    $allCleared = History::query()
-                        ->where('sub_stage', 'quality_cleared')
-                        ->whereIn('applicant_id', $applicantIds)
-                        ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('updated_at', [$startDate, $endDate])
-                        ->whereColumn('created_at', '!=', 'updated_at')
-                        ->with(['applicant', 'sale.jobTitle'])
-                        ->get()
-                        ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
-
-                    // ── Bulk fetch CrmNotes for crm_request gate ──────────────────────
-                    $allCrmNotes = CrmNote::query()
-                        ->where('moved_tab_to', 'cv_sent')
-                        ->whereIn('applicant_id', $applicantIds)
-                        ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->orderByDesc('id')
-                        ->get()
-                        ->groupBy(fn($n) => $n->applicant_id . '-' . $n->sale_id);
-
-                    // ── Process each unique pair ──────────────────────────────────────
-                    foreach ($cvNotes as $cv) {
-                        $pairKey      = $cv->applicant_id . '-' . $cv->sale_id;
-
-                        // keyBy sub_stage — first record per sub_stage per pair wins
-                        $pairHistory  = collect($allHistory->get($pairKey, []))->keyBy('sub_stage');
-                        $pairCleared  = $allCleared->get($pairKey, collect());
-                        $pairCrmNote  = $allCrmNotes->get($pairKey, collect())->first();
-
-                        // ── CRM_sent_cvs ──────────────────────────────────────────────
-                        // Qualifies if quality_cleared exists — one row per pair
-                        if ($stat_key === 'CRM_sent_cvs') {
-                            if ($pairCleared->isEmpty()) {
-                                continue;
-                            }
-                            $h = $pairCleared->first();
-                            $rows[] = [
-                                count($rows) + 1,
-                                $h->applicant->applicant_name ?? '—',
-                                $h->sale->jobTitle->name      ?? '—',
-                                'Quality Cleared',
-                                $h->updated_at->format('d M Y H:i A'),
-                            ];
-                            continue;
-                        }
-
-                        // ── CRM_rejected_cv ───────────────────────────────────────────
-                        // No crm_reject guard for itself — check status == 1 directly
-                        if ($stat_key === 'CRM_rejected_cv') {
-                            if (
-                                isset($pairHistory['crm_reject']) &&
-                                $pairHistory['crm_reject']->status == 1
-                            ) {
-                                $h = $pairHistory['crm_reject'];
-                                $rows[] = [
-                                    count($rows) + 1,
-                                    $h->applicant->applicant_name ?? '—',
-                                    $h->sale->jobTitle->name      ?? '—',
-                                    'CRM Rejected CV',
-                                    $h->created_at->format('d M Y H:i A'),
-                                ];
-                            }
-                            continue;
-                        }
-
-                        // ── Gate 1: skip pair if crm_reject status == 1 ───────────────
-                        // Mirrors the `continue` in getUserStatistics()
+                    // ── CRM_rejected_cv ───────────────────────────────────────────
+                    // This IS the reject stat — no crm_reject guard against itself.
+                    // 1 per pair — mirrors keyBy() + status check in counter.
+                    if ($stat_key === 'CRM_rejected_cv') {
                         if (
                             isset($pairHistory['crm_reject']) &&
                             $pairHistory['crm_reject']->status == 1
                         ) {
-                            continue;
-                        }
-
-                        // ── Gate 2: crm_request must exist ───────────────────────────
-                        if (!isset($pairHistory['crm_request'])) {
-                            continue;
-                        }
-
-                        // ── Gate 3: crm_request created_at must be > last cv_sent CrmNote
-                        if (
-                            !$pairCrmNote ||
-                            !Carbon::parse($pairHistory['crm_request']->created_at)
-                                ->gt($pairCrmNote->created_at)
-                        ) {
-                            continue;
-                        }
-
-                        // ── CRM_request ───────────────────────────────────────────────
-                        if ($stat_key === 'CRM_request') {
-                            $h = $pairHistory['crm_request'];
+                            $h      = $pairHistory['crm_reject'];
                             $rows[] = [
                                 count($rows) + 1,
-                                $h->applicant->applicant_name ?? '—',
-                                $h->sale->jobTitle->name      ?? '—',
-                                'CRM Request',
-                                $h->created_at->format('d M Y H:i A'),
+                                $h->applicant->applicant_name  ?? '—',
+                                $h->sale->jobTitle->name       ?? '—',
+                                $h->sale->sale_postcode        ?? '—',
+                                $h->sale->office->office_name  ?? '—',
+                                $h->sale->unit->unit_name      ?? '—',
+                                'CRM Rejected CV',
+                                $h->created_at->format('d M Y h:i A'),
                             ];
-                            continue;
                         }
+                        continue;
+                    }
 
-                        // ── All downstream stats — only reachable if all 3 gates passed
-                        // Exactly mirrors when processCrmStats() was called
-                        // Each uses isset() on keyed history = at most 1 row per pair
-                        $subStageMap = [
-                            'CRM_rejected_by_request' => 'crm_request_reject',
-                            'CRM_confirmation'        => 'crm_request_confirm',
-                            'CRM_rebook'              => 'crm_reebok',
-                            'CRM_attended'            => 'crm_interview_attended',
-                            'CRM_not_attended'        => 'crm_interview_not_attended',
-                            'CRM_start_date'          => ['crm_start_date', 'crm_start_date_back'], // either counts
-                            'CRM_start_date_hold'     => 'crm_start_date_hold',
-                            'CRM_declined'            => 'crm_declined',
-                            'CRM_invoice'             => 'crm_invoice',
-                            'CRM_dispute'             => 'crm_dispute',
-                            'CRM_paid'                => 'crm_paid',
-                        ];
+                    // ── Gate 1: crm_reject guard ──────────────────────────────────
+                    // Mirrors the `continue` in getUserStatistics() that skips all
+                    // downstream CRM stats when crm_reject status == 1.
+                    if (
+                        isset($pairHistory['crm_reject']) &&
+                        $pairHistory['crm_reject']->status == 1
+                    ) {
+                        continue;
+                    }
 
-                        $target = $subStageMap[$stat_key] ?? null;
+                    // ── Gate 2: crm_request must exist ───────────────────────────
+                    if (!isset($pairHistory['crm_request'])) {
+                        continue;
+                    }
 
-                        if (!$target) {
-                            continue;
-                        }
+                    // ── Gate 3: crm_request must be newer than last cv_sent CrmNote
+                    if (
+                        !$pairCrmNote ||
+                        !Carbon::parse($pairHistory['crm_request']->created_at)
+                            ->gt($pairCrmNote->created_at)
+                    ) {
+                        continue;
+                    }
 
-                        // CRM_start_date checks two sub_stages (either qualifies)
-                        if (is_array($target)) {
-                            $h = null;
-                            foreach ($target as $t) {
-                                if (isset($pairHistory[$t])) {
-                                    $h = $pairHistory[$t];
-                                    break;
-                                }
-                            }
-                        } else {
-                            $h = $pairHistory[$target] ?? null;
-                        }
-
-                        if (!$h) {
-                            continue;
-                        }
-
+                    // ── CRM_request ───────────────────────────────────────────────
+                    // All 3 gates passed — 1 per pair mirrors keyBy() in counter.
+                    if ($stat_key === 'CRM_request') {
+                        $h      = $pairHistory['crm_request'];
                         $rows[] = [
                             count($rows) + 1,
-                            $h->applicant->applicant_name ?? '—',
-                            $h->sale->jobTitle->name      ?? '—',
-                            ucwords(str_replace('_', ' ', $h->sub_stage)),
-                            $h->created_at->format('d M Y H:i A'),
+                            $h->applicant->applicant_name  ?? '—',
+                            $h->sale->jobTitle->name       ?? '—',
+                            $h->sale->sale_postcode        ?? '—',
+                            $h->sale->office->office_name  ?? '—',
+                            $h->sale->unit->unit_name      ?? '—',
+                            'CRM Request',
+                            $h->created_at->format('d M Y h:i A'),
                         ];
+                        continue;
                     }
-                }
-            }
 
-            // ── DATA ENTRY STATS ──────────────────────────────────────────────
-            // Mirror: Audit where user_id scoped (note: original had no user_id filter — keeping as-is)
-            elseif ($stat_key === 'applicants_created') {
-                $audits = Audit::query()
+                    // ── All downstream CRM stats ──────────────────────────────────
+                    // Only reachable after all 3 gates — exactly mirrors counter.
+                    // isset() on keyed history = at most 1 row per pair.
+                    $target = $downstreamMap[$stat_key] ?? null;
+
+                    if (!$target) continue;
+
+                    // CRM_start_date accepts either crm_start_date or crm_start_date_back
+                    if (is_array($target)) {
+                        $h = null;
+                        foreach ($target as $t) {
+                            if (isset($pairHistory[$t])) {
+                                $h = $pairHistory[$t];
+                                break;
+                            }
+                        }
+                    } else {
+                        $h = $pairHistory[$target] ?? null;
+                    }
+
+                    if (!$h) continue;
+
+                    $rows[] = [
+                        count($rows) + 1,
+                        $h->applicant->applicant_name  ?? '—',
+                        $h->sale->jobCategory->name    ?? '—',
+                        $h->sale->jobTitle->name       ?? '—',
+                        $h->sale->sale_postcode        ?? '—',
+                        $h->sale->office->office_name  ?? '—',
+                        $h->sale->unit->unit_name      ?? '—',
+                        ucwords(str_replace('_', ' ', $h->sub_stage)),
+                        $h->created_at->format('d M Y h:i A'),
+                    ];
+                }
+
+                // ══════════════════════════════════════════════════════════════════════
+                // DATA ENTRY STATS
+                // Both scoped to user_id and use created_at (not updated_at) to match
+                // the counter in getUserStatistics().
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif ($stat_key === 'applicants_created') {
+
+                $audits  = Audit::query()
                     ->with('auditable')
                     ->where('auditable_type', Applicant::class)
+                    ->where('user_id', $user_id)
                     ->where('message', 'LIKE', '%has been created%')
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->get();
 
                 $columns = ['#', 'Applicant Name', 'Email', 'Phone', 'Created At'];
+
                 foreach ($audits as $i => $audit) {
                     $applicant = $audit->auditable;
-                    $rows[] = [
+                    $rows[]    = [
                         $i + 1,
                         $applicant->applicant_name ?? '—',
                         $applicant->email          ?? '—',
                         $applicant->phone          ?? '—',
-                        $audit->created_at->format('d M Y H:i A'),
+                        $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
             } elseif ($stat_key === 'applicants_updated') {
-                $audits = Audit::query()
+
+                $audits  = Audit::query()
                     ->with('auditable')
                     ->where('auditable_type', Applicant::class)
+                    ->where('user_id', $user_id)
                     ->where('message', 'LIKE', '%has been updated%')
-                    ->whereBetween('updated_at', [$startDate, $endDate])  // ✅ updated_at like counter
+                    ->whereBetween('created_at', [$startDate, $endDate]) // created_at matches counter
                     ->get();
 
                 $columns = ['#', 'Applicant Name', 'Email', 'Phone', 'Updated At'];
+
                 foreach ($audits as $i => $audit) {
                     $applicant = $audit->auditable;
-                    $rows[] = [
+                    $rows[]    = [
                         $i + 1,
                         $applicant->applicant_name ?? '—',
                         $applicant->email          ?? '—',
                         $applicant->phone          ?? '—',
-                        $audit->updated_at->format('d M Y H:i A'),
+                        $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
-            }
 
-            // ── PREVIOUS MONTH STATS ──────────────────────────────────────────
-            // Mirror: prev_cv_notes (created_at < startDate, updated_at in range) → history
-            elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
+                // ══════════════════════════════════════════════════════════════════════
+                // PREVIOUS MONTH STATS
+                // CVs created BEFORE the range but whose history falls WITHIN it.
+                // unique() on pairs + first() mirrors the counter's keyBy() dedupe.
+                // ══════════════════════════════════════════════════════════════════════
+            } elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
 
                 $subStageMap = [
                     'start_date' => ['crm_start_date', 'crm_start_date_back'],
@@ -1036,32 +1057,38 @@ class DashboardController extends Controller
                     'paid'       => ['crm_paid'],
                 ];
 
-                // ✅ Same prev_cv_notes query from getUserStatistics
                 $prevCvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereDate('created_at', '<', $startDate)             // ✅ created before range
-                    ->whereBetween('updated_at', [$startDate, $endDate])   // ✅ updated in range
+                    ->whereDate('created_at', '<', $startDate)           // created before range
+                    ->whereBetween('updated_at', [$startDate, $endDate]) // updated within range
                     ->select('applicant_id', 'sale_id')
-                    ->get();
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id) // mirrors counter
+                    ->values();
 
-                $columns = ['#', 'Applicant', 'Job Title', 'Stage', 'Date'];
+                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
 
                 foreach ($prevCvNotes as $cv) {
+                    // first() — mirrors keyBy() in counter: 1 row per pair
                     $history = History::query()
-                        ->with(['applicant', 'sale.jobTitle'])
-                        ->where('applicant_id', $cv->applicant_id)    // ✅ scoped to pair
+                        ->with($saleWith)
+                        ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
                         ->whereIn('sub_stage', $subStageMap[$stat_key])
                         ->whereBetween('created_at', [$startDate, $endDate])
-                        ->get();
+                        ->first();
 
-                    foreach ($history as $h) {
+                    if ($history) {
                         $rows[] = [
                             count($rows) + 1,
-                            $h->applicant->applicant_name ?? '—',
-                            $h->sale->jobTitle->name      ?? '—',
-                            ucwords(str_replace('_', ' ', $h->sub_stage)),
-                            $h->created_at->format('d M Y H:i A'),
+                            $history->applicant->applicant_name  ?? '—',
+                            $history->sale->jobCategory->name    ?? '—',
+                            $history->sale->jobTitle->name       ?? '—',
+                            $history->sale->sale_postcode        ?? '—',
+                            $history->sale->office->office_name  ?? '—',
+                            $history->sale->unit->unit_name      ?? '—',
+                            ucwords(str_replace('_', ' ', $history->sub_stage)),
+                            $history->created_at->format('d M Y h:i A'),
                         ];
                     }
                 }
