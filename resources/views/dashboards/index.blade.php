@@ -57,6 +57,18 @@
             font-size: 18px;
             font-weight: 500;
         }
+
+        .offcanvas {
+            transition: transform .3s ease-in-out;
+        }
+
+        .offcanvas.show {
+            z-index: 1080;
+        }
+
+        .offcanvas-backdrop {
+            z-index: 1075;
+        }
     </style>
     @canany(['dashboard-top-stats'])
         <div class="row">
@@ -216,8 +228,9 @@
                         <div class="d-flex align-items-center gap-2">
                             <!-- Stats Range Filter -->
                             <div class="dropdown">
-                                <a href="#" id="statsRangeBtn" class="dropdown-toggle btn btn-sm btn-outline-light rounded"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <a href="#" id="statsRangeBtn"
+                                    class="dropdown-toggle btn btn-sm btn-outline-light rounded" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
                                     Daily
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
@@ -252,7 +265,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:user-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses"
                                         data-filter-type="non-nurses-created">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-created"></span>
@@ -298,7 +312,8 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="d-flex align-items-center  rounded p-3 h-100">
-                                    <iconify-icon icon="solar:user-line-duotone" class="fs-1 text-primary me-3"></iconify-icon>
+                                    <iconify-icon icon="solar:user-line-duotone"
+                                        class="fs-1 text-primary me-3"></iconify-icon>
                                     <div class="d-flex flex-column justify-content-center stat-box" data-type="non_nurses"
                                         data-filter-type="non-nurses-updated">
                                         <span class="fs-4 fw-bold text-primary stats-non-nurses-updated"></span>
@@ -572,7 +587,8 @@
         </div>
 
         <!-- Modal -->
-        <div class="modal fade" id="weeklySalesModal" tabindex="-1" aria-labelledby="weeklySalesModalLabel" aria-hidden="true">
+        <div class="modal fade" id="weeklySalesModal" tabindex="-1" aria-labelledby="weeklySalesModalLabel"
+            aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -688,8 +704,8 @@
                     <div class="row text-center g-3">
                         <div class="col-md-3 col-6 mb-3">
                             <h6>Nurses (Regular)</h6>
-                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary clickable" data-category="nurses"
-                                data-type="regular">0</span>
+                            <span id="nursesRegularCount" class="fs-3 fw-bold text-primary clickable"
+                                data-category="nurses" data-type="regular">0</span>
                         </div>
 
                         <div class="col-md-3 col-6 mb-3">
@@ -729,35 +745,35 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <!-- Tailwind CSS CDN (for skeleton loader styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Daterangepicker CSS/JS -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
-    <script src="{{ asset('js/daterangepicker.min.js')}}"></script>
+    <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <!-- Flatpickr -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -771,7 +787,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Deferred AJAX for counts
             const fetchCounts = $.ajax({
                 url: "{{ route('dashboard.counts') }}",
@@ -780,12 +796,13 @@
             });
 
             // Use $.when to handle deferred AJAX requests
-            $.when(fetchCounts).done(function (countsResponse) {
+            $.when(fetchCounts).done(function(countsResponse) {
                 // Log the response for debugging
                 console.log('Counts Response:', countsResponse);
 
                 // Handle both array and object responses
-                const data = Array.isArray(countsResponse) && countsResponse.length > 0 ? countsResponse[0] : countsResponse;
+                const data = Array.isArray(countsResponse) && countsResponse.length > 0 ? countsResponse[
+                    0] : countsResponse;
 
                 // Check if the expected properties exist, default to 0 if undefined
                 $('#applicantsCount').html(data.applicantsCount !== undefined ? data.applicantsCount : 0);
@@ -794,8 +811,9 @@
                 $('#salesCount').html(data.salesCount !== undefined ? data.salesCount : 0);
                 $('#last7DaysCount').html(data.last7DaysCount !== undefined ? data.last7DaysCount : 0);
                 $('#last21DaysCount').html(data.last21DaysCount !== undefined ? data.last21DaysCount : 0);
-                $('#last3MonthsCount').html(data.last3MonthsCount !== undefined ? data.last3MonthsCount : 0);
-            }).fail(function (xhr, status, error) {
+                $('#last3MonthsCount').html(data.last3MonthsCount !== undefined ? data.last3MonthsCount :
+                    0);
+            }).fail(function(xhr, status, error) {
                 console.error('Error fetching counts:', xhr.responseText, status, error);
                 $('#applicantsCount, #officesCount, #unitsCount, #salesCount, #last7DaysCount, #last21DaysCount, #last3MonthsCount')
                     .html('<span class="text-danger">Error</span>');
@@ -828,7 +846,7 @@
             $.get('/dashboard/statistics-data', {
                 range: range,
                 date_range: dateRange
-            }, function (resp) {
+            }, function(resp) {
 
                 $('.stats-nurses-created').text(resp.applicants?.nurses.created ?? 0);
                 $('.stats-non-nurses-created').text(resp.applicants?.non_nurses.created ?? 0);
@@ -859,7 +877,7 @@
         }
 
         // When any stats box is clicked
-        $(document).on('click', '.stat-box', function () {
+        $(document).on('click', '.stat-box', function() {
             const type = $(this).data('filter-type');
             if (!type) {
                 console.warn('⚠️ Missing data-filter-type on this .stat-box element.');
@@ -874,7 +892,7 @@
                     range: currentRange,
                     date_range: currentDateRange
                 },
-                success: function (resp) {
+                success: function(resp) {
                     // Set modal title
                     $('#applicantDetailsLabel').text(resp.title);
 
@@ -887,17 +905,18 @@
                     tbody.empty();
 
                     if (resp.sources && Object.keys(resp.sources).length > 0) {
-                        $.each(resp.sources, function (name, count) {
+                        $.each(resp.sources, function(name, count) {
                             tbody.append(`<tr><td>${name}</td><td>${count}</td></tr>`);
                         });
                     } else {
-                        tbody.html('<tr><td colspan="2" class="text-center">No data available</td></tr>');
+                        tbody.html(
+                            '<tr><td colspan="2" class="text-center">No data available</td></tr>');
                     }
 
                     // Show modal
                     $('#applicantDetailsModal').modal('show');
                 },
-                error: function (xhr) {
+                error: function(xhr) {
                     console.error('Error:', xhr.responseText);
                 }
             });
@@ -918,9 +937,11 @@
             $.get('/statistics/chart-data', {
                 range: range,
                 date_range: dateRange
-            }, function (response) {
+            }, function(response) {
                 if (response.series?.length) {
-                    chart.updateOptions({ labels: response.labels });
+                    chart.updateOptions({
+                        labels: response.labels
+                    });
                     chart.updateSeries(response.series);
                 } else {
                     chart.updateSeries([]);
@@ -928,7 +949,7 @@
             });
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             // Default UI
             currentRange = 'daily';
             rangeBtn.innerText = 'Daily';
@@ -961,13 +982,12 @@
 
             // Init chart
             chart = new ApexCharts(
-                document.querySelector("#statisticsChart"),
-                {
+                document.querySelector("#statisticsChart"), {
                     chart: {
                         type: 'donut',
                         height: 680,
                         events: {
-                            dataPointSelection: function (event, chartContext, config) {
+                            dataPointSelection: function(event, chartContext, config) {
                                 const index = config.dataPointIndex;
                                 const statusKey = chartStatusMap[index];
 
@@ -1002,8 +1022,12 @@
                         "#FBC02D"
                     ],
 
-                    noData: { text: 'Loading chart data...' },
-                    dataLabels: { enabled: false },
+                    noData: {
+                        text: 'Loading chart data...'
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
 
                     legend: {
                         position: 'bottom',
@@ -1013,7 +1037,7 @@
                             height: 12,
                             radius: 12
                         },
-                        formatter: function (val, opts) {
+                        formatter: function(val, opts) {
                             const value = opts.w.globals.series[opts.seriesIndex] || 0;
                             return `${val} - ${value}`;
                         }
@@ -1050,21 +1074,21 @@
 
         //        if (resp.job_sources && resp.job_sources.length) {
         //             jobSourceHtml += `
-        //                 <div class="row text-center">
-        //                     ${resp.job_sources.map(src => `
+    //                 <div class="row text-center">
+    //                     ${resp.job_sources.map(src => `
         //                         <div class="col-md-3 col-6 mb-2">
         //                             <small class="text-muted d-block">${src.name}</small>
         //                             <span class="fw-bold fs-5">${src.total}</span>
         //                         </div>
         //                     `).join('')}
-        //                 </div>
-        //             `;
+    //                 </div>
+    //             `;
         //         } else {
         //             jobSourceHtml = `
-        //                 <div class="col-12 text-center text-muted">
-        //                     No job source data
-        //                 </div>
-        //             `;
+    //                 <div class="col-12 text-center text-muted">
+    //                     No job source data
+    //                 </div>
+    //             `;
         //         }
 
         //         $('#jobSourceStats').html(jobSourceHtml);
@@ -1080,7 +1104,7 @@
                 status: statusKey,
                 range: currentRange,
                 date_range: currentDateRange
-            }, function (resp) {
+            }, function(resp) {
 
                 console.log(resp); // DEBUG
 
@@ -1100,11 +1124,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <small class="text-muted d-block">${src.name}</small>
-                                        <span class="fw-bold fs-5">${src.total}</span>
-                                    </div>
-                                `).join('')}
+                                                                                        <div class="col-md-3 col-6 mb-2">
+                                                                                            <small class="text-muted d-block">${src.name}</small>
+                                                                                            <span class="fw-bold fs-5">${src.total}</span>
+                                                                                        </div>
+                                                                                    `).join('')}
                             </div>
                         `;
                 } else {
@@ -1124,9 +1148,9 @@
         }
 
         // Listen to clicks on counts
-        $(document).on('click', '.clickable', function () {
-            const category = $(this).data('category');  // nurses / non_nurses
-            const type = $(this).data('type');          // regular / specialist
+        $(document).on('click', '.clickable', function() {
+            const category = $(this).data('category'); // nurses / non_nurses
+            const type = $(this).data('type'); // regular / specialist
             const status = $('#statusDetailsLabel').attr('data-crm-status'); // current status
             const range = currentRange;
             const date_range = currentDateRange;
@@ -1163,7 +1187,7 @@
             let options = {
                 allowInput: false,
                 defaultDate: today,
-                onChange: function (selectedDates, dateStr) {
+                onChange: function(selectedDates, dateStr) {
                     if (!dateStr) return;
 
                     currentDateRange = dateStr;
@@ -1174,25 +1198,21 @@
 
             if (mode === "daily") {
                 options.dateFormat = "Y-m-d";
-            }
-            else if (mode === "weekly") {
+            } else if (mode === "weekly") {
                 options.mode = "range";
                 options.dateFormat = "Y-m-d";
-            }
-            else if (mode === "monthly") {
+            } else if (mode === "monthly") {
                 options.plugins = [new monthSelectPlugin({
                     shorthand: true,
                     dateFormat: "Y-m",
                     altFormat: "F Y"
                 })];
-            }
-            else if (mode === "yearly") {
+            } else if (mode === "yearly") {
                 options.plugins = [new flatpickr.plugins.yearSelect({
                     shorthand: true,
                     dateFormat: "Y"
                 })];
-            }
-            else if (mode === "aggregate") {
+            } else if (mode === "aggregate") {
                 options.mode = "range";
                 options.dateFormat = "Y-m-d";
             }
@@ -1203,7 +1223,7 @@
 
         // Dropdown filter click
         document.querySelectorAll(".stats-filter").forEach(item => {
-            item.addEventListener("click", function (e) {
+            item.addEventListener("click", function(e) {
                 e.preventDefault();
 
                 document.querySelectorAll('.stats-filter').forEach(el => el.classList.remove('active'));
@@ -1263,7 +1283,7 @@
             }, 500);
         }
 
-        $(function () {
+        $(function() {
             const today = moment().format('YYYY-MM-DD');
             $('#dateRangePicker').val(today + ' to ' + today);
             window.userStatisticsDateRange = today + '|' + today;
@@ -1280,22 +1300,24 @@
 
             $('#showDateRange').html(today + ' to ' + today);
 
-            $('#dateRangePicker').on('apply.daterangepicker', function (ev, picker) {
-                const formatted = picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD');
+            $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
+                const formatted = picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format(
+                    'YYYY-MM-DD');
                 $(this).val(formatted);
-                window.userStatisticsDateRange = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
+                window.userStatisticsDateRange = picker.startDate.format('YYYY-MM-DD') + '|' + picker
+                    .endDate.format('YYYY-MM-DD');
                 $('#showDateRange').html(formatted);
                 $('#sales_table').DataTable().ajax.reload();
             });
 
-            $('#dateRangePicker').on('cancel.daterangepicker', function (ev, picker) {
+            $('#dateRangePicker').on('cancel.daterangepicker', function(ev, picker) {
                 $(this).val('');
                 window.userStatisticsDateRange = '';
                 $('#showDateRange').html('All Data');
                 $('#sales_table').DataTable().ajax.reload();
             });
 
-            $('#clearDateRange').on('click', function () {
+            $('#clearDateRange').on('click', function() {
                 $('#dateRangePicker').val('');
                 window.userStatisticsDateRange = '';
                 $('#showDateRange').html('All Data');
@@ -1308,56 +1330,39 @@
             $('#' + modalId).remove();
 
             const modalHtml = `
-                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">User Statistics</h5>
-                                    <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    <div class="spinner-border text-primary mb-3" role="status" id="${modalId}-loader">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <div id="${modalId}-content" class="note-history-content d-none text-start"></div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">User Statistics</h5>
+                            <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="spinner-border text-primary mb-3" role="status" id="${modalId}-loader">
+                                <span class="visually-hidden">Loading...</span>
                             </div>
+                            <div id="${modalId}-content" class="note-history-content d-none text-start"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
-                `;
+                </div>
+            </div>`;
 
             $('body').append(modalHtml);
             const modal = new bootstrap.Modal(document.getElementById(modalId));
             modal.show();
 
             $.ajax({
-                url: '{{ route("getUserStatistics") }}',
+                url: '{{ route('getUserStatistics') }}',
                 type: 'POST',
                 data: {
                     _token: "{{ csrf_token() }}",
                     user_key: id,
                     date_range_filter: window.userStatisticsDateRange
                 },
-                success: function (response) {
-                    console.log('Response: ' + JSON.stringify(response));
-                    let notesHtml = `
-                            <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
-                                <div class="col-sm-12 col-md-12 col-lg-4">
-                                    ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
-                                </div>
-
-                                <div class="col-sm-12 col-md-12 col-lg-4">
-                                    ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
-                                </div>
-
-                                <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
-                                    ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
-                                </div>
-                            </div>`;
-
+                success: function(response) {
 
                     const currentIcons = {
                         open_sales: 'bag-line-duotone',
@@ -1367,7 +1372,6 @@
                         pending_sales: 'hourglass-line-duotone',
                         rejected_sales: 'shield-cross-line-duotone',
                         close_sales: 'bag-cross-line-duotone',
-
                         cvs_requested: 'file-send-broken',
                         cvs_cleared: 'shield-check-line-duotone',
                         cvs_rejected: 'shield-cross-line-duotone',
@@ -1394,164 +1398,234 @@
                         invoice: 'file-text-line-duotone',
                         paid: 'wallet-line-duotone'
                     };
+
                     const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
-                    function renderQualityStatBlock(data, icons, badgeClass) {
-                        let html = `<div class="row g-3">`;
-
-                        Object.entries(data).forEach(([key, value]) => {
-                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            const icon = icons[key] || 'dot-line-duotone';
-
-                            html += `
-                                <div class="${CARD_COL}">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon 
-                                            icon="solar:${icon}" 
-                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                        </iconify-icon>
-
-                                        <div class="d-flex flex-column justify-content-center text-truncate">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">
-                                                ${value}
-                                            </span>
-                                            <small class="text-muted text-truncate">
-                                                ${label}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        });
-
-                        html += `</div>`;
-                        return html;
-                    }
-
+                    // ── Unified card renderer ─────────────────────────────────────
                     function renderStatBlock(data, icons, badgeClass) {
                         let html = `<div class="row g-3">`;
-
                         Object.entries(data).forEach(([key, value]) => {
                             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
-
                             html += `
                                 <div class="${CARD_COL}">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon 
-                                            icon="solar:${icon}" 
+                                    <div class="d-flex align-items-center border rounded p-3 h-100 stat-card-clickable"
+                                        style="cursor:pointer;"
+                                        data-stat-key="${key}"
+                                        data-user-key="${id}"
+                                        data-label="${label}">
+                                        <iconify-icon
+                                            icon="solar:${icon}"
                                             class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
                                         </iconify-icon>
-
                                         <div class="d-flex flex-column justify-content-center text-truncate">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">
-                                                ${value}
-                                            </span>
-                                            <small class="text-muted text-truncate">
-                                                ${label}
-                                            </small>
+                                            <span class="fs-4 fw-bold text-${badgeClass}">${value}</span>
+                                            <small class="text-muted text-truncate">${label}</small>
                                         </div>
                                     </div>
                                 </div>`;
                         });
-
                         html += `</div>`;
                         return html;
                     }
 
-                    function renderDataEntryStatBlock(data, icons, badgeClass) {
-                        let html = `<div class="row g-3">`;
-                        Object.entries(data).forEach(([key, value]) => {
-                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            const icon = icons[key] || 'dot-line-duotone';
+                    // ── Build modal body ──────────────────────────────────────────
+                    let notesHtml = `
+                    <div class="row bg-primary text-white rounded px-3 py-2 mb-3 g-2">
+                        <div class="col-sm-12 col-md-12 col-lg-4">
+                            ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-4">
+                            ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
+                            ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
+                        </div>
+                    </div>`;
 
-                            html += `
-                                <div class="${CARD_COL}">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon 
-                                            icon="solar:${icon}" 
-                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                        </iconify-icon>
+                    const rt = response.user_role_type;
 
-                                        <div class="d-flex flex-column justify-content-center text-truncate">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">
-                                                ${value}
-                                            </span>
-                                            <small class="text-muted text-truncate">
-                                                ${label}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        });
-
-                        html += `</div>`;
-                        return html;
-                    }
-
-                    function renderSaleStatBlock(data, icons, badgeClass) {
-                        let html = `<div class="row g-3">`;
-                        Object.entries(data).forEach(([key, value]) => {
-                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            const icon = icons[key] || 'dot-line-duotone';
-
-                            html += `
-                                <div class="${CARD_COL}">
-                                    <div class="d-flex align-items-center border rounded p-3 h-100">
-                                        <iconify-icon 
-                                            icon="solar:${icon}" 
-                                            class="fs-1 text-${badgeClass} me-3 flex-shrink-0">
-                                        </iconify-icon>
-
-                                        <div class="d-flex flex-column justify-content-center text-truncate">
-                                            <span class="fs-4 fw-bold text-${badgeClass}">
-                                                ${value}
-                                            </span>
-                                            <small class="text-muted text-truncate">
-                                                ${label}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        });
-
-                        html += `</div>`;
-                        return html;
-                    }
-
-                    if (response.user_role_type === 'quality' || response.user_role_type === 'team_lead' || response.user_role_type === 'agent' || response.user_role_type === 'crm' && response.quality_stats && Object.keys(response.quality_stats).length > 0) {
+                    if ((rt === 'quality' || rt === 'team_lead' || rt === 'agent' || rt === 'crm') &&
+                        response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
-                        notesHtml += renderQualityStatBlock(response.quality_stats, currentIcons, 'primary');
+                        notesHtml += renderStatBlock(response.quality_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' || response.user_role_type === 'crm' && response.user_stats && Object.keys(response.user_stats).length > 0) {
+                    if ((rt === 'agent' || rt === 'team_lead' || rt === 'crm') &&
+                        response.user_stats && Object.keys(response.user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">CRM Statistics</h6>';
                         notesHtml += renderStatBlock(response.user_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'data_entry' && response.data_entry_stats && Object.keys(response.data_entry_stats).length > 0) {
+                    if (rt === 'data_entry' &&
+                        response.data_entry_stats && Object.keys(response.data_entry_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Applicants Statistics</h6>';
-                        notesHtml += renderDataEntryStatBlock(response.data_entry_stats, currentIcons, 'primary');
+                        notesHtml += renderStatBlock(response.data_entry_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'sales' && response.sales_stats && Object.keys(response.sales_stats).length > 0) {
+                    if (rt === 'sales' &&
+                        response.sales_stats && Object.keys(response.sales_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Sales Statistics</h6>';
-                        notesHtml += renderSaleStatBlock(response.sales_stats, currentIcons, 'primary');
+                        notesHtml += renderStatBlock(response.sales_stats, currentIcons, 'primary');
                     }
 
-                    if (response.user_role_type === 'agent' || response.user_role_type === 'team_lead' && response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
+                    if ((rt === 'agent' || rt === 'team_lead') &&
+                        response.prev_user_stats && Object.keys(response.prev_user_stats).length > 0) {
                         notesHtml += '<h6 class="mt-4">Previous Month Stats</h6>';
-                        notesHtml += renderQualityStatBlock(response.prev_user_stats, prevIcons, 'secondary');
+                        notesHtml += renderStatBlock(response.prev_user_stats, prevIcons, 'secondary');
                     }
 
                     $(`#${modalId}-loader`).hide();
                     $(`#${modalId}-content`).removeClass('d-none').html(notesHtml);
+
+                    // ── Card click → open detail modal ────────────────────────────
+                    $(`#${modalId}-content`).on('click', '.stat-card-clickable', function() {
+                        const statKey = $(this).data('stat-key');
+                        const userKey = $(this).data('user-key');
+                        const label = $(this).data('label');
+                        showStatDetailModal(userKey, statKey, label);
+                    });
                 },
-                error: function (xhr) {
+                error: function(xhr) {
                     $(`#${modalId}-loader`).hide();
-                    $(`#${modalId}-content`).removeClass('d-none').html('<p class="text-danger">Error retrieving statistics. Please try again.</p>');
+                    $(`#${modalId}-content`).removeClass('d-none').html(
+                        '<p class="text-danger">Error retrieving statistics. Please try again.</p>'
+                    );
                     console.error(xhr.responseText);
                 }
             });
+        }
+
+        // ── Detail Modal ──────────────────────────────────────────────────────────────
+        function showStatDetailModal(userId, statKey, label) {
+            const drawerId = 'statDrawer-' + userId + '-' + statKey;
+
+            const existingEl = document.getElementById(drawerId);
+            if (existingEl) {
+                const existingInstance = bootstrap.Offcanvas.getInstance(existingEl);
+
+                if (existingInstance && existingEl.classList.contains('show')) {
+                    existingEl.addEventListener('hidden.bs.offcanvas', function() {
+                        const instance = bootstrap.Offcanvas.getInstance(existingEl);
+                        if (instance) instance.dispose();
+                        existingEl.remove();
+                        createDrawer();
+                    }, {
+                        once: true
+                    });
+
+                    existingInstance.hide();
+                    return;
+                }
+
+                if (existingInstance) existingInstance.dispose();
+                existingEl.remove();
+            }
+
+            createDrawer();
+
+            function createDrawer() {
+                const drawerHtml = `
+                    <div class="offcanvas offcanvas-end" tabindex="-1" id="${drawerId}" style="width: 80%; z-index: 1080;">
+
+                        <div class="offcanvas-header bg-primary text-white">
+                            <h5 class="offcanvas-title">
+                                <iconify-icon icon="solar:list-line-duotone" class="me-2"></iconify-icon>
+                                ${label} — Details
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+                        </div>
+
+                        <div class="offcanvas-body" style="background-color:#e1e5ec;">
+
+                            <div class="text-center py-4" id="${drawerId}-loader">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Loading details...</p>
+                            </div>
+
+                            <div id="${drawerId}-content" class="d-none"></div>
+
+                        </div>
+
+                        <div class="border-top p-3 d-flex justify-content-between">
+                            <span class="text-muted small" id="${drawerId}-total"></span>
+                            <button class="btn btn-dark btn-sm" data-bs-dismiss="offcanvas">Close</button>
+                        </div>
+
+                    </div>
+                `;
+
+                $('body').append(drawerHtml);
+
+                const drawerEl = document.getElementById(drawerId);
+                drawerEl.addEventListener('hidden.bs.offcanvas', function() {
+                    const instance = bootstrap.Offcanvas.getInstance(drawerEl);
+                    if (instance) instance.dispose();
+                    drawerEl.remove();
+                }, {
+                    once: true
+                });
+
+                const drawer = new bootstrap.Offcanvas(drawerEl, {
+                    backdrop: false,
+                    scroll: true
+                });
+
+                drawer.show();
+                loadDrawerContent(drawerId);
+            }
+
+            function loadDrawerContent(id) {
+                $.ajax({
+                    url: '{{ route('getUserStatisticsDetail') }}',
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        user_key: userId,
+                        stat_key: statKey,
+                        date_range_filter: window.userStatisticsDateRange
+                    },
+                    success: function(response) {
+                        $(`#${id}-loader`).hide();
+                        $(`#${id}-total`).text(`Total records: ${response.total}`);
+
+                        if (!response.rows || response.rows.length === 0) {
+                            $(`#${id}-content`)
+                                .removeClass('d-none')
+                                .html('<p class="text-muted text-center py-3">No records found.</p>');
+                            return;
+                        }
+
+                        let tableHtml = `
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-sm align-middle">
+                                    <thead class="bg-dark ">
+                                        <tr>
+                                            ${response.columns.map(col => `<th class="text-nowrap text-white">${col}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+
+                        response.rows.forEach(row => {
+                            tableHtml +=
+                                `<tr>${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}</tr>`;
+                        });
+
+                        tableHtml += `</tbody></table></div>`;
+
+                        $(`#${id}-content`)
+                            .removeClass('d-none')
+                            .html(tableHtml);
+                    },
+                    error: function(xhr) {
+                        $(`#${id}-loader`).hide();
+                        $(`#${id}-content`)
+                            .removeClass('d-none')
+                            .html('<p class="text-danger text-center">Error loading details.</p>');
+                    }
+                });
+            }
         }
 
         function fetchWeeklySales() {
@@ -1581,26 +1655,27 @@
                     })
                     .catch(error => {
                         console.error('Error fetching weekly sales:', error);
-                        document.getElementById('weeklySalesDetails').innerHTML = '<p class="text-danger">Failed to load data.</p>';
+                        document.getElementById('weeklySalesDetails').innerHTML =
+                            '<p class="text-danger">Failed to load data.</p>';
                         reject(error);
                     });
             });
         }
 
         // Initial call for weekly sales
-        $.when(fetchWeeklySales()).done(function () {
+        $.when(fetchWeeklySales()).done(function() {
             console.log('Weekly sales fetched successfully');
-        }).fail(function (error) {
+        }).fail(function(error) {
             console.error('Failed to fetch weekly sales:', error);
         });
 
-        setInterval(function () {
-            $.when(fetchWeeklySales()).done(function () {
+        setInterval(function() {
+            $.when(fetchWeeklySales()).done(function() {
                 console.log('Weekly sales updated');
             });
         }, 60000);
 
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
@@ -1620,31 +1695,57 @@
                 ajax: {
                     url: @json(route('getUsersForDashboard')),
                     type: 'GET',
-                    data: function (d) {
+                    data: function(d) {
                         d.status_filter = window.currentFilter || '';
                     },
-                    beforeSend: function () {
+                    beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#users_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#users_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'name', name: 'users.name' },
-                    { data: 'email', name: 'users.email' },
-                    { data: 'role_name', name: 'roles.name' },
-                    { data: 'created_at', name: 'users.created_at' },
-                    { data: 'is_active', name: 'users.is_active', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'name',
+                        name: 'users.name'
+                    },
+                    {
+                        data: 'email',
+                        name: 'users.email'
+                    },
+                    {
+                        data: 'role_name',
+                        name: 'roles.name'
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'users.created_at'
+                    },
+                    {
+                        data: 'is_active',
+                        name: 'users.is_active',
+                        orderable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
-                rowId: function (data) {
+                rowId: function(data) {
                     return 'row_' + data.id;
                 },
                 dom: 'flrtip',
-                drawCallback: function (settings) {
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -1756,10 +1857,6 @@
                 table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-
     </script>
-    @vite([
-        'resources/js/pages/dashboard-analytics.js',
-    ])
-
+    @vite(['resources/js/pages/dashboard-analytics.js'])
 @endsection

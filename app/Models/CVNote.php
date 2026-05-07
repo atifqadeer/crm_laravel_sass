@@ -14,7 +14,7 @@ class CVNote extends Model
         // 'id',
         'cv_uid',
         'user_id',
-        'sale_id', 
+        'sale_id',
         'applicant_id',
         'details',
         'status',
@@ -42,5 +42,8 @@ class CVNote extends Model
     {
         return $this->belongsTo(Sale::class, 'sale_id', 'id');
     }
-
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id');
+    }
 }
