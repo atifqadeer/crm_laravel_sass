@@ -587,6 +587,8 @@ class DashboardController extends Controller
                 'prev_user_stats'  => $prev_user_stats,
                 'data_entry_stats' => $data_entry_stats,
                 'sales_stats'      => $sales_stats,
+                'start_date'       => $startDate->format('d M Y'),
+                'end_date'         => $endDate->format('d M Y'),
             ]);
         } catch (\Exception $e) {
 
@@ -650,13 +652,12 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Sale ID', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+                $columns = ['#', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($audits as $i => $audit) {
                     $sale   = $audit->auditable;
                     $rows[] = [
                         $i + 1,
-                        $sale->id                  ?? '—',
                         $sale->jobCategory->name   ?? '—',
                         $sale->jobTitle->name      ?? '—',
                         $sale->sale_postcode       ?? '—',
@@ -680,12 +681,13 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $i => $cv) {
                     $rows[] = [
                         $i + 1,
                         $cv->applicant->applicant_name  ?? '—',
+                        $cv->applicant->applicant_postcode ?? '—',
                         $cv->sale->jobCategory->name    ?? '—',
                         $cv->sale->jobTitle->name       ?? '—',
                         $cv->sale->sale_postcode        ?? '—',
@@ -709,11 +711,12 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $cv) {
                     $cleared = History::query()
                         ->with($saleWith)
+                        ->join('units', 'units.id', '=', 'sales.unit_id')
                         ->where('sub_stage', 'quality_cleared')
                         ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
@@ -725,6 +728,7 @@ class DashboardController extends Controller
                         $rows[] = [
                             count($rows) + 1,
                             $cleared->applicant->applicant_name  ?? '—',
+                            $cleared->applicant->applicant_postcode ?? '—',
                             $cleared->sale->jobCategory->name    ?? '—',
                             $cleared->sale->jobTitle->name       ?? '—',
                             $cleared->sale->sale_postcode        ?? '—',
@@ -749,7 +753,7 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $cv) {
                     $rejected = History::query()
@@ -765,6 +769,7 @@ class DashboardController extends Controller
                         $rows[] = [
                             count($rows) + 1,
                             $rejected->applicant->applicant_name  ?? '—',
+                            $rejected->applicant->applicant_postcode ?? '—',
                             $rejected->sale->jobCategory->name    ?? '—',
                             $rejected->sale->jobTitle->name       ?? '—',
                             $rejected->sale->sale_postcode        ?? '—',
@@ -782,7 +787,7 @@ class DashboardController extends Controller
                 // ══════════════════════════════════════════════════════════════════════
             } elseif (str_starts_with($stat_key, 'CRM_')) {
 
-                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
 
                 // ── Step 1: same cv_notes base as counter ─────────────────────────
                 $cvNotes = CVNote::query()
@@ -884,12 +889,13 @@ class DashboardController extends Controller
                         $rows[] = [
                             count($rows) + 1,
                             $h->applicant->applicant_name  ?? '—',
+                            $h->applicant->applicant_postcode ?? '—',
                             $h->sale->jobCategory->name    ?? '—',
                             $h->sale->jobTitle->name       ?? '—',
                             $h->sale->sale_postcode        ?? '—',
                             $h->sale->office->office_name  ?? '—',
                             $h->sale->unit->unit_name      ?? '—',
-                            'Quality Cleared',
+                            'CRM Sent CVs',
                             $h->updated_at->format('d M Y h:i A'),
                         ];
                         continue;
@@ -907,6 +913,8 @@ class DashboardController extends Controller
                             $rows[] = [
                                 count($rows) + 1,
                                 $h->applicant->applicant_name  ?? '—',
+                                $h->applicant->applicant_postcode ?? '—',
+                                $h->sale->jobCategory->name    ?? '—',
                                 $h->sale->jobTitle->name       ?? '—',
                                 $h->sale->sale_postcode        ?? '—',
                                 $h->sale->office->office_name  ?? '—',
@@ -949,6 +957,8 @@ class DashboardController extends Controller
                         $rows[] = [
                             count($rows) + 1,
                             $h->applicant->applicant_name  ?? '—',
+                            $h->applicant->applicant_postcode ?? '—',
+                            $h->sale->jobCategory->name    ?? '—',
                             $h->sale->jobTitle->name       ?? '—',
                             $h->sale->sale_postcode        ?? '—',
                             $h->sale->office->office_name  ?? '—',
@@ -984,6 +994,7 @@ class DashboardController extends Controller
                     $rows[] = [
                         count($rows) + 1,
                         $h->applicant->applicant_name  ?? '—',
+                        $h->applicant->applicant_postcode ?? '—',
                         $h->sale->jobCategory->name    ?? '—',
                         $h->sale->jobTitle->name       ?? '—',
                         $h->sale->sale_postcode        ?? '—',
@@ -1009,15 +1020,34 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->get();
 
-                $columns = ['#', 'Applicant Name', 'Email', 'Phone', 'Created At'];
+                $columns = ['#', 'Applicant Name', 'PostCode', 'Email', 'Phone', 'Created At'];
 
                 foreach ($audits as $i => $audit) {
                     $applicant = $audit->auditable;
+                    $email = '—';
+                    if ($applicant->applicant_name && !$applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email;
+                    } elseif (!$applicant->applicant_name && $applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email_secondary;
+                    } elseif ($applicant->applicant_name && $applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    }
+
+                    $phone = '—';
+                    if ($applicant->applicant_phone && !$applicant->applicant_landline) {
+                        $phone = $applicant->applicant_phone;
+                    } elseif (!$applicant->applicant_phone && $applicant->applicant_landline) {
+                        $phone = $applicant->applicant_landline;
+                    } elseif ($applicant->applicant_phone && $applicant->applicant_landline) {
+                        $phone = $applicant->applicant_phone . '<br>' . $applicant->applicant_landline;
+                    }
+
                     $rows[]    = [
                         $i + 1,
                         $applicant->applicant_name ?? '—',
-                        $applicant->email          ?? '—',
-                        $applicant->phone          ?? '—',
+                        $applicant->applicant_postcode ?? '—',
+                        $email,
+                        $phone,
                         $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
@@ -1031,15 +1061,33 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate]) // created_at matches counter
                     ->get();
 
-                $columns = ['#', 'Applicant Name', 'Email', 'Phone', 'Updated At'];
+                $columns = ['#', 'Applicant Name', 'PostCode', 'Email', 'Phone', 'Updated At'];
 
                 foreach ($audits as $i => $audit) {
                     $applicant = $audit->auditable;
+                    $email = '—';
+                    if ($applicant->applicant_name && !$applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email;
+                    } elseif (!$applicant->applicant_name && $applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email_secondary;
+                    } elseif ($applicant->applicant_name && $applicant->applicant_email_secondary) {
+                        $email = $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary;
+                    }
+
+                    $phone = '—';
+                    if ($applicant->applicant_phone && !$applicant->applicant_landline) {
+                        $phone = $applicant->applicant_phone;
+                    } elseif (!$applicant->applicant_phone && $applicant->applicant_landline) {
+                        $phone = $applicant->applicant_landline;
+                    } elseif ($applicant->applicant_phone && $applicant->applicant_landline) {
+                        $phone = $applicant->applicant_phone . '<br>' . $applicant->applicant_landline;
+                    }
                     $rows[]    = [
                         $i + 1,
                         $applicant->applicant_name ?? '—',
-                        $applicant->email          ?? '—',
-                        $applicant->phone          ?? '—',
+                        $applicant->applicant_postcode ?? '—',
+                        $email,
+                        $phone,
                         $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
@@ -1048,7 +1096,7 @@ class DashboardController extends Controller
                 // PREVIOUS MONTH STATS
                 // CVs created BEFORE the range but whose history falls WITHIN it.
                 // unique() on pairs + first() mirrors the counter's keyBy() dedupe.
-                // ══════════════════════════════════════════════════════════════════════
+                // ════════════════════════════════════════════════════════════════════════
             } elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
 
                 $subStageMap = [
@@ -1066,7 +1114,7 @@ class DashboardController extends Controller
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id) // mirrors counter
                     ->values();
 
-                $columns = ['#', 'Applicant', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
 
                 foreach ($prevCvNotes as $cv) {
                     // first() — mirrors keyBy() in counter: 1 row per pair
@@ -1082,6 +1130,7 @@ class DashboardController extends Controller
                         $rows[] = [
                             count($rows) + 1,
                             $history->applicant->applicant_name  ?? '—',
+                            $history->applicant->applicant_postcode  ?? '—',
                             $history->sale->jobCategory->name    ?? '—',
                             $history->sale->jobTitle->name       ?? '—',
                             $history->sale->sale_postcode        ?? '—',

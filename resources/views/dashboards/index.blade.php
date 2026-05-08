@@ -750,6 +750,22 @@
     <!-- DataTables JS -->
     <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
+    <!-- DataTables Buttons Extension CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+    <!-- DataTables Buttons Extension JS -->
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+
+    <!-- JSZip (for Excel export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- PDFMake (for PDF export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
+
+    <!-- DataTables HTML5 Button Extension (Excel/PDF) -->
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
@@ -1124,11 +1140,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                                                                                <div class="col-md-3 col-6 mb-2">
-                                                                                                    <small class="text-muted d-block">${src.name}</small>
-                                                                                                    <span class="fw-bold fs-5">${src.total}</span>
-                                                                                                </div>
-                                                                                            `).join('')}
+                                                                                                                                                                    <div class="col-md-3 col-6 mb-2">
+                                                                                                                                                                        <small class="text-muted d-block">${src.name}</small>
+                                                                                                                                                                        <span class="fw-bold fs-5">${src.total}</span>
+                                                                                                                                                                    </div>
+                                                                                                                                                                `).join('')}
                             </div>
                         `;
                 } else {
@@ -1291,6 +1307,7 @@
             $('#dateRangePicker').daterangepicker({
                 startDate: moment(),
                 endDate: moment(),
+                maxDate: moment(), // ✅ disables all future dates
                 autoUpdateInput: true,
                 locale: {
                     cancelLabel: 'Clear',
@@ -1436,7 +1453,7 @@
                             ${response.user_name ? `<p class="mb-0"><strong>User:</strong> ${response.user_name}</p>` : ''}
                         </div>
                         <div class="col-sm-12 col-md-12 col-lg-4">
-                            ${window.userStatisticsDateRange ? `<p class="mb-0"><strong>Date Range:</strong> ${window.userStatisticsDateRange}</p>` : ''}
+                            ${response.start_date ? `<p class="mb-0"><strong>Date Range:</strong> ${response.start_date} to ${response.end_date}</p>` : ''}
                         </div>
                         <div class="col-sm-12 col-md-12 col-lg-4 text-lg-end">
                             ${response.user_role ? `<p class="mb-0"><strong>Role:</strong> ${response.user_role}</p>` : ''}
@@ -1526,44 +1543,39 @@
 
             function createDrawer() {
                 const drawerHtml = `
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="${drawerId}"
-                 style="width:80%; z-index:1080; visibility:hidden;">
+                    <div class="offcanvas offcanvas-end" tabindex="-1" id="${drawerId}"
+                        style="width:80%; z-index:1080; visibility:hidden;">
 
-                <div class="offcanvas-header bg-primary text-white">
-                    <h5 class="offcanvas-title">
-                        <iconify-icon icon="solar:list-line-duotone" class="me-2"></iconify-icon>
-                        ${label} — Details
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white"
-                            data-bs-dismiss="offcanvas"></button>
-                </div>
+                        <div class="offcanvas-header bg-primary text-white">
+                            <h5 class="offcanvas-title">
+                                <iconify-icon icon="solar:list-line-duotone" class="me-2"></iconify-icon>
+                                ${label} — Details
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white"
+                                    data-bs-dismiss="offcanvas"></button>
+                        </div>
 
-                <div class="offcanvas-body" style="background-color:#e1e5ec;">
-                    <div class="text-center py-4" id="${drawerId}-loader">
-                        <div class="spinner-border text-primary"></div>
-                        <p class="mt-2 text-muted">Loading details...</p>
+                        <div class="offcanvas-body" style="background-color:#e1e5ec; overflow-y:auto;">
+                            <div class="text-center py-4" id="${drawerId}-loader">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Loading details...</p>
+                            </div>
+                            <div id="${drawerId}-content" class="d-none"></div>
+                        </div>
+
+                        <div class="border-top p-3 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small" id="${drawerId}-total"></span>
+                            <button class="btn btn-dark btn-sm" data-bs-dismiss="offcanvas">Close</button>
+                        </div>
                     </div>
-                    <div id="${drawerId}-content" class="d-none"></div>
-                </div>
-
-                <div class="border-top p-3 d-flex justify-content-between">
-                    <span class="text-muted small" id="${drawerId}-total"></span>
-                    <button class="btn btn-dark btn-sm"
-                            data-bs-dismiss="offcanvas">Close</button>
-                </div>
-            </div>
-        `;
+                `;
 
                 $('body').append(drawerHtml);
 
                 const drawerEl = document.getElementById(drawerId);
 
-                // ✅ Two rAF calls: first lets the browser register the element in its
-                //    initial hidden/translated state; second triggers the transition.
-                //    A single rAF is sometimes still too early on slower devices.
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        // ✅ Restore visibility now that the browser has the start state
                         drawerEl.style.visibility = '';
 
                         const drawer = new bootstrap.Offcanvas(drawerEl, {
@@ -1571,8 +1583,20 @@
                             scroll: true
                         });
 
-                        // ✅ Clean up on close — dispose + remove from DOM
+                        // ✅ FIX: Bootstrap's offcanvas focus trap intercepts clicks on inputs.
+                        //    Removing the listener that Bootstrap attaches for focus management
+                        //    allows the DataTable search input to receive clicks normally.
+                        drawerEl.addEventListener('shown.bs.offcanvas', function() {
+                            drawerEl.removeAttribute('tabindex');
+                        }, {
+                            once: true
+                        });
+
                         drawerEl.addEventListener('hidden.bs.offcanvas', function() {
+                            const tableId = `${drawerId}-table`;
+                            if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
+                                $(`#${tableId}`).DataTable().destroy();
+                            }
                             const instance = bootstrap.Offcanvas.getInstance(drawerEl);
                             if (instance) instance.dispose();
                             drawerEl.remove();
@@ -1607,28 +1631,78 @@
                             return;
                         }
 
+                        const tableId = `${id}-table`;
+
                         let tableHtml = `
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover table-sm align-middle">
-                            <thead class="bg-dark">
-                                <tr>
-                                    ${response.columns.map(col =>
-                                        `<th class="text-nowrap text-white">${col}</th>`
-                                    ).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
+                            <table id="${tableId}"
+                                class="table table-bordered table-hover table-sm align-middle w-100">
+                                <thead class="bg-dark">
+                                    <tr>
+                                        ${response.columns.map(col =>
+                                            `<th class="text-nowrap text-white">${col}</th>`
+                                        ).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${response.rows.map(row => `
+                                                                    <tr>
+                                                                        ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
+                                                                    </tr>
+                                                                `).join('')}
+                                </tbody>
+                            </table>
+                        `;
 
-                        response.rows.forEach(row => {
-                            tableHtml += `<tr>${row.map(cell =>
-                        `<td>${cell ?? '—'}</td>`
-                    ).join('')}</tr>`;
-                        });
+                        $(`#${id}-content`)
+                            .removeClass('d-none')
+                            .html(tableHtml);
 
-                        tableHtml += `</tbody></table></div>`;
+                        setTimeout(() => {
+                            $(`#${tableId}`).DataTable({
+                                pageLength: 10,
+                                responsive: true,
+                                ordering: true,
+                                searching: true,
+                                destroy: true,
+                                dom: 'Brtip',
 
-                        $(`#${id}-content`).removeClass('d-none').html(tableHtml);
+                                buttons: [{
+                                        extend: 'csvHtml5',
+                                        text: '📥 CSV',
+                                        className: 'btn btn-success btn-sm me-1',
+                                        title: label
+                                    },
+                                    {
+                                        extend: 'pdfHtml5',
+                                        text: '📄 PDF',
+                                        className: 'btn btn-danger btn-sm',
+                                        title: label,
+                                        orientation: 'landscape',
+                                        pageSize: 'A4'
+                                    }
+                                ],
+
+                                initComplete: function() {
+                                    const wrapper = `#${tableId}_wrapper`;
+
+                                    // Style search input - DON'T modify aria attributes
+                                    $(`${wrapper} .dataTables_filter input`)
+                                        .addClass('form-control form-control-sm')
+                                        .attr('placeholder', 'Search records...')
+                                        .css({
+                                            'width': '250px',
+                                            'margin-left': '8px'
+                                        });
+
+                                    $(`${wrapper} .dataTables_filter label`)
+                                        .addClass('d-flex align-items-center gap-2 mb-0')
+                                        .css('font-weight', '500');
+
+                                    $(`${wrapper} .dt-buttons`)
+                                        .addClass('d-inline-block me-2');
+                                }
+                            });
+                        }, 150);
                     },
                     error: function(xhr) {
                         $(`#${id}-loader`).hide();
