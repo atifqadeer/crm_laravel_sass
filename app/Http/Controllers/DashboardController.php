@@ -716,7 +716,6 @@ class DashboardController extends Controller
                 foreach ($cvNotes as $cv) {
                     $cleared = History::query()
                         ->with($saleWith)
-                        ->join('units', 'units.id', '=', 'sales.unit_id')
                         ->where('sub_stage', 'quality_cleared')
                         ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
