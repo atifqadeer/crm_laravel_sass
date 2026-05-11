@@ -93,8 +93,15 @@ class ScrapController extends Controller
             $jobChunks = array_chunk($jobs, $chunkSize);
             $importedCount = 0;
             $failedChunks = [];
+            $startTime = microtime(true);
+            $maxRequestTime = 25; // Stop everything after 25 seconds to prevent 504
 
             foreach ($jobChunks as $chunkIndex => $jobChunk) {
+                if (microtime(true) - $startTime > $maxRequestTime) {
+                    Log::warning('[ScrapImport] Stopping import early due to total request time limit.');
+                    break;
+                }
+
                 try {
                     $result = match (true) {
                         str_contains($actorKey, 'scrap_apify_indeed') => $this->persistJobsIndeed($jobChunk),
@@ -173,8 +180,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 50; // Reduced to 5 for faster processing
-        $maxChunkTime = 80; // Each chunk gets 40 seconds max
+        $dbChunkSize = 5; // Check time limits more frequently
+        $maxChunkTime = 25; // Total time allowed for this iteration
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
@@ -195,7 +202,7 @@ class ScrapController extends Controller
                         'chunk_size' => $chunkCount,
                         'elapsed_seconds' => round($chunkElapsed, 2),
                     ]);
-                    break;
+                    return $importedCount; // Stop entire process and return current count
                 }
 
                 DB::beginTransaction();
@@ -762,8 +769,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 50; // Reduced to 5 for faster processing
-        $maxChunkTime = 80; // Each chunk gets 40 seconds max
+        $dbChunkSize = 5;
+        $maxChunkTime = 25;
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
@@ -783,7 +790,7 @@ class ScrapController extends Controller
                         'chunk_size' => $chunkCount,
                         'elapsed_seconds' => round($chunkElapsed, 2),
                     ]);
-                    break;
+                    return $importedCount;
                 }
 
                 DB::beginTransaction();
@@ -1231,8 +1238,8 @@ class ScrapController extends Controller
         // If this runs via HTTP, avoid PHP killing it
         set_time_limit(0);
 
-        $dbChunkSize = 50; // Reduced to 5 for faster processing
-        $maxChunkTime = 80; // Each chunk gets 40 seconds max
+        $dbChunkSize = 5;
+        $maxChunkTime = 25;
 
         foreach (array_chunk($jobs, $dbChunkSize) as $chunkIndex => $jobChunk) {
             $chunkStartTime = microtime(true);
@@ -1252,7 +1259,7 @@ class ScrapController extends Controller
                         'chunk_size' => $chunkCount,
                         'elapsed_seconds' => round($chunkElapsed, 2),
                     ]);
-                    break;
+                    return $importedCount;
                 }
 
                 DB::beginTransaction();
