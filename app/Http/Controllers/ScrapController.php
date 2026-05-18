@@ -252,10 +252,10 @@ class ScrapController extends Controller
                     "LOWER(REPLACE(office_name,' ','')) = ?",
                     [strtolower(str_replace(' ', '', $companyName))]
                 )
-                    ->whereRaw(
-                        "LOWER(REPLACE(office_postcode,' ','')) = ?",
-                        [strtolower(str_replace(' ', '', $postcode))]
-                    )
+                    // ->whereRaw(
+                    //     "LOWER(REPLACE(office_postcode,' ','')) = ?",
+                    //     [strtolower(str_replace(' ', '', $postcode))]
+                    // )
                     ->first();
 
                 $companyWebsite = null;
@@ -1517,11 +1517,11 @@ class ScrapController extends Controller
                 'connect_timeout' => 2,  // Reduced from 3 to fail faster
                 'timeout' => 5,  // Reduced from 10 to fail faster
             ])->get($serpapiSettings['url'], [  // ✅ use dynamic URL
-                        'q' => $companyName . ' ' . $serpapiSettings['keywords'],
-                        'api_key' => $serpapiSettings['api_key'], // ✅ use dynamic API key
-                        'num' => 1,   // ✅ only fetch 1 result to save credits
-                        'engine' => $serpapiSettings['engine'], // ✅ use dynamic engine
-                    ]);
+                'q' => $companyName . ' ' . $serpapiSettings['keywords'],
+                'api_key' => $serpapiSettings['api_key'], // ✅ use dynamic API key
+                'num' => 1,   // ✅ only fetch 1 result to save credits
+                'engine' => $serpapiSettings['engine'], // ✅ use dynamic engine
+            ]);
 
             if (!$response->ok()) {
                 Log::warning('[ScrapImport] Company lookup failed', [
@@ -1654,9 +1654,9 @@ class ScrapController extends Controller
                 'connect_timeout' => 2,  // Reduced to fail faster
                 'timeout' => 5,  // Reduced to fail faster
             ])->withHeaders([
-                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept' => 'text/html,application/xhtml+xml',
-                    ])->get($url);
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml',
+            ])->get($url);
 
             if (!$response->ok()) {
                 return null;
@@ -1787,10 +1787,10 @@ class ScrapController extends Controller
                 'connect_timeout' => 3,  // ✅ max 3s to establish connection
                 'timeout' => 10,  // ✅ max 5s for full response
             ])->get('https://api.postcodes.io/postcodes', [
-                        'lon' => $lng,
-                        'lat' => $lat,
-                        'limit' => 1,
-                    ]);
+                'lon' => $lng,
+                'lat' => $lat,
+                'limit' => 1,
+            ]);
 
             if (!$response->successful()) {
                 Log::warning('[ScrapImport] Postcodes API failed', [
@@ -1874,9 +1874,9 @@ class ScrapController extends Controller
                 'connect_timeout' => 3,
                 'timeout' => 8,
             ])->withHeaders([
-                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept' => 'text/html,application/xhtml+xml',
-                    ])->get($contactPageUrl);
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml',
+            ])->get($contactPageUrl);
 
             if (!$response->ok()) {
                 Log::warning('[ScrapImport] Contact page fetch failed', [
@@ -2511,7 +2511,7 @@ class ScrapController extends Controller
             ->addColumn(
                 'unit_notes',
                 fn($u) => '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int) $u->id . ')">'
-                . nl2br(e($u->unit_notes)) . '</a>'
+                    . nl2br(e($u->unit_notes)) . '</a>'
             )
             ->addColumn('action', function ($u) {
                 $postcode = $u->formatted_postcode;
@@ -2888,7 +2888,7 @@ class ScrapController extends Controller
                     if ($sale->lat != null && $sale->lng != null) {
                         $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
                         $button = '<a target="_blank" href="' . $url . '" class="active_postcode">' . $sale->formatted_postcode . '</a>'; // Using accessor
-    
+
                         return '<div class="d-flex align-items-center justify-content-between">' . $button . $copyBtn . '</div>';
                     } else {
                         return '<div class="d-flex align-items-center justify-content-between"><span>' . $sale->formatted_postcode . '</span>' . $copyBtn . '</div>';
