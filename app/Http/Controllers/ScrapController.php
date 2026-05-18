@@ -51,6 +51,19 @@ class ScrapController extends Controller
      */
     public function importJobs(Request $request)
     {
+        // ---------------------------------------------------------------
+        // 0. EXTEND PHP RUNTIME LIMITS FOR LONG-RUNNING IMPORT
+        // ---------------------------------------------------------------
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+
+        @ini_set('max_execution_time', '0');
+        @ini_set('max_input_time', '-1');
+        @ini_set('memory_limit', '512M');
+        @ini_set('default_socket_timeout', '60');
+        @ini_set('request_terminate_timeout', '0');   // ← FPM pool request timeout
+
         $actorKey = $request->input('actor_key');
 
         if (empty($actorKey)) {
@@ -58,12 +71,6 @@ class ScrapController extends Controller
                 'success' => false,
                 'message' => 'actor_key is required.',
             ], 422);
-        }
-
-        // Allow this import action to run longer than PHP's default request limit.
-        // The actual HTTP requests inside the import are still bounded by per-request timeouts.
-        if (function_exists('set_time_limit')) {
-            set_time_limit(0);
         }
 
         $input = $request->input('input', []);
@@ -481,6 +488,7 @@ class ScrapController extends Controller
                 // UNIT
                 // ===============================
                 $unitName = null;
+
                 if ($descriptionHtml && preg_match('/<b>Branch:\s*<\/b>\s*([^<]+)/i', $descriptionHtml, $m)) {
                     $unitName = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                 }
@@ -499,24 +507,22 @@ class ScrapController extends Controller
 
                 if (!$unit) {
                     // ⚡ Skip extra HTTP scrape for unit — reuse office website data when name matches
+                    $unitContactsList = [];
                     $unitWebsite = null;
-                    $unitEmails = [];
-                    $unitPhones = [];
 
                     $unitCacheKey = strtolower(trim($unitName));
                     if ($unitName !== $companyName) {
                         if (!isset($companyWebsiteCache[$unitCacheKey])) {
                             $companyWebsiteCache[$unitCacheKey] = $this->getScrappedCompanyWebsiteData($unitName);
                         }
+
                         $unitDetails = $companyWebsiteCache[$unitCacheKey];
+                        $contactsList[] = [
+                            'contact_name' => $unitName,
+                            'contact_phone' => $unitDetails['company_phones'],
+                            'contact_email' => $unitDetails['company_emails'],
+                        ];
                         $unitWebsite = $unitDetails['company_url'] ?? null;
-                        $unitEmails = $unitDetails['company_emails'] ?? [];
-                        $unitPhones = $unitDetails['company_phones'] ?? [];
-                    } else {
-                        // Same name as company — reuse already-fetched data
-                        $unitWebsite = $companyWebsite;
-                        $unitEmails = $companyEmails;
-                        $unitPhones = $companyPhones;
                     }
 
                     $unit = Unit::create([
@@ -532,8 +538,9 @@ class ScrapController extends Controller
                         'unit_uid' => md5(uniqid()),
                     ]);
 
-                    foreach ($unitEmails as $i => $email) {
-                        $email = preg_replace('/\s+/', '', strtolower(trim($email)));
+                    foreach ($unitContactsList as $i => $contact) {
+                        $email = preg_replace('/\s+/', '', strtolower(trim($contact['contact_email'])));
+
                         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                             continue;
                         }
@@ -606,7 +613,7 @@ class ScrapController extends Controller
                 // ===============================
                 // JOB SOURCE
                 // ===============================
-                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['indeed'])->first();
+                $jobSource = $this->resolveJobSource('indeed');
 
                 if (!$jobSource) {
                     Log::warning('[ScrapImport] JobSource "indeed" not found, skipping job.');
@@ -1061,7 +1068,7 @@ class ScrapController extends Controller
                     ->whereRaw("REPLACE(sale_postcode,' ','')=?", [str_replace(' ', '', $postcode)])
                     ->first();
 
-                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['total job'])->first();
+                $jobSource = $this->resolveJobSource('total job');
 
                 if (!$existingSale) {
                     $sale = Sale::create([
@@ -1409,7 +1416,7 @@ class ScrapController extends Controller
                         : '');
 
                 // Normalize spacing
-                $salary = trim($salary) . ' per annum';
+                $salary = trim((string)$salary) . ' per annum';
 
                 // Add £ if no symbol found
                 if ($salary && !preg_match('/[£$€]/u', $salary)) {
@@ -1453,7 +1460,7 @@ class ScrapController extends Controller
 
                 $existingSale = Sale::where('sale_notes', 'LIKE', '%' . $jobUrl . '%')->first();
 
-                $jobSource = JobSource::whereRaw('LOWER(name) = ?', ['reed'])->first();
+                $jobSource = $this->resolveJobSource('reed');
 
                 if (!$existingSale) {
                     $sale = Sale::create([
@@ -1502,109 +1509,677 @@ class ScrapController extends Controller
         return view('scrapped.offices_list');
     }
 
-    private function getScrappedCompanyWebsiteData(string $companyName)
+    // private function getScrappedCompanyWebsiteData(string $companyName)
+    // {
+    //     $blank = [
+    //         'company_url' => null,
+    //         'company_emails' => [],
+    //         'company_phones' => [],
+    //     ];
+
+    //     try {
+    //         $serpapiSettings = $this->getSerpApiSettings();
+
+    //         $response = Http::withOptions([
+    //             'connect_timeout' => 2,  // Reduced from 3 to fail faster
+    //             'timeout' => 5,  // Reduced from 10 to fail faster
+    //         ])->get($serpapiSettings['url'], [  // ✅ use dynamic URL
+    //                     'q' => $companyName . ' ' . $serpapiSettings['keywords'],
+    //                     'api_key' => $serpapiSettings['api_key'], // ✅ use dynamic API key
+    //                     'num' => 1,   // ✅ only fetch 1 result to save credits
+    //                     'engine' => $serpapiSettings['engine'], // ✅ use dynamic engine
+    //                 ]);
+
+    //         if (!$response->ok()) {
+    //             Log::warning('[ScrapImport] Company lookup failed', [
+    //                 'company_name' => $companyName,
+    //                 'status' => $response->status(),
+    //                 'body' => substr($response->body(), 0, 500),
+    //             ]);
+
+    //             return $blank;
+    //         }
+
+    //         $results = $response->json();
+    //         $companyUrl = $results['organic_results'][0]['link'] ?? null;
+
+    //         if (empty($companyUrl) || $this->isExcludedCompanyWebsite($companyUrl, $serpapiSettings['excluded_hosts'] ?? [])) {
+    //             return $blank;
+    //         }
+
+    //         $emails = [];
+    //         $phones = [];
+    //         $contactUrl = null;
+    //         $sitelinks = $results['organic_results'][0]['sitelinks']['expanded'] ?? [];
+
+    //         foreach ($sitelinks as $sitelink) {
+    //             $link = $sitelink['link'] ?? '';
+    //             $title = strtolower($sitelink['title'] ?? '');
+
+    //             if (str_contains(strtolower($link), 'contact') || str_contains($title, 'contact') || str_contains($link, 'about') || str_contains($title, 'about')) {
+    //                 $contactUrl = $link;
+    //                 break;
+    //             }
+    //         }
+
+    //         $homeHtml = $this->fetchHtml($companyUrl);
+    //         if ($homeHtml) {
+    //             $homeDetails = $this->extractContactDetailsFromHtml($homeHtml);
+    //             $emails = array_merge($emails, $homeDetails['emails'] ?? []);
+    //             $phones = array_merge($phones, $homeDetails['phones'] ?? []);
+
+    //             if (empty($contactUrl)) {
+    //                 $contactUrl = $this->guessContactPageFromHtml($companyUrl, $homeHtml);
+    //             }
+    //         }
+
+    //         $candidateUrls = array_filter(array_unique(array_merge([
+    //             $contactUrl,
+    //             $companyUrl,
+    //         ], $this->discoverContactPageUrls($companyUrl, $homeHtml ?? ''))));
+
+    //         foreach ($candidateUrls as $url) {
+    //             if (empty($url) || $url === $companyUrl) {
+    //                 continue;
+    //             }
+
+    //             $details = $this->fetchContactDetails($url);
+    //             $emails = array_merge($emails, $details['emails'] ?? []);
+    //             $phones = array_merge($phones, $details['phones'] ?? []);
+    //         }
+
+    //         // Remove duplicates
+    //         $emails = array_unique($emails);
+    //         $phones = array_unique($phones);
+
+    //         return [
+    //             'company_url' => $companyUrl,
+    //             'company_emails' => $emails,
+    //             'company_phones' => $phones,
+    //         ];
+    //     } catch (ConnectionException $e) {
+    //         Log::warning('[ScrapImport] Company lookup timed out', [
+    //             'company_name' => $companyName,
+    //             'error' => $e->getMessage(),
+    //         ]);
+
+    //         return $blank;
+    //     } catch (Throwable $e) {
+    //         Log::warning('[ScrapImport] Company lookup failed unexpectedly', [
+    //             'company_name' => $companyName,
+    //             'error' => $e->getMessage(),
+    //         ]);
+
+    //         return $blank;
+    //     }
+    // }
+
+    /**
+     * Find company website + scrape contacts.
+     * 100% FREE — No API key, no signup, no cost.
+     * Uses DuckDuckGo → Bing as fallback (both free HTML scraping)
+     */
+    private function getScrappedCompanyWebsiteData(string $companyName): array
     {
         $blank = [
-            'company_url' => null,
+            'company_url'    => null,
             'company_emails' => [],
             'company_phones' => [],
         ];
 
+        Log::info('[ScrapImport] getScrappedCompanyWebsiteData start', ['company' => $companyName]);
+
         try {
-            $serpapiSettings = $this->getSerpApiSettings();
+            // Step 1: Find company URL via free search engines
+            $companyUrl = $this->findCompanyUrlFree($companyName);
 
-            $response = Http::withOptions([
-                'connect_timeout' => 2,  // Reduced from 3 to fail faster
-                'timeout' => 5,  // Reduced from 10 to fail faster
-            ])->get($serpapiSettings['url'], [  // ✅ use dynamic URL
-                'q' => $companyName . ' ' . $serpapiSettings['keywords'],
-                'api_key' => $serpapiSettings['api_key'], // ✅ use dynamic API key
-                'num' => 1,   // ✅ only fetch 1 result to save credits
-                'engine' => $serpapiSettings['engine'], // ✅ use dynamic engine
-            ]);
-
-            if (!$response->ok()) {
-                Log::warning('[ScrapImport] Company lookup failed', [
-                    'company_name' => $companyName,
-                    'status' => $response->status(),
-                    'body' => substr($response->body(), 0, 500),
-                ]);
-
+            if (empty($companyUrl)) {
+                Log::warning('[ScrapImport] No URL found for company', ['company' => $companyName]);
                 return $blank;
             }
 
-            $results = $response->json();
-            $companyUrl = $results['organic_results'][0]['link'] ?? null;
+            Log::info('[ScrapImport] Company URL resolved', ['company' => $companyName, 'company_url' => $companyUrl]);
 
-            if (empty($companyUrl) || $this->isExcludedCompanyWebsite($companyUrl, $serpapiSettings['excluded_hosts'] ?? [])) {
+            // Step 2: Check excluded hosts
+            if ($this->isExcludedCompanyWebsite($companyUrl, $this->getFreeExcludedHosts())) {
+                Log::warning('[ScrapImport] Excluded company website', ['company' => $companyName, 'company_url' => $companyUrl]);
                 return $blank;
             }
 
-            $emails = [];
-            $phones = [];
+            // Step 3: Scrape homepage
+            $emails   = [];
+            $phones   = [];
+            $homeHtml = null;
             $contactUrl = null;
-            $sitelinks = $results['organic_results'][0]['sitelinks']['expanded'] ?? [];
-
-            foreach ($sitelinks as $sitelink) {
-                $link = $sitelink['link'] ?? '';
-                $title = strtolower($sitelink['title'] ?? '');
-
-                if (str_contains(strtolower($link), 'contact') || str_contains($title, 'contact') || str_contains($link, 'about') || str_contains($title, 'about')) {
-                    $contactUrl = $link;
-                    break;
-                }
-            }
 
             $homeHtml = $this->fetchHtml($companyUrl);
+
             if ($homeHtml) {
                 $homeDetails = $this->extractContactDetailsFromHtml($homeHtml);
-                $emails = array_merge($emails, $homeDetails['emails'] ?? []);
-                $phones = array_merge($phones, $homeDetails['phones'] ?? []);
-
-                if (empty($contactUrl)) {
-                    $contactUrl = $this->guessContactPageFromHtml($companyUrl, $homeHtml);
-                }
+                $emails      = array_merge($emails, $homeDetails['emails'] ?? []);
+                $phones      = array_merge($phones, $homeDetails['phones'] ?? []);
+                $contactUrl  = $this->guessContactPageFromHtml($companyUrl, $homeHtml);
             }
 
-            $candidateUrls = array_filter(array_unique(array_merge([
-                $contactUrl,
-                $companyUrl,
-            ], $this->discoverContactPageUrls($companyUrl, $homeHtml ?? ''))));
+            // Step 4: Scrape contact/about pages
+            $candidateUrls = array_filter(array_unique(array_merge(
+                [$contactUrl],
+                $this->discoverContactPageUrls($companyUrl, $homeHtml ?? '')
+            )));
+
+            Log::info('[ScrapImport] Contact candidate URLs discovered', ['company' => $companyName, 'urls' => $candidateUrls]);
 
             foreach ($candidateUrls as $url) {
-                if (empty($url) || $url === $companyUrl) {
-                    continue;
-                }
+                if (empty($url) || $url === $companyUrl) continue;
 
                 $details = $this->fetchContactDetails($url);
-                $emails = array_merge($emails, $details['emails'] ?? []);
-                $phones = array_merge($phones, $details['phones'] ?? []);
+                $emails  = array_merge($emails, $details['emails'] ?? []);
+                $phones  = array_merge($phones, $details['phones'] ?? []);
             }
 
-            // Remove duplicates
-            $emails = array_unique($emails);
-            $phones = array_unique($phones);
-
-            return [
-                'company_url' => $companyUrl,
-                'company_emails' => $emails,
-                'company_phones' => $phones,
+            $result = [
+                'company_url'    => $companyUrl,
+                'company_emails' => array_values(array_unique($emails)),
+                'company_phones' => array_values(array_unique($phones)),
             ];
-        } catch (ConnectionException $e) {
-            Log::warning('[ScrapImport] Company lookup timed out', [
-                'company_name' => $companyName,
-                'error' => $e->getMessage(),
+            Log::info('[ScrapImport] getScrappedCompanyWebsiteData result', [
+                'company' => $companyName,
+                'company_url' => $companyUrl,
+                'emails' => $result['company_emails'],
+                'phones' => $result['company_phones'],
             ]);
 
+            return $result;
+        } catch (ConnectionException $e) {
+            Log::warning('[ScrapImport] Timeout finding company: ' . $companyName);
             return $blank;
         } catch (Throwable $e) {
-            Log::warning('[ScrapImport] Company lookup failed unexpectedly', [
-                'company_name' => $companyName,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::warning('[ScrapImport] Error finding company: ' . $companyName . ' | ' . $e->getMessage());
             return $blank;
         }
+    }
+
+    /**
+     * Try DuckDuckGo first, then Bing as fallback.
+     * Both are 100% free — no API key, no signup.
+     */
+    private function findCompanyUrlFree(string $companyName): ?string
+    {
+        Log::info('[ScrapImport] findCompanyUrlFree start', ['company' => $companyName]);
+
+        // 1️⃣ Try Google first
+        try {
+            $url = $this->searchGoogle($companyName);
+
+            if ($url) {
+                Log::info('[ScrapImport] Found via Google', ['company' => $companyName, 'url' => $url]);
+                return $url;
+            }
+
+            Log::info('[ScrapImport] Google returned no result, trying DuckDuckGo for: ' . $companyName);
+        } catch (ConnectionException $e) {
+            Log::warning('[ScrapImport] Google timed out, trying DuckDuckGo for: ' . $companyName);
+        } catch (Throwable $e) {
+            Log::warning('[ScrapImport] Google failed (' . $e->getMessage() . '), trying DuckDuckGo for: ' . $companyName);
+        }
+
+        // 2️⃣ Fallback: DuckDuckGo
+        // try {
+        //     $url = $this->searchDuckDuckGo($companyName);
+
+        //     if ($url) {
+        //         Log::info('[ScrapImport] Found via DuckDuckGo', ['company' => $companyName, 'url' => $url]);
+        //         return $url;
+        //     }
+
+        //     Log::info('[ScrapImport] DuckDuckGo returned no result, trying Bing for: ' . $companyName);
+        // } catch (ConnectionException $e) {
+        //     Log::warning('[ScrapImport] DuckDuckGo timed out, trying Bing for: ' . $companyName);
+        // } catch (Throwable $e) {
+        //     Log::warning('[ScrapImport] DuckDuckGo failed (' . $e->getMessage() . '), trying Bing for: ' . $companyName);
+        // }
+
+        // 3️⃣ Last resort: Bing
+        // try {
+        //     $url = $this->searchBing($companyName);
+
+        //     if ($url) {
+        //         Log::info('[ScrapImport] Found via Bing', ['company' => $companyName, 'url' => $url]);
+        //         return $url;
+        //     }
+
+        //     Log::warning('[ScrapImport] All search engines returned no result for: ' . $companyName);
+        // } catch (ConnectionException $e) {
+        //     Log::warning('[ScrapImport] Bing timed out for: ' . $companyName);
+        // } catch (Throwable $e) {
+        //     Log::warning('[ScrapImport] Bing failed (' . $e->getMessage() . ') for: ' . $companyName);
+        // }
+
+        return null;
+    }
+
+    private function searchGoogle(string $query): ?string
+    {
+        Log::info('[ScrapImport] searchGoogle start', ['query' => $query]);
+
+        // Add "official site" to improve relevance
+        $searchQuery = $query . ' uk official website';
+        $url = 'https://www.google.com/search?q=' . urlencode($searchQuery) . '&num=5&hl=en';
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 5,
+            CURLOPT_ENCODING       => '',   // ← auto-handles gzip/deflate/br
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            CURLOPT_HTTPHEADER     => [
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language: en-US,en;q=0.9',
+                'Accept-Encoding: gzip, deflate, br',
+                'Cache-Control: no-cache',
+                'Connection: keep-alive',
+                'Upgrade-Insecure-Requests: 1',
+            ],
+        ]);
+
+        $html      = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            Log::warning('[ScrapImport] Google curl error', ['error' => $curlError, 'query' => $query]);
+            return null;
+        }
+
+        if (!$html || $httpCode >= 400 || strlen($html) < 200) {
+            Log::warning('[ScrapImport] Google bad response', ['http_code' => $httpCode, 'html_len' => strlen($html ?? '')]);
+            return null;
+        }
+
+        // If content is still binary/compressed despite CURLOPT_ENCODING, try manual decode
+        if (strlen($html) > 2 && ord($html[0]) === 31 && ord($html[1]) === 139) {
+            $decoded = @gzdecode($html);
+            if ($decoded) {
+                $html = $decoded;
+            } else {
+                Log::warning('[ScrapImport] Google gzip decode failed');
+                return null;
+            }
+        }
+
+        // Google blocked us (CAPTCHA page or empty body)
+        if (stripos($html, 'detected unusual traffic') !== false || stripos($html, 'captcha') !== false) {
+            Log::warning('[ScrapImport] Google returned CAPTCHA/block page for: ' . $query);
+            return null;
+        }
+
+        $excluded = ['google.', 'youtube.', 'facebook.', 'twitter.', 'linkedin.', 'instagram.', 'wikipedia.'];
+
+        // Pattern 1: /url?q= redirect format (most common in Google results)
+        if (preg_match_all('/href="\/url\?q=(https?:\/\/[^&"]+)/i', $html, $matches)) {
+            foreach ($matches[1] as $candidate) {
+                $candidate = urldecode(trim($candidate));
+                if (!filter_var($candidate, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+                if (!$this->isExcludedDomain($candidate, $excluded) && !$this->isJobBoardOrSocialSite($candidate)) {
+                    Log::info('[ScrapImport] Google found URL (pattern 1)', ['url' => $candidate]);
+                    return $candidate;
+                }
+            }
+        }
+
+        // Pattern 2: data-href or ping attributes used in newer Google HTML
+        if (preg_match_all('/data-href="(https?:\/\/[^"]+)"/i', $html, $matches)) {
+            foreach ($matches[1] as $candidate) {
+                $candidate = trim($candidate);
+                if (!filter_var($candidate, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+                if (!$this->isExcludedDomain($candidate, $excluded) && !$this->isJobBoardOrSocialSite($candidate)) {
+                    Log::info('[ScrapImport] Google found URL (pattern 2)', ['url' => $candidate]);
+                    return $candidate;
+                }
+            }
+        }
+
+        // Pattern 3: Any absolute HTTPS href not from excluded domains
+        if (preg_match_all('/href="(https?:\/\/[^"]{10,})"/i', $html, $matches)) {
+            foreach ($matches[1] as $candidate) {
+                $candidate = trim($candidate);
+                if (!filter_var($candidate, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+                if (!$this->isExcludedDomain($candidate, $excluded) && !$this->isJobBoardOrSocialSite($candidate)) {
+                    Log::info('[ScrapImport] Google found URL (pattern 3)', ['url' => $candidate]);
+                    return $candidate;
+                }
+            }
+        }
+
+        Log::warning('[ScrapImport] Google: no usable URL found', ['query' => $query, 'preview' => substr($html, 0, 300)]);
+        return null;
+    }
+
+    // private function searchDuckDuckGo(string $companyName): ?string
+    // {
+    //     Log::info('[ScrapImport] searchDuckDuckGo start', ['company' => $companyName]);
+    //     $excluded = ['duckduckgo.', 'google.', 'facebook.', 'twitter.', 'instagram.'];
+
+    //     try {
+    //         $response = Http::withOptions([
+    //             'connect_timeout' => 5,
+    //             'timeout'         => 12,
+    //         ])->withHeaders([
+    //             'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    //             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    //             'Accept-Language' => 'en-US,en;q=0.9',
+    //             'Referer'         => 'https://html.duckduckgo.com/',
+    //         ])->get('https://html.duckduckgo.com/html/', [
+    //             'q' => $companyName . ' uk official website',
+    //         ]);
+
+    //         if (!$response->ok()) {
+    //             Log::warning('[ScrapImport] DuckDuckGo HTTP error: ' . $response->status());
+    //             return null;
+    //         }
+
+    //         $html = $response->body();
+
+    //         if (strlen($html) < 200) {
+    //             Log::warning('[ScrapImport] DuckDuckGo returned near-empty body');
+    //             return null;
+    //         }
+
+    //         // Strategy 1: result__url (visible URL shown below title — most reliable)
+    //         if (preg_match_all('/<a[^>]+class="[^"]*result__url[^"]*"[^>]*>\s*(https?:\/\/[^\s<]+)\s*<\/a>/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = trim($candidate);
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] DuckDuckGo found URL (result__url)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 2: uddg= redirect links (the actual href of result titles)
+    //         if (preg_match_all('/href="[^"]*uddg=(https?[^"&]+)/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = urldecode(trim($candidate));
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] DuckDuckGo found URL (uddg param)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 3: any result__a href (full href, then decode if DDG redirect)
+    //         if (preg_match_all('/<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"/i', $html, $matches)) {
+    //             foreach ($matches[1] as $rawHref) {
+    //                 $candidate = $this->decodeDuckDuckGoUrl($rawHref);
+    //                 if (empty($candidate) || !filter_var($candidate, FILTER_VALIDATE_URL)) {
+    //                     continue;
+    //                 }
+    //                 if (!$this->isExcludedDomain($candidate, $excluded) && !$this->isJobBoardOrSocialSite($candidate)) {
+    //                     Log::info('[ScrapImport] DuckDuckGo found URL (result__a)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 4: fallback — any absolute https link in body
+    //         if (preg_match_all('/href="(https?:\/\/[^"]{10,})"/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = trim($candidate);
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] DuckDuckGo found URL (fallback href)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         Log::warning('[ScrapImport] DuckDuckGo: no usable URL found', ['company' => $companyName]);
+    //         return null;
+    //     } catch (Throwable $e) {
+    //         Log::warning('[ScrapImport] DuckDuckGo exception', ['company' => $companyName, 'error' => $e->getMessage()]);
+    //         return null;
+    //     }
+    // }
+
+    // private function searchBing(string $companyName): ?string
+    // {
+    //     Log::info('[ScrapImport] searchBing start', ['company' => $companyName]);
+    //     $excluded = ['bing.', 'microsoft.', 'google.', 'facebook.', 'twitter.', 'instagram.'];
+
+    //     try {
+    //         $response = Http::withOptions([
+    //             'connect_timeout' => 5,
+    //             'timeout'         => 12,
+    //         ])->withHeaders([
+    //             'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    //             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    //             'Accept-Language' => 'en-US,en;q=0.9',
+    //             'Referer'         => 'https://www.bing.com/',
+    //         ])->get('https://www.bing.com/search', [
+    //             'q'    => $companyName . ' uk official website',
+    //             'form' => 'QBLH',
+    //             'cc'   => 'US',
+    //         ]);
+
+    //         if (!$response->ok()) {
+    //             Log::warning('[ScrapImport] Bing HTTP error: ' . $response->status());
+    //             return null;
+    //         }
+
+    //         $html = $response->body();
+
+    //         if (strlen($html) < 200) {
+    //             Log::warning('[ScrapImport] Bing returned near-empty body');
+    //             return null;
+    //         }
+
+    //         // Strategy 1: <cite> tags contain the clean display URL (very reliable in Bing)
+    //         if (preg_match_all('/<cite[^>]*>(https?:\/\/[^<]+)<\/cite>/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = strip_tags(trim($candidate));
+    //                 // Bing sometimes shows truncated URLs with '›' — take only the base
+    //                 $candidate = strtok($candidate, ' ›');
+    //                 if (!str_starts_with($candidate, 'http')) {
+    //                     $candidate = 'https://' . $candidate;
+    //                 }
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] Bing found URL (cite tag)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 2: h2 > a href (original approach, kept as fallback)
+    //         if (preg_match_all('/<h2[^>]*>\s*<a[^>]+href="(https?:\/\/[^"]+)"/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = trim($candidate);
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] Bing found URL (h2>a)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 3: data-url attributes used in Bing result cards
+    //         if (preg_match_all('/data-url="(https?:\/\/[^"]+)"/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = trim($candidate);
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] Bing found URL (data-url)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         // Strategy 4: any absolute href not from excluded domains
+    //         if (preg_match_all('/href="(https?:\/\/[^"]{10,})"/i', $html, $matches)) {
+    //             foreach ($matches[1] as $candidate) {
+    //                 $candidate = trim($candidate);
+    //                 if (
+    //                     filter_var($candidate, FILTER_VALIDATE_URL)
+    //                     && !$this->isExcludedDomain($candidate, $excluded)
+    //                     && !$this->isJobBoardOrSocialSite($candidate)
+    //                 ) {
+    //                     Log::info('[ScrapImport] Bing found URL (fallback href)', ['url' => $candidate]);
+    //                     return $candidate;
+    //                 }
+    //             }
+    //         }
+
+    //         Log::warning('[ScrapImport] Bing: no usable URL found', ['company' => $companyName]);
+    //         return null;
+    //     } catch (Throwable $e) {
+    //         Log::warning('[ScrapImport] Bing exception', ['company' => $companyName, 'error' => $e->getMessage()]);
+    //         return null;
+    //     }
+    // }
+
+    /**
+     * Check if a URL belongs to any excluded domain.
+     */
+    private function isExcludedDomain(string $url, array $excludedFragments): bool
+    {
+        $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+        foreach ($excludedFragments as $fragment) {
+            if (str_contains($host, rtrim($fragment, '.'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Decode DuckDuckGo redirect URLs to get the real destination URL.
+     */
+    private function decodeDuckDuckGoUrl(string $href): ?string
+    {
+        // Handle protocol-relative: //duckduckgo.com/l/?uddg=...
+        if (str_starts_with($href, '//')) {
+            $href = 'https:' . $href;
+        }
+
+        $parsed = parse_url($href);
+        $host   = strtolower($parsed['host'] ?? '');
+
+        // It is a DDG redirect — extract actual URL from uddg param
+        if (str_contains($host, 'duckduckgo.com')) {
+            parse_str($parsed['query'] ?? '', $params);
+            return isset($params['uddg']) ? urldecode($params['uddg']) : null;
+        }
+
+        return $href;
+    }
+
+    /**
+     * Returns true if the URL belongs to a job board, social media,
+     * or directory site that is NOT a company's own website.
+     */
+    private function isJobBoardOrSocialSite(string $url): bool
+    {
+        $skipHosts = [
+            'indeed.com',
+            'reed.co.uk',
+            'totaljobs.com',
+            'cv-library.co.uk',
+            'monster.co.uk',
+            'cwjobs.co.uk',
+            'fish4jobs.co.uk',
+            'jobsite.co.uk',
+            'linkedin.com',
+            'facebook.com',
+            'twitter.com',
+            'x.com',
+            'instagram.com',
+            'youtube.com',
+            'tiktok.com',
+            'wikipedia.org',
+            'wikimedia.org',
+            'glassdoor.com',
+            'trustpilot.com',
+            'google.com',
+            'yell.com',
+            'yelp.com',
+            'checkatrade.com',
+            'companies house.gov.uk',
+            'find-and-update.company-information.service.gov.uk',
+            'companieshouse.gov.uk',
+        ];
+
+        $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+        $host = preg_replace('/^www\./', '', $host);
+
+        foreach ($skipHosts as $skip) {
+            if ($host === $skip || str_ends_with($host, '.' . $skip)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Default excluded hosts — same list used by isExcludedCompanyWebsite().
+     */
+    private function getFreeExcludedHosts(): array
+    {
+        // Try to load from DB settings if they exist
+        $setting = Setting::where('key', 'serpapi_settings')->first();
+
+        if ($setting && $setting->type === 'json') {
+            $settings = json_decode($setting->value, true);
+            if (!empty($settings['excluded_hosts'])) {
+                return $this->normalizeSerpApiExcludedHosts($settings['excluded_hosts']);
+            }
+        }
+
+        return [
+            'wikipedia.org',
+            'wikimedia.org',
+            'indeed.com',
+            'reed.co.uk',
+            'totaljobs.com',
+            'linkedin.com',
+            'facebook.com',
+            'twitter.com',
+            'glassdoor.com',
+            'yell.com',
+            'yelp.com',
+        ];
     }
 
     private function isExcludedCompanyWebsite(string $url, array $excludedHosts = []): bool
@@ -1649,6 +2224,8 @@ class ScrapController extends Controller
 
     private function fetchHtml(string $url): ?string
     {
+        Log::info('[ScrapImport] fetchHtml start', ['url' => $url]);
+
         try {
             $response = Http::withOptions([
                 'connect_timeout' => 2,  // Reduced to fail faster
@@ -1659,22 +2236,30 @@ class ScrapController extends Controller
             ])->get($url);
 
             if (!$response->ok()) {
+                Log::warning('[ScrapImport] fetchHtml failed', ['url' => $url, 'status' => $response->status()]);
                 return null;
             }
 
             return $response->body();
         } catch (Throwable $e) {
+            Log::warning('[ScrapImport] fetchHtml exception', ['url' => $url, 'error' => $e->getMessage()]);
             return null;
         }
     }
 
     private function extractContactDetailsFromHtml(string $html): array
     {
+        Log::info('[ScrapImport] extractContactDetailsFromHtml start', ['html_length' => strlen($html)]);
         $plainText = $this->htmlToPlainText($html);
 
+        $emails = $this->extractEmails($html, $plainText);
+        $phones = $this->extractPhones($plainText);
+
+        Log::info('[ScrapImport] extractContactDetailsFromHtml result', ['emails' => $emails, 'phones' => $phones]);
+
         return [
-            'emails' => $this->extractEmails($html, $plainText),
-            'phones' => $this->extractPhones($plainText),
+            'emails' => $emails,
+            'phones' => $phones,
         ];
     }
 
@@ -1690,11 +2275,13 @@ class ScrapController extends Controller
         $text = preg_replace('/\n+/', "\n", $text);
         $text = trim($text);
 
+        Log::info('[ScrapImport] htmlToPlainText result', ['plain_length' => strlen($text)]);
         return $text;
     }
 
     private function discoverContactPageUrls(string $baseUrl, string $html): array
     {
+        Log::info('[ScrapImport] discoverContactPageUrls start', ['baseUrl' => $baseUrl, 'html_length' => strlen($html)]);
         if (empty($html)) {
             return [];
         }
@@ -1736,12 +2323,15 @@ class ScrapController extends Controller
             }
         }
 
-        return array_values(array_unique($urls));
+        $urls = array_values(array_unique($urls));
+        Log::info('[ScrapImport] discoverContactPageUrls result', ['baseUrl' => $baseUrl, 'count' => count($urls), 'urls' => $urls]);
+        return $urls;
     }
 
     private function normalizeUrl(string $href, string $baseUrl): ?string
     {
         $href = trim($href);
+        Log::info('[ScrapImport] normalizeUrl start', ['href' => $href, 'baseUrl' => $baseUrl]);
 
         if (str_starts_with($href, '//')) {
             $scheme = parse_url($baseUrl, PHP_URL_SCHEME) ?: 'https';
@@ -1754,6 +2344,7 @@ class ScrapController extends Controller
 
         $baseParts = parse_url($baseUrl);
         if (empty($baseParts['scheme']) || empty($baseParts['host'])) {
+            Log::warning('[ScrapImport] normalizeUrl failed to parse baseUrl', ['href' => $href, 'baseUrl' => $baseUrl]);
             return null;
         }
 
@@ -1771,13 +2362,18 @@ class ScrapController extends Controller
             $dirname = '/';
         }
 
-        return $baseRoot . $dirname . '/' . ltrim($href, '/');
+        $normalized = $baseRoot . $dirname . '/' . ltrim($href, '/');
+        Log::info('[ScrapImport] normalizeUrl result', ['href' => $href, 'normalized' => $normalized]);
+        return $normalized;
     }
 
     private function guessContactPageFromHtml(string $baseUrl, string $html): ?string
     {
+        Log::info('[ScrapImport] guessContactPageFromHtml start', ['baseUrl' => $baseUrl]);
         $urls = $this->discoverContactPageUrls($baseUrl, $html);
-        return $urls[0] ?? null;
+        $result = $urls[0] ?? null;
+        Log::info('[ScrapImport] guessContactPageFromHtml result', ['baseUrl' => $baseUrl, 'result' => $result]);
+        return $result;
     }
 
     private function getScrappedPostcodes(float $lat, float $lng)
@@ -1866,8 +2462,11 @@ class ScrapController extends Controller
         $blank = ['emails' => [], 'phones' => []];
 
         if (!$contactPageUrl) {
+            Log::info('[ScrapImport] fetchContactDetails skipped empty URL');
             return $blank;
         }
+
+        Log::info('[ScrapImport] fetchContactDetails start', ['url' => $contactPageUrl]);
 
         try {
             $response = Http::withOptions([
@@ -1891,9 +2490,13 @@ class ScrapController extends Controller
             $html = $response->body();
             $plainText = $this->htmlToPlainText($html);
 
+            $emails = $this->extractEmails($html, $plainText);
+            $phones = $this->extractPhones($plainText);
+            Log::info('[ScrapImport] fetchContactDetails result', ['url' => $contactPageUrl, 'emails' => $emails, 'phones' => $phones]);
+
             return [
-                'emails' => $this->extractEmails($html, $plainText),
-                'phones' => $this->extractPhones($plainText),
+                'emails' => $emails,
+                'phones' => $phones,
             ];
         } catch (ConnectionException $e) {
             Log::warning('[ScrapImport] Contact page timeout', ['url' => $contactPageUrl]);
@@ -1913,6 +2516,7 @@ class ScrapController extends Controller
 
     private function extractEmails(string $html, string $plainText): array
     {
+        Log::info('[ScrapImport] extractEmails start', ['html_length' => strlen($html), 'plain_length' => strlen($plainText)]);
         $emails = [];
 
         // ✅ Priority 1: mailto: links — most reliable source on contact pages
@@ -1957,6 +2561,7 @@ class ScrapController extends Controller
             }
         }
 
+        Log::info('[ScrapImport] extractEmails result', ['emails' => $emails]);
         return $emails;
     }
 
@@ -1964,6 +2569,7 @@ class ScrapController extends Controller
 
     private function extractPhones(string $plainText): array
     {
+        Log::info('[ScrapImport] extractPhones start', ['plain_length' => strlen($plainText)]);
         $phones = [];
         $plainText = trim($plainText);
         if ($plainText === '') {
@@ -2008,7 +2614,9 @@ class ScrapController extends Controller
             $phones[] = $phone;
         }
 
-        return array_values(array_unique($phones));
+        $result = array_values(array_unique($phones));
+        Log::info('[ScrapImport] extractPhones result', ['phones' => $result]);
+        return $result;
     }
 
     private function normalizePhone(string $phone): ?string
@@ -4287,6 +4895,21 @@ class ScrapController extends Controller
                 'failed' => $failed,
             ], 500);
         }
+    }
+
+    private function resolveJobSource(string $name)
+    {
+        $jobSource = JobSource::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+        if (!$jobSource) {
+            Log::warning('[ScrapImport] JobSource not found, creating', ['name' => $name]);
+            $jobSource = JobSource::create([
+                'name' => $name,
+                'description' => 'Auto-created by scraper',
+                'is_active' => 1,
+            ]);
+        }
+
+        return $jobSource;
     }
 
     private function getSerpApiSettings(): array
