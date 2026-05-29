@@ -121,18 +121,20 @@ class UserController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
+            // Sanitize to prevent SQL identifier injection
+            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
+            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+
+            $allowedUserColumns = ['id', 'name', 'email', 'is_active', 'created_at', 'updated_at'];
 
             if ($orderColumn === 'role') {
                 $model->orderBy('role_name', $orderDirection);
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
+            } elseif ($orderColumn && in_array($orderColumn, $allowedUserColumns, true)) {
+                $model->orderBy('users.' . $orderColumn, $orderDirection);
             } else {
                 $model->orderBy('users.created_at', 'desc');
             }
         } else {
-            // Default sorting when no order is specified
             $model->orderBy('users.created_at', 'desc');
         }
 
@@ -181,34 +183,39 @@ class UserController extends Controller
                                 <ul class="dropdown-menu">
                                     <li>';
                     if (Gate::allows('administrator-user-edit')) {
-                        $html .= ' <a class="dropdown-item" href="javascript:void(0);" onclick="showEditModal(
-                                                \'' . (int) $user->id . '\',
-                                                \'' . addslashes(htmlspecialchars($name)) . '\',
-                                                \'' . addslashes(htmlspecialchars($email)) . '\',
-                                                \'' . addslashes(htmlspecialchars($user->is_active)) . '\',
-                                                \'' . addslashes(htmlspecialchars($roleName)) . '\'
-                                            )">Edit</a>
-                                        </li>';
+                        // Build JS call then htmlspecialchars the WHOLE thing so the
+                        // double-quotes json_encode emits don't break the onclick="" attribute.
+                        $editJs = 'showEditModal('
+                                    . (int) $user->id . ','
+                                    . json_encode($name) . ','
+                                    . json_encode($email) . ','
+                                    . json_encode((string) $user->is_active) . ','
+                                    . json_encode($roleName)
+                                . ')';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="'
+                                    . htmlspecialchars($editJs, ENT_QUOTES) . '">Edit</a></li>';
                     }
                     if (Gate::allows('administrator-user-view')) {
-                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
-                                            \'' . (int) $user->id . '\',
-                                            \'' . $user->formatted_created_at . '\',
-                                            \'' . addslashes(htmlspecialchars($name)) . '\',
-                                            \'' . addslashes(htmlspecialchars($email)) . '\',
-                                            \'' . addslashes(htmlspecialchars($roleName)) . '\',
-                                            \'' . addslashes(htmlspecialchars($status)) . '\'
-                                        )">View</a></li>';
+                        $viewJs = 'showDetailsModal('
+                                    . (int) $user->id . ','
+                                    . json_encode($user->formatted_created_at) . ','
+                                    . json_encode($name) . ','
+                                    . json_encode($email) . ','
+                                    . json_encode($roleName) . ','
+                                    . json_encode($user->is_active ? 'Active' : 'Inactive')
+                                . ')';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="'
+                                    . htmlspecialchars($viewJs, ENT_QUOTES) . '">View</a></li>';
                     }
                     if (Gate::allows('administrator-user-change-status')) {
                         if ($user->is_active == true) {
-                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
-                                                                \'' . (int) $user->id . '\', \'0\'
-                                                            )">Mark as Inctive</a></li>';
+                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal('
+                                        . (int) $user->id . ',0'
+                                    . ')">Mark as Inactive</a></li>';
                         } else {
-                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal(
-                                                                \'' . (int) $user->id . '\', \'1\'
-                                                            )">Mark as Active</a></li>';
+                            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="changeStatusModal('
+                                        . (int) $user->id . ',1'
+                                    . ')">Mark as Active</a></li>';
                         }
                     }
 
@@ -216,8 +223,8 @@ class UserController extends Controller
                         $url = route('users.activity_log', ['id' => $user->id]);
                         $html .= '<li><a target="_blank" class="dropdown-item" href="' . e($url) . '">Activity Log</a></li>';
                     }
-                    '</ul>
-                            </div>';
+                    // FIX: was a no-op bare string literal — now correctly appended
+                    $html .= '</ul></div>';
 
                     return $html;
                 })
@@ -463,10 +470,14 @@ class UserController extends Controller
     }
     public function changeUserStatus(Request $request)
     {
-        $user_id = $request->input('user_id');
+        $validated = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'status'  => 'required|boolean',
+        ]);
 
-        $user = User::findOrFail($user_id);
-        $user->update(['is_active' => $request->status]);
+        $user = User::findOrFail($validated['user_id']);
+        $user->is_active = (bool) $validated['status'];
+        $user->save();
 
         return response()->json(['success' => true, 'message' => 'User status updated successfully.']);
     }
@@ -664,14 +675,14 @@ class UserController extends Controller
 
         // Validation
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => [
+            'name'          => 'required|string|max:255',
+            'email'         => [
                 'required',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($id),
             ],
-            'role' => 'required',
+            'role'          => 'required',
         ]);
 
         if ($validator->fails()) {

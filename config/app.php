@@ -99,6 +99,22 @@ return [
 
     'key' => env('APP_KEY'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | IP Check Bypass
+    |--------------------------------------------------------------------------
+    |
+    | When true, the login IP whitelist check is skipped entirely. Use this
+    | for initial VPS/Docker setup before IP restrictions are configured.
+    | Once you have added your IP via the admin panel, set to false.
+    |
+    | NOTE: Always read this via config('app.skip_ip_check') in PHP code,
+    | never via env() directly — env() returns null after config:cache runs.
+    |
+    */
+
+    'skip_ip_check' => env('SKIP_IP_CHECK', false),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', env('APP_PREVIOUS_KEYS', ''))

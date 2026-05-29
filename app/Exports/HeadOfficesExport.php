@@ -2,12 +2,14 @@
 
 namespace App\Exports;
 
+use App\Traits\SanitizesExportValues;
 use Horsefly\Office;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class HeadOfficesExport implements FromCollection, WithHeadings
 {
+    use SanitizesExportValues;
     protected $type;
 
     public function __construct(string $type = 'all')
@@ -33,13 +35,13 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Office')
                     ->get()
                     ->map(function ($item) {
-                        return [
+                        return $this->sanitizeRow([
                             'id' => $item->id,
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'office_postcode' => strtoupper($item->office_postcode),
                             'contact_email' => $item->contact_email,
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ];
+                        ]);
                     });
                 
             case 'noLatLong':
@@ -55,7 +57,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                     ->whereIn('office_lat', ['0', '', null])
                     ->get() // execute the query to get a collection
                     ->map(function ($item) {
-                        return [
+                        return $this->sanitizeRow([
                             'id'              => $item->id,
                             'office_name'     => ucwords(strtolower($item->office_name)),
                             'office_postcode' => strtoupper($item->office_postcode),
@@ -64,7 +66,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                             'created_at'      => $item->created_at
                                                     ? $item->created_at->format('d M Y, h:i A')
                                                     : 'N/A',
-                        ];
+                        ]);
                     });
                 
             case 'all':
@@ -81,7 +83,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Office')
                     ->get()
                     ->map(function ($item) {
-                        return [
+                        return $this->sanitizeRow([
                             'id' => $item->id,
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'office_postcode' => strtoupper($item->office_postcode),
@@ -90,7 +92,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                             'contact_phone' => $item->contact_phone,
                             'contact_landline' => $item->contact_landline,
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ];
+                        ]);
                     });
                 
             default:

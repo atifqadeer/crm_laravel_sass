@@ -2,42 +2,36 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Horsefly\User;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Insert roles
-        DB::table('roles')->insert([
-            ['name' => 'super_admin', 'guard_name' => 'web'],
-            ['name' => 'admin', 'guard_name' => 'web'],
-            ['name' => 'crm', 'guard_name' => 'web'],
-            ['name' => 'sales', 'guard_name' => 'web'],
-            ['name' => 'quality', 'guard_name' => 'web'],
-        ]);
+        // ── Create roles (idempotent) ─────────────────────────────────────────
+        $roleNames = ['super_admin', 'admin', 'crm', 'sales', 'quality'];
 
-        // Fetch the super_admin role
-        $superAdminRole = Role::where('name', 'super_admin')->first();
+        foreach ($roleNames as $name) {
+            Role::firstOrCreate(
+                ['name' => $name, 'guard_name' => 'web']
+            );
+        }
 
-        // Fetch all permissions
-        $allPermissions = Permission::all();
+        // ── Grant super_admin every permission ───────────────────────────────
+        $superAdminRole  = Role::where('name', 'super_admin')->first();
+        $allPermissions  = Permission::all();
 
-        // Assign all permissions to super_admin role
-        $superAdminRole->syncPermissions($allPermissions);
+        if ($superAdminRole && $allPermissions->isNotEmpty()) {
+            $superAdminRole->syncPermissions($allPermissions);
+        }
 
-        // OPTIONAL: Assign role to a user (this adds to model_has_roles)
-        $user = User::find(1); // Make sure user with id 1 exists
+        // ── Assign super_admin role to user ID 1 (the first admin) ───────────
+        $user = User::find(1);
         if ($user) {
-            $user->assignRole('super_admin'); // This updates model_has_roles
+            $user->syncRoles(['super_admin']);
         }
     }
 }

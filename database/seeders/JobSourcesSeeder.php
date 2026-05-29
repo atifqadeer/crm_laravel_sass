@@ -47,7 +47,7 @@ class JobSourcesSeeder extends Seeder
         ];
 
         foreach ($sources as $source) {
-            DB::table('job_sources')->insert([
+            DB::table('job_sources')->insertOrIgnore([
                 'name' => $source['name'],
                 'description' => $source['description'],
                 'is_active' => true,

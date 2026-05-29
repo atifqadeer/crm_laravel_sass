@@ -1173,10 +1173,10 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
-                // AJAX request (use POST instead of GET)
+                // AJAX request — POST to match route definition
                 $.ajax({
                     url: '{{ route("changeSaleHoldStatus") }}',
-                    type: 'GET',
+                    type: 'POST',
                     data: {
                         id: saleID,
                         details: notes,

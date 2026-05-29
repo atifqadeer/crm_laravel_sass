@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    // Shared secret for the desktop MicroSIP CRM integration endpoints.
+    // Set MICROSIP_API_TOKEN in .env, then point MicroSIP's crmApiUrl at
+    // https://your-crm/api/sip/<that-token>
+    'microsip' => [
+        'token' => env('MICROSIP_API_TOKEN'),
+    ],
+
+    // Click-to-dial collision lock: how long (minutes) a number stays locked
+    // to the dialing agent before auto-expiring (also released when the call
+    // is logged). Set DIAL_LOCK_MINUTES in .env to override.
+    'dialing' => [
+        'lock_minutes' => env('DIAL_LOCK_MINUTES', 5),
+    ],
+
 ];

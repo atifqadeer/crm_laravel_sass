@@ -22,7 +22,7 @@ use App\Http\Controllers\RegionController;
 use App\Http\Controllers\FreePBXController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
-use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
+use App\Http\Controllers\DialLockController;
 use App\Http\Middleware\IPAddress;
 
 /*
@@ -38,14 +38,20 @@ use App\Http\Middleware\IPAddress;
 
 require __DIR__ . '/auth.php';
 
-Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('login', [LoginController::class, 'login']);
-Route::get('logout', [LoginController::class, 'logout'])->name('logout');
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout'); // POST prevents CSRF logout via <img>
 
-Route::get('message_receive', [CommunicationController::class, 'messageReceive']); /**This route is using to retrieve messages from openVox */
+// External webhook from openVox — rate-limited to prevent abuse (30 req/min per IP)
+Route::post('message_receive', [CommunicationController::class, 'messageReceive'])->middleware('throttle:30,1');
 
 // Route group with authentication middleware
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
+    // Click-to-dial collision control — lock a number while an agent calls it
+    Route::get('dialing/info',     [DialLockController::class, 'info'])->name('dialing.info');
+    Route::post('dialing/acquire', [DialLockController::class, 'acquire'])->name('dialing.acquire');
+    Route::post('dialing/release', [DialLockController::class, 'release'])->name('dialing.release');
+
     Route::group(['prefix' => 'dashboard'], function () {
         Route::get('', [DashboardController::class, 'index'])->name('dashboard.index');
     });
@@ -157,7 +163,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('storeSaleNotes', [SaleController::class, 'storeSaleNotes'])->name('storeSaleNotes');
     Route::post('changeSaleStatus', [SaleController::class, 'changeSaleStatus'])->name('changeSaleStatus');
     Route::get('getApplicantsBySaleRadius', [SaleController::class, 'getApplicantsBySaleRadius'])->name('getApplicantsBySaleRadius');
-    Route::get('changeSaleHoldStatus', [SaleController::class, 'changeSaleHoldStatus'])->name('changeSaleHoldStatus');
+    Route::post('changeSaleHoldStatus', [SaleController::class, 'changeSaleHoldStatus'])->name('changeSaleHoldStatus'); // state-modifying — POST only
     // web.php
     Route::post('updatePendingOnHoldStatus', [SaleController::class, 'updatePendingOnHoldStatus'])->name('updatePendingOnHoldStatus');
 
@@ -213,65 +219,79 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getApplicantsForMessage', [CommunicationController::class, 'getApplicantsForMessage'])->name('getApplicantsForMessage');
     Route::get('getUnknownMessage', [CommunicationController::class, 'getUnknownMessage'])->name('getUnknownMessage');
 
-    Route::group(['prefix' => 'users'], function () {
-        Route::get('', [UserController::class, 'index'])->name('users.list');
-        Route::get('create', [UserController::class, 'create'])->name('users.create');
-        Route::post('store', [UserController::class, 'store'])->name('users.store');
-        Route::get('edit', [UserController::class, 'edit'])->name('users.edit');
-        Route::put('update', [UserController::class, 'update'])->name('users.update');
-        Route::get('{id}', [UserController::class, 'userDetails'])->name('users.details');
-        Route::get('activity-logs/{id}', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
+    // --- Administrator: User Management (requires administrator-user-index permission) ---
+    Route::middleware('permission:administrator-user-index')->group(function () {
+        Route::group(['prefix' => 'users'], function () {
+            Route::get('', [UserController::class, 'index'])->name('users.list');
+            Route::get('create', [UserController::class, 'create'])->name('users.create');
+            Route::post('store', [UserController::class, 'store'])->name('users.store');
+            Route::get('edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('update', [UserController::class, 'update'])->name('users.update');
+            Route::get('{id}', [UserController::class, 'userDetails'])->name('users.details');
+            Route::get('activity-logs/{id}', [UserController::class, 'activityLogIndex'])->name('users.activity_log');
+        });
+        Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
+        Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
+        Route::post('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
     });
-    Route::get('usersExport', [UserController::class, 'export'])->name('usersExport');
-    Route::get('getUsers', [UserController::class, 'getUsers'])->name('getUsers');
-    Route::post('getUserActivityLogs', [UserController::class, 'getUserActivityLogs'])->name('getUserActivityLogs');
 
-    Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
-    Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
-    Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
-    Route::post('applicants/process-file', [ImportController::class, 'applicantsProcessFile'])->name('process.file');
-    Route::post('offices/import', [ImportController::class, 'officesImport'])->name('offices.import');
-    Route::post('units/import', [ImportController::class, 'unitsImport'])->name('units.import');
-    Route::post('sales/import', [ImportController::class, 'salesImport'])->name('sales.import');
-    Route::post('applicant-message/import', [ImportController::class, 'messagesImport'])->name('messages.import');
-    Route::post('applicant-notes/import', [ImportController::class, 'applicantNotesImport'])->name('applicantNotes.import');
-    Route::post('applicant-pivot-sales/import', [ImportController::class, 'applicantPivotSaleImport'])->name('applicantPivotSale.import');
-    Route::post('notes-pivot-sales/import', [ImportController::class, 'notesRangeForPivotSaleImport'])->name('notesRangeForPivotSale.import');
-    Route::post('audits/import', [ImportController::class, 'auditsImport'])->name('audits.import');
-    Route::post('crm-notes/import', [ImportController::class, 'crmNotesImport'])->name('crmNotes.import');
-    Route::post('crm-rejected-cv/import', [ImportController::class, 'crmRejectedCvImport'])->name('crmRejectedCv.import');
-    Route::post('cv-notes/import', [ImportController::class, 'cvNotesImport'])->name('cvNotes.import');
-    Route::post('history-data/import', [ImportController::class, 'historyImport'])->name('history.import');//
-    Route::post('interview/import', [ImportController::class, 'interviewImport'])->name('interview.import');
-    Route::post('ipAddress/import', [ImportController::class, 'ipAddressImport'])->name('ipAddress.import');
-    Route::post('module-notes-data/import', [ImportController::class, 'moduleNotesImport'])->name('moduleNotes.import');
-    Route::post('quality-notes/import', [ImportController::class, 'qualityNotesImport'])->name('qualityNotes.import');
-    Route::post('regions/import', [ImportController::class, 'regionsImport'])->name('regions.import');
-    Route::post('revert-stage/import', [ImportController::class, 'revertStageImport'])->name('revertStage.import');
-    Route::post('sale-documents/import', [ImportController::class, 'saleDocumentsImport'])->name('saleDocuments.import');
-    Route::post('sale-notes/import', [ImportController::class, 'saleNotesImport'])->name('saleNotes.import');
-    Route::post('sent-emails-data/import', [ImportController::class, 'sentEmailDataImport'])->name('sentEmailData.import');
+    // --- Administrator: Data Import (requires administrator-user-index permission) ---
+    Route::middleware('permission:administrator-user-index')->group(function () {
+        Route::get('import', [ImportController::class, 'importIndex'])->name('import.index');
+        Route::post('users/import', [ImportController::class, 'usersImport'])->name('users.import');
+        Route::post('applicants/import', [ImportController::class, 'applicantsImport'])->name('applicants.import');
+        Route::post('applicants/process-file', [ImportController::class, 'applicantsProcessFile'])->name('process.file');
+        Route::post('offices/import', [ImportController::class, 'officesImport'])->name('offices.import');
+        Route::post('units/import', [ImportController::class, 'unitsImport'])->name('units.import');
+        Route::post('sales/import', [ImportController::class, 'salesImport'])->name('sales.import');
+        Route::post('applicant-message/import', [ImportController::class, 'messagesImport'])->name('messages.import');
+        Route::post('applicant-notes/import', [ImportController::class, 'applicantNotesImport'])->name('applicantNotes.import');
+        Route::post('applicant-pivot-sales/import', [ImportController::class, 'applicantPivotSaleImport'])->name('applicantPivotSale.import');
+        Route::post('notes-pivot-sales/import', [ImportController::class, 'notesRangeForPivotSaleImport'])->name('notesRangeForPivotSale.import');
+        Route::post('audits/import', [ImportController::class, 'auditsImport'])->name('audits.import');
+        Route::post('crm-notes/import', [ImportController::class, 'crmNotesImport'])->name('crmNotes.import');
+        Route::post('crm-rejected-cv/import', [ImportController::class, 'crmRejectedCvImport'])->name('crmRejectedCv.import');
+        Route::post('cv-notes/import', [ImportController::class, 'cvNotesImport'])->name('cvNotes.import');
+        Route::post('history-data/import', [ImportController::class, 'historyImport'])->name('history.import');
+        Route::post('interview/import', [ImportController::class, 'interviewImport'])->name('interview.import');
+        Route::post('ipAddress/import', [ImportController::class, 'ipAddressImport'])->name('ipAddress.import');
+        Route::post('module-notes-data/import', [ImportController::class, 'moduleNotesImport'])->name('moduleNotes.import');
+        Route::post('quality-notes/import', [ImportController::class, 'qualityNotesImport'])->name('qualityNotes.import');
+        Route::post('regions/import', [ImportController::class, 'regionsImport'])->name('regions.import');
+        Route::post('revert-stage/import', [ImportController::class, 'revertStageImport'])->name('revertStage.import');
+        Route::post('sale-documents/import', [ImportController::class, 'saleDocumentsImport'])->name('saleDocuments.import');
+        Route::post('sale-notes/import', [ImportController::class, 'saleNotesImport'])->name('saleNotes.import');
+        Route::post('sent-emails-data/import', [ImportController::class, 'sentEmailDataImport'])->name('sentEmailData.import');
+    });
 
     Route::group(['prefix' => 'reports'], function () {
         Route::get('users-login-report', [UserController::class, 'userLogin'])->name('reports.usersLoginReport');
         Route::get('login-history/{id}', [UserController::class, 'userLoginHistoryIndex'])->name('reports.userLoginHistory');
     });
-    Route::get('getUsersLoginReport', [UserController::class, 'getUsersLoginReport'])->name('getUsersLoginReport');
-    Route::get('getUserLoginHistory', [UserController::class, 'getUserLoginHistory'])->name('getUserLoginHistory');
-    Route::post('changeUserStatus', [UserController::class, 'changeUserStatus'])->name('changeUserStatus');
-
-    Route::group(['prefix' => 'roles'], function () {
-        Route::get('', [RoleController::class, 'index'])->name('roles.list');
-        Route::get('create', [RoleController::class, 'create'])->name('roles.create');
-        Route::post('store', [RoleController::class, 'store'])->name('roles.store');
-        Route::get('edit/{id}', [RoleController::class, 'edit'])->name('roles.edit');
-        Route::get('view/{id}', [RoleController::class, 'view'])->name('roles.view');
-        Route::put('update', [RoleController::class, 'update'])->name('roles.update');
-        Route::get('{id}', [RoleController::class, 'details'])->name('roles.details');
+    Route::middleware('permission:administrator-user-index')->group(function () {
+        Route::get('getUsersLoginReport', [UserController::class, 'getUsersLoginReport'])->name('getUsersLoginReport');
+        Route::get('getUserLoginHistory', [UserController::class, 'getUserLoginHistory'])->name('getUserLoginHistory');
     });
-    Route::get('getRoles', [RoleController::class, 'getRoles'])->name('getRoles');
-    Route::get('getPermissions', [RoleController::class, 'getPermissions'])->name('getPermissions');
-    Route::post('permissions/list', [RoleController::class, 'permissionIndex'])->name('permissions.list');
+    // CRITICAL FIX: was auth-only — any user could toggle any account's active state
+    Route::middleware('permission:administrator-user-change-status')->group(function () {
+        Route::post('changeUserStatus', [UserController::class, 'changeUserStatus'])->name('changeUserStatus');
+    });
+
+    // --- Administrator: Role & Permission Management ---
+    Route::middleware('permission:administrator-role-index')->group(function () {
+        Route::group(['prefix' => 'roles'], function () {
+            Route::get('', [RoleController::class, 'index'])->name('roles.list');
+            Route::get('create', [RoleController::class, 'create'])->name('roles.create');
+            Route::post('store', [RoleController::class, 'store'])->name('roles.store');
+            Route::get('edit/{id}', [RoleController::class, 'edit'])->name('roles.edit');
+            Route::get('view/{id}', [RoleController::class, 'view'])->name('roles.view');
+            Route::put('update', [RoleController::class, 'update'])->name('roles.update');
+            Route::get('{id}', [RoleController::class, 'details'])->name('roles.details');
+        });
+        Route::get('getRoles', [RoleController::class, 'getRoles'])->name('getRoles');
+        Route::get('getPermissions', [RoleController::class, 'getPermissions'])->name('getPermissions');
+        Route::post('permissions/list', [RoleController::class, 'permissionIndex'])->name('permissions.list');
+    });
     Route::post('permissions/store', [RoleController::class, 'permissionStore'])->name('permissions.store');
     Route::put('permissions/update', [RoleController::class, 'permissionUpdate'])->name('permissions.update');
 
@@ -438,14 +458,17 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getQualityNotesHistory', [QualityController::class, 'getQualityNotesHistory'])->name('getQualityNotesHistory');
 
 
-    Route::group(['prefix' => 'ip-address'], function () {
-        Route::get('', [IPAddressController::class, 'index'])->name('ip-address.list');
-        Route::post('store', [IPAddressController::class, 'store'])->name('ip-address.store');
-        Route::put('update', [IPAddressController::class, 'update'])->name('ip-address.update');
-        Route::post('delete', [IPAddressController::class, 'destroy'])->name('ip-address.destroy');
+    // --- Administrator: IP Address Management ---
+    Route::middleware('permission:administrator-ip-address-index')->group(function () {
+        Route::group(['prefix' => 'ip-address'], function () {
+            Route::get('', [IPAddressController::class, 'index'])->name('ip-address.list');
+            Route::post('store', [IPAddressController::class, 'store'])->name('ip-address.store');
+            Route::put('update', [IPAddressController::class, 'update'])->name('ip-address.update');
+            Route::post('delete', [IPAddressController::class, 'destroy'])->name('ip-address.destroy');
+        });
+        Route::get('ipaddressExport', [IPAddressController::class, 'export'])->name('ipaddressExport');
+        Route::get('getIPs', [IPAddressController::class, 'getIPs'])->name('getIPs');
     });
-    Route::get('ipaddressExport', [IPAddressController::class, 'export'])->name('ipaddressExport');
-    Route::get('getIPs', [IPAddressController::class, 'getIPs'])->name('getIPs');
 
     Route::get('settings', [SettingController::class, 'index'])->name('settings.list');
     Route::get('getSettings', [SettingController::class, 'getSettings'])->name('settings.get');
@@ -470,8 +493,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::get('', [RoutingController::class, 'index'])->name('root');
 
-    // Dynamic routes (Root, second-level, and third-level)
-    Route::get('{first}', [RoutingController::class, 'root'])->name('root');
+    // Dynamic fallback routes
+    Route::get('{first}', [RoutingController::class, 'root'])->name('first');
     Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
 

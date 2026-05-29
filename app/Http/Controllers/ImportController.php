@@ -45,6 +45,32 @@ class ImportController extends Controller
 {
     public $timestamps = false;  // Disables automatic timestamps
 
+    /**
+     * Sanitize a CSV cell value against spreadsheet formula injection.
+     * Any string whose first character could trigger formula execution in
+     * Excel/LibreOffice (=, +, -, @, |, %) gets a leading apostrophe prefix
+     * so spreadsheet applications treat it as plain text on re-export.
+     *
+     * Also removes non-printable/non-ASCII characters and collapses whitespace.
+     */
+    private function sanitizeCsvCell(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        // Remove non-ASCII and control characters, collapse whitespace
+        $value = trim(preg_replace('/[^\x20-\x7E]/', '', $value));
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        // Formula injection prevention: prefix dangerous opener chars with apostrophe
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', '|', '%', '\t', '\r'], true)) {
+            $value = "'" . $value;
+        }
+
+        return $value;
+    }
+
     public function importIndex()
     {
         return view('settings.import');
@@ -72,14 +98,14 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
             Log::channel('import')->info('🔹 [Offices Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
-            $filename = $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('File stored at: ' . $filePath);
@@ -136,15 +162,9 @@ class ImportController extends Controller
                         continue;
                     }
 
-                    // Clean and normalize data
+                    // Clean and normalize data (includes formula injection prevention)
                     $row = array_map(function ($value) {
-                        if (is_string($value)) {
-                            // Remove extra whitespace and line breaks
-                            $value = preg_replace('/\s+/', ' ', trim($value));
-                            // Remove non-ASCII characters
-                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                        }
-                        return $value;
+                        return is_string($value) ? $this->sanitizeCsvCell($value) : $value;
                     }, $row);
 
                     // Date preprocessing
@@ -451,14 +471,14 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
             Log::channel('import')->info('🔹 [Units Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
-            $filename = $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('File stored at: ' . $filePath);
@@ -515,15 +535,9 @@ class ImportController extends Controller
                         continue;
                     }
 
-                    // Clean and normalize data
+                    // Clean and normalize data (includes formula injection prevention)
                     $row = array_map(function ($value) {
-                        if (is_string($value)) {
-                            // Remove extra whitespace and line breaks
-                            $value = preg_replace('/\s+/', ' ', trim($value));
-                            // Remove non-ASCII characters
-                            $value = preg_replace('/[^\x20-\x7E]/', '', $value);
-                        }
-                        return $value;
+                        return is_string($value) ? $this->sanitizeCsvCell($value) : $value;
                     }, $row);
 
                     // Date preprocessing
@@ -849,7 +863,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
@@ -857,7 +871,7 @@ class ImportController extends Controller
 
             // Store file
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('📂 File stored at: ' . $filePath);
@@ -1045,9 +1059,9 @@ class ImportController extends Controller
                         return [$key => $value];
                     })->toArray();
 
-                    // Clean data
+                    // Clean data (includes formula injection prevention)
                     $row = array_map(function ($value) {
-                        return is_string($value) ? trim(preg_replace('/[^\x20-\x7E]/', '', $value)) : $value;
+                        return is_string($value) ? $this->sanitizeCsvCell($value) : $value;
                     }, $row);
 
                     // Helper functions
@@ -2724,7 +2738,7 @@ class ImportController extends Controller
         ]);
 
         $file = $request->file('csv_file');
-        $path = $file->storeAs('uploads/import_files', time() . '_' . $file->getClientOriginalName());
+        $path = $file->storeAs('uploads/import_files', Str::uuid() . '.' . $file->extension()); // safe filename
         $filePath = storage_path("app/{$path}");
 
         // CSV reader
@@ -2861,7 +2875,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
@@ -2869,7 +2883,7 @@ class ImportController extends Controller
 
             // Step 1: Store file
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('📂 File stored at: ' . $filePath);
@@ -3203,11 +3217,11 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $file = $request->file('csv_file');
-            $filename = $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -3311,7 +3325,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
@@ -3319,7 +3333,7 @@ class ImportController extends Controller
 
             // Store file
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('📂 File stored at: ' . $filePath);
@@ -3586,7 +3600,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -3599,7 +3613,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -3866,7 +3880,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -3879,7 +3893,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -4135,7 +4149,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -4148,7 +4162,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -4392,7 +4406,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         $file = $request->file('csv_file');
         $filePath = $file->getRealPath();
@@ -4486,14 +4500,14 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
             Log::channel('import')->info('🔹 [crm notes Import] Starting CSV import process...');
 
             $file = $request->file('csv_file');
-            $filename = $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('File stored at: ' . $filePath);
@@ -4747,7 +4761,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -4760,7 +4774,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -5008,7 +5022,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -5021,7 +5035,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -5280,7 +5294,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -5293,7 +5307,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -5540,7 +5554,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             $startTime = microtime(true);
@@ -5548,7 +5562,7 @@ class ImportController extends Controller
 
             // Store file
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
             Log::channel('import')->info('📂 File stored at: ' . $filePath);
@@ -6013,7 +6027,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -6026,7 +6040,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -6284,7 +6298,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // 🪵 Ensure log directory writable
@@ -6297,7 +6311,7 @@ class ImportController extends Controller
 
             // 🗂️ Store uploaded file
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -6542,7 +6556,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -6555,7 +6569,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -6802,7 +6816,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -6815,7 +6829,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -6975,7 +6989,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -6988,7 +7002,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -7233,7 +7247,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -7246,7 +7260,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -7483,7 +7497,7 @@ class ImportController extends Controller
     {
         // Set PHP limits
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Validate file (115 MB limit, CSV only)
@@ -7501,7 +7515,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 
@@ -7756,7 +7770,7 @@ class ImportController extends Controller
         }
 
         ini_set('max_execution_time', 10000);
-        ini_set('memory_limit', '-1');
+        ini_set('memory_limit', '512M'); // capped — never unlimited in production
 
         try {
             // Check log directory writability
@@ -7769,7 +7783,7 @@ class ImportController extends Controller
 
             // Store file with unique timestamped name
             $file = $request->file('csv_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = Str::uuid() . '.' . $file->extension(); // safe: never uses client-supplied name
             $path = $file->storeAs('uploads/import_files', $filename);
             $filePath = storage_path("app/{$path}");
 

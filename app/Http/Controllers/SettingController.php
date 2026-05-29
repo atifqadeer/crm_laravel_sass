@@ -1155,18 +1155,22 @@ class SettingController extends Controller
             })->toArray();
         }
 
-        // Add SMTP separately (does not overwrite)
+        // Add SMTP separately (does not overwrite).
+        // Password is masked in the API response — the UI shows a placeholder
+        // so the user knows a password is set, but the actual value is never
+        // sent to the browser.  The real password is only used server-side
+        // when sending mail, and is only updated when a non-placeholder is POSTed.
         $response['smtp'] = SmtpSetting::all()->map(function ($setting) {
             return [
-                'id'          => $setting->id,
-                'mailer'      => $setting->mailer,
-                'host'        => $setting->host,
-                'port'        => $setting->port,
-                'username'    => $setting->username,
-                'password'    => $setting->password,
-                'encryption'  => $setting->encryption,
-                'from_address'=> $setting->from_address,
-                'from_name'   => $setting->from_name,
+                'id'           => $setting->id,
+                'mailer'       => $setting->mailer,
+                'host'         => $setting->host,
+                'port'         => $setting->port,
+                'username'     => $setting->username,
+                'password'     => $setting->password ? '••••••••' : '',   // never expose
+                'encryption'   => $setting->encryption,
+                'from_address' => $setting->from_address,
+                'from_name'    => $setting->from_name,
             ];
         })->toArray();
 
@@ -1194,17 +1198,24 @@ class SettingController extends Controller
             ]);
 
             foreach ($request->smtp as $setting) {
+                $updateData = [
+                    'host'         => $setting['host'],
+                    'mailer'       => $setting['mailer'],
+                    'port'         => $setting['port'],
+                    'username'     => $setting['username'],
+                    'from_name'    => $setting['from_name'],
+                    'encryption'   => $setting['encryption'] ?? null,
+                ];
+
+                // Only update the password when the user explicitly provides a new one
+                // (i.e. not the masked placeholder '••••••••').
+                if (!empty($setting['password']) && $setting['password'] !== '••••••••') {
+                    $updateData['password'] = $setting['password'];
+                }
+
                 SmtpSetting::updateOrCreate(
-                    ['from_address' => $setting['from_address']], // check by from_address instead of id
-                    [
-                        'host' => $setting['host'],
-                        'mailer' => $setting['mailer'],
-                        'port' => $setting['port'],
-                        'username' => $setting['username'],
-                        'password' => $setting['password'],
-                        'from_name' => $setting['from_name'],
-                        'encryption' => $setting['encryption'] ?? null,
-                    ]
+                    ['from_address' => $setting['from_address']],
+                    $updateData
                 );
             }
 

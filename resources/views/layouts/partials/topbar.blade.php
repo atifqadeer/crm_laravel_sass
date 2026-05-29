@@ -182,9 +182,14 @@
 
                                    <div class="dropdown-divider my-1"></div>
 
-                                   <a class="dropdown-item text-danger" href="{{ route('logout') }}">
+                                   {{-- Logout is a POST (route is POST-only to prevent CSRF logout). --}}
+                                   <a class="dropdown-item text-danger" href="{{ route('logout') }}"
+                                      onclick="event.preventDefault(); document.getElementById('topbar-logout-form').submit();">
                                         <iconify-icon icon="solar:logout-3-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Logout</span>
                                    </a>
+                                   <form id="topbar-logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                        @csrf
+                                   </form>
                               </div>
                          </div>
                     </div>

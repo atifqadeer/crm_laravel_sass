@@ -2,10 +2,13 @@
 
 namespace App\Exports;
 
+use App\Traits\SanitizesExportValues;
 use Maatwebsite\Excel\Concerns\FromCollection;
 
 class EmailExport implements FromCollection
 {
+    use SanitizesExportValues;
+
     protected $emails;
 
     public function __construct(array $emails)
@@ -17,7 +20,7 @@ class EmailExport implements FromCollection
     {
         // Return a collection of arrays, each array is a row in CSV
         return collect($this->emails)->map(function ($email) {
-            return ['Email' => trim($email)];
+            return $this->sanitizeRow(['Email' => trim($email)]);
         });
     }
 }

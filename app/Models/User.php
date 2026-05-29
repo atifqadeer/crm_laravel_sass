@@ -20,15 +20,17 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+    /**
+     * Only safe user-supplied fields are mass-assignable.
+     * Privilege-sensitive columns (is_admin, is_active) must be set
+     * explicitly via $user->is_admin = 1; $user->save().
+     */
     protected $fillable = [
-        'id',
         'name',
         'email',
         'password',
-        'is_admin',
-        'is_active',
-        'created_at',
-        'updated_at'
+        'sip_extension',  // FreePBX extension number for this agent
+        'sip_password',   // SIP WebRTC password for this agent
     ];
 
     /**
@@ -39,9 +41,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'deleted_at'
+        'deleted_at',
+        'sip_password',   // never expose SIP credentials in API responses
     ];
-    protected $guarded = []; // allows all columns to be mass assignable (only if you're confident)
 
 
     /**
