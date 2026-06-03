@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasDistanceCalculation;
-use App\Support\PhoneNumber;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Scout\Searchable;
 
 class Applicant extends Model
@@ -15,21 +13,14 @@ class Applicant extends Model
     use HasFactory, SoftDeletes, HasDistanceCalculation, Searchable;
 
     protected $table = 'applicants';
-    /**
-     * Fields safely mass-assignable via create() / update().
-     * Sensitive state fields (status, paid_*, user_id, is_* flags, deleted_at)
-     * are deliberately excluded — set them with explicit attribute assignment
-     * so they can never be driven by unvalidated HTTP input.
-     */
     protected $fillable = [
-        // Identity
+        // 'id',
         'applicant_uid',
+        'user_id',
         'job_source_id',
         'job_category_id',
         'job_title_id',
         'job_type',
-
-        // Contact info
         'applicant_name',
         'applicant_email',
         'applicant_email_secondary',
@@ -37,8 +28,6 @@ class Applicant extends Model
         'applicant_phone',
         'applicant_phone_secondary',
         'applicant_landline',
-
-        // Profile
         'applicant_cv',
         'updated_cv',
         'applicant_notes',
@@ -47,23 +36,8 @@ class Applicant extends Model
         'lng',
         'gender',
         'dob',
-    ];
 
-    /**
-     * Fields that must NEVER be mass-assigned.
-     * These control workflow state, financial data, and record ownership.
-     * Use explicit $model->field = value; $model->save() in controllers,
-     * or $model->forceFill([...]) in trusted admin/import contexts only.
-     */
-    protected $guarded = [
-        'id',
-        'user_id',          // record ownership — set explicitly on creation
-        'status',           // workflow state — mutated via dedicated endpoints
-        'paid_status',      // financial flag
-        'paid_timestamp',   // financial timestamp
-        'deleted_at',       // soft-delete — managed by SoftDeletes trait
-
-        // Boolean workflow flags — every transition has its own controller method
+        // Boolean flags
         'is_blocked',
         'is_temp_not_interested',
         'is_callback_enable',
@@ -90,6 +64,14 @@ class Applicant extends Model
         'is_in_crm_dispute',
         'is_job_within_radius',
         'have_nursing_home_experience',
+
+        // Status fields
+        'status',
+        'paid_status',
+        'paid_timestamp',
+        'deleted_at',
+        // 'created_at',
+        // 'updated_at'
     ];
     protected $casts = [
         'is_blocked' => 'boolean',
@@ -118,89 +100,7 @@ class Applicant extends Model
     protected $hidden = [
         'deleted_at',
         'dob',
-        // PII fields — hidden from JSON serialisation / API responses
-        'applicant_email',
-        'applicant_email_secondary',
-        'applicant_phone',
-        'applicant_phone_secondary',
-        'applicant_landline',
-        'applicant_postcode',
-        // Indexed normalised (digits-only) phone columns — internal search keys
-        'applicant_phone_normalized',
-        'applicant_phone_secondary_normalized',
-        'applicant_landline_normalized',
     ];
-
-    /**
-     * Cached check for whether the indexed *_normalized phone columns exist.
-     * Lets scopePhoneMatches() and the saving hook work both before and after
-     * the add_normalized_phone_columns migration has been run, with a single
-     * information_schema hit per request.
-     */
-    protected static ?bool $hasPhoneNormalizedColumns = null;
-
-    public static function hasPhoneNormalizedColumns(): bool
-    {
-        if (static::$hasPhoneNormalizedColumns === null) {
-            try {
-                static::$hasPhoneNormalizedColumns = Schema::hasColumn(
-                    (new static)->getTable(),
-                    'applicant_phone_normalized'
-                );
-            } catch (\Throwable $e) {
-                static::$hasPhoneNormalizedColumns = false;
-            }
-        }
-        return static::$hasPhoneNormalizedColumns;
-    }
-
-    /**
-     * Keep the indexed *_normalized columns in sync whenever an applicant is
-     * saved, so click-to-dial / caller-ID lookup can match on an index instead
-     * of a full-table REGEXP_REPLACE scan.
-     */
-    protected static function booted(): void
-    {
-        static::saving(function (self $applicant) {
-            if (! static::hasPhoneNormalizedColumns()) {
-                return;
-            }
-            $applicant->applicant_phone_normalized           = PhoneNumber::normalize($applicant->applicant_phone);
-            $applicant->applicant_phone_secondary_normalized = PhoneNumber::normalize($applicant->applicant_phone_secondary);
-            $applicant->applicant_landline_normalized        = PhoneNumber::normalize($applicant->applicant_landline);
-        });
-    }
-
-    /**
-     * Match an applicant by phone across primary / secondary / landline.
-     * Tries an exact match first, then a fuzzy last-10-digit match. Uses the
-     * indexed *_normalized columns when present (fast), otherwise falls back to
-     * a REGEXP_REPLACE scan so it still works before the migration is applied.
-     */
-    public function scopePhoneMatches($query, ?string $number)
-    {
-        $raw  = (string) $number;
-        $tail = PhoneNumber::tail($number);
-
-        return $query->where(function ($q) use ($raw, $tail) {
-            $q->where('applicant_phone', $raw)
-              ->orWhere('applicant_phone_secondary', $raw)
-              ->orWhere('applicant_landline', $raw);
-
-            if ($tail !== null) {
-                if (static::hasPhoneNormalizedColumns()) {
-                    $q->orWhere('applicant_phone_normalized', $tail)
-                      ->orWhere('applicant_phone_secondary_normalized', $tail)
-                      ->orWhere('applicant_landline_normalized', $tail);
-                } else {
-                    $q->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_phone, '[^0-9]', ''), 10) = ?", [$tail])
-                      ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_phone_secondary, '[^0-9]', ''), 10) = ?", [$tail])
-                      ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_landline, '[^0-9]', ''), 10) = ?", [$tail]);
-                }
-            }
-        });
-    }
-
     public function scopeIgnoreBooleans($query)
     {
         $booleanColumns = [

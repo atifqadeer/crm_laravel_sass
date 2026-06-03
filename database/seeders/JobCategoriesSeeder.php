@@ -41,7 +41,7 @@ class JobCategoriesSeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            DB::table('job_categories')->insertOrIgnore([
+            DB::table('job_categories')->insert([
                 'name' => $category['name'],
                 'description' => $category['description'],
                 'is_active' => $category['is_active'],

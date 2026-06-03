@@ -1,53 +1,6 @@
-# Git
-.git
-.gitignore
-.gitattributes
-
-# Node (re-installed inside Docker via npm ci)
 node_modules
-
-# PHP / Composer (re-installed inside Docker)
 vendor
-
-# Laravel runtime / user-generated (provided via volumes)
 .env
-storage/app/public/*
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-bootstrap/cache/*.php
+.git
+storage/*.key
 public/storage
-
-# Database dump — mounted directly into MariaDB init dir in docker-compose.yml
-# not needed inside the PHP application container
-crm_db_portal.sql
-
-# Test / dev artefacts
-phpunit.xml
-tests/
-*.log
-
-# One-off utility scripts in project root
-check_indexes.php
-check_indexes_v2.php
-fix_audits_join.php
-fix_getSales.php
-optimize_queries.php
-optimize_queries2.php
-replace_string_joins.php
-rm_group_by.php
-test_scout_search.php
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea
-.vscode
-*.swp
-
-# Docs
-*.md
-README*

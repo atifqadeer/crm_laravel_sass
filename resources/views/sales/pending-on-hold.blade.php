@@ -1042,7 +1042,7 @@
                 if (result.isConfirmed) {
                     $.ajax({
                         url: "{{ route('changeSaleHoldStatus') }}",
-                        type: 'POST',
+                        type: 'GET',
                         data: {
                             id: saleId,
                             status: status,

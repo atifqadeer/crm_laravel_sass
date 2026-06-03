@@ -96,7 +96,7 @@ class ApplicantController extends Controller
                 'applicant_name' => 'required|string|max:255',
                 'applicant_email' => 'required|email|max:255|unique:applicants,applicant_email',
                 'applicant_email_secondary' => 'nullable|email|max:255|different:applicant_email|unique:applicants,applicant_email_secondary',
-                'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i'],
+                'applicant_postcode' => ['required', 'string', 'min:2', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
                 'applicant_phone' => [
                     'required',
                     'string',
@@ -525,30 +525,27 @@ class ApplicantController extends Controller
 
         /** Sorting logic */
         if ($request->has('order')) {
-            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = in_array(strtolower($request->input('order.0.dir', 'asc')), ['asc', 'desc'])
-                ? strtolower($request->input('order.0.dir', 'asc'))
-                : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable applicant columns — prevents SQL identifier injection
-            $allowedColumns = [
-                'id', 'applicant_name', 'applicant_email', 'applicant_postcode',
-                'applicant_phone', 'applicant_notes', 'applicant_experience',
-                'gender', 'dob', 'status', 'job_type', 'created_at', 'updated_at',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('applicants.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('applicants.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('applicants.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedColumns, true)) {
-                $model->orderBy('applicants.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('applicants.created_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('applicants.created_at', 'desc');
         }
 
@@ -831,33 +828,24 @@ class ApplicantController extends Controller
                     }
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
+
                     if ($applicant->is_blocked) {
                         return "<span class='badge bg-dark'>Blocked</span>";
-                    }
+                    } else {
+                        $items = [];
+                        if (!empty(trim($applicant->applicant_phone))) {
+                            $items[] = '<strong title="Primary Phone">P:</strong> ' . $applicant->applicant_phone;
+                        }
+                        if (!empty(trim($applicant->applicant_phone_secondary))) {
+                            $items[] = '<strong title="Secondary Phone">S:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if (!empty(trim($applicant->applicant_landline))) {
+                            $items[] = '<strong title="Landline">L:</strong> ' . $applicant->applicant_landline;
+                        }
 
-                    // Helper: wrap a number as a click-to-dial link using the xplosip widget.
-                    $dialLink = function (string $num, string $label): string {
-                        $safe = e($num);
-                        return "<strong title=\"{$label}\">"
-                            . substr($label, 0, 1) . ':</strong> '
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
-
-                    $items = [];
-                    if (!empty(trim($applicant->applicant_phone))) {
-                        $items[] = $dialLink($applicant->applicant_phone, 'Primary Phone');
+                        return !empty($items) ? implode('<br>', $items) : '-';
                     }
-                    if (!empty(trim($applicant->applicant_phone_secondary))) {
-                        $items[] = $dialLink($applicant->applicant_phone_secondary, 'Secondary Phone');
-                    }
-                    if (!empty(trim($applicant->applicant_landline))) {
-                        $items[] = $dialLink($applicant->applicant_landline, 'Landline');
-                    }
-
-                    return !empty($items) ? implode('<br>', $items) : '-';
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -1544,48 +1532,57 @@ class ApplicantController extends Controller
     }
     public function uploadCv(Request $request)
     {
-        // HIGH-FIX: previously had no validation — any file type including .php could be uploaded
-        // to the public webroot, enabling remote code execution.
-        $request->validate([
-            'resume'       => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
-            'applicant_id' => 'required|integer|exists:applicants,id',
-        ]);
+        // Get file and applicant data
+        $file = $request->file('resume');
+        $applicantId = $request->input('applicant_id');
 
-        $file        = $request->file('resume');
-        $applicantId = (int) $request->input('applicant_id');
-        $applicant   = Applicant::findOrFail($applicantId);
+        // Fetch applicant
+        $applicant = Applicant::findOrFail($applicantId);
 
-        // Delete old CV if exists
+        // ✅ Delete old CV if exists (from public directory)
         if (!empty($applicant->applicant_cv)) {
             $oldPath = public_path($applicant->applicant_cv);
             if (file_exists($oldPath)) {
-                @unlink($oldPath);
+                unlink($oldPath);
             }
         }
 
-        $year      = now()->year;
-        $month     = now()->format('m');
-        $day       = now()->format('d');
+        // Directory structure
+        $year = now()->year;
+        $month = now()->format('m');
+        $day = now()->format('d');
+
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
         $publicPath = public_path($directory);
+
+        // Ensure directory exists
+        // if (!file_exists($publicPath)) {
+        //     mkdir($publicPath, 0777, true);
+        // }
 
         if (!File::exists($publicPath)) {
             File::makeDirectory($publicPath, 0755, true, true);
         }
 
-        // Use a UUID filename — not guessable (was applicant_id + timestamp)
-        $fileName = \Illuminate\Support\Str::uuid() . '.' . $file->extension();
+        // Generate unique filename
+        $fileName = $applicantId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+        // Move file to public directory
         $file->move($publicPath, $fileName);
 
+        // Store relative path in DB
         $filePath = "{$directory}/{$fileName}";
-        $applicant->applicant_cv = $filePath;
-        $applicant->save();
+
+        // Update applicant
+        $applicant->update([
+            'applicant_cv' => $filePath
+        ]);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'File uploaded successfully',
+            'success' => true,
+            'message' => 'File uploaded successfully',
             'file_path' => $filePath,
-            'file_url'  => asset($filePath),
+            'file_url' => asset($filePath),
         ]);
     }
     public function crmuploadCv(Request $request)
@@ -1665,40 +1662,39 @@ class ApplicantController extends Controller
     }
     public function changeStatus(Request $request)
     {
-        // HIGH-FIX: previously no validation (arbitrary status) and no transaction
-        // (partial writes left status changed but module notes inconsistent on failure)
-        $validated = $request->validate([
-            'applicant_id' => 'required|integer|exists:applicants,id',
-            'status'       => 'required|integer',
-            'details'      => 'nullable|string|max:2000',
+        $user = Auth::user();
+
+        $applicant_id = $request->input('applicant_id');
+        $status = $request->input('status');
+        $details = $request->input('details');
+        $notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+        $updateData = [
+            'applicant_notes' => $notes,
+            'status' => $status,
+        ];
+
+        Applicant::where('id', $applicant_id)->update($updateData);
+
+        // Disable previous module note
+        ModuleNote::where([
+            'module_noteable_id' => $applicant_id,
+            'module_noteable_type' => 'Horsefly\Applicant'
+        ])
+            ->orderBy('id', 'desc')
+            ->update(['status' => 0]);
+
+        // Create new module note
+        $moduleNote = ModuleNote::create([
+            'details' => $notes,
+            'module_noteable_id' => $applicant_id,
+            'module_noteable_type' => 'Horsefly\Applicant',
+            'user_id' => $user->id
         ]);
 
-        $user  = Auth::user();
-        $notes = ($validated['details'] ?? '') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $notes, $user) {
-            $applicantId = $validated['applicant_id'];
-
-            Applicant::where('id', $applicantId)->update([
-                'applicant_notes' => $notes,
-                'status'          => $validated['status'],
-            ]);
-
-            // Deactivate previous module notes
-            ModuleNote::where([
-                'module_noteable_id'   => $applicantId,
-                'module_noteable_type' => 'Horsefly\Applicant',
-            ])->update(['status' => 0]);
-
-            // Create fresh module note with a proper UUID (not md5(id))
-            ModuleNote::create([
-                'module_note_uid'      => \Illuminate\Support\Str::uuid(),
-                'details'              => $notes,
-                'module_noteable_id'   => $applicantId,
-                'module_noteable_type' => 'Horsefly\Applicant',
-                'user_id'              => $user->id,
-            ]);
-        });
+        $moduleNote->update([
+            'module_note_uid' => md5($moduleNote->id)
+        ]);
 
         return redirect()->to(url()->previous());
     }

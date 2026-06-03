@@ -2,14 +2,12 @@
 
 namespace App\Exports;
 
-use App\Traits\SanitizesExportValues;
 use Horsefly\Unit;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class UnitsExport implements FromCollection, WithHeadings
 {
-    use SanitizesExportValues;
     protected $type;
 
     public function __construct(string $type = 'all')
@@ -35,13 +33,13 @@ class UnitsExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'id' => $item->id,
                             'unit_name' => ucwords(strtolower($item->unit_name)),
                             'unit_postcode' => strtoupper($item->unit_postcode),
                             'contact_email' => $item->contact_email,
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             case 'noLatLong':
@@ -65,16 +63,16 @@ class UnitsExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'id' => $item->id,
                             'unit_name' => ucwords(strtolower($item->unit_name)),
                             'unit_postcode' => strtoupper($item->unit_postcode),
                             'lat' => $item->lat,
                             'lng' => $item->lng,
-                            'created_at' => $item->created_at
-                                ? $item->created_at->format('d M Y, h:i A')
+                            'created_at' => $item->created_at 
+                                ? $item->created_at->format('d M Y, h:i A') 
                                 : 'N/A',
-                        ]);
+                        ];
                     });
                 
             case 'all':
@@ -94,7 +92,7 @@ class UnitsExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'id' => $item->id,
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -104,7 +102,7 @@ class UnitsExport implements FromCollection, WithHeadings
                             'contact_phone' => $item->contact_phone,
                             'contact_landline' => $item->contact_landline,
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             default:

@@ -2,37 +2,33 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Horsefly\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-/**
- * Creates the primary super-admin user (ID 1).
- *
- * Credentials:   admin@crm.local  /  Admin@1234!
- * (DemoSeeder also creates this user via firstOrCreate, so running both is safe)
- */
 class UserSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        // Silence model observers so no audit/notification side-effects during seeding
+        // Disable model events if needed (e.g., observers)
         $dispatcher = User::getEventDispatcher();
         User::unsetEventDispatcher();
 
-        User::firstOrCreate(
-            ['email' => 'admin@crm.local'],
-            [
-                'name'               => 'Admin User',
-                'email_verified_at'  => now(),
-                'is_admin'           => 1,
-                'is_active'          => 1,
-                'password'           => Hash::make('Admin@1234!'),
-                'remember_token'     => Str::random(10),
-            ]
-        );
+        User::create([
+            'name' => 'admin',
+            'email' => 'admin@gmail.com',
+            'email_verified_at' => now(),
+            'is_admin' => 1,
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
+        ]);
 
+        // Restore events
         User::setEventDispatcher($dispatcher);
     }
 }

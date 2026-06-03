@@ -10,13 +10,15 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\DB;
 use Horsefly\LoginDetail;
 use Illuminate\Support\Carbon;
+use Illuminate\Foundation\Console\Kernel;
 use App\Helpers\PermissionHelper;
 use Illuminate\Support\Facades\Log;
-
 class LoginController extends Controller
 {
     /**
      * Show the login form.
+     *
+     * @return \Illuminate\View\View
      */
     public function showLoginForm()
     {
@@ -29,14 +31,18 @@ class LoginController extends Controller
     }
 
     /**
-     * Handle a login request.
+     * Handle a login request to the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function login(Request $request)
     {
+        // Validate the incoming login request
         $credentials = $request->only('email', 'password');
 
         $validator = Validator::make($credentials, [
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|min:6',
         ]);
 
@@ -44,151 +50,133 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors($validator)->withInput();
         }
 
-        // ── IP address check ──────────────────────────────────────────────────
-        // A user may log in when their IP is:
-        //   (a) registered exactly in the ip_addresses table (status=1), OR
-        //   (b) covered by a prefix in the allowed_ips table (first 3 octets)
-        //
-        // This dual-check lets Docker / NAT / VPN users access the system via
-        // the allowed_ips prefix list, while still supporting the per-device
-        // exact-match whitelist for stricter environments.
-        $clientIp = $request->ip();
-        Log::info('Login attempt from IP: ' . $clientIp);
+        // Get the IP address of the incoming request
+        $originalIp = $request->ip();
 
-        if (!$this->isIpAllowed($clientIp)) {
-            Log::warning('Blocked login attempt from unregistered IP: ' . $clientIp);
-            return redirect()->route('login')
-                ->withErrors(['ip' => 'Your IP address (' . $clientIp . ') is not registered. Contact your administrator.']);
+        Log::info('Requested IP Address: ' . $originalIp);
+
+        // Fetch the list of active IP addresses from the database using the query builder
+        $ip_addresses_db = DB::table('ip_addresses')
+            ->where('status', 1) // Ensure 'status' is '1' (active)
+            ->where('ip_address', $originalIp)
+            ->exists();
+
+
+        // Check if the modified IP exists in the database (after modification)
+        if (!$ip_addresses_db) {
+            return redirect()->route('login')->withErrors(['ip' => 'Your IP address is not registered.']);
         }
 
-        // ── Rate limiting ─────────────────────────────────────────────────────
+        // Check if the user has too many login attempts
         if ($this->hasTooManyLoginAttempts($request)) {
             $this->fireLockoutEvent($request);
             return $this->sendLockoutResponse($request);
         }
 
-        // ── Authenticate ──────────────────────────────────────────────────────
+        // Attempt to log the user in
         if (Auth::attempt($credentials, $request->has('remember'))) {
+            // Get the authenticated user
             $user = Auth::user();
 
+            // Check if the user is active
             if ($user->is_active == 1) {
-                // Record login (firstOrCreate avoids race-condition duplicate inserts)
-                $loginDetail = LoginDetail::firstOrCreate(
-                    [
-                        'user_id'    => $user->id,
-                        'ip_address' => $clientIp,
-                    ],
-                    [
-                        'login_at' => Carbon::now(),
-                    ]
-                );
-                if (!$loginDetail->wasRecentlyCreated) {
+                // Create login details
+                // Check if a login detail exists for today
+                $today = Carbon::now()->toDateString();
+                $loginDetail = LoginDetail::where('user_id', $user->id)
+                    ->whereDate('created_at', $today)
+                    ->first();
+
+                if ($loginDetail) {
+                    // Update logout_at to null if already exists for today
                     $loginDetail->logout_at = null;
                     $loginDetail->save();
+                } else {
+                    // Create new login detail
+                    LoginDetail::create([
+                        'user_id' => $user->id,
+                        'ip_address' => $request->ip(),
+                        'login_at' => Carbon::now(),
+                    ]);
                 }
 
+                // Regenerate session to prevent session fixation
                 $request->session()->regenerate();
 
+                // Redirect to first allowed route based on permissions
                 return redirect()->to(PermissionHelper::firstAllowedRoute($user));
+            } else {
+                // If the user is inactive, log them out and show an error
+                Auth::logout();
+                return redirect()->route('login')->withErrors(['email' => 'Your account is not active. Please contact support.']);
             }
-
-            Auth::logout();
-            return redirect()->route('login')
-                ->withErrors(['email' => 'Your account is not active. Please contact support.']);
         }
 
+        // If authentication fails, increment login attempts
         $this->incrementLoginAttempts($request);
 
-        return redirect()->route('login')
-            ->withErrors(['email' => 'Invalid credentials. Please try again.'])
-            ->withInput();
+        // Redirect back with an error if login fails
+        return redirect()->route('login')->withErrors(['email' => 'Invalid credentials. Please try again.'])->withInput();
     }
 
-    /**
-     * Check whether the given IP is allowed to log in.
-     *
-     * SKIP_IP_CHECK=true in .env bypasses all IP checks — useful for first-time
-     * VPS setup before IP whitelists have been configured.  Disable once the
-     * admin has logged in and added trusted IPs via the admin panel.
-     *
-     * Two-tier check (when enabled):
-     *   1. Exact match  — ip_addresses table (status = 1)
-     *   2. Prefix match — allowed_ips table  (first-3-octet subnet)
-     */
-    protected function isIpAllowed(string $ip): bool
+    protected function hasTooManyLoginAttempts(Request $request)
     {
-        // Bypass for fresh deployments / development environments.
-        // Must use config() — env() returns null when config:cache is active.
-        if (config('app.skip_ip_check', false)) {
-            return true;
-        }
+        // You can set the maximum attempts here. For example, 5 attempts.
+        $maxAttempts = 5;
+        $decayMinutes = 1; // Lockout time in minutes.
 
-        // Tier 1: exact match
-        $exact = DB::table('ip_addresses')
-            ->where('status', 1)
-            ->whereNull('deleted_at')
-            ->where('ip_address', $ip)
-            ->exists();
-
-        if ($exact) {
-            return true;
-        }
-
-        // Tier 2: prefix/subnet match (e.g. 192.168.1 covers .1–.254)
-        $parts  = explode('.', $ip);
-        $prefix = implode('.', array_slice($parts, 0, 3));
-
-        return DB::table('allowed_ips')
-            ->where('ip_prefix', $prefix)
-            ->exists();
+        return RateLimiter::tooManyAttempts($this->throttleKey($request), $maxAttempts, $decayMinutes);
     }
 
-    // ── Rate-limit helpers ────────────────────────────────────────────────────
-
-    protected function hasTooManyLoginAttempts(Request $request): bool
+    protected function throttleKey(Request $request)
     {
-        // 5 attempts allowed; 15-minute lockout.
-        return RateLimiter::tooManyAttempts($this->throttleKey($request), 5, 15);
+        return 'login|' . $request->input('email');
     }
 
-    protected function throttleKey(Request $request): string
+    protected function incrementLoginAttempts(Request $request)
     {
-        // Key on email + IP so brute-forcing from multiple IPs is also throttled.
-        return 'login|' . strtolower($request->input('email')) . '|' . $request->ip();
+        RateLimiter::hit($this->throttleKey($request), 60);
     }
 
-    protected function incrementLoginAttempts(Request $request): void
+    protected function fireLockoutEvent(Request $request)
     {
-        RateLimiter::hit($this->throttleKey($request), 60 * 15);
+        // This can be used to fire a lockout event, you can log an event or notify the user/admin.
+        // For example: event(new Lockout($request));
     }
-
-    protected function fireLockoutEvent(Request $request): void {}
 
     protected function sendLockoutResponse(Request $request)
     {
         $seconds = RateLimiter::availableIn($this->throttleKey($request));
 
-        return redirect()->route('login')
-            ->withErrors(['email' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minute(s).']);
+        return redirect()->route('login')->withErrors(['email' => 'Too many login attempts. Please try again in ' . $seconds . ' seconds.']);
     }
 
-    // ── Logout ────────────────────────────────────────────────────────────────
-
+    /**
+     * Handle a logout request to the application.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function logout()
     {
+        // Get the authenticated user
         $user = Auth::user();
 
         if ($user) {
+            // Update the login_details table with the logout time
             LoginDetail::where('user_id', $user->id)
-                ->whereNull('logout_at')
+                ->whereNull('logout_at') // Ensure only the active session gets updated
                 ->update(['logout_at' => Carbon::now()]);
         }
 
+        // Now it's safe to log the user out
         Auth::logout();
+
+        // Clear the session data to ensure a full logout
         session()->invalidate();
         session()->regenerateToken();
 
-        return redirect()->route('login')
-            ->with('message', 'You have been logged out successfully.');
+        // Redirect the user to the login page with a success message
+        return redirect()->route('login')->with('message', 'You have been logged out successfully.');
     }
+
 }

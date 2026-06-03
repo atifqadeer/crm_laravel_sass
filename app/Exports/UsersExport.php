@@ -2,14 +2,11 @@
 
 namespace App\Exports;
 
-use App\Traits\SanitizesExportValues;
 use Horsefly\User;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-
 class UsersExport implements FromCollection, WithHeadings
 {
-    use SanitizesExportValues;
   protected $type;
 
     public function __construct(string $type = 'all')
@@ -33,13 +30,13 @@ class UsersExport implements FromCollection, WithHeadings
                     )
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'id' => $item->id,
                             'name' => ucwords(strtolower($item->name)),
                             'email' => ucwords(strtolower($item->email)),
                             'status' => ucwords(strtolower($item->is_active ? 'Active' : 'Inactive')),
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             default:

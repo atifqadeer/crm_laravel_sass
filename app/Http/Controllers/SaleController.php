@@ -861,28 +861,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -1269,28 +1268,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -1635,28 +1633,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -2152,28 +2149,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -2539,28 +2535,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -2864,28 +2859,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            // Sanitize: only alphanumeric, underscore, dot — prevents identifier injection
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            // Whitelist of sortable sale columns
-            $allowedSaleColumns = [
-                'id', 'created_at', 'updated_at', 'status', 'is_on_hold', 'is_re_open',
-                'sale_notes', 'unit_postcode', 'office_name', 'unit_name',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('sales.job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('sales.job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('sales.job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedSaleColumns, true)) {
-                $model->orderBy('sales.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('sales.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('sales.updated_at', 'desc');
         }
 
@@ -3122,26 +3116,27 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-            $allowedApplicantColumns = [
-                'id', 'applicant_name', 'applicant_email', 'applicant_postcode',
-                'applicant_phone', 'status', 'created_at', 'updated_at',
-            ];
-
+            // Handle special cases first
             if ($orderColumn === 'job_source') {
                 $model->orderBy('job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
                 $model->orderBy('job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedApplicantColumns, true)) {
-                $model->orderBy('applicants.' . $orderColumn, $orderDirection);
-            } else {
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex' && $orderColumn !== 'checkbox') {
+                $model->orderBy($orderColumn, $orderDirection);
+            }
+            // Fallback if no valid order column is found
+            else {
                 $model->orderBy('applicants.updated_at', 'desc');
             }
         } else {
+            // Default sorting when no order is specified
             $model->orderBy('applicants.updated_at', 'desc');
         }
 
@@ -3339,31 +3334,22 @@ class SaleController extends Controller
                     ';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
+                    $str = '';
+
                     if ($applicant->is_blocked) {
-                        return "<span class='badge bg-dark'>Blocked</span>";
+                        $str = "<span class='badge bg-dark'>Blocked</span>";
+                    } else {
+                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
+
+                        if ($applicant->applicant_phone_secondary) {
+                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
+                        }
+                        if ($applicant->applicant_landline) {
+                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
+                        }
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
-
-                    $parts = [];
-                    if (!empty(trim($applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim($applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim($applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
-                    }
-
-                    return implode('<br>', $parts) ?: '-';
+                    return $str;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -3602,89 +3588,99 @@ class SaleController extends Controller
     }
     public function changeSaleStatus(Request $request)
     {
-        $validated = $request->validate([
-            'sale_id' => 'required|integer|exists:sales,id',
-            'status'  => 'required|integer',
-            'details' => 'nullable|string|max:2000',
-        ]);
+        $user = Auth::user();
 
-        $user       = Auth::user();
-        $sale_id    = $validated['sale_id'];
-        $status     = $validated['status'];
-        $sale_notes = ($validated['details'] ?? '') . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+        $sale_id = $request->input('sale_id');
+        $status = $request->input('status');
+        $details = $request->input('details');
+        $sale_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        DB::transaction(function () use ($sale_id, $status, $sale_notes, $user) {
+        if ($status == 1) {
             $updateData = [
                 'sale_notes' => $sale_notes,
-                'status'     => $status == 1 ? 2 : $status,
+                'status' => 2, // Assuming 2 is for pending
                 'is_on_hold' => false,
-                'is_re_open' => false,
+                'is_re_open' => false
             ];
+        } else {
+            $updateData = [
+                'sale_notes' => $sale_notes,
+                'status' => $status, // Assuming 2 is for pending
+                'is_on_hold' => false,
+                'is_re_open' => false
+            ];
+        }
 
-            $sale = Sale::findOrFail($sale_id);
-            $sale->update($updateData);
+        $sale = Sale::findOrfail($sale_id);
+        $sale->update($updateData);
 
-            $audit = new ActionObserver();
-            $audit->changeSaleStatus($sale, ['status' => $status]);
+        $audit = new ActionObserver();
+        $audit->changeSaleStatus($sale, ['status' => $status]);
 
-            ModuleNote::where([
-                'module_noteable_id'   => $sale_id,
-                'module_noteable_type' => 'Horsefly\Sale',
-            ])->where('status', 1)->update(['status' => 0]);
+        // Disable previous module note
+        ModuleNote::where([
+            'module_noteable_id' => $sale_id,
+            'module_noteable_type' => 'Horsefly\Sale'
+        ])
+            ->where('status', 1)
+            ->update(['status' => 0]);
 
-            ModuleNote::create([
-                'module_note_uid'      => \Illuminate\Support\Str::uuid(),
-                'details'              => $sale_notes,
-                'module_noteable_id'   => $sale_id,
-                'module_noteable_type' => 'Horsefly\Sale',
-                'user_id'              => $user->id,
-                'status'               => 1,
-            ]);
-        });
+        // Create new module note
+        $moduleNote = ModuleNote::create([
+            'details' => $sale_notes,
+            'module_noteable_id' => $sale_id,
+            'module_noteable_type' => 'Horsefly\Sale',
+            'user_id' => $user->id,
+            'status' => 1,
+        ]);
+
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
 
         return redirect()->to(url()->previous());
     }
     public function changeSaleHoldStatus(Request $request)
     {
-        $validated = $request->validate([
-            'id'      => 'required|integer|exists:sales,id',
-            'status'  => 'required|boolean',
-            'details' => 'nullable|string|max:2000',
-        ]);
+        $user = Auth::user();
 
-        $user       = Auth::user();
-        $sale_id    = $validated['id'];
-        $status     = $validated['status'];
-        $details    = $validated['details'] ?? null;
+        $sale_id = $request->input('id');
+        $status = $request->input('status');
+        $details = $request->input('details');
         $sale_notes = $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
-        $saleRef = null;
+        if (isset($request->details)) {
+            $updateData = [
+                'is_on_hold' => $status,
+                'sale_notes' => $sale_notes
+            ];
+        } else {
+            $updateData = [
+                'is_on_hold' => $status
+            ];
+        }
 
-        DB::transaction(function () use ($sale_id, $status, $details, $sale_notes, $user, &$saleRef) {
-            $updateData = $details
-                ? ['is_on_hold' => $status, 'sale_notes' => $sale_notes]
-                : ['is_on_hold' => $status];
+        $sale = Sale::FindOrfail($sale_id);
+        $sale->update($updateData);
 
-            $sale    = Sale::findOrFail($sale_id);
-            $saleRef = $sale;
-            $sale->update($updateData);
+        // Disable previous module note
+        ModuleNote::where([
+            'module_noteable_id' => $sale_id,
+            'module_noteable_type' => 'Horsefly\Sale'
+        ])
+            ->where('status', 1)
+            ->update(['status' => 0]);
 
-            ModuleNote::where([
-                'module_noteable_id'   => $sale_id,
-                'module_noteable_type' => 'Horsefly\Sale',
-            ])->where('status', 1)->update(['status' => 0]);
+        // Create new module note
+        $moduleNote = ModuleNote::create([
+            'details' => $sale_notes,
+            'module_noteable_id' => $sale_id,
+            'module_noteable_type' => 'Horsefly\Sale',
+            'user_id' => $user->id,
+        ]);
 
-            ModuleNote::create([
-                'module_note_uid'      => \Illuminate\Support\Str::uuid(),
-                'details'              => $sale_notes,
-                'module_noteable_id'   => $sale_id,
-                'module_noteable_type' => 'Horsefly\Sale',
-                'user_id'              => $user->id,
-            ]);
-        });
+        $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
 
         $audit = new ActionObserver();
-        $audit->changeSaleOnHoldStatus($saleRef, ['status' => $status]);
+        $audit->changeSaleOnHoldStatus($sale, ['status' => $status]);
 
         return redirect()->to(url()->previous());
     }
@@ -3754,10 +3750,6 @@ class SaleController extends Controller
     }
     public function removeDocument(Request $request)
     {
-        $request->validate([
-            'id' => 'required|integer|exists:sale_documents,id',
-        ]);
-
         $documentId = $request->input('id');
 
         try {
@@ -3768,9 +3760,8 @@ class SaleController extends Controller
             $audit = new ActionObserver();
             $audit->customSaleAudit($sale, 'document_removed');
 
-            // Documents are uploaded to public/uploads/docs (not storage).
-            // Use public_path() to match the upload location exactly.
-            $filePath = public_path($document->document_path);
+            // Delete the file from the directory
+            $filePath = storage_path('app/public/' . $document->document_path);
             if (file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -3892,17 +3883,17 @@ class SaleController extends Controller
 
         // Sorting logic
         if ($request->has('order')) {
-            $orderColumn    = preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $request->input('columns.' . $request->input('order.0.column') . '.data', ''));
-            $orderDirection = in_array(strtolower((string) $request->input('order.0.dir', 'asc')), ['asc', 'desc']) ? strtolower($request->input('order.0.dir')) : 'asc';
-
-            $allowedHistoryColumns = ['id', 'stage', 'sub_stage', 'created_at', 'updated_at'];
-
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            // Handle special cases first
             if ($orderColumn === 'job_category') {
                 $model->orderBy('job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('job_title_id', $orderDirection);
-            } elseif ($orderColumn && in_array($orderColumn, $allowedHistoryColumns, true)) {
-                $model->orderBy('history.' . $orderColumn, $orderDirection);
+            }
+            // Default case for valid columns
+            elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
             } else {
                 $model->orderBy('history.created_at', 'desc');
             }

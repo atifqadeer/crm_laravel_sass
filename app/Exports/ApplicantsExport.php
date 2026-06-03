@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Traits\SanitizesExportValues;
 use Horsefly\Applicant;
 use Horsefly\JobTitle;
 use Horsefly\Sale;
@@ -15,8 +14,7 @@ use Carbon\Carbon;
 
 class ApplicantsExport implements FromCollection, WithHeadings
 {
-    use HasDistanceCalculation;
-    use SanitizesExportValues;
+    use HasDistanceCalculation; // Add the trait here
 
     protected $type;
     protected $radius;
@@ -56,7 +54,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
@@ -64,7 +62,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'noLatLong':
@@ -88,7 +86,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_postcode' => strtoupper($item->applicant_postcode),
@@ -97,7 +95,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'all':
@@ -122,7 +120,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
@@ -134,7 +132,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'withinRadius':
@@ -204,7 +202,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
                 // Map the results into the desired format
                 $finalResults = $applicants->map(function ($item) use ($sale_id) {
-                    return $this->sanitizeRow([
+                    return [
                         'updated_at' => $item->updated_at ? $item->updated_at->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
                         'applicant_email' => $item->applicant_email,
@@ -259,7 +257,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
                         })(),
 
-                    ]);
+                    ];
                 });
 
                 // Return the final result without pagination
@@ -371,7 +369,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     });
                 }
                 $query->map(function ($item) {
-                    return $this->sanitizeRow([
+                    return [
                         'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
                         'applicant_email' => $item->applicant_email,
@@ -387,7 +385,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'rejection_type' => ucwords($item->sub_stage),
                         'experience' => $item->applicant_experience,
                         'note' => $item->details,
-                    ]);
+                    ];
                 });
 
                 return $query;
@@ -429,7 +427,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->whereNull('applicants.deleted_at')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'date' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
@@ -444,7 +442,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_source' => strtoupper($item->job_source),
                             'status' => 'Blocked',
                             'experience' => $item->applicant_experience
-                        ]);
+                        ];
                     });
 
                 return $query;
@@ -492,7 +490,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
                             'applicant_name' => ucwords(strtolower($item->applicant_name)),
                             'applicant_email' => $item->applicant_email,
@@ -508,7 +506,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'status' => strtoupper($item->moved_tab_to),
                             'experience' => $item->applicant_experience,
                             'notes' => $item->details
-                        ]);
+                        ];
                     });
 
                 return $query;
@@ -570,7 +568,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->distinct()
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'date' => $item->note_created_at
                                 ? Carbon::parse($item->note_created_at)->format('d M Y, h:i A')
                                 : 'N/A',
@@ -588,7 +586,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             'job_source' => strtoupper($item->job_source_name ?? '-'),
                             'experience' => $item->applicant_experience ?: '-',
                             'notes' => $item->module_notes_details ?: '-',
-                        ]);
+                        ];
                     });
 
                 return $query;

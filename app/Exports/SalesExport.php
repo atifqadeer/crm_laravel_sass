@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Traits\SanitizesExportValues;
 use Horsefly\Sale;
 use Horsefly\Applicant;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -12,7 +11,6 @@ use Carbon\Carbon;
 
 class SalesExport implements FromCollection, WithHeadings
 {
-    use SanitizesExportValues;
     protected $type;
 
     public function __construct(string $type = 'all')
@@ -46,7 +44,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -55,7 +53,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'rejected_cv':
@@ -142,7 +140,7 @@ class SalesExport implements FromCollection, WithHeadings
                     // ✅ Map exactly in your heading order
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'Created At'         => $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d M Y, h:i A') : 'N/A',
                             'Head Office Name'   => ucwords(strtolower($item->office_name)),
                             'Unit Name'          => ucwords(strtolower($item->unit_name)),
@@ -151,7 +149,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'Job Category'       => ucwords($item->job_category ?? ''),
                             'Job Type'           => ucwords(str_replace('-', ' ', $item->job_type ?? '')),
                             'Job Title'          => strtoupper($item->job_title ?? ''),
-                        ]);
+                        ];
                     });
 
             case 'declined':
@@ -226,7 +224,7 @@ class SalesExport implements FromCollection, WithHeadings
                 ->distinct('applicants.id')
                 ->get()
                 ->map(function ($item) {
-                    return $this->sanitizeRow([
+                    return [
                         'created_at'   => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         'office_name'  => ucwords(strtolower($item->office_name)),
                         'unit_name'    => ucwords(strtolower($item->unit_name)),
@@ -235,7 +233,7 @@ class SalesExport implements FromCollection, WithHeadings
                         'job_category' => ucwords($item->job_category),
                         'job_type'     => ucwords(str_replace('-', ' ', $item->job_type)),
                         'job_title'    => strtoupper($item->job_title),
-                    ]);
+                    ];
                 });
 
 
@@ -284,7 +282,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -293,7 +291,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => ucwords($item->job_category),
                             'job_type' => ucwords(str_replace('-',' ',$item->job_type)),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
             
             case 'start_date_hold':
@@ -341,7 +339,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -350,7 +348,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => ucwords($item->job_category),
                             'job_type' => ucwords(str_replace('-',' ',$item->job_type)),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
             case 'dispute':
                 return Applicant::query()
@@ -397,7 +395,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -406,7 +404,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => ucwords($item->job_category),
                             'job_type' => ucwords(str_replace('-',' ',$item->job_type)),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
             
             case 'paid':
@@ -459,7 +457,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->distinct()
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at'    => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name'   => ucwords(strtolower($item->office_name)),
                             'unit_name'     => ucwords(strtolower($item->unit_name)),
@@ -468,7 +466,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category'  => ucwords($item->job_category),
                             'job_type'      => ucwords(str_replace('-',' ',$item->job_type)),
                             'job_title'     => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'emailsOpen':
@@ -511,7 +509,7 @@ class SalesExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -521,7 +519,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
                             'open_date' => $item->open_date ? Carbon::parse($item->open_date)->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
 
             case 'emailsClose':
@@ -564,7 +562,7 @@ class SalesExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -574,7 +572,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
                             'closed_date' => $item->closed_date ? Carbon::parse($item->closed_date)->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             case 'noLatLong':
@@ -598,7 +596,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -608,7 +606,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
                 
@@ -636,7 +634,7 @@ class SalesExport implements FromCollection, WithHeadings
                     ->where('contacts.contactable_type', 'Horsefly\\Unit')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -649,7 +647,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_category' => strtoupper($item->job_category),
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
-                        ]);
+                        ];
                     });
 
             case 'allOpen':
@@ -696,7 +694,7 @@ class SalesExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -710,7 +708,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
                             'open_date' => $item->open_date ? Carbon::parse($item->open_date)->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
 
             case 'allClose':
@@ -757,7 +755,7 @@ class SalesExport implements FromCollection, WithHeadings
                     })
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                             'office_name' => ucwords(strtolower($item->office_name)),
                             'unit_name' => ucwords(strtolower($item->unit_name)),
@@ -771,7 +769,7 @@ class SalesExport implements FromCollection, WithHeadings
                             'job_type' => strtoupper($item->job_type),
                             'job_title' => strtoupper($item->job_title),
                             'closed_date' => $item->closed_date ? Carbon::parse($item->closed_date)->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             default:

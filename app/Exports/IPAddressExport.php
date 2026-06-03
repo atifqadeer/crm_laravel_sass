@@ -2,14 +2,12 @@
 
 namespace App\Exports;
 
-use App\Traits\SanitizesExportValues;
 use Horsefly\IpAddress;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class IPAddressExport implements FromCollection, WithHeadings
 {
-    use SanitizesExportValues;
   protected $type;
 
     public function __construct(string $type = 'all')
@@ -36,7 +34,7 @@ class IPAddressExport implements FromCollection, WithHeadings
                     ->join('users', 'ip_addresses.user_id', '=', 'users.id')
                     ->get()
                     ->map(function ($item) {
-                        return $this->sanitizeRow([
+                        return [
                             'id' => $item->id,
                             'name' => ucwords(strtolower($item->name)),
                             'ip_address' => $item->ip_address,
@@ -44,7 +42,7 @@ class IPAddressExport implements FromCollection, WithHeadings
                             'device_type' => $item->device_type,
                             'status' => ucwords(strtolower($item->status ? 'Active' : 'Inactive')),
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        ]);
+                        ];
                     });
                 
             default:

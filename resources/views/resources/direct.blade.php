@@ -878,10 +878,10 @@
                     return;
                 }
 
-                // AJAX request — POST to match route definition
+                // AJAX request
                 $.ajax({
                     url: '{{ route("changeSaleHoldStatus") }}',
-                    type: 'POST',
+                    type: 'GET',
                     data: {
                         id: saleID,
                         details: notes,

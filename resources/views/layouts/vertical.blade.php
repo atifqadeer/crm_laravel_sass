@@ -33,9 +33,6 @@
 @include("layouts.partials/right-sidebar")
 @include('layouts.partials/footer-scripts')
 
-{{-- xplosip softphone widget — floating FAB bottom-right on all CRM pages --}}
-@include('layouts.partials.xplosip-widget')
-
 </body>
 
 </html>
