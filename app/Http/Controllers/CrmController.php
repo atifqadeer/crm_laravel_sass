@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers;
@@ -50,8 +51,8 @@ class CrmController extends Controller
 
     public function index()
     {
-        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         return view('crm.list', compact('jobCategories', 'jobTitles'));
     }
@@ -106,9 +107,9 @@ class CrmController extends Controller
             ])
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
-            ->leftJoin('job_titles', fn ($join) => $join->on('applicants.job_title_id', '=', 'job_titles.id'))
-            ->leftJoin('job_categories', fn ($join) => $join->on('applicants.job_category_id', '=', 'job_categories.id'))
-            ->leftJoin('job_sources', fn ($join) => $join->on('applicants.job_source_id', '=', 'job_sources.id'));
+            ->leftJoin('job_titles', fn($join) => $join->on('applicants.job_title_id', '=', 'job_titles.id'))
+            ->leftJoin('job_categories', fn($join) => $join->on('applicants.job_category_id', '=', 'job_categories.id'))
+            ->leftJoin('job_sources', fn($join) => $join->on('applicants.job_source_id', '=', 'job_sources.id'));
 
         // Apply tab filter logic (optimized with DB::raw)
         switch ($tabFilter) {
@@ -126,83 +127,91 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id');
                     }
                 )
-                ->joinSub(
-                    DB::table('revert_stages')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'notes', 'stage', 'updated_at')
-                        ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
-                        ->whereIn('id', fn ($subQuery) => 
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('revert_stages')
-                                ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
-                                ->groupBy('applicant_id', 'sale_id')
-                        ),
-                    'revert_stages',
-                    fn ($join) => $join->on('revert_stages.applicant_id', '=', 'cv_notes.applicant_id')
-                                        ->on('revert_stages.sale_id', '=', 'cv_notes.sale_id')
-                )
-                ->join('sales', fn ($join) => 
-                    $join->on('cv_notes.sale_id', '=', 'sales.id')
-                        ->where('sales.status', 1)
-                )
-                ->join('offices', fn ($join) => 
-                    $join->on('sales.office_id', '=', 'offices.id')
-                        ->where('offices.status', 1)
-                )
-                ->join('units', fn ($join) => 
-                    $join->on('sales.unit_id', '=', 'units.id')
-                        ->where('units.status', 1)
-                )
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'cv_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'cv_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['quality_cvs_hold'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('cv_notes.applicant_id', '=', 'interviews.applicant_id');
-                    $join->on('cv_notes.sale_id', '=', 'interviews.sale_id');
-                    $join->where('interviews.status', 1);
-                })
-                ->leftJoin('users', 'users.id', '=', 'revert_stages.user_id')
-                ->addSelect([
-                    //office
-                    'offices.office_name as office_name',
-                    // show created date
-                    'revert_stages.updated_at as show_created_at',
-                    //sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    //units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    //revert stages
-                    'revert_stages.user_id as revert_user_id',
-                    'revert_stages.notes as notes_detail',
-                    'revert_stages.stage as revert_stage',
-                    'revert_stages.updated_at as notes_created_at',
-                    //user
-                    'users.name as user_name',
-                    //interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                ]);
+                    ->joinSub(
+                        DB::table('revert_stages')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'notes', 'stage', 'updated_at')
+                            ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
+                            ->whereIn(
+                                'id',
+                                fn($subQuery) =>
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('revert_stages')
+                                    ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
+                                    ->groupBy('applicant_id', 'sale_id')
+                            ),
+                        'revert_stages',
+                        fn($join) => $join->on('revert_stages.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('revert_stages.sale_id', '=', 'cv_notes.sale_id')
+                    )
+                    ->join(
+                        'sales',
+                        fn($join) =>
+                        $join->on('cv_notes.sale_id', '=', 'sales.id')
+                            ->where('sales.status', 1)
+                    )
+                    ->join(
+                        'offices',
+                        fn($join) =>
+                        $join->on('sales.office_id', '=', 'offices.id')
+                            ->where('offices.status', 1)
+                    )
+                    ->join(
+                        'units',
+                        fn($join) =>
+                        $join->on('sales.unit_id', '=', 'units.id')
+                            ->where('units.status', 1)
+                    )
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'cv_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'cv_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['quality_cvs_hold'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('cv_notes.applicant_id', '=', 'interviews.applicant_id');
+                        $join->on('cv_notes.sale_id', '=', 'interviews.sale_id');
+                        $join->where('interviews.status', 1);
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'revert_stages.user_id')
+                    ->addSelect([
+                        //office
+                        'offices.office_name as office_name',
+                        // show created date
+                        'revert_stages.updated_at as show_created_at',
+                        //sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        //units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        //revert stages
+                        'revert_stages.user_id as revert_user_id',
+                        'revert_stages.notes as notes_detail',
+                        'revert_stages.stage as revert_stage',
+                        'revert_stages.updated_at as notes_created_at',
+                        //user
+                        'users.name as user_name',
+                        //interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                    ]);
                 break;
 
             case 'sent cvs (no job)':
@@ -234,98 +243,98 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'quality_notes.applicant_id');
                     }
                 )
-                ->join('sales', function ($join) {
-                    $join->on('quality_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('quality_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'quality_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'quality_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['quality_cleared_no_job'])
-                        ->where('history.status', 1);
-                })
-                ->joinSub(
-                    DB::table('crm_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                        // ->where('status', 1)
-                        ->whereIn('moved_tab_to', ['cv_sent_no_job'])
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('crm_notes')
-                                ->where('status', 1)
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'crm_notes',
-                    function ($join) {
-                        $join->on('quality_notes.applicant_id', '=', 'crm_notes.applicant_id')
-                            ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
-                    }
-                )
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'interviews.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
-                ->addSelect([
-                    // Quality Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    // show created date
-                    'quality_notes.created_at as show_created_at',
-                    // Offices
-                    'offices.office_name as office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // User
-                    'users.name as user_name',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                ]);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'quality_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'quality_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['quality_cleared_no_job'])
+                            ->where('history.status', 1);
+                    })
+                    ->joinSub(
+                        DB::table('crm_notes')
+                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                            // ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['cv_sent_no_job'])
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('crm_notes')
+                                    ->where('status', 1)
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'crm_notes',
+                        function ($join) {
+                            $join->on('quality_notes.applicant_id', '=', 'crm_notes.applicant_id')
+                                ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
+                        }
+                    )
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'interviews.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
+                    ->addSelect([
+                        // Quality Notes
+                        'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
+                        // show created date
+                        'quality_notes.created_at as show_created_at',
+                        // Offices
+                        'offices.office_name as office_name',
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // User
+                        'users.name as user_name',
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                    ]);
                 break;
 
             case 'rejected cvs':
@@ -364,19 +373,19 @@ class CrmController extends Controller
 
                 // Main query
                 $model->joinSub($crmNotesSubQuery, 'crm_last_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'crm_last_notes.applicant_id');
-                    })
+                    $join->on('applicants.id', '=', 'crm_last_notes.applicant_id');
+                })
                     ->join('sales', function ($join) {
                         $join->on('crm_last_notes.sale_id', '=', 'sales.id');
-                            // ->where('sales.status', 1);
+                        // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
-                            // ->where('offices.status', 1);
+                        // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id');
-                            // ->where('units.status', 1);
+                        // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -410,7 +419,7 @@ class CrmController extends Controller
 
                         // show created date
                         'crm_last_notes.created_at as show_created_at',
-                        
+
                         // Offices
                         'offices.office_name',
 
@@ -486,80 +495,80 @@ class CrmController extends Controller
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_request', 'crm_request_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                })
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Applicants
-                    'applicants.id as applicant_id',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_request', 'crm_request_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    })
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Applicants
+                        'applicants.id as applicant_id',
 
-                    // CRM Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
+                        // CRM Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
 
-                    // FIRST CRM NOTE DATE
-                    'crm_notes.created_at as show_created_at',
+                        // FIRST CRM NOTE DATE
+                        'crm_notes.created_at as show_created_at',
 
-                    // Offices
-                    'offices.office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // Users
-                    'users.name as user_name',
-                ]);
+                        // Offices
+                        'offices.office_name',
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        // Users
+                        'users.name as user_name',
+                    ]);
 
                 break;
             case 'request (no response)':
@@ -591,91 +600,91 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                     }
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_request_no_response'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_request_no_response'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
 
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
 
-                    // interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        // interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    // offices
-                    'offices.office_name as office_name',
+                        // offices
+                        'offices.office_name as office_name',
 
-                    // sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                        // sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    // users
-                    'users.name as user_name',
-                ]);
+                        // users
+                        'users.name as user_name',
+                    ]);
                 break;
             case 'request (no job)':
                 // Subquery: latest CRM note per applicant-sale (for details)
@@ -708,91 +717,91 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                     }
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_no_job_request', 'crm_request_no_job_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_no_job_request', 'crm_request_no_job_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
 
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
 
-                    // interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        // interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    // offices
-                    'offices.office_name as office_name',
+                        // offices
+                        'offices.office_name as office_name',
 
-                    // sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                        // sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    // users
-                    'users.name as user_name',
-                ]);
+                        // users
+                        'users.name as user_name',
+                    ]);
                 break;
 
             case 'rejected by request':
@@ -836,82 +845,82 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'latest_crm_notes.applicant_id');
                     }
                 )
-                ->join('sales', function ($join) {
-                    $join->on('latest_crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('latest_crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'latest_crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'latest_crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_request_reject', 'crm_request_no_job_reject'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    $cvNotesSubQuery,
-                    'latest_cv_notes',
-                    function ($join) {
-                        $join->on('latest_crm_notes.applicant_id', '=', 'latest_cv_notes.applicant_id')
-                            ->on('latest_crm_notes.sale_id', '=', 'latest_cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.user_id')
-                ->addSelect([
-                    // Applicants
-                    'applicants.id as applicant_id',
-                    // CRM Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'latest_crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'latest_crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_request_reject', 'crm_request_no_job_reject'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        $cvNotesSubQuery,
+                        'latest_cv_notes',
+                        function ($join) {
+                            $join->on('latest_crm_notes.applicant_id', '=', 'latest_cv_notes.applicant_id')
+                                ->on('latest_crm_notes.sale_id', '=', 'latest_cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'latest_cv_notes.user_id')
+                    ->addSelect([
+                        // Applicants
+                        'applicants.id as applicant_id',
+                        // CRM Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
 
-                    // show created date
-                    'latest_crm_notes.created_at as show_created_at',
-                    // Offices
-                    'offices.office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // Users
-                    'users.name as user_name',
-                ]);
+                        // show created date
+                        'latest_crm_notes.created_at as show_created_at',
+                        // Offices
+                        'offices.office_name',
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        // Users
+                        'users.name as user_name',
+                    ]);
 
                 break;
             case 'confirmation':
@@ -944,8 +953,11 @@ class CrmController extends Controller
 
                 $latestCvNotes = DB::table('cv_notes as cv1')
                     ->select('cv1.applicant_id', 'cv1.sale_id', 'cv1.user_id', 'cv1.status', 'cv1.created_at')
-                    ->join(DB::raw('(SELECT MAX(id) as id FROM cv_notes GROUP BY applicant_id, sale_id) as latest_cv'),
-                        'cv1.id', '=', 'latest_cv.id'
+                    ->join(
+                        DB::raw('(SELECT MAX(id) as id FROM cv_notes GROUP BY applicant_id, sale_id) as latest_cv'),
+                        'cv1.id',
+                        '=',
+                        'latest_cv.id'
                     );
 
                 // Subquery: latest CRM note per applicant-sale (for details)
@@ -967,15 +979,15 @@ class CrmController extends Controller
                     })
                     ->join('sales', function ($join) {
                         $join->on('crm_notes.sale_id', '=', 'sales.id');
-                            // ->where('sales.status', 1);
+                        // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
-                            // ->where('offices.status', 1);
+                        // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id');
-                            // ->where('units.status', 1);
+                        // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -1044,16 +1056,16 @@ class CrmController extends Controller
                         'users.name as user_name',
                     ]);
 
-                    if ($date_range_filter) {
-                        // Parse the date range filter (format: "YYYY-MM-DD|YYYY-MM-DD")
-                        [$start_date, $end_date] = explode('|', $date_range_filter);
-                        $start_date = trim($start_date);
-                        $end_date = trim($end_date);
+                if ($date_range_filter) {
+                    // Parse the date range filter (format: "YYYY-MM-DD|YYYY-MM-DD")
+                    [$start_date, $end_date] = explode('|', $date_range_filter);
+                    $start_date = trim($start_date);
+                    $end_date = trim($end_date);
 
-                        $model->where(function ($query) use ($start_date, $end_date) {
-                            $query->whereBetween('interviews.schedule_date', [$start_date, $end_date]);
-                        });
-                    }
+                    $model->where(function ($query) use ($start_date, $end_date) {
+                        $query->whereBetween('interviews.schedule_date', [$start_date, $end_date]);
+                    });
+                }
                 break;
             case 'rebook':
                 // Subquery: latest CRM note per applicant-sale (for details)
@@ -1070,29 +1082,31 @@ class CrmController extends Controller
                     });
 
                 $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->whereIn('moved_tab_to',  ["rebook"])
-                            ->whereIn('id', fn ($subQuery) => 
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->whereIn('moved_tab_to',  ["rebook"])
-                                    ->groupBy('applicant_id', 'sale_id')
-                            ),
-                        'crm_notes',
-                        fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    )
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->whereIn('moved_tab_to',  ["rebook"])
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->whereIn('moved_tab_to',  ["rebook"])
+                                ->groupBy('applicant_id', 'sale_id')
+                        ),
+                    'crm_notes',
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                )
                     ->join('sales', function ($join) {
                         $join->on('crm_notes.sale_id', '=', 'sales.id');
-                            // ->where('sales.status', 1);
+                        // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
-                            // ->where('offices.status', 1);
+                        // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id');
-                            // ->where('units.status', 1);
+                        // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -1163,7 +1177,7 @@ class CrmController extends Controller
                     ]);
 
                 break;
-        
+
             case 'attended to pre-start date':
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
                 $crmNotesSubQuery = DB::table('crm_notes')
@@ -1202,77 +1216,77 @@ class CrmController extends Controller
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_interview_attended', 'crm_prestart_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                })
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Applicants
-                    'applicants.id as applicant_id',
-                    // CRM Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // Offices
-                    'offices.office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // Users
-                    'users.name as user_name',
-                ]);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_interview_attended', 'crm_prestart_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    })
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Applicants
+                        'applicants.id as applicant_id',
+                        // CRM Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // Offices
+                        'offices.office_name',
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        // Users
+                        'users.name as user_name',
+                    ]);
 
                 break;
             case 'declined':
@@ -1293,92 +1307,94 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->where('moved_tab_to', 'declined')
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->where('moved_tab_to', 'declined')
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->where('history.sub_stage', 'crm_declined')
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    'users.name as user_name',
-                ]);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->where('history.sub_stage', 'crm_declined')
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        'users.name as user_name',
+                    ]);
 
                 break;
             case 'not attended':
@@ -1386,91 +1402,93 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn('moved_tab_to', ["interview_not_attended"])
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->whereIn('moved_tab_to', ["interview_not_attended"])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_interview_not_attended'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id');
-                    $join->on('sales.id', '=', 'interviews.sale_id');
-                    $join->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_interview_not_attended'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id');
+                        $join->on('sales.id', '=', 'interviews.sale_id');
+                        $join->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    'users.name as user_name'
-                ]);
+                        'users.name as user_name'
+                    ]);
                 break;
             case 'start date':
                 // Subquery to get the latest crm_notes per applicant_id and sale_id
@@ -1480,7 +1498,7 @@ class CrmController extends Controller
                     ->whereIn('id', function ($subQuery) {
                         $subQuery->select(DB::raw('MAX(id)'))
                             ->from('crm_notes')
-                           ->whereIn("moved_tab_to", ["start_date"])
+                            ->whereIn("moved_tab_to", ["start_date"])
                             ->groupBy('applicant_id', 'sale_id');
                     });
 
@@ -1510,77 +1528,77 @@ class CrmController extends Controller
                 $model->joinSub($crmNotesSubQuery, 'crm_notes', function ($join) {
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_start_date', 'crm_start_date_save', 'crm_start_date_back'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->addSelect([
-                    // Applicants
-                    'applicants.id as applicant_id',
-                    // CRM Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // Offices
-                    'offices.office_name',
-                    // Sales
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // Units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // Interviews
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // Users
-                    'users.name as user_name',
-                ]);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_start_date', 'crm_start_date_save', 'crm_start_date_back'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub($cvNotesSubQuery, 'cv_notes', function ($join) {
+                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->addSelect([
+                        // Applicants
+                        'applicants.id as applicant_id',
+                        // CRM Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // Offices
+                        'offices.office_name',
+                        // Sales
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // Units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // Interviews
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        // Users
+                        'users.name as user_name',
+                    ]);
 
                 break;
             case 'start date hold':
@@ -1601,95 +1619,97 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn("moved_tab_to", ["start_date_hold"])
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->whereIn("moved_tab_to", ["start_date_hold"])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_start_date_hold', 'crm_start_date_hold_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id');
-                    $join->on('sales.id', '=', 'interviews.sale_id');
-                    $join->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_start_date_hold', 'crm_start_date_hold_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id');
+                        $join->on('sales.id', '=', 'interviews.sale_id');
+                        $join->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    'users.name as user_name'
-                ]);
+                        'users.name as user_name'
+                    ]);
 
                 break;
             case 'invoice':
@@ -1710,95 +1730,97 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn("moved_tab_to", ["invoice"])
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->whereIn("moved_tab_to", ["invoice"])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_invoice', 'crm_final_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id');
-                    $join->on('sales.id', '=', 'interviews.sale_id');
-                    $join->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_invoice', 'crm_final_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id');
+                        $join->on('sales.id', '=', 'interviews.sale_id');
+                        $join->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    'users.name as user_name'
-                ]);
+                        'users.name as user_name'
+                    ]);
 
                 break;
             case 'invoice sent':
@@ -1819,95 +1841,97 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn('moved_tab_to', ["invoice_sent"])
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->whereIn('moved_tab_to', ["invoice_sent"])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
                         // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
                         // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
                         // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_invoice_sent', 'crm_final_save'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id');
-                    $join->on('sales.id', '=', 'interviews.sale_id');
-                    $join->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-                    $join->on('latest_crm.applicant_id', '=', 'applicants.id')
-                        ->on('latest_crm.sale_id', '=', 'sales.id');
-                })
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // Crm Notes
-                    'latest_crm.latest_details as notes_detail',
-                    'latest_crm.latest_created_at as notes_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_invoice_sent', 'crm_final_save'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id');
+                        $join->on('sales.id', '=', 'interviews.sale_id');
+                        $join->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('latest_crm.applicant_id', '=', 'applicants.id')
+                            ->on('latest_crm.sale_id', '=', 'sales.id');
+                    })
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // Crm Notes
+                        'latest_crm.latest_details as notes_detail',
+                        'latest_crm.latest_created_at as notes_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
 
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
 
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
 
-                    'users.name as user_name'
-                ]);
+                        'users.name as user_name'
+                    ]);
 
                 break;
             case 'dispute':
@@ -1915,118 +1939,120 @@ class CrmController extends Controller
                     DB::table('crm_notes')
                         ->select('applicant_id', 'sale_id', 'details', 'created_at')
                         ->whereIn('moved_tab_to', ['dispute'])
-                        ->whereIn('id', fn ($subQuery) => 
+                        ->whereIn(
+                            'id',
+                            fn($subQuery) =>
                             $subQuery->select(DB::raw('MAX(id)'))
                                 ->from('crm_notes')
                                 ->whereIn('moved_tab_to', ['dispute'])
                                 ->groupBy('applicant_id', 'sale_id')
                         ),
                     'crm_notes',
-                    fn ($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                    fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
-                ->join('sales', function ($join) {
-                    $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
-                })
-                ->join('offices', function ($join) {
-                    $join->on('sales.office_id', '=', 'offices.id');
-                        // ->where('offices.status', 1);
-                })
-                ->join('units', function ($join) {
-                    $join->on('sales.unit_id', '=', 'units.id');
-                        // ->where('units.status', 1);
-                })
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('history')
-                        ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
-                        ->whereColumn('history.sale_id', 'crm_notes.sale_id')
-                        ->whereIn('history.sub_stage', ['crm_dispute'])
-                        ->where('history.status', 1);
-                })
-                ->leftJoin('interviews', function ($join) {
-                    $join->on('applicants.id', '=', 'interviews.applicant_id')
-                        ->on('sales.id', '=', 'interviews.sale_id')
-                        ->where('interviews.status', 1);
-                })
-                ->leftJoinSub(
-                    DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
-                        ->whereIn('id', function ($subQuery) {
-                            $subQuery->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        }),
-                    'cv_notes',
-                    function ($join) {
-                        $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                    }
-                )
-                ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
-                ->addSelect([
-                    // show created date
-                    'crm_notes.created_at as show_created_at',
-                    // Crm Notes
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    // offices
-                    'offices.office_name as office_name',
-                    // sale
-                    'sales.id as sale_id',
-                    'sales.job_category_id as sale_category_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.sale_postcode',
-                    'sales.job_type as sale_job_type',
-                    'sales.timing',
-                    'sales.salary',
-                    'sales.experience as sale_experience',
-                    'sales.qualification as sale_qualification',
-                    'sales.benefits',
-                    'sales.office_id as sale_office_id',
-                    'sales.unit_id as sale_unit_id',
-                    'sales.position_type',
-                    'sales.status as sale_status',
-                    'sales.created_at as sale_posted_date',
-                    // units
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'units.unit_website',
-                    // interview
-                    'interviews.schedule_time',
-                    'interviews.schedule_date',
-                    'interviews.status as interview_status',
-                    // user
-                    'users.name as user_name'
-                ]);
-                break;
-            case 'paid':
-                    $model->joinSub(
-                        DB::table('crm_notes')
-                            ->select('applicant_id', 'sale_id', 'details', 'created_at')
-                            ->where('moved_tab_to', 'paid')
-                            ->whereIn('id', function ($subQuery) {
-                                $subQuery->select(DB::raw('MAX(id)'))
-                                    ->from('crm_notes')
-                                    ->where('moved_tab_to', 'paid')
-                                    ->groupBy('applicant_id', 'sale_id');
-                            }),
-                        'crm_notes',
-                        function ($join) {
-                            $join->on('applicants.id', '=', 'crm_notes.applicant_id');
-                        }
-                    )
                     ->join('sales', function ($join) {
                         $join->on('crm_notes.sale_id', '=', 'sales.id');
-                            // ->where('sales.status', 1);
+                        // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
-                            // ->where('offices.status', 1);
+                        // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id');
-                            // ->where('units.status', 1);
+                        // ->where('units.status', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->whereIn('history.sub_stage', ['crm_dispute'])
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('interviews', function ($join) {
+                        $join->on('applicants.id', '=', 'interviews.applicant_id')
+                            ->on('sales.id', '=', 'interviews.sale_id')
+                            ->where('interviews.status', 1);
+                    })
+                    ->leftJoinSub(
+                        DB::table('cv_notes')
+                            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+                            ->whereIn('id', function ($subQuery) {
+                                $subQuery->select(DB::raw('MAX(id)'))
+                                    ->from('cv_notes')
+                                    ->groupBy('applicant_id', 'sale_id');
+                            }),
+                        'cv_notes',
+                        function ($join) {
+                            $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                                ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                        }
+                    )
+                    ->leftJoin('users', 'users.id', '=', 'cv_notes.user_id')
+                    ->addSelect([
+                        // show created date
+                        'crm_notes.created_at as show_created_at',
+                        // Crm Notes
+                        'crm_notes.details as notes_detail',
+                        'crm_notes.created_at as notes_created_at',
+                        // offices
+                        'offices.office_name as office_name',
+                        // sale
+                        'sales.id as sale_id',
+                        'sales.job_category_id as sale_category_id',
+                        'sales.job_title_id as sale_title_id',
+                        'sales.sale_postcode',
+                        'sales.job_type as sale_job_type',
+                        'sales.timing',
+                        'sales.salary',
+                        'sales.experience as sale_experience',
+                        'sales.qualification as sale_qualification',
+                        'sales.benefits',
+                        'sales.office_id as sale_office_id',
+                        'sales.unit_id as sale_unit_id',
+                        'sales.position_type',
+                        'sales.status as sale_status',
+                        'sales.created_at as sale_posted_date',
+                        // units
+                        'units.unit_name',
+                        'units.unit_postcode',
+                        'units.unit_website',
+                        // interview
+                        'interviews.schedule_time',
+                        'interviews.schedule_date',
+                        'interviews.status as interview_status',
+                        // user
+                        'users.name as user_name'
+                    ]);
+                break;
+            case 'paid':
+                $model->joinSub(
+                    DB::table('crm_notes')
+                        ->select('applicant_id', 'sale_id', 'details', 'created_at')
+                        ->where('moved_tab_to', 'paid')
+                        ->whereIn('id', function ($subQuery) {
+                            $subQuery->select(DB::raw('MAX(id)'))
+                                ->from('crm_notes')
+                                ->where('moved_tab_to', 'paid')
+                                ->groupBy('applicant_id', 'sale_id');
+                        }),
+                    'crm_notes',
+                    function ($join) {
+                        $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                    }
+                )
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id');
+                        // ->where('sales.status', 1);
+                    })
+                    ->join('offices', function ($join) {
+                        $join->on('sales.office_id', '=', 'offices.id');
+                        // ->where('offices.status', 1);
+                    })
+                    ->join('units', function ($join) {
+                        $join->on('sales.unit_id', '=', 'units.id');
+                        // ->where('units.status', 1);
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -2092,62 +2118,62 @@ class CrmController extends Controller
                         'users.name as user_name'
                     ]);
 
-                    break;
+                break;
             default:
-                case 'sent cvs':
-                    // Derived table for latest quality_notes (uncorrelated, runs once)
-                    $latestQuality = DB::table('quality_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
-                        ->where('status', 1)
-                        ->whereIn('moved_tab_to', ['cleared'])
-                        ->whereIn('id', function ($sub) {
-                            $sub->select(DB::raw('MAX(id)'))
-                                ->from('quality_notes')
-                                ->where('status', 1)
-                                ->whereIn('moved_tab_to', ['cleared'])
-                                ->groupBy('applicant_id', 'sale_id');
-                        });
+            case 'sent cvs':
+                // Derived table for latest quality_notes (uncorrelated, runs once)
+                $latestQuality = DB::table('quality_notes')
+                    ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
+                    ->where('status', 1)
+                    ->whereIn('moved_tab_to', ['cleared'])
+                    ->whereIn('id', function ($sub) {
+                        $sub->select(DB::raw('MAX(id)'))
+                            ->from('quality_notes')
+                            ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['cleared'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
 
-                    // Derived table for latest crm_notes
-                    $latestCrm = DB::table('crm_notes')
-                        ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
-                        ->where('status', 1)
-                        ->whereIn('moved_tab_to', ['cv_sent', 'cv_sent_saved'])
-                        ->whereIn('id', function ($sub) {
-                            $sub->select(DB::raw('MAX(id)'))
-                                ->from('crm_notes')
-                                ->where('status', 1)
-                                ->whereIn('moved_tab_to', ['cv_sent', 'cv_sent_saved'])
-                                ->groupBy('applicant_id', 'sale_id');
-                        });
+                // Derived table for latest crm_notes
+                $latestCrm = DB::table('crm_notes')
+                    ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id')
+                    ->where('status', 1)
+                    ->whereIn('moved_tab_to', ['cv_sent', 'cv_sent_saved'])
+                    ->whereIn('id', function ($sub) {
+                        $sub->select(DB::raw('MAX(id)'))
+                            ->from('crm_notes')
+                            ->where('status', 1)
+                            ->whereIn('moved_tab_to', ['cv_sent', 'cv_sent_saved'])
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
 
-                    // Derived table for latest cv_notes (if needed for user_name)
-                    $latestCv = DB::table('cv_notes')
-                        ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
-                        ->whereIn('id', function ($sub) {
-                            $sub->select(DB::raw('MAX(id)'))
-                                ->from('cv_notes')
-                                ->groupBy('applicant_id', 'sale_id');
-                        });
+                // Derived table for latest cv_notes (if needed for user_name)
+                $latestCv = DB::table('cv_notes')
+                    ->select('applicant_id', 'sale_id', 'user_id', 'id', 'updated_at')
+                    ->whereIn('id', function ($sub) {
+                        $sub->select(DB::raw('MAX(id)'))
+                            ->from('cv_notes')
+                            ->groupBy('applicant_id', 'sale_id');
+                    });
 
-                    $model->joinSub($latestQuality, 'quality_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'quality_notes.applicant_id');
-                    })
+                $model->joinSub($latestQuality, 'quality_notes', function ($join) {
+                    $join->on('applicants.id', '=', 'quality_notes.applicant_id');
+                })
                     ->joinSub($latestCrm, 'crm_notes', function ($join) {
                         $join->on('quality_notes.applicant_id', '=', 'crm_notes.applicant_id')
                             ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
                     })
                     ->join('sales', function ($join) {
                         $join->on('crm_notes.sale_id', '=', 'sales.id');
-                            // ->where('sales.status', 1);
+                        // ->where('sales.status', 1);
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
-                            // ->where('offices.status', 1);
+                        // ->where('offices.status', 1);
                     })
                     ->join('units', function ($join) {
                         $join->on('sales.unit_id', '=', 'units.id');
-                            // ->where('units.status', 1);
+                        // ->where('units.status', 1);
                     })
                     ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
                         $join->on('applicants.id', '=', 'cv_notes.applicant_id')
@@ -2155,7 +2181,7 @@ class CrmController extends Controller
                     })
                     ->leftJoin('users', function ($join) {
                         $join->on('cv_notes.user_id', '=', 'users.id');
-                            // ->where('users.is_active', 1);
+                        // ->where('users.is_active', 1);
                     })
                     ->leftJoin('interviews', function ($join) {
                         $join->on('applicants.id', '=', 'interviews.applicant_id')
@@ -2219,49 +2245,57 @@ class CrmController extends Controller
             $model->whereIn('applicants.job_title_id', $titleFilter);
         }
 
-        if ($request->has('search.value')) { 
-            $searchTerm = (string) $request->input('search.value'); 
-            if (!empty($searchTerm)) { 
+        if ($request->has('search.value')) {
+            $searchTerm = (string) $request->input('search.value');
+            if (!empty($searchTerm)) {
                 $lowerSearchTerm = strtolower($searchTerm); // Convert search term to lowercase 
                 $model->where(function ($query) use ($lowerSearchTerm) { // Direct column searches with LOWER 
-                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"]) 
-                    ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
-                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
+                    $query->whereRaw('LOWER(applicants.applicant_name) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_postcode) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_phone) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_phone_secondary) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_experience) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(applicants.applicant_landline) LIKE ?', ["%{$lowerSearchTerm}%"])
+                        ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$lowerSearchTerm}%"]); // Relationship searches with explicit table names and LOWER 
+                    $query->orWhereHas('jobTitle', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_titles.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobCategory', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_categories.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                    $query->orWhereHas('jobSource', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(job_sources.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
                     // ✅ OFFICE NAME SEARCH (FIXED)
-                   $query->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    $query->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$lowerSearchTerm}%"]);
 
-                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) { $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]); }); 
-                }); 
-            } 
+                    $query->orWhereHas('user', function ($q) use ($lowerSearchTerm) {
+                        $q->whereRaw('LOWER(users.name) LIKE ?', ["%{$lowerSearchTerm}%"]);
+                    });
+                });
+            }
         }
 
         // Sorting logic 
-        if ($request->has('order')) { 
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data'); 
-            $orderDirection = $request->input('order.0.dir', 'asc'); 
-            if ($orderColumn == 'job_source') { 
-                $model->orderBy('applicants.job_source_id', $orderDirection); 
-            } elseif ($orderColumn == 'job_category') { 
-                
+        if ($request->has('order')) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+            if ($orderColumn == 'job_source') {
+                $model->orderBy('applicants.job_source_id', $orderDirection);
+            } elseif ($orderColumn == 'job_category') {
+
                 $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn == 'job_title') { 
-                $model->orderBy('applicants.job_title_id', $orderDirection); 
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') { 
-                $model->orderBy($orderColumn, $orderDirection); 
-            } else { 
-                $model->orderBy('show_created_at', 'desc'); 
-            } 
-        } else { 
-            $model->orderBy('show_created_at', 'desc'); 
+            } elseif ($orderColumn == 'job_title') {
+                $model->orderBy('applicants.job_title_id', $orderDirection);
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+                $model->orderBy($orderColumn, $orderDirection);
+            } else {
+                $model->orderBy('show_created_at', 'desc');
+            }
+        } else {
+            $model->orderBy('show_created_at', 'desc');
         }
 
         if ($request->ajax()) {
@@ -2390,7 +2424,7 @@ class CrmController extends Controller
                 })
                 ->addColumn('schedule_date', function ($applicant) {
                     // return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date.' '.$applicant->schedule_time)->format('d M Y, h:i A') : '-'; 
-                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date)->format('d M Y').' '.$applicant->schedule_time : '-'; // Using 
+                    return $applicant->schedule_date ? Carbon::parse($applicant->schedule_date)->format('d M Y') . ' ' . $applicant->schedule_time : '-'; // Using 
                 })
                 ->addColumn('paid_status', function ($applicant) {
                     return $applicant->paid_status ?? '-';
@@ -2434,12 +2468,12 @@ class CrmController extends Controller
                         'benefits'      => $applicant->benefits,
                     ];
 
-                        return '<a href="javascript:void(0);"
+                    return '<a href="javascript:void(0);"
                             class="dropdown-item job-details"
                             data-job=\'' . json_encode(
-                                                $jobData,
-                                                JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-                                            ) . '\'>
+                        $jobData,
+                        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                    ) . '\'>
                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                         </a>';
                 })
@@ -2629,7 +2663,7 @@ class CrmController extends Controller
                             $sentEmail = SentEmail::where('applicant_id', $applicant->id)
                                 ->where('sale_id', $applicant->sale_id)
                                 ->latest()->first();
-                            
+
                             if ($sentEmail && $sentEmail->status == '1') {
                                 $emailText = '<span class="badge bg-success"><i class="ri-inbox-line text-white" title="Sent"></i> Email Sent</span>';
                             } elseif ($sentEmail && $sentEmail->status == '2') {
@@ -2639,15 +2673,15 @@ class CrmController extends Controller
                             }
 
                             $applicant_msgs = Message::whereIn('phone_number', [
-                                                        $applicant->applicant_phone,
-                                                        $applicant->applicant_phone_secondary
-                                                    ])
-                                                    ->where('status', 'incoming')
-                                                    ->where('module_type', 'Horsefly\\Applicant')
-                                                    ->orderBy('created_at', 'desc')
-                                                    ->first();
+                                $applicant->applicant_phone,
+                                $applicant->applicant_phone_secondary
+                            ])
+                                ->where('status', 'incoming')
+                                ->where('module_type', 'Horsefly\\Applicant')
+                                ->orderBy('created_at', 'desc')
+                                ->first();
 
-                            $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >'. $emailText .'</a></li>';
+                            $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >' . $emailText . '</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
                                 $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">
                                                         <i class="ri-lock-line"></i> Already Scheduled</a></li>';
@@ -2737,7 +2771,7 @@ class CrmController extends Controller
                                 data-email="' . $applicant->applicant_email . '"
                                 data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                             ';
-                           
+
                             break;
 
                         case 'request (no job)':
@@ -2756,16 +2790,16 @@ class CrmController extends Controller
                             }
 
                             $applicant_msgs = Message::whereIn('phone_number', [
-                                                            $applicant->applicant_phone,
-                                                            $applicant->applicant_phone_secondary
-                                                        ])
-                                                        ->where('status', 'incoming')
-                                                        ->where('module_type', 'Horsefly\\Applicant')
-                                                        ->orderBy('created_at', 'desc')
-                                                        ->first();
+                                $applicant->applicant_phone,
+                                $applicant->applicant_phone_secondary
+                            ])
+                                ->where('status', 'incoming')
+                                ->where('module_type', 'Horsefly\\Applicant')
+                                ->orderBy('created_at', 'desc')
+                                ->first();
 
 
-                            $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >Email '. $emailText .'</a></li>';
+                            $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >Email ' . $emailText . '</a></li>';
                             if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
                                 $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">Already Scheduled</a></li>';
                             } else {
@@ -2844,13 +2878,13 @@ class CrmController extends Controller
                             break;
                         case 'request (no response)':
                             $applicant_msgs = Message::whereIn('phone_number', [
-                                                    $applicant->applicant_phone,
-                                                    $applicant->applicant_phone_secondary
-                                                ])
-                                                ->where('status', 'incoming')
-                                                ->where('module_type', 'Horsefly\\Applicant')
-                                                ->orderBy('created_at', 'desc')
-                                                ->first();
+                                $applicant->applicant_phone,
+                                $applicant->applicant_phone_secondary
+                            ])
+                                ->where('status', 'incoming')
+                                ->where('module_type', 'Horsefly\\Applicant')
+                                ->orderBy('created_at', 'desc')
+                                ->first();
 
 
                             $actionButtons .= '<li><a class="dropdown-item" 
@@ -3388,7 +3422,7 @@ class CrmController extends Controller
                                         data-applicant-id="' . (int)$applicant->id . '"
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmChangePaidStatusModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
-                                        Mark As '. $paid_status_button . '
+                                        Mark As ' . $paid_status_button . '
                                     </a></li>';
                             }
                             if (Gate::allows('crm-paid-revert', [$applicant, $tabFilter])) {
@@ -3415,9 +3449,9 @@ class CrmController extends Controller
                             ';
                             break;
                         default:
-                            case 'sent cv':
-                                if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
-                                    $actionButtons .= '
+                        case 'sent cv':
+                            if (Gate::allows('crm-add-note', [$applicant, $tabFilter])) {
+                                $actionButtons .= '
                                         <li><a class="dropdown-item" 
                                                 href="javascript:void(0);" 
                                                 data-bs-toggle="modal" 
@@ -3430,21 +3464,21 @@ class CrmController extends Controller
                                                 onclick="updateCrmNotesModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
                                                 Add CRM Notes
                                             </a></li>';
-                                }
-                                if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
-                                    // $actionButtons .= '<li><a class="dropdown-item" 
-                                    //     href="javascript:void(0);" 
-                                    //     data-bs-toggle="modal" 
-                                    //     data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
-                                    //     data-applicant-id="' . (int)$applicant->id . '"
-                                    //     data-sale-id="' . (int)$applicant->sale_id . '"
-                                    //     data-applicant-phone="' . $applicant->applicant_phone . '" 
-                                    //     data-applicant-name="' . $applicant->applicant_name . '" 
-                                    //     data-applicant-unit="' . $applicant->unit_name . '"
-                                    //     onclick="crmSentCvToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
-                                    //     Send Request
-                                    // </a></li>';
-                                    $actionButtons .= '<li>
+                            }
+                            if (Gate::allows('crm-send-request', [$applicant, $tabFilter])) {
+                                // $actionButtons .= '<li><a class="dropdown-item" 
+                                //     href="javascript:void(0);" 
+                                //     data-bs-toggle="modal" 
+                                //     data-bs-target="#crmSentCvToRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                //     data-applicant-id="' . (int)$applicant->id . '"
+                                //     data-sale-id="' . (int)$applicant->sale_id . '"
+                                //     data-applicant-phone="' . $applicant->applicant_phone . '" 
+                                //     data-applicant-name="' . $applicant->applicant_name . '" 
+                                //     data-applicant-unit="' . $applicant->unit_name . '"
+                                //     onclick="crmSentCvToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\', \'' . htmlspecialchars($formattedMessage, ENT_QUOTES) . '\')">
+                                //     Send Request
+                                // </a></li>';
+                                $actionButtons .= '<li>
                                         <a class="dropdown-item"
                                         href="javascript:void(0);"
                                         data-bs-toggle="modal"
@@ -3459,9 +3493,9 @@ class CrmController extends Controller
                                         Send Request
                                         </a>
                                     </li>';
-                                }
-                                if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
-                                    $actionButtons .= '<li><a class="dropdown-item" 
+                            }
+                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertInQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3470,21 +3504,21 @@ class CrmController extends Controller
                                         onclick="crmRevertInQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', \'sent_cv\')">
                                         Revert In Quality
                                     </a></li>';
-                                }
-                                $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
+                            }
+                            $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                     data-phone="' . $applicant->applicant_phone . '"
                                     data-name="' . ucwords($applicant->applicant_name) . '">Send SMS</a></li>
                                 ';
-                                if (!empty($applicant_msgs)) {
-                                    if ($applicant_msgs['is_read'] == 0) {
-                                        $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
-                                    }
+                            if (!empty($applicant_msgs)) {
+                                if ($applicant_msgs['is_read'] == 0) {
+                                    $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0);" >Reply SMS</a></li>';
                                 }
-                                $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
+                            }
+                            $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                         data-email="' . $applicant->applicant_email . '"
                                         data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
                                     ';
-                                break;
+                            break;
                     }
 
                     $html .= $actionButtons;  // Using the action buttons defined earlier
@@ -3902,7 +3936,7 @@ class CrmController extends Controller
 
                     $emailNotification = Setting::where('key', 'email_notifications')->first();
 
-                    if($emailNotification && $emailNotification->value == '1' && $request_reject_email_template && !empty($request_reject_email_template->template)){
+                    if ($emailNotification && $emailNotification->value == '1' && $request_reject_email_template && !empty($request_reject_email_template->template)) {
                         $request_reject_subject = $request_reject_email_template->subject;
                         $request_reject_slug = $request_reject_email_template->slug;
                         $data = $request_reject_email_template->template;
@@ -3938,12 +3972,12 @@ class CrmController extends Controller
                                                         data-sale-id ="' . (int)$applicant->sale_id . '">
                                                         Reject
                                                     </button>';
-                                                    if($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1){
-                                                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Request Confirm</button>';
-                                                    } else {
-                                                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton disabled" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" title="Please schedule an interview first.">Request Confirm</button>';
-                                                    }   
-                                                    $html .= '<button type="button" class="btn btn-success savecrmConfirmationSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
+                    if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
+                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Request Confirm</button>';
+                    } else {
+                        $html .= '<button type="button" class="btn btn-primary savecrmMoveToconfirmationRequestButton disabled" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '" title="Please schedule an interview first.">Request Confirm</button>';
+                    }
+                    $html .= '<button type="button" class="btn btn-success savecrmConfirmationSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -3995,8 +4029,8 @@ class CrmController extends Controller
                                                     <textarea class="form-control" name="details" id="crmMoveRequestToNoResponseDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
                                                     <div class="invalid-feedback">Please provide details.</div>
                                                 </div>
-                                                <div class="modal-footer">'; 
-                                                    $html .= '
+                                                <div class="modal-footer">';
+                    $html .= '
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
                                                     <button type="button" class="btn btn-success savecrmRequestToNoResponseSaveButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>
                                                 </div>
@@ -4020,19 +4054,19 @@ class CrmController extends Controller
                                             <input type="hidden" name="applicant_id" value="' . (int)$applicant->id . '">
                                             <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
                                             <input type="hidden" name="details" id="rejectionNotesHidden' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">
-                                            <input type="hidden" name="slug" id="request_reject_slug'. $applicant->id .'-'. $applicant->sale_id .'" class="form-control">
+                                            <input type="hidden" name="slug" id="request_reject_slug' . $applicant->id . '-' . $applicant->sale_id . '" class="form-control">
                                             
                                             <div class="mb-3">
                                                 <label class="form-label">To Email</label>
-                                                <input type="email" name="to" id="request_reject_from_email'. $applicant->id .'-'. $applicant->sale_id .'" class="form-control" required>
+                                                <input type="email" name="to" id="request_reject_from_email' . $applicant->id . '-' . $applicant->sale_id . '" class="form-control" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Subject</label>
-                                                <input type="text" name="subject" class="form-control" id="request_reject_subject'. $applicant->id .'-'. $applicant->sale_id .'" required>
+                                                <input type="text" name="subject" class="form-control" id="request_reject_subject' . $applicant->id . '-' . $applicant->sale_id . '" required>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Message</label>
-                                                <textarea name="body" class="form-control summernote" rows="4" id="request_reject_template'. $applicant->id .'-'. $applicant->sale_id .'" required></textarea>
+                                                <textarea name="body" class="form-control summernote" rows="4" id="request_reject_template' . $applicant->id . '-' . $applicant->sale_id . '" required></textarea>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="submit" class="btn btn-success saveCrmSendApplicantEmailRequestRejectButton">Send Email</button>
@@ -4931,16 +4965,16 @@ class CrmController extends Controller
                     /** CRM Change Paid Status Modal */
                     $paid_status_title = ($applicant->paid_status == 'close') ? 'Open' : 'Close';
                     $paid_status_timestamp = Carbon::parse($applicant->paid_timestamp);
-                    $content_details = 'Applicant CV has been ' . ucwords($applicant->paid_status) . ' since ' 
-                        . $paid_status_timestamp->format('d M Y') . ' (' 
-                        . $paid_status_timestamp->diff(Carbon::now())->format('%y years, %m months and %d days') 
+                    $content_details = 'Applicant CV has been ' . ucwords($applicant->paid_status) . ' since '
+                        . $paid_status_timestamp->format('d M Y') . ' ('
+                        . $paid_status_timestamp->diff(Carbon::now())->format('%y years, %m months and %d days')
                         . '). Are you sure you want to ' . $paid_status_title . ' it?';
 
                     $html .= '<div id="crmChangePaidStatusModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" class="modal fade" tabindex="-1" aria-labelledby="crmChangePaidStatusModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-top">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="crmChangePaidStatusModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM '. $paid_status_title .' To '. ucwords($applicant->applicant_name) .'\'s CV</h5>
+                                            <h5 class="modal-title" id="crmChangePaidStatusModalLabel' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">CRM ' . $paid_status_title . ' To ' . ucwords($applicant->applicant_name) . '\'s CV</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body modal-body-text-left">
@@ -4950,7 +4984,7 @@ class CrmController extends Controller
                                                 <input type="hidden" name="sale_id" value="' . (int)$applicant->sale_id . '">
                                                 <input type="hidden" id="paid_status-' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" name="paid_status" value="' . strtolower($paid_status_title) . '">
                                                 <div class="mb-3">
-                                                    <span id="crmChangePaidStatusDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">'. $content_details .'</span>
+                                                    <span id="crmChangePaidStatusDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">' . $content_details . '</span>
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
@@ -4963,11 +4997,11 @@ class CrmController extends Controller
                             </div>';
                     return $html;
                 })
-                ->rawColumns(['notes_detail','applicant_email', 'show_created_at', 'user_name', 'applicantPhone', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_detail', 'applicant_email', 'show_created_at', 'user_name', 'applicantPhone', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
-    
+
     /** CRM Sent CV */
     public function updateCrmNotes(Request $request)
     {
@@ -5120,22 +5154,21 @@ class CrmController extends Controller
             if ($sale) {
                 $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
                 // if ($sent_cv_count < $sale->send_cv_limit) {
-                    // Private function might throw exceptions
-                    $this->crmRevertCVInQualityAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $request->input('sale_id'),
-                        $details
-                    );
+                // Private function might throw exceptions
+                $this->crmRevertCVInQualityAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $request->input('sale_id'),
+                    $details
+                );
 
-                    return response()->json(['success' => true, 'message' => 'CRM CV Reverted In Quality Successfully']);
+                return response()->json(['success' => true, 'message' => 'CRM CV Reverted In Quality Successfully']);
                 // }else{
                 //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 // }
-            }else{
+            } else {
                 return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
             }
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5314,19 +5347,19 @@ class CrmController extends Controller
                 $sent_cv_count = CVNote::where(['sale_id' => $sale_id, 'status' => 1])->count();
 
                 // if ($sent_cv_count < $sale->send_cv_limit) {
-                    // Private function might throw exceptions
-                    $this->crmRevertRejectedCvToSentCvAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $request->input('sale_id'),
-                        $details
-                    );
-                    
-                    return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
+                // Private function might throw exceptions
+                $this->crmRevertRejectedCvToSentCvAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $request->input('sale_id'),
+                    $details
+                );
+
+                return response()->json(['success' => true, 'message' => 'CRM Reverted In Sent CV Successfully']);
                 // }else{
                 //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 // }
-            }else{
+            } else {
                 return response()->json(['success' => false, 'message' => 'Oops! Sale record not found.']);
             }
         } catch (ValidationException $e) {
@@ -5362,7 +5395,7 @@ class CrmController extends Controller
                 $details
             );
 
-            if($revertedInSentCv){
+            if ($revertedInSentCv) {
                 // Private function might throw exceptions
                 $this->crmRevertCVInQualityAction(
                     $request->input('applicant_id'),
@@ -5492,7 +5525,6 @@ class CrmController extends Controller
                 'success' => true,
                 'message' => 'CRM Interview Scheduled Successfully'
             ]);
-
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -5500,7 +5532,6 @@ class CrmController extends Controller
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
-
         } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -5509,7 +5540,7 @@ class CrmController extends Controller
             ], 500);
         }
     }
-    
+
     /** CRM Request Reject */
     public function crmRequestReject(Request $request)
     {
@@ -5551,23 +5582,23 @@ class CrmController extends Controller
                 $email_body = $request->input('body');
                 $email_subject = $request->input('subject');
                 $email_to = $request->input('to');
-                
+
 
                 $applicant_name = $applicantRecord ? ucwords(strtolower($applicantRecord->applicant_name)) : '';
-                if(isset($request->slug)){
+                if (isset($request->slug)) {
                     $email_template = EmailTemplate::where('slug', $request->slug)->where('is_active', 1)->first();
 
                     $email_from = $email_template->from_email;
                     $email_title = $email_template->title;
-                }else{
+                } else {
                     $email_from = 'customerservice@kingsburypersonnel.com';
                     $email_title = $applicant_name . ' - Request Rejected';
                 }
 
                 $emailNotification = Setting::where('key', 'email_notifications')->first();
-                
+
                 // Attempt to save email in DB
-                if($emailNotification && $emailNotification->value == '1'){
+                if ($emailNotification && $emailNotification->value == '1') {
                     try {
                         $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $email_body, $email_title, $applicant_id, $sale->id);
                         if (!$is_save) {
@@ -5581,7 +5612,7 @@ class CrmController extends Controller
                             'message' => 'Failed to save email: ' . $e->getMessage()
                         ], 500);
                     }
-                }else{
+                } else {
                     return response()->json([
                         'success' => false,
                         'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
@@ -5628,7 +5659,7 @@ class CrmController extends Controller
                 ''
             );
 
-            if($result){
+            if ($result) {
                 Notification::where('applicant_id', $request->input('applicant_id'))
                     ->where('sale_id', $request->input('sale_id'))
                     ->where('user_id', $user->id)
@@ -5672,7 +5703,7 @@ class CrmController extends Controller
                 $details
             );
 
-             if($result){
+            if ($result) {
                 Notification::where('applicant_id', $request->input('applicant_id'))
                     ->where('sale_id', $request->input('sale_id'))
                     ->where('user_id', $user->id)
@@ -5718,7 +5749,7 @@ class CrmController extends Controller
                 $details
             );
 
-            if($result){
+            if ($result) {
                 $cvNote = DB::table('cv_notes')
                     ->select('user_id')
                     ->whereIn('id', function ($subQuery) {
@@ -5771,15 +5802,15 @@ class CrmController extends Controller
 
             $applicant = Applicant::find($applicant_id);
             $is_no_job = $applicant && $applicant->is_no_job == 1 ? true : false;
-            
+
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
-                if($is_no_job){
+                if ($is_no_job) {
                     // Private function might throw exceptions
                     $this->crmNoJobRequestRejectedRevertToSentCvAction(
                         $request->input('applicant_id'),
@@ -5787,26 +5818,24 @@ class CrmController extends Controller
                         $sale_id,
                         $details
                     );
-                    
-                }else{
+                } else {
                     // if ($sent_cv_count < $sale->cv_limit) {
-                        // Private function might throw exceptions
-                        $this->crmRequestRejectedRevertToSentCvAction(
-                            $request->input('applicant_id'),
-                            $user->id,
-                            $sale_id,
-                            $details
-                            );
+                    // Private function might throw exceptions
+                    $this->crmRequestRejectedRevertToSentCvAction(
+                        $request->input('applicant_id'),
+                        $user->id,
+                        $sale_id,
+                        $details
+                    );
                     // }else{
                     //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                     // }
                 }
 
                 return response()->json(['success' => true, 'message' => 'CRM Reverted To Sent CV Successfully']);
-            }else{
+            } else {
                 return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5840,11 +5869,11 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
-                if($is_no_job){
+                if ($is_no_job) {
                     // Private function might throw exceptions
                     $this->crmNoJobRequestRejectedRevertToRequestAction(
                         $request->input('applicant_id'),
@@ -5852,8 +5881,7 @@ class CrmController extends Controller
                         $sale_id,
                         $details
                     );
-                    
-                }else{
+                } else {
                     if ($sent_cv_count < $sale->cv_limit) {
                         // Private function might throw exceptions
                         $this->crmRequestRejectedRevertToRequestAction(
@@ -5862,18 +5890,15 @@ class CrmController extends Controller
                             $sale_id,
                             $details
                         );
-                        
-                    }else{
+                    } else {
                         return response()->json(['success' => false, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                     }
                 }
 
                 return response()->json(['success' => true, 'message' => 'CV Reverted To Request Successfully']);
-
             }
 
             return response()->json(['success' => false, 'message' => 'Sale Not Found']);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -5903,9 +5928,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -5915,7 +5940,7 @@ class CrmController extends Controller
                         $sale_id,
                         $details
                     );
-                    
+
                     /** Second revert in Quality */
                     $this->crmRevertCVInQualityAction(
                         $request->input('applicant_id'),
@@ -5923,8 +5948,7 @@ class CrmController extends Controller
                         $request->input('sale_id'),
                         $details
                     );
-
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -5997,7 +6021,7 @@ class CrmController extends Controller
                 $details
             );
 
-            if($revertedInSentCv){
+            if ($revertedInSentCv) {
                 // Private function might throw exceptions
                 $this->crmRevertCVInQualityAction(
                     $request->input('applicant_id'),
@@ -6070,20 +6094,21 @@ class CrmController extends Controller
         ]);
 
         $emailNotification = Setting::where('key', 'email_notifications')->first();
-                
+
         // Attempt to save email in DB
-        if($emailNotification && $emailNotification->value == '1'){
+        if ($emailNotification && $emailNotification->value == '1') {
             try {
                 // Attempt to send email
                 $is_save = $this->saveEmailDB(
-                    $validatedData['email_to'], 
+                    $validatedData['email_to'],
                     // $validatedData['email_from'], 
                     'crm@kingsburypersonnel.com',
-                    $validatedData['email_subject'], 
-                    $validatedData['email_body'], 
-                    $validatedData['email_subject'], 
-                    $validatedData['applicant_id'], 
-                    $validatedData['sale_id']);
+                    $validatedData['email_subject'],
+                    $validatedData['email_body'],
+                    $validatedData['email_subject'],
+                    $validatedData['applicant_id'],
+                    $validatedData['sale_id']
+                );
 
                 if (!$is_save) {
                     // Optional: throw or log
@@ -6092,14 +6117,13 @@ class CrmController extends Controller
                 }
 
                 return response()->json(['success' => true, 'message' => 'Email sent successfully']);
-
             } catch (Exception $e) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to send email: ' . $e->getMessage()
                 ], 500);
             }
-        }else{
+        } else {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save email because email notifications are disabled. Contact to your admin.'
@@ -6156,9 +6180,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     // Private function might throw exceptions
@@ -6169,7 +6193,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertedInRequest){
+                    if ($revertedInRequest) {
                         // Private function might throw exceptions
                         $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                             $request->input('applicant_id'),
@@ -6178,7 +6202,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($revertedInSentCv){
+                        if ($revertedInSentCv) {
                             // Private function might throw exceptions
                             $this->crmRevertCVInQualityAction(
                                 $request->input('applicant_id'),
@@ -6188,8 +6212,7 @@ class CrmController extends Controller
                             );
                         }
                     }
-
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -6464,9 +6487,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     // Private function might throw exceptions
@@ -6477,7 +6500,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertRebookToConfirm){
+                    if ($revertRebookToConfirm) {
                         // Private function might throw exceptions
                         $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                             $request->input('applicant_id'),
@@ -6486,7 +6509,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($revertedInRequest){
+                        if ($revertedInRequest) {
                             // Private function might throw exceptions
                             $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                 $request->input('applicant_id'),
@@ -6495,7 +6518,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($revertedInSentCv){
+                            if ($revertedInSentCv) {
                                 // Private function might throw exceptions
                                 $this->crmRevertCVInQualityAction(
                                     $request->input('applicant_id'),
@@ -6506,8 +6529,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -6680,12 +6702,12 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
-                     // Private function might throw exceptions
+                    // Private function might throw exceptions
                     $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                         $request->input('applicant_id'),
                         $user->id,
@@ -6693,7 +6715,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($crmRevertinRebook){
+                    if ($crmRevertinRebook) {
                         // Private function might throw exceptions
                         $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                             $request->input('applicant_id'),
@@ -6702,7 +6724,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($revertRebookToConfirm){
+                        if ($revertRebookToConfirm) {
                             // Private function might throw exceptions
                             $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                 $request->input('applicant_id'),
@@ -6711,7 +6733,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($revertedInRequest){
+                            if ($revertedInRequest) {
                                 // Private function might throw exceptions
                                 $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                     $request->input('applicant_id'),
@@ -6720,7 +6742,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertedInSentCv){
+                                if ($revertedInSentCv) {
                                     // Private function might throw exceptions
                                     $this->crmRevertCVInQualityAction(
                                         $request->input('applicant_id'),
@@ -6732,7 +6754,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -6769,27 +6791,26 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 // if ($sent_cv_count < $sale->cv_limit) {
-                    /** First revert in Sent CV */
-                    $this->crmInterviewNotAttendedToAttendedAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $sale_id,
-                        $details
-                    );
+                /** First revert in Sent CV */
+                $this->crmInterviewNotAttendedToAttendedAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $sale_id,
+                    $details
+                );
 
-                    return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
+                return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
                 // }else{
                 //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 // }
-            }else{
+            } else {
                 return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -6819,9 +6840,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -6832,7 +6853,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($crmNotAttendedToAttend){
+                    if ($crmNotAttendedToAttend) {
                         // Private function might throw exceptions
                         $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                             $request->input('applicant_id'),
@@ -6841,7 +6862,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($crmRevertinRebook){
+                        if ($crmRevertinRebook) {
                             // Private function might throw exceptions
                             $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                 $request->input('applicant_id'),
@@ -6850,7 +6871,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($revertRebookToConfirm){
+                            if ($revertRebookToConfirm) {
                                 // Private function might throw exceptions
                                 $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                     $request->input('applicant_id'),
@@ -6859,7 +6880,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertedInRequest){
+                                if ($revertedInRequest) {
                                     // Private function might throw exceptions
                                     $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                         $request->input('applicant_id'),
@@ -6868,7 +6889,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertedInSentCv){
+                                    if ($revertedInSentCv) {
                                         // Private function might throw exceptions
                                         $this->crmRevertCVInQualityAction(
                                             $request->input('applicant_id'),
@@ -6881,8 +6902,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -6919,27 +6939,26 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 // if ($sent_cv_count < $sale->cv_limit) {
-                    /** First revert in Sent CV */
-                    $this->crmRevertDeclineToAttendedAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $sale_id,
-                        $details
-                    );
+                /** First revert in Sent CV */
+                $this->crmRevertDeclineToAttendedAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $sale_id,
+                    $details
+                );
 
-                    return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
+                return response()->json(['success' => true, 'message' => 'CV Reverted To Attended Successfully']);
                 // }else{
                 //     return response()->json(['error' => true, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
                 // }
-            }else{
+            } else {
                 return response()->json(['error' => true, 'message' => 'Sale record not found!']);
             }
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -6969,9 +6988,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -6982,7 +7001,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($crmRevertToAttended){
+                    if ($crmRevertToAttended) {
                         // Private function might throw exceptions
                         $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                             $request->input('applicant_id'),
@@ -6991,7 +7010,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($crmRevertinRebook){
+                        if ($crmRevertinRebook) {
                             // Private function might throw exceptions
                             $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                 $request->input('applicant_id'),
@@ -7000,7 +7019,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($revertRebookToConfirm){
+                            if ($revertRebookToConfirm) {
                                 // Private function might throw exceptions
                                 $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                     $request->input('applicant_id'),
@@ -7009,7 +7028,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertedInRequest){
+                                if ($revertedInRequest) {
                                     // Private function might throw exceptions
                                     $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                         $request->input('applicant_id'),
@@ -7018,7 +7037,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertedInSentCv){
+                                    if ($revertedInSentCv) {
                                         // Private function might throw exceptions
                                         $this->crmRevertCVInQualityAction(
                                             $request->input('applicant_id'),
@@ -7031,7 +7050,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7103,9 +7122,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7115,8 +7134,7 @@ class CrmController extends Controller
                         $sale_id,
                         $details
                     );
-
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7221,9 +7239,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7234,7 +7252,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($crmRevertToAttended){
+                    if ($crmRevertToAttended) {
                         // Private function might throw exceptions
                         $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                             $request->input('applicant_id'),
@@ -7243,7 +7261,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($crmRevertinRebook){
+                        if ($crmRevertinRebook) {
                             // Private function might throw exceptions
                             $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                 $request->input('applicant_id'),
@@ -7252,7 +7270,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($revertRebookToConfirm){
+                            if ($revertRebookToConfirm) {
                                 // Private function might throw exceptions
                                 $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                     $request->input('applicant_id'),
@@ -7261,7 +7279,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertedInRequest){
+                                if ($revertedInRequest) {
                                     // Private function might throw exceptions
                                     $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                         $request->input('applicant_id'),
@@ -7270,7 +7288,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertedInSentCv){
+                                    if ($revertedInSentCv) {
                                         // Private function might throw exceptions
                                         $this->crmRevertCVInQualityAction(
                                             $request->input('applicant_id'),
@@ -7283,7 +7301,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7320,20 +7338,20 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 // if ($sent_cv_count < $sale->cv_limit) {
-                    /** First revert in Sent CV */
-                    $this->crmRevertStartDateHoldToStartDateAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $sale_id,
-                        $details
-                    );
+                /** First revert in Sent CV */
+                $this->crmRevertStartDateHoldToStartDateAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $sale_id,
+                    $details
+                );
 
-                    return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
+                return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
                 // }else{
                 //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
@@ -7405,9 +7423,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7418,7 +7436,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertToStartDate){
+                    if ($revertToStartDate) {
                         /** First revert in Sent CV */
                         $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
                             $request->input('applicant_id'),
@@ -7427,7 +7445,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($crmRevertToAttended){
+                        if ($crmRevertToAttended) {
                             // Private function might throw exceptions
                             $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                                 $request->input('applicant_id'),
@@ -7436,7 +7454,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($crmRevertinRebook){
+                            if ($crmRevertinRebook) {
                                 // Private function might throw exceptions
                                 $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                     $request->input('applicant_id'),
@@ -7445,7 +7463,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertRebookToConfirm){
+                                if ($revertRebookToConfirm) {
                                     // Private function might throw exceptions
                                     $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                         $request->input('applicant_id'),
@@ -7454,7 +7472,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertedInRequest){
+                                    if ($revertedInRequest) {
                                         // Private function might throw exceptions
                                         $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                             $request->input('applicant_id'),
@@ -7463,7 +7481,7 @@ class CrmController extends Controller
                                             $details
                                         );
 
-                                        if($revertedInSentCv){
+                                        if ($revertedInSentCv) {
                                             // Private function might throw exceptions
                                             $this->crmRevertCVInQualityAction(
                                                 $request->input('applicant_id'),
@@ -7477,7 +7495,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7584,9 +7602,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7598,8 +7616,7 @@ class CrmController extends Controller
                     );
 
                     return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
-
-                }else{
+                } else {
                     return response()->json(['success' => false, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7669,9 +7686,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7682,7 +7699,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertToStartDate){
+                    if ($revertToStartDate) {
                         /** First revert in Sent CV */
                         $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
                             $request->input('applicant_id'),
@@ -7691,7 +7708,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($crmRevertToAttended){
+                        if ($crmRevertToAttended) {
                             // Private function might throw exceptions
                             $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                                 $request->input('applicant_id'),
@@ -7700,7 +7717,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($crmRevertinRebook){
+                            if ($crmRevertinRebook) {
                                 // Private function might throw exceptions
                                 $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                     $request->input('applicant_id'),
@@ -7709,7 +7726,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($revertRebookToConfirm){
+                                if ($revertRebookToConfirm) {
                                     // Private function might throw exceptions
                                     $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                         $request->input('applicant_id'),
@@ -7718,7 +7735,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertedInRequest){
+                                    if ($revertedInRequest) {
                                         // Private function might throw exceptions
                                         $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                             $request->input('applicant_id'),
@@ -7727,7 +7744,7 @@ class CrmController extends Controller
                                             $details
                                         );
 
-                                        if($revertedInSentCv){
+                                        if ($revertedInSentCv) {
                                             // Private function might throw exceptions
                                             $this->crmRevertCVInQualityAction(
                                                 $request->input('applicant_id'),
@@ -7741,7 +7758,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7760,7 +7777,7 @@ class CrmController extends Controller
             ], 500);
         }
     }
-    
+
     /** CRM Invoice Sent */
     public function crmInvoiceSentToPaid(Request $request)
     {
@@ -7848,9 +7865,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -7861,7 +7878,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertToInvoice){
+                    if ($revertToInvoice) {
                         /** First revert in Sent CV */
                         $revertToStartDate = $this->crmRevertInvoiceToStartDateAction(
                             $request->input('applicant_id'),
@@ -7870,7 +7887,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($revertToStartDate){
+                        if ($revertToStartDate) {
                             /** First revert in Sent CV */
                             $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
                                 $request->input('applicant_id'),
@@ -7879,7 +7896,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($crmRevertToAttended){
+                            if ($crmRevertToAttended) {
                                 // Private function might throw exceptions
                                 $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                                     $request->input('applicant_id'),
@@ -7888,7 +7905,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($crmRevertinRebook){
+                                if ($crmRevertinRebook) {
                                     // Private function might throw exceptions
                                     $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                         $request->input('applicant_id'),
@@ -7897,7 +7914,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertRebookToConfirm){
+                                    if ($revertRebookToConfirm) {
                                         // Private function might throw exceptions
                                         $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                             $request->input('applicant_id'),
@@ -7906,7 +7923,7 @@ class CrmController extends Controller
                                             $details
                                         );
 
-                                        if($revertedInRequest){
+                                        if ($revertedInRequest) {
                                             // Private function might throw exceptions
                                             $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                                 $request->input('applicant_id'),
@@ -7915,7 +7932,7 @@ class CrmController extends Controller
                                                 $details
                                             );
 
-                                            if($revertedInSentCv){
+                                            if ($revertedInSentCv) {
                                                 // Private function might throw exceptions
                                                 $this->crmRevertCVInQualityAction(
                                                     $request->input('applicant_id'),
@@ -7930,7 +7947,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -7967,20 +7984,20 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 // if ($sent_cv_count < $sale->cv_limit) {
-                    /** First revert in Sent CV */
-                    $this->crmRevertDisputeToInvoiceAction(
-                        $request->input('applicant_id'),
-                        $user->id,
-                        $sale_id,
-                        $details
-                    );
+                /** First revert in Sent CV */
+                $this->crmRevertDisputeToInvoiceAction(
+                    $request->input('applicant_id'),
+                    $user->id,
+                    $sale_id,
+                    $details
+                );
 
-                    return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
+                return response()->json(['success' => true, 'message' => 'CV Reverted To Start Date Successfully']);
 
                 // }else{
                 //     return response()->json(['success' => false, 'message' => 'Oops! You can`t proceed right now. The CV limit for this sale has already been reached.']);
@@ -8017,9 +8034,9 @@ class CrmController extends Controller
             $sale = Sale::find($sale_id);
             if ($sale) {
                 $sent_cv_count = CVNote::where([
-                    'sale_id' => $sale_id, 
+                    'sale_id' => $sale_id,
                     'status' => 1
-                    ])->count();
+                ])->count();
 
                 if ($sent_cv_count < $sale->cv_limit) {
                     /** First revert in Sent CV */
@@ -8030,7 +8047,7 @@ class CrmController extends Controller
                         $details
                     );
 
-                    if($revertToInvoice){
+                    if ($revertToInvoice) {
                         /** First revert in Sent CV */
                         $revertToStartDate = $this->crmRevertInvoiceToStartDateAction(
                             $request->input('applicant_id'),
@@ -8039,7 +8056,7 @@ class CrmController extends Controller
                             $details
                         );
 
-                        if($revertToStartDate){
+                        if ($revertToStartDate) {
                             /** First revert in Sent CV */
                             $crmRevertToAttended = $this->crmRevertStartDateToAttendedAction(
                                 $request->input('applicant_id'),
@@ -8048,7 +8065,7 @@ class CrmController extends Controller
                                 $details
                             );
 
-                            if($crmRevertToAttended){
+                            if ($crmRevertToAttended) {
                                 // Private function might throw exceptions
                                 $crmRevertinRebook = $this->crmRevertAttendedToRebookAction(
                                     $request->input('applicant_id'),
@@ -8057,7 +8074,7 @@ class CrmController extends Controller
                                     $details
                                 );
 
-                                if($crmRevertinRebook){
+                                if ($crmRevertinRebook) {
                                     // Private function might throw exceptions
                                     $revertRebookToConfirm = $this->crmRevertRebookToConfirmationAction(
                                         $request->input('applicant_id'),
@@ -8066,7 +8083,7 @@ class CrmController extends Controller
                                         $details
                                     );
 
-                                    if($revertRebookToConfirm){
+                                    if ($revertRebookToConfirm) {
                                         // Private function might throw exceptions
                                         $revertedInRequest = $this->crmConfirmationRevertToRequestAction(
                                             $request->input('applicant_id'),
@@ -8075,7 +8092,7 @@ class CrmController extends Controller
                                             $details
                                         );
 
-                                        if($revertedInRequest){
+                                        if ($revertedInRequest) {
                                             // Private function might throw exceptions
                                             $revertedInSentCv = $this->crmRevertRequestToSentCvAction(
                                                 $request->input('applicant_id'),
@@ -8084,7 +8101,7 @@ class CrmController extends Controller
                                                 $details
                                             );
 
-                                            if($revertedInSentCv){
+                                            if ($revertedInSentCv) {
                                                 // Private function might throw exceptions
                                                 $this->crmRevertCVInQualityAction(
                                                     $request->input('applicant_id'),
@@ -8099,7 +8116,7 @@ class CrmController extends Controller
                             }
                         }
                     }
-                }else{
+                } else {
                     return response()->json(['error' => true, 'message' => 'Unable to proceed: You have reached the maximum number of CVs that can be submitted for this sale.']);
                 }
             }
@@ -8131,13 +8148,13 @@ class CrmController extends Controller
             ]);
 
             $user = Auth::user();
-            $details = 'Change paid status as '. $request->input('paid_status') .' --- By: ' . $user->name;
+            $details = 'Change paid status as ' . $request->input('paid_status') . ' --- By: ' . $user->name;
             $applicant_id = $request->input('applicant_id');
             $sale_id = $request->input('sale_id');
 
             $applicant = Applicant::find($applicant_id);
 
-            if($applicant){
+            if ($applicant) {
                 $msg = '';
                 $update_paid_status = '';
 
@@ -8156,10 +8173,9 @@ class CrmController extends Controller
                 $audit = new ActionObserver();
                 $audit->customApplicantAudit($applicant, 'paid_status');
 
-                return response()->json(['success' => true, 'message' => 'CRM Changed Paid Status '. $msg .' Successfully']);
-
+                return response()->json(['success' => true, 'message' => 'CRM Changed Paid Status ' . $msg . ' Successfully']);
             }
-            
+
             return response()->json(['success' => false, 'message' => 'Applicant Not Found']);
         } catch (ValidationException $e) {
             return response()->json([
@@ -8216,7 +8232,7 @@ class CrmController extends Controller
 
             return response()->json([
                 'success' => $updatedCount > 0,
-                'message' => $updatedCount > 0 
+                'message' => $updatedCount > 0
                     ? "{$updatedCount} applicants marked as Open successfully."
                     : "No applicant status updated."
             ]);
@@ -8226,7 +8242,7 @@ class CrmController extends Controller
             'success' => false,
             'message' => 'No matching applicants found.'
         ]);
-    }    
+    }
     public function crmPaidRevertToInvoiceSent(Request $request)
     {
         $request->validate([
@@ -8248,21 +8264,21 @@ class CrmController extends Controller
                 ]);
 
             CrmNote::where([
-                    "applicant_id" => $applicant_id,
-                    "sale_id" => $sale_id,
-                    "status" => 1,
-                    'moved_tab_to' => "paid"
-                ])->update(['status' => 0]);
-                // ->orderByDesc('id')
-                // ->limit(1)
-                // ->delete();
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
+                "status" => 1,
+                'moved_tab_to' => "paid"
+            ])->update(['status' => 0]);
+            // ->orderByDesc('id')
+            // ->limit(1)
+            // ->delete();
 
             CrmNote::where([
-                    'applicant_id' => $applicant_id,
-                    'sale_id'      => $sale_id,
-                    'status'       => 0,
-                    'moved_tab_to' => "invoice_sent"
-                ])
+                'applicant_id' => $applicant_id,
+                'sale_id'      => $sale_id,
+                'status'       => 0,
+                'moved_tab_to' => "invoice_sent"
+            ])
                 ->orderByDesc('id')
                 ->limit(1)
                 ->update(['status' => 1]);
@@ -8273,9 +8289,9 @@ class CrmController extends Controller
                 "status" => 1,
                 'sub_stage' => 'crm_paid',
             ])->update(['status' => 0]);
-                // ->orderByDesc('id')
-                // ->limit(1)
-                // ->delete();
+            // ->orderByDesc('id')
+            // ->limit(1)
+            // ->delete();
 
             History::where([
                 "applicant_id" => $applicant_id,
@@ -8290,10 +8306,9 @@ class CrmController extends Controller
             CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
-            ])->update(["status" => 1]);//active
-                
-            return response()->json(['success' => true]);
+            ])->update(["status" => 1]); //active
 
+            return response()->json(['success' => true]);
         } catch (Exception $e) {
             Log::error("Error in crmPaidAction: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -8389,7 +8404,7 @@ class CrmController extends Controller
     /** Get CRM Notes History */
     public function getApplicantCrmNotes(Request $request)
     {
-        try{
+        try {
             $applicant_id = $request->applicant_id;
             $sale_id = $request->sale_id;
 
@@ -8399,7 +8414,7 @@ class CrmController extends Controller
                 ->where('applicant_id', $applicant_id)
                 ->where('sale_id', $sale_id)->latest()->get();
 
-             // Check if the module note was found
+            // Check if the module note was found
             if (!$model) {
                 return response()->json(['error' => 'CRM notes not found'], 404);  // Return 404 if not found
             }
@@ -8461,10 +8476,9 @@ class CrmController extends Controller
         }
         $sent_email->save();
 
-        if($sent_email)
-        {
+        if ($sent_email) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -8472,7 +8486,7 @@ class CrmController extends Controller
     /** No Job CRM Actions */
     private function crmNoJobRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             // CVNote::where([
             //     'applicant_id' => $applicant_id,
             //     'sale_id' => $sale_id,
@@ -8490,14 +8504,14 @@ class CrmController extends Controller
                 ->update(["status" => 1]);
 
             CrmNote::where([
-                    "applicant_id" => $applicant_id,
-                    "sale_id" => $sale_id
-                ])->whereIn("moved_tab_to", [
-                    "cv_sent", 
-                    "cv_sent_saved", 
-                    "cv_sent_request",
-                    "cv_sent_no_job"
-                ])
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id
+            ])->whereIn("moved_tab_to", [
+                "cv_sent",
+                "cv_sent_saved",
+                "cv_sent_request",
+                "cv_sent_no_job"
+            ])
                 ->update(["status" => 0]);
 
             $crm_notes = new CrmNote();
@@ -8537,11 +8551,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmNoJobRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             // CVNote::where([
             //     "applicant_id" => $applicant_id,
             //     "sale_id" => $sale_id,
@@ -8553,20 +8567,20 @@ class CrmController extends Controller
 
             /*** get latest sent cv record */
             $latest_sent_cv = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
-                ])
+            ])
                 ->where("moved_tab_to", "cv_sent_no_job_request")
                 ->latest()->first();
 
             $all_cv_sent_saved = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
-                ])
+            ])
                 ->where("moved_tab_to", "cv_sent_saved")
                 ->where('created_at', '>=', $latest_sent_cv->created_at)
                 ->get();
-                
+
             $crm_notes_ids[0] = $latest_sent_cv->id;
             foreach ($all_cv_sent_saved as $cv) {
                 $crm_notes_ids[] = $cv->id;
@@ -8613,7 +8627,7 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     /** No Job CRM Actions */
 
@@ -8731,8 +8745,8 @@ class CrmController extends Controller
             $crm_notes->save();
 
             QualityNotes::where([
-                "applicant_id" => $applicant_id, 
-                "sale_id" => $sale_id, 
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
                 "moved_tab_to" => "cleared",
                 "status" => 1
             ])->update(["status" => 0]);
@@ -8787,7 +8801,7 @@ class CrmController extends Controller
                 'moved_tab_to' => 'cleared',
                 // 'status' => 1
             ])
-            ->delete();
+                ->delete();
             // ->update(['status' => 0]);
 
             $quality_notes = new QualityNotes();
@@ -8846,7 +8860,7 @@ class CrmController extends Controller
     }
     private function crmSentCVToRejectCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)->update([
                 'is_in_crm_reject' => true,
                 'is_interview_confirm' => false
@@ -8930,7 +8944,7 @@ class CrmController extends Controller
                 SaleNote::where([
                     "sale_id" => $sale_id,
                     "status" => 1
-                 ])->update(["status" => 0]);
+                ])->update(["status" => 0]);
 
                 // Create sale note
                 $sale_note = new SaleNote();
@@ -8943,7 +8957,7 @@ class CrmController extends Controller
                 $sale_note->sales_notes_uid = md5((string) $sale_note->id);
                 $sale_note->save();
             }
-        
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -8958,12 +8972,15 @@ class CrmController extends Controller
     /** CRM Rejected CV */
     private function crmRevertRejectedCvToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
-            $crm_note_id = CrmNote::where([
-                "applicant_id" => $applicant_id,
-                "sale_id" => $sale_id,
-                'moved_tab_to' => 'cv_sent_reject'
-            ])->select('id')->latest()->first()->id;
+        try {
+            $crm_note_id = CrmNote::where('applicant_id', $applicant_id)
+                ->where('sale_id', $sale_id)
+                ->whereIn('moved_tab_to', [
+                    'cv_sent_reject',
+                    'cv_sent_reject_no_job'
+                ])
+                ->latest()
+                ->value('id');
 
             CrmRejectedCv::where([
                 "applicant_id" => $applicant_id,
@@ -8973,25 +8990,25 @@ class CrmController extends Controller
             ])->update(["status" => 0]);
 
             CVNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
             ])
-            ->update(["status" => 1]);
+                ->update(["status" => 1]);
 
             QualityNotes::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
             ])->update(["status" => 1]);
 
             CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
             ])
-            ->whereIn("moved_tab_to", ["cv_sent", "cv_sent_saved", "cv_sent_reject"])
-            ->update(["status" => 0]);
+                ->whereIn("moved_tab_to", ["cv_sent", "cv_sent_saved", "cv_sent_reject"])
+                ->update(["status" => 0]);
 
             $crm_notes = new CrmNote();
             $crm_notes->applicant_id = $applicant_id;
@@ -9022,7 +9039,7 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -9037,17 +9054,17 @@ class CrmController extends Controller
     /** CRM Sent No Job */
     private function crmSentCvNoJobRevertCVInQualityAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             $user_name = User::find($user_id);
             $details = request()->details . " --- Reverted By: " . $user_name->name;
 
             Applicant::where("id", $applicant_id)
-            ->update([
-                'is_interview_confirm' => false,
-                'is_cv_in_quality_clear' => false,
-                'is_cv_in_quality_reject' => true,
-                'is_cv_in_quality' => false
-            ]);
+                ->update([
+                    'is_interview_confirm' => false,
+                    'is_cv_in_quality_clear' => false,
+                    'is_cv_in_quality_reject' => true,
+                    'is_cv_in_quality' => false
+                ]);
 
             QualityNotes::where([
                 'applicant_id' => $applicant_id,
@@ -9101,7 +9118,7 @@ class CrmController extends Controller
                 'user_id' => $user_id,
                 'notes' => $details_revert,
             ]);
-        
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -9114,7 +9131,7 @@ class CrmController extends Controller
     }
     private function crmSentCvNoJobSaveAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -9178,7 +9195,7 @@ class CrmController extends Controller
                 $sale_note->sales_notes_uid = md5((string) $sale_note->id);
                 $sale_note->save();
             }
-                            
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -9191,7 +9208,7 @@ class CrmController extends Controller
     }
     private function crmNoJobSentRejectCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)->update([
                 'is_in_crm_reject' => true,
                 'is_interview_confirm' => false
@@ -9285,7 +9302,7 @@ class CrmController extends Controller
                 $sale_note->sales_notes_uid = md5((string) $sale_note->id);
                 $sale_note->save();
             }
-                
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -9298,7 +9315,7 @@ class CrmController extends Controller
     }
     private function crmNoJobSentRequestAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_request' => true,
@@ -9375,7 +9392,7 @@ class CrmController extends Controller
                 $sale_note->sales_notes_uid = md5((string) $sale_note->id);
                 $sale_note->save();
             }
-                                    
+
             return true; // Indicate success
 
         } catch (Exception $e) {
@@ -9457,7 +9474,7 @@ class CrmController extends Controller
                 "moved_tab_to" => "cv_hold",
                 'status' => 1
             ])
-            ->update(["status" => 0]);
+                ->update(["status" => 0]);
 
             QualityNotes::where([
                 "applicant_id" => $applicant_id,
@@ -9465,7 +9482,7 @@ class CrmController extends Controller
                 "moved_tab_to" => "cleared",
                 'status' => 0
             ])
-            ->update(["status" => 1]);
+                ->update(["status" => 1]);
 
             return true; // Indicate success
 
@@ -9481,7 +9498,7 @@ class CrmController extends Controller
     /** CRM Request */
     private function crmRequestRejectAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_request_reject' => true,
@@ -9545,12 +9562,12 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     /** CRM Request No Response*/
     private function crmRequestNoResponseAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
@@ -9593,11 +9610,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmRequestConfirmAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_request_confirm' => true,
@@ -9653,7 +9670,7 @@ class CrmController extends Controller
     }
     private function crmRequestSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -9697,7 +9714,7 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmRevertRequestToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
@@ -9726,8 +9743,8 @@ class CrmController extends Controller
             $crm_notes->save();
 
             QualityNotes::where([
-                "applicant_id" => $applicant_id, 
-                "sale_id" => $sale_id, 
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id,
                 "moved_tab_to" => "cleared",
                 "status" => 0
             ])->update(["status" => 1]);
@@ -9764,32 +9781,32 @@ class CrmController extends Controller
     /** CRM Request Reject */
     private function crmRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CVNote::where([
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id,
                 'status' => 0
             ])
-            ->orderBy('id', 'desc')  // Get the latest record
-            ->limit(1)              // Only one record
-            ->update(['status' => 1]);
+                ->orderBy('id', 'desc')  // Get the latest record
+                ->limit(1)              // Only one record
+                ->update(['status' => 1]);
 
             QualityNotes::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "moved_tab_to" => "cleared"
             ])
-            ->orderBy('id', 'desc')  // Get the latest record
-            ->limit(1)
-            ->update(["status" => 1]);
+                ->orderBy('id', 'desc')  // Get the latest record
+                ->limit(1)
+                ->update(["status" => 1]);
 
             CrmNote::where([
-                    "applicant_id" => $applicant_id,
-                    "sale_id" => $sale_id
-                ])
+                "applicant_id" => $applicant_id,
+                "sale_id" => $sale_id
+            ])
                 ->whereIn("moved_tab_to", [
-                    "cv_sent", 
-                    "cv_sent_saved", 
+                    "cv_sent",
+                    "cv_sent_saved",
                     "cv_sent_request",
                     "request_reject"
                 ])
@@ -9832,36 +9849,36 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CVNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
             ])
-            ->orderBy('id', 'desc')  // Get the latest record
-            ->limit(1)
-            ->update(["status" => 1]);
+                ->orderBy('id', 'desc')  // Get the latest record
+                ->limit(1)
+                ->update(["status" => 1]);
 
             /*** get latest sent cv record */
             $latest_sent_cv = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
-                ])
+            ])
                 ->where("moved_tab_to", "cv_sent")
                 ->latest()->first();
 
             $all_cv_sent_saved = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
-                ])
+            ])
                 ->where("moved_tab_to", "cv_sent_saved")
                 ->where('created_at', '>=', $latest_sent_cv->created_at)
                 ->get();
-                
+
             $crm_notes_ids[0] = $latest_sent_cv->id;
             foreach ($all_cv_sent_saved as $cv) {
                 $crm_notes_ids[] = $cv->id;
@@ -9914,13 +9931,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** CRM Confirmation */
     private function crmInterviewSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -9957,8 +9974,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -9966,11 +9983,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmConfirmationRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Interview::where([
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id,
@@ -9981,12 +9998,12 @@ class CrmController extends Controller
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id
             ])
-            ->whereIn('moved_tab_to', [
-                'cv_sent_request',
-                'request_to_save',
-                'request_to_confirm',
-                'interview_save'
-            ])->update(['status' => 0]);
+                ->whereIn('moved_tab_to', [
+                    'cv_sent_request',
+                    'request_to_save',
+                    'request_to_confirm',
+                    'interview_save'
+                ])->update(['status' => 0]);
 
             $crm_notes = new CrmNote();
             $crm_notes->applicant_id = $applicant_id;
@@ -10016,8 +10033,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -10025,11 +10042,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        } 
+        }
     }
     private function crmInterviewAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => true,
@@ -10072,7 +10089,7 @@ class CrmController extends Controller
             $history->history_uid = md5((string) $history->id);
             $history->save();
 
-           return true; // Indicate success
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -10080,11 +10097,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmInterviewRebookAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => true,
@@ -10127,7 +10144,7 @@ class CrmController extends Controller
             $history->history_uid = md5((string) $history->id);
             $history->save();
 
-           return true; // Indicate success
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -10135,14 +10152,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
-        
+        }
     }
 
     /** CRM Rebook */
     private function crmRevertRebookToConfirmationAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_request_confirm' => true,
@@ -10198,7 +10214,7 @@ class CrmController extends Controller
     }
     private function crmRebookSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -10235,8 +10251,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -10244,14 +10260,14 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmRebookToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
-                    'is_crm_interview_attended' => true, 
+                    'is_crm_interview_attended' => true,
                     'is_crm_request_confirm' => false
                 ]);
 
@@ -10290,8 +10306,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10299,25 +10315,25 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmRebookToNotAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
-                    'is_crm_interview_attended' => false, 
+                    'is_crm_interview_attended' => false,
                     'is_crm_request_confirm' => false
                 ]);
 
             CVNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
             ])->update(["status" => 0]);
 
             QualityNotes::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 1
             ])->update(["status" => 0]);
@@ -10357,8 +10373,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (Exception $e) {
             // Log the error for debugging
@@ -10366,13 +10382,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
 
     /** CRM Attended */
     private function crmRevertAttendedToRebookAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => true,
@@ -10471,13 +10487,13 @@ class CrmController extends Controller
             ]);
 
         CVNote::where([
-            "applicant_id" => $applicant_id, 
+            "applicant_id" => $applicant_id,
             "sale_id" => $sale_id,
             "status" => 1
         ])->update(["status" => 0]);
 
         QualityNotes::where([
-            "applicant_id" => $applicant_id, 
+            "applicant_id" => $applicant_id,
             "sale_id" => $sale_id,
             "status" => 1
         ])->update(["status" => 0]);
@@ -10519,7 +10535,7 @@ class CrmController extends Controller
     }
     private function crmPreStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -10564,13 +10580,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** Not Attended */
     private function crmInterviewNotAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => false,
@@ -10624,8 +10640,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-        
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10633,11 +10649,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     private function crmInterviewNotAttendedToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => true
@@ -10649,7 +10665,7 @@ class CrmController extends Controller
                 "status" => 0
             ])->update(["status" => 1]);
 
-            
+
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -10685,8 +10701,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10694,13 +10710,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
 
     /** CRM Decline */
     private function crmRevertDeclineToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_crm_interview_attended' => true
@@ -10721,18 +10737,18 @@ class CrmController extends Controller
             /*** latest sent cv records */
             $crm_notes_index = 0;
             $latest_sent_cv = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->where("moved_tab_to", "cv_sent")
-            ->latest()->first();
+                ->latest()->first();
 
             $all_cv_sent_saved = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-            ->where("moved_tab_to", "cv_sent_saved")
-            ->where('created_at', '>=', $latest_sent_cv->created_at)
-            ->get();
+                ->where("moved_tab_to", "cv_sent_saved")
+                ->where('created_at', '>=', $latest_sent_cv->created_at)
+                ->get();
 
             $crm_notes_ids[$crm_notes_index++] = $latest_sent_cv->id;
             foreach ($all_cv_sent_saved as $cv) {
@@ -10741,18 +10757,18 @@ class CrmController extends Controller
 
             /*** latest request records */
             $latest_request = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->where("moved_tab_to", "cv_sent_request")
-            ->latest()->first();
+                ->latest()->first();
 
             $all_request_saved = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-            ->where("moved_tab_to", "request_save")
-            ->where('created_at', '>=', $latest_request->created_at)
-            ->get();
+                ->where("moved_tab_to", "request_save")
+                ->where('created_at', '>=', $latest_request->created_at)
+                ->get();
 
             $crm_notes_ids[$crm_notes_index++] = $latest_request->id;
             foreach ($all_request_saved as $cv) {
@@ -10761,17 +10777,17 @@ class CrmController extends Controller
 
             /*** latest confirmation records */
             $latest_confirmation = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->where("moved_tab_to", "request_confirm")
-            ->latest()->first();
+                ->latest()->first();
 
             $all_confirmation_saved = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-            ->where("moved_tab_to", "interview_save")
-            ->where('created_at', '>=', $latest_confirmation->created_at)->get();
+                ->where("moved_tab_to", "interview_save")
+                ->where('created_at', '>=', $latest_confirmation->created_at)->get();
 
             $crm_notes_ids[$crm_notes_index++] = $latest_confirmation->id;
             foreach ($all_confirmation_saved as $cv) {
@@ -10780,18 +10796,18 @@ class CrmController extends Controller
 
             /*** latest rebook records */
             $latest_rebook = CrmNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])->where("moved_tab_to", "rebook")
-            ->latest()->first();
+                ->latest()->first();
 
             if ($latest_rebook) {
                 $all_rebook_saved = CrmNote::where([
-                    "applicant_id" => $applicant_id, 
+                    "applicant_id" => $applicant_id,
                     "sale_id" => $sale_id
                 ])
-                ->where("moved_tab_to", "rebook_save")
-                ->where('created_at', '>=', $latest_rebook->created_at)->get();
+                    ->where("moved_tab_to", "rebook_save")
+                    ->where('created_at', '>=', $latest_rebook->created_at)->get();
 
                 $crm_notes_ids[$crm_notes_index++] = $latest_rebook->id;
                 foreach ($all_rebook_saved as $cv) {
@@ -10836,8 +10852,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-        
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10845,13 +10861,13 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
 
     /** CRM Start Date */
     private function crmStartDateToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_invoice' => true,
@@ -10893,8 +10909,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10902,11 +10918,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmStartDateHoldAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_start_date_hold' => true,
@@ -10958,8 +10974,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -10967,11 +10983,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmStartDateSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -11008,8 +11024,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11017,20 +11033,20 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmRevertStartDateToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             //if applicant revert from start date for purpose of send cv save or quality
             $lstHistory = History::where([
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id,
                 'sub_stage' => 'crm_start_date'
             ])
-            ->whereDate('created_at', Carbon::now())
-            ->latest()
-            ->first();
+                ->whereDate('created_at', Carbon::now())
+                ->latest()
+                ->first();
 
             // Check if last history exists and was created within the last 10 minutes
             if ($lstHistory) {
@@ -11043,7 +11059,7 @@ class CrmController extends Controller
 
             Applicant::where("id", $applicant_id)
                 ->update([
-                    'is_crm_interview_attended' => true, 
+                    'is_crm_interview_attended' => true,
                     'is_crm_request_confirm' => false
                 ]);
 
@@ -11082,8 +11098,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-        
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11091,12 +11107,12 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }   
+        }
     }
     /** CRM Start Date Hold */
     private function crmRevertStartDateHoldToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_start_date_hold' => false,
@@ -11143,8 +11159,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11152,11 +11168,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmStartDateHoldSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -11193,8 +11209,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11202,17 +11218,17 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** CRM Invoice */
     private function crmRevertInvoiceToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
-                    'is_in_crm_start_date' => true, 
-                    'is_crm_interview_attended' => 2,//pending 
+                    'is_in_crm_start_date' => true,
+                    'is_crm_interview_attended' => 2, //pending 
                     'is_in_crm_invoice' => false
                 ]);
 
@@ -11251,8 +11267,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11260,11 +11276,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmInvoiceToDisputeAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_dispute' => true,
@@ -11319,8 +11335,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11328,11 +11344,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmInvoiceToInvoiceSentAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_invoice' => false,
@@ -11374,8 +11390,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11383,11 +11399,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmFinalSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             CrmNote::where([
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
@@ -11424,8 +11440,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11433,19 +11449,19 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** CRM Invoice Sent*/
     private function crmInvoiceSentToPaidAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_paid' => true,
                     'is_in_crm_invoice' => false,
                     'is_in_crm_invoice_sent' => false,
-                    'paid_status' => 'close', 
+                    'paid_status' => 'close',
                     'paid_timestamp' => Carbon::now()
                 ]);
 
@@ -11489,8 +11505,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                        
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11498,11 +11514,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmInvoiceSentToDisputeAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_dispute' => true,
@@ -11557,8 +11573,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11566,11 +11582,11 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
     private function crmInvoiceSentToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
-        try{
+        try {
             Applicant::where("id", $applicant_id)
                 ->update([
                     'is_in_crm_dispute' => false,
@@ -11613,8 +11629,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                    
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11622,16 +11638,16 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** Dispute */
     private function crmRevertDisputeToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         /** lets start to the process of dispute */
-        try{
+        try {
             CVNote::where([
-                "applicant_id" => $applicant_id, 
+                "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id,
                 "status" => 0
             ])->update(["status" => 1]);
@@ -11641,14 +11657,19 @@ class CrmController extends Controller
                 "sale_id" => $sale_id,
                 "status" => 0
             ])
-            ->whereIn('moved_tab_to', [
-                'cv_sent', 'cv_sent_saved', 
-                'cv_sent_request', 'request_save', 
-                'request_confirm', 'prestart_save', 
-                'start_date', 'start_date_save', 
-                'start_date_back', 'interview_attended', 
-                'interview_save'
-            ])->update(["status" => 1]);
+                ->whereIn('moved_tab_to', [
+                    'cv_sent',
+                    'cv_sent_saved',
+                    'cv_sent_request',
+                    'request_save',
+                    'request_confirm',
+                    'prestart_save',
+                    'start_date',
+                    'start_date_save',
+                    'start_date_back',
+                    'interview_attended',
+                    'interview_save'
+                ])->update(["status" => 1]);
 
             $crm_notes = new CrmNote();
             $crm_notes->applicant_id = $applicant_id;
@@ -11679,8 +11700,8 @@ class CrmController extends Controller
             //update uid
             $history->history_uid = md5((string) $history->id);
             $history->save();
-                                            
-           return true; // Indicate success
+
+            return true; // Indicate success
 
         } catch (\Exception $e) {
             // Log the error for debugging
@@ -11688,7 +11709,7 @@ class CrmController extends Controller
 
             // Re-throw the exception to be caught by the calling method
             throw $e;
-        }  
+        }
     }
 
     /** Paid */
@@ -11744,7 +11765,7 @@ class CrmController extends Controller
     //         //update uid
     //         $history->history_uid = md5((string) $history->id);
     //         $history->save();
-                                            
+
     //        return true; // Indicate success
 
     //     } catch (\Exception $e) {
