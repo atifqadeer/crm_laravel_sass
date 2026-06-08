@@ -186,6 +186,7 @@ class ScrapController extends Controller
 
         $importedCount       = 0;
         $companyWebsiteCache = [];
+        $unitWebsiteCache = [];
 
         foreach ($jobs as $jobIndex => $job) {
 
@@ -270,6 +271,16 @@ class ScrapController extends Controller
                         $companyWebsite = $scraped['company_url']    ?? null;
                         $companyEmails  = $scraped['contact_emails'] ?? [];
                         $companyPhones  = $scraped['contact_phones'] ?? [];
+                    } else {
+                        $cacheKey = strtolower(trim($companyName));
+                        if (!isset($companyWebsiteCache[$cacheKey])) {
+                            $companyWebsiteCache[$cacheKey] = $this->getScrappedCompanyWebsiteData($companyName, $companyUrl);
+                        }
+                        // ✅ ADD THIS:
+                        $scraped = $companyWebsiteCache[$cacheKey];
+                        $companyWebsite = $scraped['company_url'] ?? $companyUrl;
+                        $companyEmails = $scraped['contact_emails'] ?? [];
+                        $companyPhones = $scraped['contact_phones'] ?? [];
                     }
 
                     // Merge job-payload emails into scraped emails
@@ -423,7 +434,7 @@ class ScrapController extends Controller
                 $this->saveContactsForMorphable($office->id, Office::class, $allOfficeContacts);
 
                 // ===============================
-                // UNIT
+                // UNIT - WITH CONTACT EXTRACTION FROM WEBSITE
                 // ===============================
                 $unitName = null;
 
@@ -431,6 +442,12 @@ class ScrapController extends Controller
                     $unitName = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                 }
                 $unitName = $unitName ?: ($city ?? 'Main Unit');
+
+                Log::info('[Unit] Looking for unit', [
+                    'office_id' => $office->id,
+                    'unit_name' => $unitName,
+                    'postcode' => $postcode
+                ]);
 
                 $unit = Unit::where('office_id', $office->id)
                     ->whereRaw(
@@ -443,31 +460,143 @@ class ScrapController extends Controller
                     )
                     ->first();
 
-                $unitContactsList = [];
-
                 if (!$unit) {
                     $unitWebsite = null;
                     $unitEmails  = [];
                     $unitPhones  = [];
+                    $unitContacts = []; // For storing paired contacts
 
-                    $isSameAsCompany = strtolower(trim($unitName)) === strtolower(trim($companyName));
+                    // Check if unit is same as company
+                    $isSameAsCompany = false;
+                    $normalizedUnit = strtolower(preg_replace('/[^a-z0-9]/', '', trim($unitName)));
+                    $normalizedCompany = strtolower(preg_replace('/[^a-z0-9]/', '', trim($companyName)));
 
-                    if ($isSameAsCompany) {
-                        // Reuse already-scraped company data — no extra HTTP call
-                        $unitWebsite = $companyWebsite;
-                        $unitEmails  = $companyEmails;
-                        $unitPhones  = $companyPhones;
-                    } else {
-                        $unitCacheKey = strtolower(trim($unitName));
-                        if (!isset($companyWebsiteCache[$unitCacheKey])) {
-                            $companyWebsiteCache[$unitCacheKey] = $this->getScrappedCompanyWebsiteData($unitName);
-                        }
-                        $unitScraped = $companyWebsiteCache[$unitCacheKey];
-                        $unitWebsite = $unitScraped['company_url']    ?? null;
-                        $unitEmails  = $unitScraped['contact_emails'] ?? [];
-                        $unitPhones  = $unitScraped['contact_phones'] ?? [];
+                    if ($normalizedUnit === $normalizedCompany) {
+                        $isSameAsCompany = true;
+                    } elseif (strpos($normalizedUnit, $normalizedCompany) !== false && strlen($normalizedCompany) > 5) {
+                        $isSameAsCompany = true;
+                    } elseif (strpos($normalizedCompany, $normalizedUnit) !== false && strlen($normalizedUnit) > 5) {
+                        $isSameAsCompany = true;
                     }
 
+                    Log::info('[Unit] Same as company check', [
+                        'unit' => $unitName,
+                        'company' => $companyName,
+                        'is_same' => $isSameAsCompany
+                    ]);
+
+                    // Scrape separately for unit with full contact extraction
+                    $unitCacheKey = strtolower(trim($unitName));
+
+                    Log::info('[Unit] Scraping separately with contact extraction', [
+                        'unit' => $unitName,
+                        'cache_key' => $unitCacheKey
+                    ]);
+
+                    if (!isset($unitWebsiteCache[$unitCacheKey])) {
+                        Log::info('[Unit] Calling getScrappedCompanyWebsiteData for unit', ['unit' => $unitName]);
+                        $unitWebsiteCache[$unitCacheKey] = $this->getScrappedCompanyWebsiteData($unitName);
+                    }
+
+                    $unitScraped = $unitWebsiteCache[$unitCacheKey];
+                    $unitWebsite = $unitScraped['company_url'] ?? null;
+                    $unitEmails = $unitScraped['contact_emails'] ?? [];
+                    $unitPhones = $unitScraped['contact_phones'] ?? [];
+
+                    Log::info('[Unit] Initial scrape result', [
+                        'unit' => $unitName,
+                        'found_website' => $unitWebsite,
+                        'found_emails_count' => count($unitEmails),
+                        'found_phones_count' => count($unitPhones),
+                        'emails' => $unitEmails,
+                        'phones' => $unitPhones
+                    ]);
+
+                    // If website found, perform deep contact extraction
+                    if (!empty($unitWebsite)) {
+                        Log::info('[Unit] Performing deep contact extraction from website', [
+                            'unit' => $unitName,
+                            'website' => $unitWebsite
+                        ]);
+
+                        $extractedContacts = $this->extractAllContactsFromWebsite($unitWebsite, $unitName);
+
+                        // Merge extracted contacts with scraped ones
+                        $unitEmails = array_merge($unitEmails, $extractedContacts['emails']);
+                        $unitPhones = array_merge($unitPhones, $extractedContacts['phones']);
+                        $unitContacts = array_merge($unitContacts, $extractedContacts['paired_contacts']);
+
+                        Log::info('[Unit] Deep extraction completed', [
+                            'unit' => $unitName,
+                            'additional_emails' => count($extractedContacts['emails']),
+                            'additional_phones' => count($extractedContacts['phones']),
+                            'total_contacts' => count($extractedContacts['paired_contacts'])
+                        ]);
+                    }
+
+                    // Fallback: if unit scrape failed, use company website
+                    if (empty($unitWebsite) && !empty($companyWebsite)) {
+                        Log::info('[Unit] Using company website as fallback', [
+                            'unit' => $unitName,
+                            'fallback_website' => $companyWebsite
+                        ]);
+                        $unitWebsite = $companyWebsite;
+
+                        // Also extract from company website for this unit
+                        $extractedContacts = $this->extractAllContactsFromWebsite($companyWebsite, $unitName);
+                        $unitEmails = array_merge($unitEmails, $extractedContacts['emails']);
+                        $unitPhones = array_merge($unitPhones, $extractedContacts['phones']);
+                        $unitContacts = array_merge($unitContacts, $extractedContacts['paired_contacts']);
+                    }
+
+                    // Extract contacts from description HTML
+                    if (!empty($descriptionHtml)) {
+                        $descContacts = $this->extractContactsFromHtmlString($descriptionHtml, $unitName);
+                        $unitEmails = array_merge($unitEmails, $descContacts['emails']);
+                        $unitPhones = array_merge($unitPhones, $descContacts['phones']);
+
+                        foreach ($descContacts['paired_contacts'] as $contact) {
+                            $unitContacts[] = $contact;
+                        }
+
+                        Log::info('[Unit] Contacts from description', [
+                            'unit' => $unitName,
+                            'emails_from_desc' => count($descContacts['emails']),
+                            'phones_from_desc' => count($descContacts['phones'])
+                        ]);
+                    }
+
+                    // Merge job-payload emails
+                    foreach ($jobPayloadEmails as $raw) {
+                        $e = strtolower(trim($raw));
+                        if ($this->isProfessionalEmail($e)) {
+                            $unitEmails[] = $e;
+                            $unitContacts[] = [
+                                'contact_name' => $unitName,
+                                'contact_email' => $e,
+                                'contact_phone' => null
+                            ];
+                        }
+                    }
+
+                    // Deduplicate all emails and phones
+                    $unitEmails = array_values(array_unique(array_filter($unitEmails)));
+                    $unitPhones = array_values(array_unique(array_filter($unitPhones)));
+
+                    // Create final paired contacts if not already created
+                    if (empty($unitContacts)) {
+                        $unitContacts = $this->pairEmailsAndPhones($unitEmails, $unitPhones, $unitName);
+                    }
+
+                    Log::info('[Unit] Final data before creation', [
+                        'unit_name' => $unitName,
+                        'website_to_save' => $unitWebsite ?? 'NULL',
+                        'emails_count' => count($unitEmails),
+                        'phones_count' => count($unitPhones),
+                        'contacts_count' => count($unitContacts)
+                    ]);
+
+                    // Create the unit
                     $unit = Unit::create([
                         'office_id'     => $office->id,
                         'unit_name'     => $unitName,
@@ -481,9 +610,25 @@ class ScrapController extends Controller
                         'unit_uid'      => md5(uniqid()),
                     ]);
 
-                    // Save unit contacts — paired in one row
-                    $pairedUnitContacts = $this->pairEmailsAndPhones($unitEmails, $unitPhones, $unitName);
-                    $this->saveContactsForMorphable($unit->id, Unit::class, $pairedUnitContacts);
+                    // Save unit contacts
+                    if (!empty($unitContacts)) {
+                        $this->saveContactsForMorphable($unit->id, Unit::class, $unitContacts);
+                        Log::info('[Unit] Contacts saved successfully', [
+                            'unit_id' => $unit->id,
+                            'contacts_count' => count($unitContacts)
+                        ]);
+                    }
+
+                    Log::info('[Unit] Unit created successfully', [
+                        'unit_id' => $unit->id,
+                        'saved_website' => $unit->unit_website,
+                        'saved_website_is_null' => is_null($unit->unit_website)
+                    ]);
+                } else {
+                    Log::info('[Unit] Unit already exists, skipping creation', [
+                        'unit_id' => $unit->id,
+                        'unit_name' => $unitName
+                    ]);
                 }
 
                 // ── Job title ─────────────────────────────────────────────────
@@ -587,6 +732,249 @@ class ScrapController extends Controller
         }
 
         return $importedCount;
+    }
+
+    /**
+     * Extract ALL contacts from a website (multiple pages)
+     */
+    private function extractAllContactsFromWebsite(string $websiteUrl, string $entityName): array
+    {
+        $result = [
+            'emails' => [],
+            'phones' => [],
+            'paired_contacts' => []
+        ];
+
+        try {
+            $htmlCache = [];
+            $baseUrl = rtrim($websiteUrl, '/');
+
+            // Pages to check for contact information
+            $contactPages = [
+                $baseUrl,
+                $baseUrl . '/contact',
+                $baseUrl . '/contact-us',
+                $baseUrl . '/about',
+                $baseUrl . '/about-us',
+                $baseUrl . '/contact.php',
+                $baseUrl . '/contact-us.php',
+                $baseUrl . '/enquiries',
+                $baseUrl . '/get-in-touch',
+                $baseUrl . '/careers',
+                $baseUrl . '/recruitment',
+            ];
+
+            foreach ($contactPages as $pageUrl) {
+                Log::info('[Unit] Extracting contacts from page', ['url' => $pageUrl]);
+
+                $html = $this->fetchHtmlWithCache($pageUrl, $htmlCache);
+                if (!$html) {
+                    continue;
+                }
+
+                // Extract emails
+                $emails = $this->extractEmailsFromHtml($html);
+                foreach ($emails as $email) {
+                    if ($this->isProfessionalEmail($email) && !in_array($email, $result['emails'])) {
+                        $result['emails'][] = $email;
+                        $result['paired_contacts'][] = [
+                            'contact_name' => $entityName,
+                            'contact_email' => $email,
+                            'contact_phone' => null
+                        ];
+                    }
+                }
+
+                // Extract phones
+                $phones = $this->extractPhonesFromHtml($html);
+                foreach ($phones as $phone) {
+                    $cleanPhone = $this->normalizePhone($phone);
+                    if ($cleanPhone && !in_array($cleanPhone, $result['phones'])) {
+                        $result['phones'][] = $cleanPhone;
+
+                        // Try to pair with existing email contact
+                        $paired = false;
+                        foreach ($result['paired_contacts'] as &$contact) {
+                            if ($contact['contact_phone'] === null && $contact['contact_email'] !== null) {
+                                $contact['contact_phone'] = $cleanPhone;
+                                $paired = true;
+                                break;
+                            }
+                        }
+
+                        if (!$paired) {
+                            $result['paired_contacts'][] = [
+                                'contact_name' => $entityName,
+                                'contact_email' => null,
+                                'contact_phone' => $cleanPhone
+                            ];
+                        }
+                    }
+                }
+
+                // Also extract from mailto: links
+                $mailtoLinks = $this->extractMailtoLinks($html);
+                foreach ($mailtoLinks as $email) {
+                    if ($this->isProfessionalEmail($email) && !in_array($email, $result['emails'])) {
+                        $result['emails'][] = $email;
+                        $result['paired_contacts'][] = [
+                            'contact_name' => $entityName,
+                            'contact_email' => $email,
+                            'contact_phone' => null
+                        ];
+                    }
+                }
+            }
+
+            // Remove duplicates from paired contacts
+            $uniqueContacts = [];
+            foreach ($result['paired_contacts'] as $contact) {
+                $key = md5($contact['contact_email'] . $contact['contact_phone']);
+                if (!isset($uniqueContacts[$key])) {
+                    $uniqueContacts[$key] = $contact;
+                }
+            }
+            $result['paired_contacts'] = array_values($uniqueContacts);
+        } catch (Exception $e) {
+            Log::error('[Unit] Error extracting contacts from website', [
+                'url' => $websiteUrl,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Extract emails from HTML content
+     */
+    private function extractEmailsFromHtml(string $html): array
+    {
+        $emails = [];
+
+        // Pattern for email addresses
+        $patterns = [
+            '/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/',
+            '/[a-zA-Z0-9._%+-]+@(?:care|nursing|healthcare|home)\./i',
+            '/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $html, $matches)) {
+                foreach ($matches[1] ?? $matches[0] as $email) {
+                    $email = strtolower(trim($email));
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $emails[] = $email;
+                    }
+                }
+            }
+        }
+
+        return array_unique($emails);
+    }
+
+    /**
+     * Extract phone numbers from HTML content
+     */
+    private function extractPhonesFromHtml(string $html): array
+    {
+        $phones = [];
+
+        // UK phone number patterns
+        $patterns = [
+            '/\b(01[0-9]{9})\b/',           // 01xxxxx numbers
+            '/\b(02[0-9]{9})\b/',           // 02xxxxx numbers
+            '/\b(03[0-9]{9})\b/',           // 03xxxxx numbers
+            '/\b(07[0-9]{9})\b/',           // Mobile numbers
+            '/\b0[1-9]{10}\b/',              // Generic UK landline
+            '/\(\d{4,5}\)\s?\d{5,6}/',       // Numbers with area code in brackets
+            '/\+44\s?\d{3,4}\s?\d{3,4}\s?\d{3,4}/', // +44 format
+            '/tel:([0-9+\s\(\)]+)/i',        // tel: links
+            '/<a[^>]+href="tel:([^"]+)"/i',  // Telephone links
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $html, $matches)) {
+                foreach ($matches[1] ?? $matches[0] as $phone) {
+                    $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
+                    if (strlen($cleanPhone) >= 10 && strlen($cleanPhone) <= 13) {
+                        $phones[] = $cleanPhone;
+                    }
+                }
+            }
+        }
+
+        return array_unique($phones);
+    }
+
+    /**
+     * Extract mailto: links from HTML
+     */
+    private function extractMailtoLinks(string $html): array
+    {
+        $emails = [];
+
+        if (preg_match_all('/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i', $html, $matches)) {
+            foreach ($matches[1] as $email) {
+                $emails[] = strtolower(trim($email));
+            }
+        }
+
+        return array_unique($emails);
+    }
+
+    /**
+     * Extract contacts from HTML string (for description text)
+     */
+    private function extractContactsFromHtmlString(string $html, string $entityName): array
+    {
+        $result = [
+            'emails' => [],
+            'phones' => [],
+            'paired_contacts' => []
+        ];
+
+        // Extract emails
+        $emails = $this->extractEmailsFromHtml($html);
+        foreach ($emails as $email) {
+            if ($this->isProfessionalEmail($email)) {
+                $result['emails'][] = $email;
+                $result['paired_contacts'][] = [
+                    'contact_name' => $entityName,
+                    'contact_email' => $email,
+                    'contact_phone' => null
+                ];
+            }
+        }
+
+        // Extract phones
+        $phones = $this->extractPhonesFromHtml($html);
+        foreach ($phones as $phone) {
+            $cleanPhone = $this->normalizePhone($phone);
+            if ($cleanPhone) {
+                $result['phones'][] = $cleanPhone;
+
+                // Try to pair with existing email
+                $paired = false;
+                foreach ($result['paired_contacts'] as &$contact) {
+                    if ($contact['contact_phone'] === null && $contact['contact_email'] !== null) {
+                        $contact['contact_phone'] = $cleanPhone;
+                        $paired = true;
+                        break;
+                    }
+                }
+
+                if (!$paired) {
+                    $result['paired_contacts'][] = [
+                        'contact_name' => $entityName,
+                        'contact_email' => null,
+                        'contact_phone' => $cleanPhone
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 
     public function persistJobsTotalJob(array $jobs)
@@ -1511,7 +1899,6 @@ class ScrapController extends Controller
     /**
      * Find company website + scrape contacts.
      * 100% FREE — No API key, no signup, no cost.
-     * Uses DuckDuckGo → Bing as fallback (both free HTML scraping)
      */
     // If more emails than phones, remaining emails get null phone and vice versa.
     // ─────────────────────────────────────────────────────────────────────────────
@@ -1702,107 +2089,192 @@ class ScrapController extends Controller
         ]);
 
         try {
-            $companyUrl = $knownCompanyUrl ?: $this->findCompanyUrlFree($companyName);
-            $companyUrl = $this->ensureHttpUrl($companyUrl);
-
-            if (!$companyUrl) {
-                return $blank;
+            // If known URL provided, use it directly
+            if ($knownCompanyUrl) {
+                $companyUrl = $this->ensureHttpUrl($knownCompanyUrl);
+                if ($companyUrl && !$this->isExcludedCompanyWebsite($companyUrl, $this->getFreeExcludedHosts())) {
+                    Log::info('[ScrapImport] Using known URL', ['url' => $companyUrl]);
+                    // Still scrape for emails/phones
+                    return $this->scrapeWebsiteData($companyUrl, $companyName);
+                }
             }
 
-            if ($this->isExcludedCompanyWebsite($companyUrl, $this->getFreeExcludedHosts())) {
-                return $blank;
+            // METHOD 1: Try findCompanyUrlFree
+            $companyUrl = $this->findCompanyUrlFree($companyName);
+            if ($companyUrl) {
+                $companyUrl = $this->ensureHttpUrl($companyUrl);
+                if ($companyUrl && !$this->isExcludedCompanyWebsite($companyUrl, $this->getFreeExcludedHosts())) {
+                    Log::info('[ScrapImport] Found URL via findCompanyUrlFree', ['url' => $companyUrl]);
+                    return $this->scrapeWebsiteData($companyUrl, $companyName);
+                }
             }
 
-            $emails = [];
-            $phones = [];
-
-            // ✅ in-memory HTML cache (per company import call)
-            $htmlCache = []; // [url => html]
-
-            // Always extract from home page HTML once (cheapest, usually contains contact snippets)
-            $homeHtml = $this->fetchHtmlWithCache($companyUrl, $htmlCache);
-            if ($homeHtml) {
-                $homeDetails = $this->extractContactDetailsFromHtml($homeHtml);
-                $emails = array_merge($emails, $homeDetails['emails'] ?? []);
-                $phones = array_merge($phones, $homeDetails['phones'] ?? []);
+            // METHOD 2: Try Google search as fallback
+            Log::info('[ScrapImport] Trying Google search fallback', ['company' => $companyName]);
+            $companyUrl = $this->findCompanyUrlViaGoogle($companyName);
+            if ($companyUrl) {
+                $companyUrl = $this->ensureHttpUrl($companyUrl);
+                if ($companyUrl && !$this->isExcludedCompanyWebsite($companyUrl, $this->getFreeExcludedHosts())) {
+                    Log::info('[ScrapImport] Found URL via Google', ['url' => $companyUrl]);
+                    return $this->scrapeWebsiteData($companyUrl, $companyName);
+                }
             }
 
-            $candidateUrls = $this->defaultContactUrls($companyUrl);
-
-            if ($homeHtml) {
-                $candidateUrls = array_merge(
-                    $candidateUrls,
-                    $this->discoverContactPageUrls($companyUrl, $homeHtml)
-                );
-            }
-
-            $candidateUrls = array_values(array_unique(array_filter($candidateUrls)));
-
-            // ✅ Optimization: fetch only the most likely URLs first.
-            //    Keep full coverage, but order & dedupe reduce wasted requests.
-            $priority = [
-                '/contact',
-                '/contact-us',
-                '/contacts',
-                '/about',
-                '/about-us',
-                '/team',
-                '/support',
-                '/help',
-                '/enquiry',
-            ];
-
-            usort($candidateUrls, function ($a, $b) use ($priority) {
-                $aLower = strtolower($a);
-                $bLower = strtolower($b);
-
-                $aScore = 100;
-                foreach ($priority as $i => $p) {
-                    if (str_contains($aLower, $p)) {
-                        $aScore = $i;
-                        break;
-                    }
-                }
-
-                $bScore = 100;
-                foreach ($priority as $i => $p) {
-                    if (str_contains($bLower, $p)) {
-                        $bScore = $i;
-                        break;
-                    }
-                }
-
-                return $aScore <=> $bScore;
-            });
-
-            foreach ($candidateUrls as $url) {
-                $url = $this->ensureHttpUrl($url);
-                if (!$url) {
-                    continue;
-                }
-
-                if (!$this->isSameHost($companyUrl, $url)) {
-                    continue;
-                }
-
-                if (rtrim($url, '/') === rtrim($companyUrl, '/')) {
-                    continue;
-                }
-
-                $details = $this->fetchContactDetailsWithHtmlCache($url, $htmlCache);
-                $emails = array_merge($emails, $details['emails'] ?? []);
-                $phones = array_merge($phones, $details['phones'] ?? []);
-            }
-
-            return [
-                'company_url'    => $companyUrl,
-                'contact_emails' => array_values(array_unique(array_filter($emails))),
-                'contact_phones' => array_values(array_unique(array_filter($phones))),
-            ];
+            Log::warning('[ScrapImport] No URL found for company', ['company' => $companyName]);
+            return $blank;
         } catch (Throwable $e) {
+            Log::error('[ScrapImport] getScrappedCompanyWebsiteData exception', [
+                'company' => $companyName,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $blank;
         }
     }
+
+    /**
+     * Helper method to scrape website data once URL is found
+     */
+    private function scrapeWebsiteData(string $companyUrl, string $companyName): array
+    {
+        $emails = [];
+        $phones = [];
+        $htmlCache = [];
+
+        Log::info('[ScrapImport] Scraping website data', ['url' => $companyUrl, 'company' => $companyName]);
+
+        // Extract from home page
+        $homeHtml = $this->fetchHtmlWithCache($companyUrl, $htmlCache);
+        if ($homeHtml) {
+            $homeDetails = $this->extractContactDetailsFromHtml($homeHtml);
+            $emails = array_merge($emails, $homeDetails['emails'] ?? []);
+            $phones = array_merge($phones, $homeDetails['phones'] ?? []);
+        }
+
+        // Find contact pages
+        $candidateUrls = $this->defaultContactUrls($companyUrl);
+        if ($homeHtml) {
+            $candidateUrls = array_merge(
+                $candidateUrls,
+                $this->discoverContactPageUrls($companyUrl, $homeHtml)
+            );
+        }
+
+        $candidateUrls = array_values(array_unique(array_filter($candidateUrls)));
+
+        // Prioritize contact pages
+        $priority = ['/contact', '/contact-us', '/contacts', '/about', '/about-us', '/team', '/support', '/help', '/enquiry'];
+
+        usort($candidateUrls, function ($a, $b) use ($priority) {
+            $aScore = 100;
+            $bScore = 100;
+            foreach ($priority as $i => $p) {
+                if (str_contains(strtolower($a), $p)) $aScore = $i;
+                if (str_contains(strtolower($b), $p)) $bScore = $i;
+            }
+            return $aScore <=> $bScore;
+        });
+
+        foreach ($candidateUrls as $url) {
+            $url = $this->ensureHttpUrl($url);
+            if (!$url || !$this->isSameHost($companyUrl, $url) || rtrim($url, '/') === rtrim($companyUrl, '/')) {
+                continue;
+            }
+
+            $details = $this->fetchContactDetailsWithHtmlCache($url, $htmlCache);
+            $emails = array_merge($emails, $details['emails'] ?? []);
+            $phones = array_merge($phones, $details['phones'] ?? []);
+        }
+
+        return [
+            'company_url'    => $companyUrl,
+            'contact_emails' => array_values(array_unique(array_filter($emails))),
+            'contact_phones' => array_values(array_unique(array_filter($phones))),
+        ];
+    }
+    /**
+     * Find company URL via Google search
+     */
+    private function findCompanyUrlViaGoogle(string $companyName): ?string
+    {
+        try {
+            $searchQuery = urlencode($companyName . ' official website');
+            $googleUrl = "https://www.google.com/search?q={$searchQuery}";
+
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $googleUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+
+            $html = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && $html) {
+                // Extract first result URL from Google search
+                if (preg_match('/<a href="\/url\?q=(https?:\/\/[^"&]+)/', $html, $matches)) {
+                    $url = urldecode($matches[1]);
+                    // Filter out Google, YouTube, LinkedIn, etc.
+                    if (!preg_match('/(google|youtube|linkedin|facebook|twitter|instagram)/i', $url)) {
+                        return $url;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            Log::warning('[ScrapImport] Google search failed', ['error' => $e->getMessage()]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Clean company name by removing legal suffixes
+     */
+    private function cleanCompanyName(string $companyName): string
+    {
+        $suffixes = [
+            '/\b(inc|incorporated|llc|ltd|limited|corp|corporation|plc|gmbh|sarl|s\.?r\.?l\.?|s\.?a\.?|s\.?p\.?a\.?)\b\.?/i',
+            '/\b(company|co|group|holdings|international|enterprises|solutions|systems|technologies|services)\b\.?/i',
+            '/[^\w\s]/', // Remove punctuation
+        ];
+
+        $cleaned = $companyName;
+        foreach ($suffixes as $pattern) {
+            $cleaned = preg_replace($pattern, '', $cleaned);
+        }
+
+        // Remove extra spaces
+        $cleaned = trim(preg_replace('/\s+/', ' ', $cleaned));
+
+        return $cleaned;
+    }
+
+    /**
+     * Check if URL exists (doesn't return 404)
+     */
+    private function urlExists(string $url): bool
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_NOBODY => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return $httpCode >= 200 && $httpCode < 400;
+    }
+
 
     private function fetchHtmlWithCache(string $url, array &$htmlCache): ?string
     {
@@ -1851,270 +2323,14 @@ class ScrapController extends Controller
                 return $url;
             }
 
-            Log::info('[ScrapImport] Google returned no result, trying DuckDuckGo for: ' . $companyName);
+            Log::info('[ScrapImport] Google returned no result, trying for: ' . $companyName);
         } catch (ConnectionException $e) {
-            Log::warning('[ScrapImport] Google timed out, trying DuckDuckGo for: ' . $companyName);
+            Log::warning('[ScrapImport] Google timed out, trying for: ' . $companyName);
         } catch (Throwable $e) {
-            Log::warning('[ScrapImport] Google failed (' . $e->getMessage() . '), trying DuckDuckGo for: ' . $companyName);
+            Log::warning('[ScrapImport] Google failed (' . $e->getMessage() . '), trying for: ' . $companyName);
         }
-
-        // 2️⃣ Fallback: DuckDuckGo
-        // try {
-        //     $url = $this->searchDuckDuckGo($companyName);
-
-        //     if ($url) {
-        //         Log::info('[ScrapImport] Found via DuckDuckGo', ['company' => $companyName, 'url' => $url]);
-        //         return $url;
-        //     }
-
-        //     Log::info('[ScrapImport] DuckDuckGo returned no result, trying Bing for: ' . $companyName);
-        // } catch (ConnectionException $e) {
-        //     Log::warning('[ScrapImport] DuckDuckGo timed out, trying Bing for: ' . $companyName);
-        // } catch (Throwable $e) {
-        //     Log::warning('[ScrapImport] DuckDuckGo failed (' . $e->getMessage() . '), trying Bing for: ' . $companyName);
-        // }
-
-        // 3️⃣ Last resort: Bing
-        // try {
-        //     $url = $this->searchBing($companyName);
-
-        //     if ($url) {
-        //         Log::info('[ScrapImport] Found via Bing', ['company' => $companyName, 'url' => $url]);
-        //         return $url;
-        //     }
-
-        //     Log::warning('[ScrapImport] All search engines returned no result for: ' . $companyName);
-        // } catch (ConnectionException $e) {
-        //     Log::warning('[ScrapImport] Bing timed out for: ' . $companyName);
-        // } catch (Throwable $e) {
-        //     Log::warning('[ScrapImport] Bing failed (' . $e->getMessage() . ') for: ' . $companyName);
-        // }
 
         return null;
-    }
-
-    /**
-     * Decode DuckDuckGo redirect URLs to get the real destination URL.
-     */
-    private function decodeDuckDuckGoUrl(string $href): ?string
-    {
-        // Handle protocol-relative: //duckduckgo.com/l/?uddg=...
-        if (str_starts_with($href, '//')) {
-            $href = 'https:' . $href;
-        }
-
-        $parsed = parse_url($href);
-        $host   = strtolower($parsed['host'] ?? '');
-
-        // It is a DDG redirect — extract actual URL from uddg param
-        if (str_contains($host, 'duckduckgo.com')) {
-            parse_str($parsed['query'] ?? '', $params);
-            return isset($params['uddg']) ? urldecode($params['uddg']) : null;
-        }
-
-        return $href;
-    }
-
-    private function searchDuckDuckGo(string $companyName): ?string
-    {
-        // Log::info('[ScrapImport] searchDuckDuckGo start', ['company' => $companyName]);
-        $excluded = ['duckduckgo.', 'google.', 'facebook.', 'twitter.', 'instagram.'];
-
-        try {
-            $response = Http::withOptions([
-                'connect_timeout' => 5,
-                'timeout'         => 12,
-            ])->withHeaders([
-                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language' => 'en-US,en;q=0.9',
-                'Referer'         => 'https://html.duckduckgo.com/',
-            ])->get('https://html.duckduckgo.com/html/', [
-                'q' => $companyName . ' uk official website',
-            ]);
-
-            if (!$response->ok()) {
-                Log::warning('[ScrapImport] DuckDuckGo HTTP error: ' . $response->status());
-                return null;
-            }
-
-            $html = $response->body();
-
-            if (strlen($html) < 200) {
-                Log::warning('[ScrapImport] DuckDuckGo returned near-empty body');
-                return null;
-            }
-
-            // Strategy 1: result__url (visible URL shown below title — most reliable)
-            if (preg_match_all('/<a[^>]+class="[^"]*result__url[^"]*"[^>]*>\s*(https?:\/\/[^\s<]+)\s*<\/a>/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = trim($candidate);
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] DuckDuckGo found URL (result__url)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 2: uddg= redirect links (the actual href of result titles)
-            if (preg_match_all('/href="[^"]*uddg=(https?[^"&]+)/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = urldecode(trim($candidate));
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] DuckDuckGo found URL (uddg param)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 3: any result__a href (full href, then decode if DDG redirect)
-            if (preg_match_all('/<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"/i', $html, $matches)) {
-                foreach ($matches[1] as $rawHref) {
-                    $candidate = $this->decodeDuckDuckGoUrl($rawHref);
-                    if (empty($candidate) || !filter_var($candidate, FILTER_VALIDATE_URL)) {
-                        continue;
-                    }
-                    if (!$this->isExcludedDomain($candidate, $excluded) && !$this->isJobBoardOrSocialSite($candidate)) {
-                        Log::info('[ScrapImport] DuckDuckGo found URL (result__a)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 4: fallback — any absolute https link in body
-            if (preg_match_all('/href="(https?:\/\/[^"]{10,})"/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = trim($candidate);
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] DuckDuckGo found URL (fallback href)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            Log::warning('[ScrapImport] DuckDuckGo: no usable URL found', ['company' => $companyName]);
-            return null;
-        } catch (Throwable $e) {
-            Log::warning('[ScrapImport] DuckDuckGo exception', ['company' => $companyName, 'error' => $e->getMessage()]);
-            return null;
-        }
-    }
-
-    private function searchBing(string $companyName): ?string
-    {
-        // Log::info('[ScrapImport] searchBing start', ['company' => $companyName]);
-        $excluded = ['bing.', 'microsoft.', 'google.', 'facebook.', 'twitter.', 'instagram.'];
-
-        try {
-            $response = Http::withOptions([
-                'connect_timeout' => 5,
-                'timeout'         => 12,
-            ])->withHeaders([
-                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language' => 'en-US,en;q=0.9',
-                'Referer'         => 'https://www.bing.com/',
-            ])->get('https://www.bing.com/search', [
-                'q'    => $companyName . ' uk official website',
-                'form' => 'QBLH',
-                'cc'   => 'US',
-            ]);
-
-            if (!$response->ok()) {
-                Log::warning('[ScrapImport] Bing HTTP error: ' . $response->status());
-                return null;
-            }
-
-            $html = $response->body();
-
-            if (strlen($html) < 200) {
-                Log::warning('[ScrapImport] Bing returned near-empty body');
-                return null;
-            }
-
-            // Strategy 1: <cite> tags contain the clean display URL (very reliable in Bing)
-            if (preg_match_all('/<cite[^>]*>(https?:\/\/[^<]+)<\/cite>/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = strip_tags(trim($candidate));
-                    // Bing sometimes shows truncated URLs with '›' — take only the base
-                    $candidate = strtok($candidate, ' ›');
-                    if (!str_starts_with($candidate, 'http')) {
-                        $candidate = 'https://' . $candidate;
-                    }
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] Bing found URL (cite tag)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 2: h2 > a href (original approach, kept as fallback)
-            if (preg_match_all('/<h2[^>]*>\s*<a[^>]+href="(https?:\/\/[^"]+)"/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = trim($candidate);
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] Bing found URL (h2>a)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 3: data-url attributes used in Bing result cards
-            if (preg_match_all('/data-url="(https?:\/\/[^"]+)"/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = trim($candidate);
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] Bing found URL (data-url)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            // Strategy 4: any absolute href not from excluded domains
-            if (preg_match_all('/href="(https?:\/\/[^"]{10,})"/i', $html, $matches)) {
-                foreach ($matches[1] as $candidate) {
-                    $candidate = trim($candidate);
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_URL)
-                        && !$this->isExcludedDomain($candidate, $excluded)
-                        && !$this->isJobBoardOrSocialSite($candidate)
-                    ) {
-                        Log::info('[ScrapImport] Bing found URL (fallback href)', ['url' => $candidate]);
-                        return $candidate;
-                    }
-                }
-            }
-
-            Log::warning('[ScrapImport] Bing: no usable URL found', ['company' => $companyName]);
-            return null;
-        } catch (Throwable $e) {
-            Log::warning('[ScrapImport] Bing exception', ['company' => $companyName, 'error' => $e->getMessage()]);
-            return null;
-        }
     }
 
     private function fetchHtml(string $url): ?string
