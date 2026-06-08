@@ -58,11 +58,15 @@ class ScrapController extends Controller
             set_time_limit(0);
         }
 
-        @ini_set('max_execution_time', '300');
-        @ini_set('max_input_time', '-1');
+        // 20 minutes (1200 seconds) is safe for most Plesk configurations
+        $timeout = 1200;
+
+        @ini_set('max_execution_time', $timeout);
+        @ini_set('max_input_time', -1);  // -1 often works
         @ini_set('memory_limit', '512M');
-        @ini_set('default_socket_timeout', '300');
-        @ini_set('request_terminate_timeout', '300');   // ← FPM pool request timeout
+        @ini_set('default_socket_timeout', $timeout);
+        @ini_set('request_terminate_timeout', $timeout);
+        @ini_set('mysql.connect_timeout', $timeout);
 
         $actorKey = $request->input('actor_key');
 
@@ -2178,7 +2182,7 @@ class ScrapController extends Controller
     private function findCompanyUrlViaGoogle(string $companyName): ?string
     {
         try {
-            $searchQuery = urlencode($companyName . ' official website');
+            $searchQuery = urlencode($companyName . ' uk official website');
             $googleUrl = "https://www.google.com/search?q={$searchQuery}";
 
             $ch = curl_init();
@@ -5301,67 +5305,67 @@ class ScrapController extends Controller
         return $jobSource;
     }
 
-    private function getSerpApiSettings(): array
-    {
-        $setting = Setting::where('key', 'serpapi_settings')->first();
+    // private function getSerpApiSettings(): array
+    // {
+    //     $setting = Setting::where('key', 'serpapi_settings')->first();
 
-        if ($setting && $setting->type === 'json') {
-            $settings = json_decode($setting->value, true);
-            return [
-                'api_key' => $settings['api_key'] ?? '',
-                'engine' => $settings['engine'] ?? 'google',
-                'keywords' => $settings['keywords'] ?? 'uk official website',
-                'url' => $settings['url'] ?? 'https://serpapi.com/search',
-                'excluded_hosts' => $this->normalizeSerpApiExcludedHosts($settings['excluded_hosts'] ?? []),
-            ];
-        }
+    //     if ($setting && $setting->type === 'json') {
+    //         $settings = json_decode($setting->value, true);
+    //         return [
+    //             'api_key' => $settings['api_key'] ?? '',
+    //             'engine' => $settings['engine'] ?? 'google',
+    //             'keywords' => $settings['keywords'] ?? 'uk official website',
+    //             'url' => $settings['url'] ?? 'https://serpapi.com/search',
+    //             'excluded_hosts' => $this->normalizeSerpApiExcludedHosts($settings['excluded_hosts'] ?? []),
+    //         ];
+    //     }
 
-        // Fallback to defaults if no settings found
-        return [
-            'api_key' => '',
-            'engine' => 'google',
-            'keywords' => 'uk official website',
-            'url' => 'https://serpapi.com/search',
-            'excluded_hosts' => [
-                'wikipedia.org',
-                'wikimedia.org',
-            ],
-        ];
-    }
+    //     // Fallback to defaults if no settings found
+    //     return [
+    //         'api_key' => '',
+    //         'engine' => 'google',
+    //         'keywords' => 'uk official website',
+    //         'url' => 'https://serpapi.com/search',
+    //         'excluded_hosts' => [
+    //             'wikipedia.org',
+    //             'wikimedia.org',
+    //         ],
+    //     ];
+    // }
 
-    private function normalizeSerpApiExcludedHosts(array|string|null $excludedHosts): array
-    {
-        if (is_string($excludedHosts)) {
-            $excludedHosts = preg_split('/[\r\n,]+/', $excludedHosts);
-        }
+    // private function normalizeSerpApiExcludedHosts(array|string|null $excludedHosts): array
+    // {
+    //     if (is_string($excludedHosts)) {
+    //         $excludedHosts = preg_split('/[\r\n,]+/', $excludedHosts);
+    //     }
 
-        if (!is_array($excludedHosts)) {
-            return [];
-        }
+    //     if (!is_array($excludedHosts)) {
+    //         return [];
+    //     }
 
-        $normalized = [];
-        foreach ($excludedHosts as $host) {
-            $host = trim((string) $host);
-            if ($host === '') {
-                continue;
-            }
+    //     $normalized = [];
+    //     foreach ($excludedHosts as $host) {
+    //         $host = trim((string) $host);
+    //         if ($host === '') {
+    //             continue;
+    //         }
 
-            if (preg_match('#^https?://#i', $host)) {
-                $parsedHost = parse_url($host, PHP_URL_HOST);
-                if ($parsedHost) {
-                    $host = $parsedHost;
-                }
-            }
+    //         if (preg_match('#^https?://#i', $host)) {
+    //             $parsedHost = parse_url($host, PHP_URL_HOST);
+    //             if ($parsedHost) {
+    //                 $host = $parsedHost;
+    //             }
+    //         }
 
-            $host = strtolower($host);
-            $host = preg_replace('#^www\.#', '', $host);
-            $host = rtrim($host, '/');
+    //         $host = strtolower($host);
+    //         $host = preg_replace('#^www\.#', '', $host);
+    //         $host = rtrim($host, '/');
 
-            if ($host !== '') {
-                $normalized[] = $host;
-            }
-        }
+    //         if ($host !== '') {
+    //             $normalized[] = $host;
+    //         }
+    //     }
 
-        return array_values(array_unique($normalized));
-    }
+    //     return array_values(array_unique($normalized));
+    // }
 }
