@@ -58,11 +58,11 @@ class ScrapController extends Controller
             set_time_limit(0);
         }
 
-        @ini_set('max_execution_time', '0');
+        @ini_set('max_execution_time', '300');
         @ini_set('max_input_time', '-1');
         @ini_set('memory_limit', '512M');
-        @ini_set('default_socket_timeout', '60');
-        @ini_set('request_terminate_timeout', '0');   // ← FPM pool request timeout
+        @ini_set('default_socket_timeout', '300');
+        @ini_set('request_terminate_timeout', '300');   // ← FPM pool request timeout
 
         $actorKey = $request->input('actor_key');
 
@@ -711,7 +711,7 @@ class ScrapController extends Controller
 
         return $importedCount;
     }
-    
+
     public function persistJobsTotalJob(array $jobs)
     {
         $importedCount      = 0;
@@ -1834,6 +1834,7 @@ class ScrapController extends Controller
     private function getScrappedPostcodes(float $lat, float $lng)
     {
         try {
+            // https://api.postcodes.io/postcodes?lon=-0.47961&lat=51.5462&limit=1
             $response = Http::withOptions([
                 'connect_timeout' => 3,  // ✅ max 3s to establish connection
                 'timeout' => 10,  // ✅ max 5s for full response
