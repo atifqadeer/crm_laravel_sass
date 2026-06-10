@@ -238,7 +238,7 @@ class CommunicationController extends Controller
                 'message' => 'required',
             ]);
 
-            $phone_numbers = explode(',', $request->input('phone_number'));
+            $phone_numbers = array_map('trim', explode(',', $request->input('phone_number')));
             $message = $request->input('message');
             $applicant_id = $request->input('applicant_id');
 
@@ -368,8 +368,6 @@ class CommunicationController extends Controller
     public function sendRejectionEmail(Request $request)
     {
         try {
-
-
             return response()->json(['message' => 'Rejection email sent successfully.']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to send email: ' . $e->getMessage()], 500);
@@ -523,7 +521,7 @@ class CommunicationController extends Controller
         $message->user_id = Auth::id();
         $message->msg_id = 'D' . mt_rand(1000000000000, 9999999999999);
         $message->message = $request->message;
-        $message->phone_number = $request->recipient_phone;
+        $message->phone_number = trim($request->recipient_phone);
         $message->date = now()->toDateString();
         $message->time = now()->toTimeString();
         $message->is_sent = 0;
@@ -860,6 +858,4 @@ class CommunicationController extends Controller
             return response()->json(['error' => 'Failed to fetch applicants'], 500);
         }
     }
-
-
 }

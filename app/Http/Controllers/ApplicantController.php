@@ -307,6 +307,9 @@ class ApplicantController extends Controller
 
             $jobCategory = JobCategory::find($request->job_category_id);
             $jobCategoryName = $jobCategory ? $jobCategory->name : '';
+            
+            $jobTitle = JobTitle::find($request->job_title_id);
+            $jobTitleName = $jobTitle ? $jobTitle->name : '';
 
             /** Send Email */
             $email_template = EmailTemplate::where('slug', 'applicant_welcome_email')
@@ -328,8 +331,8 @@ class ApplicantController extends Controller
                 $email_body = $email_template->template;
                 $email_title = $email_template->title;
 
-                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName];
-                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)'];
+                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
+                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
 
                 $newPhrase = str_replace($prev_val, $replace, $email_body);
                 $formattedMessage = nl2br($newPhrase);
@@ -360,8 +363,8 @@ class ApplicantController extends Controller
                 $sms_to = $applicant->applicant_phone;
                 $sms_template = $sms_template->template;
 
-                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName];
-                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)'];
+                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
+                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
 
                 $newPhrase = str_replace($prev_val, $replace, $sms_template);
                 $formattedMessage = nl2br($newPhrase);
