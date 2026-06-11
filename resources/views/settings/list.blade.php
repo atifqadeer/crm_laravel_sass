@@ -249,11 +249,11 @@
 
                             {{-- Stats row --}}
                             <div class="d-flex gap-3 flex-wrap mb-4" id="dial-stats-row">
-                                <div class="stat-pill bg-primary">
+                                <div class="stat-pill bg-primary px-5 py-2 rounded text-white">
                                     <div class="fs-4 fw-bold" id="stat-active-locks">–</div>
                                     <small>Active Locks</small>
                                 </div>
-                                <div class="stat-pill bg-success">
+                                <div class="stat-pill bg-success px-5 py-2 rounded text-white">
                                     <div class="fs-4 fw-bold" id="stat-calls-today">–</div>
                                     <small>Calls Today</small>
                                 </div>
@@ -295,15 +295,18 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center gap-3 mb-3">
-                                                    <input type="range" class="form-range flex-grow-1"
-                                                        id="same_user_slider" min="0" max="60"
-                                                        step="1" value="0">
-                                                    <div class="input-group" style="width:110px">
+                                                    <div class="flex-grow-1">
+                                                        <input type="range" class="form-range m-0"
+                                                            id="same_user_slider" min="0" max="60"
+                                                            step="1" value="0">
+                                                    </div>
+
+                                                    <div class="input-group flex-shrink-0" style="width:180px;">
                                                         <input type="number" class="form-control text-center fw-bold"
                                                             id="dialing_lock_same_user_minutes"
                                                             name="dialing_lock_same_user_minutes" min="0"
                                                             max="60" value="0">
-                                                        <span class="input-group-text">min</span>
+                                                        <span class="input-group-text">Minutes</span>
                                                     </div>
                                                 </div>
                                                 <div class="text-center">
@@ -334,15 +337,18 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center gap-3 mb-3">
-                                                    <input type="range" class="form-range flex-grow-1"
-                                                        id="other_user_slider" min="1" max="60"
-                                                        step="1" value="5">
-                                                    <div class="input-group" style="width:110px">
+                                                    <div class="flex-grow-1">
+                                                        <input type="range" class="form-range m-0"
+                                                            id="other_user_slider" min="1" max="60"
+                                                            step="1" value="5">
+                                                    </div>
+
+                                                    <div class="input-group flex-shrink-0" style="width:180px;">
                                                         <input type="number" class="form-control text-center fw-bold"
                                                             id="dialing_lock_other_user_minutes"
                                                             name="dialing_lock_other_user_minutes" min="1"
                                                             max="60" value="5">
-                                                        <span class="input-group-text">min</span>
+                                                        <span class="input-group-text">Minutes</span>
                                                     </div>
                                                 </div>
                                                 <div class="text-center">
@@ -354,6 +360,83 @@
                                                 <div class="mt-2 text-center">
                                                     <small class="text-muted">Minimum <strong>1 min</strong>. Recommended:
                                                         3–10 min.</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Daily call limit + history retention --}}
+                                    <div class="col-12">
+                                        <div class="card dial-timer-card border-info h-100">
+                                            <div class="card-header bg-info bg-opacity-10 d-flex align-items-center gap-2">
+                                                <span style="font-size:1.2rem">📊</span>
+                                                <div>
+                                                    <div class="fw-bold">Daily Call Limit & History</div>
+                                                    <small class="text-muted">How many times one agent may call the same
+                                                        number per day, and how long that history is kept</small>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row g-4">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Max calls per agent /
+                                                            day</label>
+                                                        <div class="d-flex align-items-center gap-3 mb-3">
+                                                            <div class="flex-grow-1">
+                                                                <input type="range" class="form-range m-0"
+                                                                    id="max_calls_slider" min="0" max="20"
+                                                                    step="1" value="3">
+                                                            </div>
+
+                                                            <div class="input-group flex-shrink-0" style="width:180px;">
+                                                                <input type="number"
+                                                                    class="form-control text-center fw-bold"
+                                                                    id="dialing_max_calls_per_day"
+                                                                    name="dialing_max_calls_per_day" min="0"
+                                                                    max="20" value="3">
+                                                                <span class="input-group-text">days</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-center">
+                                                            <span id="max-calls-preview"
+                                                                class="badge dial-preview-badge bg-info px-3 py-2">
+                                                                Limit: 3 calls per agent/day
+                                                            </span>
+                                                        </div>
+                                                        <div class="mt-2 text-center">
+                                                            <small class="text-muted">Set to <strong>0</strong> for
+                                                                unlimited calls per day.</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Call history
+                                                            retention</label>
+                                                        <div class="d-flex align-items-center gap-3 mb-3">
+                                                            <div class="flex-grow-1">
+                                                                <input type="range" class="form-range m-0"
+                                                                    id="history_days_slider" min="1"
+                                                                    max="14" step="1" value="2">
+                                                            </div>
+
+                                                            <div class="input-group flex-shrink-0" style="width:180px;">
+                                                                <input type="number"
+                                                                    class="form-control text-center fw-bold"
+                                                                    id="dialing_history_days" name="dialing_history_days"
+                                                                    min="1" max="14" value="2">
+                                                                <span class="input-group-text">days</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-center">
+                                                            <span id="history-days-preview"
+                                                                class="badge dial-preview-badge bg-secondary px-3 py-2">
+                                                                Keep 2 days of call history
+                                                            </span>
+                                                        </div>
+                                                        <div class="mt-2 text-center">
+                                                            <small class="text-muted">Per-agent daily call counts older
+                                                                than this are purged automatically.</small>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -383,7 +466,7 @@
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover align-middle mb-0" id="active-locks-table">
-                                        <thead class="table-grey">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>Number</th>
                                                 <th>Agent</th>
@@ -531,6 +614,21 @@
                     } else {
                         console.warn('No SMTP settings found or invalid format:', data.smtp);
                         $('#smtp-entries').empty().append($smtpTemplate.clone());
+                    }
+
+                    // Contact Settings
+                    if (data.contact) {
+                        $('#contact_touch_limit').val(data.contact.contact_touch_limit || '0');
+                    }
+
+                    // If contact limit is nested inside dialing in DB
+                    if (data.dialing && data.dialing.contact_touch_limit !== undefined) {
+                        $('#contact_touch_limit').val(data.dialing.contact_touch_limit);
+                    }
+
+                    // Trigger dialing settings load if data exists
+                    if (data.dialing) {
+                        $(document).trigger('dialingSettingsLoaded', [data.dialing]);
                     }
 
                     toggleRemoveButton();
@@ -903,23 +1001,37 @@
                     //     $btn.prop('disabled', true).html(
                     //         '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
                     //     );
+                } else if (formType === 'contact') {
+                    const formData = new FormData(this);
 
-                    //     $.ajax({
-                    //         url: '{{ route('settings.save') }}',
-                    //         method: 'POST',
-                    //         data: $form.serialize() + '&form_type=' + formType,
-                    //         success: function(response) {
+                    // disable + show loader
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+                    );
+
+                    // $.ajax({
+                    //     url: '{{ route('settings.contact.save') }}',
+                    //     method: 'POST',
+                    //     data: formData,
+                    //     processData: false,
+                    //     contentType: false,
+                    //     success: function(response) {
+                    //         if (response.success) {
                     //             toastr.success(response.message);
-                    //         },
-                    //         error: function(xhr) {
-                    //             console.error('Error saving settings:', xhr.responseText);
-                    //             toastr.error('Failed to save settings.');
-                    //         },
-                    //         complete: function() {
-                    //             // restore button
-                    //             $btn.prop('disabled', false).html(originalText);
+                    //         } else {
+                    //             toastr.error(response.message);
                     //         }
-                    //     });
+                    //     },
+                    //     error: function(xhr) {
+                    //         console.error('Error saving contact settings:', xhr.responseText);
+                    //         toastr.error('Failed to save contact settings: ' + (xhr.responseJSON
+                    //             ?.error || 'Unknown error'));
+                    //     },
+                    //     complete: function() {
+                    //         // restore button
+                    //         $btn.prop('disabled', false).html(originalText);
+                    //     }
+                    // });
                 }
             });
             // ── Dial Lock Settings ──────────────────────────────────────────────────
@@ -985,11 +1097,13 @@
                     'false' && data.dialing_lock_enabled !== 0;
                 var sameMin = parseInt(data.dialing_lock_same_user_minutes, 10) || 0;
                 var otherMin = parseInt(data.dialing_lock_other_user_minutes, 10) || 5;
+                var touchLimit = parseInt(data.contact_touch_limit, 10) || 0;
 
                 $('#dialing_lock_enabled').prop('checked', enabled).trigger('change');
                 $('#dialing_lock_same_user_minutes').val(sameMin).trigger('change');
                 $('#same_user_slider').val(sameMin);
                 $('#dialing_lock_other_user_minutes').val(otherMin).trigger('change');
+                $('#contact_touch_limit').val(touchLimit);
                 $('#other_user_slider').val(otherMin);
                 $('#same-user-preview').trigger('updatePreview');
             });
@@ -1030,7 +1144,7 @@
                     if ($('#no-locks-row').length === 0) {
                         $('#active-locks-body').html(
                             '<tr id="no-locks-row"><td colspan="6" class="text-center text-muted py-3">No active locks</td></tr>'
-                            );
+                        );
                     }
                 } else {
                     $('#no-locks-row').remove();
@@ -1051,7 +1165,7 @@
                         if (!res.locks || res.locks.length === 0) {
                             $body.html(
                                 '<tr id="no-locks-row"><td colspan="6" class="text-center text-muted py-3">No active locks</td></tr>'
-                                );
+                            );
                             return;
                         }
 
@@ -1174,6 +1288,22 @@
                 dialLocksRefreshTimer = null;
             }
 
+            $('#max_calls_slider').on('input', function() {
+                $('#dialing_max_calls_per_day').val($(this).val());
+            });
+
+            $('#dialing_max_calls_per_day').on('input', function() {
+                $('#max_calls_slider').val($(this).val());
+            });
+
+            $('#history_days_slider').on('input', function() {
+                $('#dialing_history_days').val($(this).val());
+            });
+
+            $('#dialing_history_days').on('input', function() {
+                $('#history_days_slider').val($(this).val());
+            });
+
             // Only poll when the Dial Lock section is active
             $menuButtons.on('click', function() {
                 if ($(this).data('target') === '#form-dialing') {
@@ -1200,7 +1330,9 @@
                         dialing_lock_enabled: enabled,
                         dialing_lock_same_user_minutes: $('#dialing_lock_same_user_minutes').val(),
                         dialing_lock_other_user_minutes: $('#dialing_lock_other_user_minutes')
-                        .val(),
+                            .val(),
+                        dialing_max_calls_per_day: $('#dialing_max_calls_per_day').val(),
+                        dialing_history_days: $('#dialing_history_days').val(),
                     },
                     success: function(res) {
                         if (res.success) toastr.success(res.message);

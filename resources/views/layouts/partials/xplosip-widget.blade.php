@@ -54,9 +54,13 @@
             '#xplosip-confirm-card .xpc-lock-bar-fill{height:100%;border-radius:3px;transition:width .9s linear;}',
             '#xplosip-confirm-card .xpc-lock-bar-fill.by-other{background:#dc2626;}',
             '#xplosip-confirm-card .xpc-lock-bar-fill.by-self{background:#d97706;}',
+            '#xplosip-confirm-card .xpc-lock-bar-fill.by-limit{background:#2563eb;}',
+            '#xplosip-confirm-card .xpc-lock-banner.by-limit{background:#eff6ff;border-left:4px solid #2563eb;}',
+            '#xplosip-confirm-card .xpc-lock-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:2px;}',
             '#xplosip-confirm-card .xpc-lock-timer{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.01em;}',
             '#xplosip-confirm-card .xpc-lock-timer.by-other{color:#dc2626;}',
             '#xplosip-confirm-card .xpc-lock-timer.by-self{color:#d97706;}',
+            '#xplosip-confirm-card .xpc-lock-timer.by-limit{color:#2563eb;}',
             '@media (prefers-color-scheme: dark){#xplosip-confirm-card{background:#0f172a;}#xplosip-confirm-card h3{color:#f1f5f9;}#xplosip-confirm-card .xpc-cancel{background:#1e293b;color:#cbd5e1;}}'
         ].join('');
         document.head.appendChild(st);
@@ -109,14 +113,22 @@
                               .catch(function () { return { status: r.status, body: {} }; });
             }).then(function (res) {
                 if (res.status === 200 && res.body && res.body.ok) {
-                    cb({ ok: true, callCount: res.body.callCount });
+                    cb({
+                        ok: true,
+                        callCount:      res.body.callCount,
+                        dailyCallCount: res.body.dailyCallCount,
+                        dailyCallLimit: res.body.dailyCallLimit,
+                    });
                 } else {
                     cb({
                         ok: false,
+                        reason:           (res.body && res.body.reason) || (res.body && res.body.lockedBySelf ? 'self_lock' : 'other_lock'),
                         lockedBySelf:     !!(res.body && res.body.lockedBySelf),
                         lockedBy:         (res.body && res.body.lockedBy) || 'Another agent',
                         remainingSeconds: (res.body && res.body.remainingSeconds) || 0,
                         callCount:        (res.body && res.body.callCount) || 0,
+                        dailyCallCount:   (res.body && res.body.dailyCallCount) || 0,
+                        dailyCallLimit:   (res.body && res.body.dailyCallLimit) || 0,
                         message:          (res.body && res.body.message) || 'This number is currently in use.',
                     });
                 }
@@ -124,10 +136,13 @@
         } catch (e) { cb({ ok: true, degraded: true }); }
     }
 
-    // ── Format seconds as m:ss or ss ─────────────────────────────────────────
+    // ── Format seconds as h:mm, m:ss, or ss ──────────────────────────────────
     function fmtSeconds(s) {
         s = Math.max(0, s);
-        var m = Math.floor(s / 60), r = s % 60;
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        var r = s % 60;
+        if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
         return m > 0 ? m + 'm ' + String(r).padStart(2, '0') + 's' : r + 's';
     }
 
@@ -136,27 +151,43 @@
         var card = overlay.querySelector('#xplosip-confirm-card');
         if (!card) return;
 
+        var reason      = info.reason || (info.lockedBySelf ? 'self_lock' : 'other_lock');
         var bySelf      = info.lockedBySelf;
         var who         = info.lockedBy || (bySelf ? 'You' : 'Another agent');
         var totalSec    = Math.max(1, info.remainingSeconds || 1);
         var remaining   = info.remainingSeconds || 0;
-        var barClass    = bySelf ? 'by-self' : 'by-other';
-        var timerClass  = bySelf ? 'by-self' : 'by-other';
-        var bannerClass = bySelf ? 'by-self' : 'by-other';
-        var headline    = bySelf ? 'You already called this number' : 'Number in use';
-        var subline     = bySelf
-            ? 'Your own re-dial lock is active — wait for it to expire.'
-            : who + ' is currently on a call to this number.';
+
+        var styleClass, headline, subline, timerLabel, iconBg, iconFg;
+        if (reason === 'daily_limit') {
+            styleClass = 'by-limit';
+            headline   = 'Daily call limit reached';
+            subline    = "You've called this number " + info.dailyCallCount + '/' + info.dailyCallLimit + ' times today.';
+            timerLabel = 'Resets in';
+            iconBg = '#eff6ff'; iconFg = '#2563eb';
+        } else if (reason === 'self_lock') {
+            styleClass = 'by-self';
+            headline   = 'You already called this number';
+            subline    = 'Your own re-dial lock is active — wait for it to expire.';
+            timerLabel = 'Unlocks in';
+            iconBg = '#fff7ed'; iconFg = '#d97706';
+        } else {
+            styleClass = 'by-other';
+            headline   = 'Number in use';
+            subline    = who + ' is currently on a call to this number.';
+            timerLabel = 'Unlocks in';
+            iconBg = '#fee2e2'; iconFg = '#dc2626';
+        }
 
         card.innerHTML =
-            '<div class="xpc-icn" style="background:' + (bySelf ? '#fff7ed' : '#fee2e2') + ';color:' + (bySelf ? '#d97706' : '#dc2626') + ';">'
+            '<div class="xpc-icn" style="background:' + iconBg + ';color:' + iconFg + ';">'
             + '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>'
             + '<h3>' + headline + '</h3>'
-            + '<div class="xpc-lock-banner ' + bannerClass + '">'
-            +   '<div class="xpc-lock-who">' + who + '</div>'
+            + '<div class="xpc-lock-banner ' + styleClass + '">'
+            +   '<div class="xpc-lock-who">' + (reason === 'daily_limit' ? 'You' : who) + '</div>'
             +   '<div class="xpc-lock-detail">' + subline + '</div>'
-            +   '<div class="xpc-lock-bar"><div class="xpc-lock-bar-fill ' + barClass + '" id="xpc-bar" style="width:100%"></div></div>'
-            +   '<div class="xpc-lock-timer ' + timerClass + '" id="xpc-timer">' + fmtSeconds(remaining) + '</div>'
+            +   '<div class="xpc-lock-bar"><div class="xpc-lock-bar-fill ' + styleClass + '" id="xpc-bar" style="width:100%"></div></div>'
+            +   '<div class="xpc-lock-label">' + timerLabel + '</div>'
+            +   '<div class="xpc-lock-timer ' + styleClass + '" id="xpc-timer">' + fmtSeconds(remaining) + '</div>'
             + '</div>'
             + (info.callCount > 0 ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:14px">Called ' + info.callCount + '× in total</div>' : '')
             + '<div class="xpc-btns"><button type="button" class="xpc-cancel">Close</button></div>';
@@ -237,11 +268,19 @@
                             : '⚠ In use by ' + (info.lockedBy || 'another agent') + ' — free in ' + fmtSeconds(info.remainingSeconds);
                     }
                 }, 1000);
+            } else if (info.dailyLimitReached) {
+                meta.className = 'xpc-meta warn';
+                meta.textContent = '🚫 Daily limit reached (' + info.dailyCallCount + '/' + info.dailyCallLimit + ') for this number — resets in ' + fmtSeconds(info.dailyResetSeconds);
+                callBtn.disabled = true;
+                callBtn.style.opacity = '0.5';
+                callBtn.style.cursor  = 'not-allowed';
+                callBtn.title = 'Daily call limit reached for this number';
             } else {
                 var parts = [];
                 if (info.callCount > 0) parts.push('Called ' + info.callCount + '×');
                 if (info.lastCalledAgo) parts.push('last ' + info.lastCalledAgo);
                 if (info.lastCalledBy)  parts.push('by ' + info.lastCalledBy);
+                if (info.dailyCallLimit > 0) parts.push((info.dailyCallCount || 0) + '/' + info.dailyCallLimit + ' today');
                 meta.className   = 'xpc-meta';
                 meta.textContent = parts.join(' · ');
             }

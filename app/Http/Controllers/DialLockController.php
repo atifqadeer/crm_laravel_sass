@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Horsefly\Applicant;
+use Horsefly\DialCallLog;
 use Horsefly\DialLock;
 use Horsefly\Setting;
 use Illuminate\Http\JsonResponse;
@@ -13,12 +14,19 @@ use Illuminate\Support\Facades\DB;
 /**
  * Prevents the same number from being dialled again while it is "in use".
  *
- * Two independent lock timers are now supported (both configurable in Settings):
+ * Two independent lock timers are supported (both configurable in Settings):
  *   same_user_minutes   — how long the dialling agent themselves is re-locked
  *                         (0 = same agent can re-dial immediately)
  *   other_user_minutes  — how long ALL other agents are blocked (default 5 min)
  *
- * The master "dialing_lock_enabled" toggle bypasses all locking when off.
+ * On top of that, a per-agent daily call cap is enforced:
+ *   max_calls_per_day   — how many times one agent may call the same number
+ *                         per day (0 = unlimited), tracked in dial_call_logs
+ *   history_days        — how many days of per-agent call history to keep
+ *                         before older rows are purged
+ *
+ * The master "dialing_lock_enabled" toggle bypasses all locking (including
+ * the daily cap) when off.
  */
 class DialLockController extends Controller
 {
@@ -29,6 +37,31 @@ class DialLockController extends Controller
             'enabled'            => filter_var($rows->get('dialing_lock_enabled', 'true'), FILTER_VALIDATE_BOOLEAN),
             'same_user_minutes'  => max(0, (int) $rows->get('dialing_lock_same_user_minutes', 0)),
             'other_user_minutes' => max(1, (int) $rows->get('dialing_lock_other_user_minutes', 5)),
+            'max_calls_per_day'  => max(0, (int) $rows->get('dialing_max_calls_per_day', 3)),
+            'history_days'       => max(1, (int) $rows->get('dialing_history_days', 2)),
+        ];
+    }
+
+    /** Per-agent daily call count / limit info for a phone_key, for the calling agent. */
+    private function dailyCallInfo(?string $key, array $cfg): array
+    {
+        $limit = $cfg['max_calls_per_day'];
+        $count = 0;
+
+        if ($key && $limit > 0 && Auth::id()) {
+            $count = (int) (DialCallLog::where('phone_key', $key)
+                ->where('user_id', Auth::id())
+                ->where('call_date', now()->toDateString())
+                ->value('calls') ?? 0);
+        }
+
+        $reached = $cfg['enabled'] && $limit > 0 && $count >= $limit;
+
+        return [
+            'dailyCallCount'    => $count,
+            'dailyCallLimit'    => $limit,
+            'dailyLimitReached' => $reached,
+            'dailyResetSeconds' => $reached ? (int) ceil(now()->diffInSeconds(now()->copy()->startOfDay()->addDay())) : 0,
         ];
     }
 
@@ -37,17 +70,19 @@ class DialLockController extends Controller
     {
         $request->validate(['number' => ['required', 'string', 'max:30']]);
         $key = DialLock::keyFor($request->input('number'));
+        $cfg = $this->dialingSettings();
+        $daily = $this->dailyCallInfo($key, $cfg);
+        
 
         if (!$key) {
-            return response()->json(['callCount' => 0, 'locked' => false, 'lastCalledAgo' => null]);
+            return response()->json(array_merge(['callCount' => 0, 'locked' => false, 'lastCalledAgo' => null], $daily));
         }
 
         $row = DialLock::where('phone_key', $key)->first();
         if (!$row) {
-            return response()->json(['callCount' => 0, 'locked' => false, 'lastCalledAgo' => null]);
+            return response()->json(array_merge(['callCount' => 0, 'locked' => false, 'lastCalledAgo' => null], $daily));
         }
 
-        $cfg    = $this->dialingSettings();
         $isSelf = $row->user_id && $row->user_id === Auth::id();
         $now    = now();
 
@@ -69,7 +104,7 @@ class DialLockController extends Controller
             }
         }
 
-        return response()->json([
+        return response()->json(array_merge([
             'callCount'        => (int) $row->call_count,
             'lastCalledAgo'    => $row->locked_at ? $row->locked_at->diffForHumans() : null,
             'lastCalledBy'     => $row->user_name,
@@ -77,7 +112,7 @@ class DialLockController extends Controller
             'lockedBySelf'     => $isSelf && $locked,
             'lockedBy'         => $locked ? $row->user_name : null,
             'remainingSeconds' => $remainingSeconds,
-        ]);
+        ], $daily));
     }
 
     /** POST /dialing/acquire — try to start a call; lock or allow depending on per-user timers. */
@@ -100,13 +135,40 @@ class DialLockController extends Controller
 
         $user  = Auth::user();
         $now   = now();
+        $today = $now->toDateString();
         $until = $now->copy()->addMinutes($cfg['other_user_minutes']);
 
         $applicantId = Applicant::whereNull('deleted_at')
             ->phoneMatches($number)
             ->value('id');
 
-        return DB::transaction(function () use ($key, $number, $user, $now, $until, $applicantId, $cfg) {
+        return DB::transaction(function () use ($key, $number, $user, $now, $today, $until, $applicantId, $cfg) {
+            // ── Per-agent daily call cap ─────────────────────────────────────
+            if ($cfg['max_calls_per_day'] > 0) {
+                $log = DialCallLog::where('phone_key', $key)
+                    ->where('user_id', $user->id)
+                    ->where('call_date', $today)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($log && $log->calls >= $cfg['max_calls_per_day']) {
+                    $resetAt   = $now->copy()->startOfDay()->addDay();
+                    $remaining = (int) ceil($now->diffInSeconds($resetAt));
+
+                    return response()->json([
+                        'ok'                => false,
+                        'reason'            => 'daily_limit',
+                        'locked'            => false,
+                        'dailyLimitReached' => true,
+                        'dailyCallCount'    => (int) $log->calls,
+                        'dailyCallLimit'    => $cfg['max_calls_per_day'],
+                        'remainingSeconds'  => $remaining,
+                        'message'           => "Daily limit reached ({$log->calls}/{$cfg['max_calls_per_day']}) for this number. "
+                                              . "Resets in " . $this->humanSeconds($remaining) . ".",
+                    ], 423);
+                }
+            }
+
             $row    = DialLock::where('phone_key', $key)->lockForUpdate()->first();
             $isSelf = $row && $row->user_id === $user->id;
 
@@ -120,6 +182,7 @@ class DialLockController extends Controller
                             $ago       = $row->locked_at ? $row->locked_at->diffForHumans() : 'just now';
                             return response()->json([
                                 'ok'               => false,
+                                'reason'           => 'self_lock',
                                 'locked'           => true,
                                 'lockedBySelf'     => true,
                                 'lockedBy'         => $user->name,
@@ -141,6 +204,7 @@ class DialLockController extends Controller
 
                     return response()->json([
                         'ok'               => false,
+                        'reason'           => 'other_lock',
                         'locked'           => true,
                         'lockedBySelf'     => false,
                         'lockedBy'         => $who,
@@ -169,10 +233,24 @@ class DialLockController extends Controller
                 ]
             );
 
+            // ── Record this call against the agent's daily count ─────────────
+            $log = DialCallLog::firstOrNew([
+                'phone_key' => $key,
+                'user_id'   => $user->id,
+                'call_date' => $today,
+            ]);
+            $log->calls = ($log->exists ? $log->calls : 0) + 1;
+            $log->save();
+
+            // ── Purge per-agent call history beyond the retention window ─────
+            DialCallLog::where('call_date', '<', $now->copy()->subDays($cfg['history_days'])->toDateString())->delete();
+
             return response()->json([
-                'ok'        => true,
-                'locked'    => false,
-                'callCount' => $newCount,
+                'ok'             => true,
+                'locked'         => false,
+                'callCount'      => $newCount,
+                'dailyCallCount' => $log->calls,
+                'dailyCallLimit' => $cfg['max_calls_per_day'],
             ]);
         });
     }
@@ -237,6 +315,11 @@ class DialLockController extends Controller
 
     private function humanSeconds(int $s): string
     {
+        if ($s >= 3600) {
+            $h = intdiv($s, 3600);
+            $m = intdiv($s % 3600, 60);
+            return $m ? "{$h}h {$m}m" : "{$h}h";
+        }
         if ($s >= 60) {
             $m = intdiv($s, 60);
             $r = $s % 60;

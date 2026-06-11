@@ -349,7 +349,7 @@ class SettingController extends Controller
             $orderDirection = $request->input('order.0.dir', 'asc');
             if ($orderColumn === 'job_category') {
                 $query->orderBy('job_titles.job_category_id', $orderDirection);
-            }elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
                 $query->orderBy($orderColumn, $orderDirection);
             } else {
                 $query->orderBy('job_titles.created_at', 'desc');
@@ -500,8 +500,8 @@ class SettingController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
-                 $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
+                $query->where('sms_templates.title', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('sms_templates.template', 'LIKE', "%{$searchTerm}%");
             }
         }
 
@@ -636,7 +636,7 @@ class SettingController extends Controller
             // Create the role
             SmsTemplate::create([
                 'title' => $request->input('title'),
-                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'slug' => strtolower(str_replace(' ', '_', $request->input('title'))),
                 'template' => $request->input('template')
             ]);
 
@@ -683,7 +683,7 @@ class SettingController extends Controller
 
             // Update 
             // $template->title = $request->input('edit_title');
-            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            $template->slug = strtolower(str_replace(' ', '_', $request->input('edit_title')));
             $template->template = $request->input('edit_template');
             $template->status = $request->input('status');
             $template->save();
@@ -712,10 +712,10 @@ class SettingController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
-                 $query->where('email_templates.title', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.from_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.subject', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('email_templates.template', 'LIKE', "%{$searchTerm}%");
+                $query->where('email_templates.title', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.from_email', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.subject', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('email_templates.template', 'LIKE', "%{$searchTerm}%");
             }
         }
 
@@ -826,7 +826,7 @@ class SettingController extends Controller
             // Create the role
             EmailTemplate::create([
                 'title' => $request->input('title'),
-                'slug' => strtolower(str_replace(' ','_',$request->input('title'))),
+                'slug' => strtolower(str_replace(' ', '_', $request->input('title'))),
                 'from_email' => $request->input('from_email'),
                 'subject' => $request->input('subject'),
                 'template' => $request->input('template'),
@@ -876,7 +876,7 @@ class SettingController extends Controller
 
             // Update 
             // $template->title = $request->input('edit_title');
-            $template->slug = strtolower(str_replace(' ','_',$request->input('edit_title')));
+            $template->slug = strtolower(str_replace(' ', '_', $request->input('edit_title')));
             $template->from_email = $request->input('edit_from');
             $template->subject = $request->input('edit_subject');
             $template->template = $request->input('edit_template');
@@ -1165,7 +1165,7 @@ class SettingController extends Controller
                 'username'    => $setting->username,
                 'password'    => $setting->password,
                 'encryption'  => $setting->encryption,
-                'from_address'=> $setting->from_address,
+                'from_address' => $setting->from_address,
                 'from_name'   => $setting->from_name,
             ];
         })->toArray();
@@ -1415,6 +1415,8 @@ class SettingController extends Controller
                 'dialing_lock_enabled'           => 'required|in:0,1',
                 'dialing_lock_same_user_minutes'  => 'required|integer|min:0|max:60',
                 'dialing_lock_other_user_minutes' => 'required|integer|min:1|max:60',
+                'dialing_max_calls_per_day'       => 'required|integer|min:0|max:20',
+                'dialing_history_days'            => 'required|integer|min:1|max:14',
             ]);
 
             Setting::updateOrCreate(
@@ -1429,6 +1431,14 @@ class SettingController extends Controller
                 ['key' => 'dialing_lock_other_user_minutes'],
                 ['value' => (int) $request->dialing_lock_other_user_minutes, 'type' => 'integer', 'group' => 'dialing']
             );
+            Setting::updateOrCreate(
+                ['key' => 'dialing_max_calls_per_day'],
+                ['value' => (int) $request->dialing_max_calls_per_day, 'type' => 'integer', 'group' => 'dialing']
+            );
+            Setting::updateOrCreate(
+                ['key' => 'dialing_history_days'],
+                ['value' => (int) $request->dialing_history_days, 'type' => 'integer', 'group' => 'dialing']
+            );
 
             return response()->json([
                 'success' => true,
@@ -1442,5 +1452,4 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
 }

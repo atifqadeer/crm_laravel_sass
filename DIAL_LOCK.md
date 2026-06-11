@@ -1,7 +1,8 @@
 # Dial Lock — how it works
 
 The **Dial Lock** system stops two agents (or the same agent too soon)
-from calling the same phone number at the same time. It also keeps a
+from calling the same phone number at the same time, and caps how many
+times any one agent may call the same number per day. It also keeps a
 running history for every number: how many times it has been called, when
 it was last called, and by whom — all shown to the agent in the
 click‑to‑dial confirmation dialog.
@@ -12,6 +13,7 @@ Everything described here is implemented in:
 |-------|------|
 | Controller / API | `app/Http/Controllers/DialLockController.php` |
 | Model / table | `app/Models/DialLock.php` → `dial_locks` |
+| Daily history model / table | `app/Models/DialCallLog.php` → `dial_call_logs` |
 | Phone normalisation | `app/Support/PhoneNumber.php` |
 | Settings UI | `resources/views/settings/list.blade.php` (`#form-dialing`) |
 | Settings save | `app/Http/Controllers/SettingController.php::saveDialingSettings()` |
@@ -84,6 +86,43 @@ When an agent finishes a call (or cancels), the front end calls
 agent's own lock — i.e. it expires immediately so the number becomes
 available again straight away (subject to the *same‑user* timer if one is
 configured).
+
+### 1.5 Daily call limit (per agent, per number)
+
+On top of the two timers above, each agent can be capped to a maximum
+number of calls **to the same number, per day**:
+
+| Setting key | Default | Meaning |
+|-------------|---------|---------|
+| `dialing_max_calls_per_day` | `3` (0–20, `0` = unlimited) | Max calls one agent may place to the same number in a calendar day. |
+| `dialing_history_days` | `2` (1–14) | How many days of per‑agent call history (`dial_call_logs`) to retain before older rows are purged. |
+
+This is checked first in `acquire()`, **inside the same `DB::transaction()`
++ `lockForUpdate()`** as the existing lock checks:
+
+1. Look up `dial_call_logs` for `(phone_key, user_id, today)`.
+2. If `calls >= dialing_max_calls_per_day` (and the limit is `> 0`), reject
+   with **HTTP 423** and `reason: 'daily_limit'`, e.g. *"Daily limit reached
+   (3/3) for this number. Resets in 8h 12m."* — the reset time is always the
+   next midnight (`now()->startOfDay()->addDay()`).
+3. Otherwise, after the call is allowed and `dial_locks` is updated, the
+   agent's `dial_call_logs` row for today is incremented (created if it
+   doesn't exist).
+4. Finally, any `dial_call_logs` rows with `call_date` older than
+   `dialing_history_days` days ago are deleted — this is the "history
+   overwrite": old per‑agent daily counters are purged opportunistically on
+   every successful call, so the table only ever holds a rolling window.
+
+Both `GET /dialing/info` and `POST /dialing/acquire` return
+`dailyCallCount`, `dailyCallLimit`, `dailyLimitReached`, and (when reached)
+`dailyResetSeconds` for the **calling agent only** — this is independent of
+`callCount` (the all‑time total for the number across all agents).
+
+The frontend (`xplosip-widget.blade.php`) shows the agent's "X/Y today"
+count in the confirm dialog, and if the limit is already reached it disables
+the **Call** button up front. If `acquire()` still returns `daily_limit`
+(e.g. a stale dialog), the same blue "Daily call limit reached" block screen
+with a live countdown to midnight is shown.
 
 ---
 
@@ -160,6 +199,24 @@ configured).
 Migrations: `2026_05_28_180000_create_dial_locks_table.php` and
 `2026_05_28_190000_add_call_count_to_dial_locks.php`.
 
+### 5.1 `dial_call_logs` — per-agent daily call history
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | bigint, PK | |
+| `phone_key` | string(20) | Same normalised key as `dial_locks.phone_key` |
+| `user_id` | FK → `users`, `cascadeOnDelete` | The agent who placed the call |
+| `call_date` | date | Calendar date (app timezone) the calls were made on |
+| `calls` | unsignedInteger, default `0` | Number of calls this agent made to this number on this date |
+| `created_at` / `updated_at` | timestamps | |
+
+Unique on `(phone_key, user_id, call_date)`, indexed on `call_date`. One row
+per agent, per number, per day — used to enforce
+`dialing_max_calls_per_day` and purged after `dialing_history_days`.
+
+Migration: `2026_06_11_120000_create_dial_call_logs_table.php`.
+Model: `app/Models/DialCallLog.php`.
+
 ---
 
 ## 6. API reference
@@ -168,8 +225,8 @@ All routes are under the authenticated web group (`routes/web.php`).
 
 | Method | Route | Controller method | Purpose |
 |--------|-------|--------------------|---------|
-| `GET`  | `/dialing/info?number=...` | `info()` | Status for a number, personalised to the calling agent: `callCount`, `lastCalledAgo`, `lastCalledBy`, `locked`, `lockedBySelf`, `lockedBy`, `remainingSeconds`. |
-| `POST` | `/dialing/acquire` | `acquire()` | Try to start a call. Returns `ok: true` (and updates the lock/count) or **HTTP 423** with lock details if blocked. |
+| `GET`  | `/dialing/info?number=...` | `info()` | Status for a number, personalised to the calling agent: `callCount`, `lastCalledAgo`, `lastCalledBy`, `locked`, `lockedBySelf`, `lockedBy`, `remainingSeconds`, plus `dailyCallCount`, `dailyCallLimit`, `dailyLimitReached`, `dailyResetSeconds`. |
+| `POST` | `/dialing/acquire` | `acquire()` | Try to start a call. Returns `ok: true` (and updates the lock/count/daily log) or **HTTP 423** with `reason: 'daily_limit' \| 'self_lock' \| 'other_lock'` and details if blocked. |
 | `POST` | `/dialing/release` | `release()` | Immediately expire the calling agent's own lock for a number. |
 | `GET`  | `/dialing/active-locks` | `activeList()` | All currently active locks plus `stats: { active_count, calls_today }`, for the Settings panel. |
 | `POST` | `/dialing/clear-lock` | `clearLock()` | Admin: expire one specific lock by `id`. |
@@ -194,13 +251,16 @@ provides:
   min, default 0).
 - **Other‑agents timer slider** — `dialing_lock_other_user_minutes` (1–60
   min, default 5).
+- **Daily Call Limit & History card** — `dialing_max_calls_per_day` (0–20
+  per agent/day, default 3, `0` = unlimited) and `dialing_history_days`
+  (1–14 days, default 2).
 - **Live Active Locks table** — auto‑refreshes every 5 seconds, with a
   1‑second countdown ticker per row, plus per‑row **Release** and a global
   **Clear All** button (calling `/dialing/clear-lock` and
   `/dialing/clear-all-locks`).
 
 Saving the form posts to `POST /save-dialing-settings`
-(`SettingController::saveDialingSettings()`), which upserts the three
+(`SettingController::saveDialingSettings()`), which upserts all five
 `Setting` rows with `group = 'dialing'`.
 
 ---
@@ -211,15 +271,19 @@ Saving the form posts to `POST /save-dialing-settings`
 
 1. Agent clicks a phone number → `xplosipDial(number)`.
 2. `fetchInfo()` calls `GET /dialing/info` and shows a confirmation dialog
-   with the call count, last‑called‑by, and last‑called‑ago for that
-   number.
+   with the call count, last‑called‑by, last‑called‑ago, and the agent's
+   "X/Y today" daily count for that number. If `dailyLimitReached` is
+   already `true`, the **Call** button is disabled up front.
 3. On **Call**, `acquireLock()` calls `POST /dialing/acquire`:
-   - If it returns **423 (locked)**, `showLocked()` displays a live
-     countdown — **amber** if it's the agent's own re‑dial lock, **red**
-     if another agent currently holds the number.
+   - If it returns **423**, `showLocked()` displays a live countdown:
+     **amber** (`reason: 'self_lock'`) if it's the agent's own re‑dial lock,
+     **red** (`reason: 'other_lock'`) if another agent currently holds the
+     number, or **blue** (`reason: 'daily_limit'`) if the agent's daily call
+     cap for this number has been reached — counting down to the next
+     midnight reset.
    - If it returns `ok: true`, `launchDesktop()` opens the `tel:` link to
      start the call via the desktop softphone, and the dialog shows the
-     updated call count.
+     updated call count and daily count.
 
 ---
 
