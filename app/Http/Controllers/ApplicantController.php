@@ -844,13 +844,13 @@ class ApplicantController extends Controller
                     };
 
                     $items = [];
-                    if (!empty(trim($applicant->applicant_phone))) {
+                    if (!empty(trim((string) $applicant->applicant_phone))) {
                         $items[] = $dialLink($applicant->applicant_phone, 'Primary Phone');
                     }
-                    if (!empty(trim($applicant->applicant_phone_secondary))) {
+                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
                         $items[] = $dialLink($applicant->applicant_phone_secondary, 'Secondary Phone');
                     }
-                    if (!empty(trim($applicant->applicant_landline))) {
+                    if (!empty(trim((string) $applicant->applicant_landline))) {
                         $items[] = $dialLink($applicant->applicant_landline, 'Landline');
                     }
 

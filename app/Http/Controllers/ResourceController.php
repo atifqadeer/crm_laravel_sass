@@ -678,13 +678,13 @@ class ResourceController extends Controller
                     };
 
                     $parts = [];
-                    if (!empty(trim($applicant->applicant_phone))) {
+                    if (!empty(trim((string) $applicant->applicant_phone))) {
                         $parts[] = $dialLink($applicant->applicant_phone, 'P');
                     }
-                    if (!empty(trim($applicant->applicant_phone_secondary))) {
+                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
                         $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
                     }
-                    if (!empty(trim($applicant->applicant_landline))) {
+                    if (!empty(trim((string) $applicant->applicant_landline))) {
                         $parts[] = $dialLink($applicant->applicant_landline, 'L');
                     }
 
@@ -3019,13 +3019,13 @@ class ResourceController extends Controller
                     };
 
                     $parts = [];
-                    if (!empty(trim($applicant->applicant_phone))) {
+                    if (!empty(trim((string) $applicant->applicant_phone))) {
                         $parts[] = $dialLink($applicant->applicant_phone, 'P');
                     }
-                    if (!empty(trim($applicant->applicant_phone_secondary))) {
+                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
                         $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
                     }
-                    if (!empty(trim($applicant->applicant_landline))) {
+                    if (!empty(trim((string) $applicant->applicant_landline))) {
                         $parts[] = $dialLink($applicant->applicant_landline, 'L');
                     }
 
