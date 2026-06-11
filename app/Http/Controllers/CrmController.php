@@ -53,7 +53,7 @@ class CrmController extends Controller
 
         return view('crm.list', compact('jobCategories', 'jobTitles'));
     }
-    public function crmNotesHistoryIndex(int $applicant_id, int $sale_id)
+    public function crmNotesHistoryIndex($applicant_id, $sale_id)
     {
         // Fetch the applicant or fail with a 404 if not found
         $applicant = Applicant::findOrFail($applicant_id);
@@ -8471,7 +8471,7 @@ class CrmController extends Controller
                 </div>';
     }
 
-    private function saveSentEmails(string $email_to, string $email_cc, string $email_from, string $email_title, string $email_subject, string $email_body, string $action_name, ?int $applicant_id = null, ?int $sale_id = null)
+    private function saveSentEmails($email_to, $email_cc, $email_from, $email_title, $email_subject, $email_body, $action_name, $applicant_id = null, $sale_id = null)
     {
         $sent_email = new SentEmail();
         $sent_email->action_name = $action_name;
@@ -8498,7 +8498,7 @@ class CrmController extends Controller
     }
 
     /** No Job CRM Actions */
-    private function crmNoJobRequestRejectedRevertToSentCvAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmNoJobRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             // CVNote::where([
@@ -8567,7 +8567,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmNoJobRequestRejectedRevertToRequestAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmNoJobRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             // CVNote::where([
@@ -8646,7 +8646,7 @@ class CrmController extends Controller
     /** No Job CRM Actions */
 
     /** CRM Sent Cv */
-    private function crmSentSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmSentSaveAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             /** update to the existing active note of requested applicant_id and sale_id */
@@ -8731,7 +8731,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmSentRequestAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmSentRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -8793,7 +8793,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRevertCVInQualityAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertCVInQualityAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)->update([
@@ -8872,7 +8872,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmSentCVToRejectCvAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmSentCVToRejectCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             Applicant::where("id", $applicant_id)->update([
@@ -8984,7 +8984,7 @@ class CrmController extends Controller
     }
 
     /** CRM Rejected CV */
-    private function crmRevertRejectedCvToSentCvAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertRejectedCvToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             $crm_note_id = CrmNote::where('applicant_id', $applicant_id)
@@ -9066,7 +9066,7 @@ class CrmController extends Controller
     }
 
     /** CRM Sent No Job */
-    private function crmSentCvNoJobRevertCVInQualityAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmSentCvNoJobRevertCVInQualityAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             $user_name = User::find($user_id);
@@ -9143,7 +9143,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmSentCvNoJobSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmSentCvNoJobSaveAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             CrmNote::where([
@@ -9220,7 +9220,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmNoJobSentRejectCvAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmNoJobSentRejectCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             Applicant::where("id", $applicant_id)->update([
@@ -9327,7 +9327,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmNoJobSentRequestAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmNoJobSentRequestAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -9419,7 +9419,7 @@ class CrmController extends Controller
     }
 
     /** CRM Open CV */
-    private function crmOpenCvAction(int $applicant_id, int $user_id, int $sale_id, string $details, string $reject_reason)
+    private function crmOpenCvAction($applicant_id, $user_id, $sale_id, $details, $reject_reason)
     {
         try {
             CVNote::where([
@@ -9479,7 +9479,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmOpenCvSentRequestAction(int $applicant_id, int $sale_id)
+    private function crmOpenCvSentRequestAction($applicant_id, $sale_id)
     {
         try {
             QualityNotes::where([
@@ -9510,7 +9510,7 @@ class CrmController extends Controller
     }
 
     /** CRM Request */
-    private function crmRequestRejectAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestRejectAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -9579,7 +9579,7 @@ class CrmController extends Controller
         }
     }
     /** CRM Request No Response*/
-    private function crmRequestNoResponseAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestNoResponseAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -9626,7 +9626,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRequestConfirmAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestConfirmAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -9682,7 +9682,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRequestSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -9730,7 +9730,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRevertRequestToSentCvAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertRequestToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -9793,7 +9793,7 @@ class CrmController extends Controller
     }
 
     /** CRM Request Reject */
-    private function crmRequestRejectedRevertToSentCvAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestRejectedRevertToSentCvAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CVNote::where([
@@ -9865,7 +9865,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRequestRejectedRevertToRequestAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRequestRejectedRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CVNote::where([
@@ -9949,7 +9949,7 @@ class CrmController extends Controller
     }
 
     /** CRM Confirmation */
-    private function crmInterviewSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInterviewSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -9999,7 +9999,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmConfirmationRevertToRequestAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmConfirmationRevertToRequestAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Interview::where([
@@ -10058,7 +10058,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInterviewAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInterviewAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10113,7 +10113,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInterviewRebookAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInterviewRebookAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10170,7 +10170,7 @@ class CrmController extends Controller
     }
 
     /** CRM Rebook */
-    private function crmRevertRebookToConfirmationAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertRebookToConfirmationAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10226,7 +10226,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRebookSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRebookSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -10276,7 +10276,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRebookToAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRebookToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10331,7 +10331,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRebookToNotAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRebookToNotAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10400,7 +10400,7 @@ class CrmController extends Controller
     }
 
     /** CRM Attended */
-    private function crmRevertAttendedToRebookAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertAttendedToRebookAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10455,7 +10455,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmAttendedToStartDateAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmAttendedToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
         Applicant::where("id", $applicant_id)
             ->update([
@@ -10492,7 +10492,7 @@ class CrmController extends Controller
         $history->history_uid = md5((string) $history->id);
         $history->save();
     }
-    private function crmAttendedToDeclineAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmAttendedToDeclineAction($applicant_id, $user_id, $sale_id, $details)
     {
         Applicant::where("id", $applicant_id)
             ->update([
@@ -10547,7 +10547,7 @@ class CrmController extends Controller
         $history->history_uid = md5((string) $history->id);
         $history->save();
     }
-    private function crmPreStartDateAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmPreStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -10598,7 +10598,7 @@ class CrmController extends Controller
     }
 
     /** Not Attended */
-    private function crmInterviewNotAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInterviewNotAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10665,7 +10665,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInterviewNotAttendedToAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInterviewNotAttendedToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10728,7 +10728,7 @@ class CrmController extends Controller
     }
 
     /** CRM Decline */
-    private function crmRevertDeclineToAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertDeclineToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10879,7 +10879,7 @@ class CrmController extends Controller
     }
 
     /** CRM Start Date */
-    private function crmStartDateToInvoiceAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmStartDateToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10934,7 +10934,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmStartDateHoldAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmStartDateHoldAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -10999,7 +10999,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmStartDateSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmStartDateSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -11049,7 +11049,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRevertStartDateToAttendedAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertStartDateToAttendedAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             //if applicant revert from start date for purpose of send cv save or quality
@@ -11124,7 +11124,7 @@ class CrmController extends Controller
         }
     }
     /** CRM Start Date Hold */
-    private function crmRevertStartDateHoldToStartDateAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertStartDateHoldToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11184,7 +11184,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmStartDateHoldSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmStartDateHoldSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -11236,7 +11236,7 @@ class CrmController extends Controller
     }
 
     /** CRM Invoice */
-    private function crmRevertInvoiceToStartDateAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertInvoiceToStartDateAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11292,7 +11292,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInvoiceToDisputeAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInvoiceToDisputeAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11360,7 +11360,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInvoiceToInvoiceSentAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInvoiceToInvoiceSentAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11415,7 +11415,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmFinalSaveAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmFinalSaveAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             CrmNote::where([
@@ -11467,7 +11467,7 @@ class CrmController extends Controller
     }
 
     /** CRM Invoice Sent*/
-    private function crmInvoiceSentToPaidAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInvoiceSentToPaidAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11530,7 +11530,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInvoiceSentToDisputeAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInvoiceSentToDisputeAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11598,7 +11598,7 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmInvoiceSentToInvoiceAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmInvoiceSentToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         try {
             Applicant::where("id", $applicant_id)
@@ -11656,7 +11656,7 @@ class CrmController extends Controller
     }
 
     /** Dispute */
-    private function crmRevertDisputeToInvoiceAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    private function crmRevertDisputeToInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     {
         /** lets start to the process of dispute */
         try {
@@ -11727,7 +11727,7 @@ class CrmController extends Controller
     }
 
     /** Paid */
-    // private function crmRevertDisputeTosInvoiceAction(int $applicant_id, int $user_id, int $sale_id, string $details)
+    // private function crmRevertDisputeTosInvoiceAction($applicant_id, $user_id, $sale_id, $details)
     // {
     //     try{
     //         CVNote::where([
