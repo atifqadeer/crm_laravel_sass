@@ -1,15 +1,15 @@
 @yield('script')
-@vite(['resources/js/app.js','resources/js/layout.js'])
+@vite(['resources/js/app.js', 'resources/js/layout.js'])
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Only run if route is available
         if (window.laravelRoutes && window.laravelRoutes.unreadMessages) {
             fetchUnreadMessages();
-            setInterval(fetchUnreadMessages, 20000);  // Every 20 seconds
+            setInterval(fetchUnreadMessages, 20000); // Every 20 seconds
         }
         if (window.laravelRoutes && window.laravelRoutes.unreadNotifications) {
             fetchUnreadNotifications();
-            setInterval(fetchUnreadNotifications, 20000);  // Every 20 seconds
+            setInterval(fetchUnreadNotifications, 20000); // Every 20 seconds
         }
     });
     // Function to fetch unread messages
@@ -17,8 +17,8 @@
         $.ajax({
             url: window.laravelRoutes.unreadMessages,
             method: 'GET',
-            success: function (response) {
-                console.log(response);  // Log the full response to verify the structure
+            success: function(response) {
+                console.log(response); // Log the full response to verify the structure
                 if (response.success) {
                     // Update unread count for messages
                     $('#unread-message-count').text(response.unread_count || 0);
@@ -27,9 +27,10 @@
                     $('#message-items').empty();
 
                     if (response.messages.length === 0) {
-                        $('#message-items').append('<div class="text-center py-3 text-muted">No new messages</div>');
+                        $('#message-items').append(
+                            '<div class="text-center py-3 text-muted">No new messages</div>');
                     } else {
-                        response.messages.forEach(function (message) {
+                        response.messages.forEach(function(message) {
                             const messagesIndexUrl = "/messages";
                             const html = `
                                 <a href="${messagesIndexUrl}" class="dropdown-item py-3 border-bottom text-wrap">
@@ -53,13 +54,13 @@
                     console.log('Error fetching messages:', response.error);
                 }
             },
-            error: function (xhr) {
+            error: function(xhr) {
                 console.log('AJAX error:', xhr.responseText);
             }
         });
     }
 
-   // Global variable to track if the first notification has been checked
+    // Global variable to track if the first notification has been checked
     let firstNotificationChecked = false;
     let unreadCheckInterval = null;
 
@@ -67,7 +68,7 @@
         $.ajax({
             url: window.laravelRoutes.unreadNotifications,
             method: 'GET',
-            success: function (response) {
+            success: function(response) {
                 console.log(response);
 
                 if (!response.success) {
@@ -135,7 +136,7 @@
                     }
                 }
             },
-            error: function (xhr) {
+            error: function(xhr) {
                 console.log('AJAX error:', xhr.responseText);
             }
         });
@@ -146,7 +147,7 @@
         $('#notification-banner').fadeIn();
 
         // Hide the banner after 5 seconds
-        setTimeout(function () {
+        setTimeout(function() {
             $('#notification-banner').fadeOut();
         }, 5000);
     }
@@ -169,7 +170,7 @@
                     data: {
                         _token: $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             // Open in new blank tab
                             window.open('/notifications', '_blank');
@@ -182,7 +183,7 @@
         });
     }
     // ─── Copy Postcode Handler (with Robust Fallback) ────────────────────
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
         const btn = e.target.closest('.copy-postcode');
         if (!btn) return;
 
@@ -232,6 +233,6 @@
             manualCopy();
         }
     });
-
 </script>
+@include('layouts.partials/xplosip-widget')
 @yield('script-bottom')

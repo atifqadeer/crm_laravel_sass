@@ -3334,22 +3334,31 @@ class SaleController extends Controller
                     ';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    $str = '';
-
                     if ($applicant->is_blocked) {
-                        $str = "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
-
-                        if ($applicant->applicant_phone_secondary) {
-                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
-                        }
-                        if ($applicant->applicant_landline) {
-                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
-                        }
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $str;
+                    $dialLink = function (string $num, string $prefix): string {
+                        $safe = e($num);
+                        return "<strong>{$prefix}:</strong> "
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                    };
+
+                    $parts = [];
+                    if (!empty(trim($applicant->applicant_phone))) {
+                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
+                    }
+                    if (!empty(trim($applicant->applicant_phone_secondary))) {
+                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+                    }
+                    if (!empty(trim($applicant->applicant_landline))) {
+                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+                    }
+
+                    return implode('<br>', $parts) ?: '-';
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -3712,7 +3721,7 @@ class SaleController extends Controller
             'new_status_text' => $newStatusText
         ]);
     }
-    public function saleHistoryIndex($id)
+    public function saleHistoryIndex(int $id)
     {
         $sale = Sale::withCount('active_cvs')->find($id);
 

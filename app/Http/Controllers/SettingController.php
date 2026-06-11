@@ -1408,4 +1408,39 @@ class SettingController extends Controller
         }
     }
 
+    public function saveDialingSettings(Request $request)
+    {
+        try {
+            $request->validate([
+                'dialing_lock_enabled'           => 'required|in:0,1',
+                'dialing_lock_same_user_minutes'  => 'required|integer|min:0|max:60',
+                'dialing_lock_other_user_minutes' => 'required|integer|min:1|max:60',
+            ]);
+
+            Setting::updateOrCreate(
+                ['key' => 'dialing_lock_enabled'],
+                ['value' => $request->dialing_lock_enabled, 'type' => 'boolean', 'group' => 'dialing']
+            );
+            Setting::updateOrCreate(
+                ['key' => 'dialing_lock_same_user_minutes'],
+                ['value' => (int) $request->dialing_lock_same_user_minutes, 'type' => 'integer', 'group' => 'dialing']
+            );
+            Setting::updateOrCreate(
+                ['key' => 'dialing_lock_other_user_minutes'],
+                ['value' => (int) $request->dialing_lock_other_user_minutes, 'type' => 'integer', 'group' => 'dialing']
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dial lock settings saved successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving dial lock settings.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

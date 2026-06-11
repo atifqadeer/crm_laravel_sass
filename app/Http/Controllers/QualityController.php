@@ -1329,24 +1329,32 @@ class QualityController extends Controller
                             </div>
                         </div>';
                     })
-
                 ->addColumn('applicantPhone', function ($applicant) {
-                    $str = '';
-
                     if ($applicant->is_blocked) {
-                        $str = "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $str = '<strong>P:</strong> ' . $applicant->applicant_phone;
-
-                        if ($applicant->applicant_phone_secondary) {
-                            $str .= '<br><strong>P:</strong> ' . $applicant->applicant_phone_secondary;
-                        }
-                        if ($applicant->applicant_landline) {
-                            $str .= '<br><strong>L:</strong> ' . $applicant->applicant_landline;
-                        }
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $str;
+                    $dialLink = function (string $num, string $prefix): string {
+                        $safe = e($num);
+                        return "<strong>{$prefix}:</strong> "
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                    };
+
+                    $parts = [];
+                    if (!empty(trim($applicant->applicant_phone))) {
+                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
+                    }
+                    if (!empty(trim($applicant->applicant_phone_secondary))) {
+                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+                    }
+                    if (!empty(trim($applicant->applicant_landline))) {
+                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+                    }
+
+                    return implode('<br>', $parts) ?: '-';
                 })
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
@@ -1360,30 +1368,6 @@ class QualityController extends Controller
                 ->addColumn('notes_created_at', function ($applicant) {
                     return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA');
                 })
-                // ->addColumn('applicant_resume', function ($applicant) {
-                //     $filePath = $applicant->applicant_cv;
-                //     $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
-                // ->addColumn('crm_resume', function ($applicant) {
-                //     $filePath = $applicant->updated_cv;
-                //     $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
 
