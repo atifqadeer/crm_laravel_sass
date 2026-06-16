@@ -442,7 +442,7 @@ class CommunicationController extends Controller
     /*************************************** */
     public function messageReceive(Request $request)
     {
-        Log::info('Received message: ' . json_encode($request->all())); // Log the incoming request for debugging
+        Log::info('Received message: ' . json_encode($request)); // Log the incoming request for debugging
         try {
             $phoneNumber_gsm = $request->input('phoneNumber');
             $phoneNumber = preg_replace('/^(\+44|44)/', '0', $phoneNumber_gsm);
