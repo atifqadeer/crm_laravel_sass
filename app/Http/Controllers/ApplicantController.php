@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Horsefly\Sale;
 use Horsefly\Office;
 use Horsefly\Unit;
+use Horsefly\User;
 use Horsefly\Applicant;
 use Horsefly\ApplicantNote;
 use Horsefly\ModuleNote;
@@ -28,12 +29,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Horsefly\Mail\GenericEmail;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\File;
 use App\Observers\ActionObserver;
@@ -43,7 +41,6 @@ use App\Traits\Geocode;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Str;
-use League\Csv\Reader;
 use Illuminate\Http\Response;
 
 class ApplicantController extends Controller
@@ -831,24 +828,33 @@ class ApplicantController extends Controller
                     }
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    $str = '';
-
                     if ($applicant->is_blocked) {
                         return "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $items = [];
-                        if (!empty(trim($applicant->applicant_phone))) {
-                            $items[] = '<strong title="Primary Phone">P:</strong> ' . $applicant->applicant_phone;
-                        }
-                        if (!empty(trim($applicant->applicant_phone_secondary))) {
-                            $items[] = '<strong title="Secondary Phone">S:</strong> ' . $applicant->applicant_phone_secondary;
-                        }
-                        if (!empty(trim($applicant->applicant_landline))) {
-                            $items[] = '<strong title="Landline">L:</strong> ' . $applicant->applicant_landline;
-                        }
-
-                        return !empty($items) ? implode('<br>', $items) : '-';
                     }
+
+                    // Helper: wrap a number as a click-to-dial link using the xplosip widget.
+                    $dialLink = function (string $num, string $label): string {
+                        $safe = e($num);
+                        return "<strong title=\"{$label}\">"
+                            . substr($label, 0, 1) . ':</strong> '
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                    };
+
+                    $items = [];
+                    if (!empty(trim((string) $applicant->applicant_phone))) {
+                        $items[] = $dialLink($applicant->applicant_phone, 'Primary Phone');
+                    }
+                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
+                        $items[] = $dialLink($applicant->applicant_phone_secondary, 'Secondary Phone');
+                    }
+                    if (!empty(trim((string) $applicant->applicant_landline))) {
+                        $items[] = $dialLink($applicant->applicant_landline, 'Landline');
+                    }
+
+                    return !empty($items) ? implode('<br>', $items) : '-';
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -1193,7 +1199,7 @@ class ApplicantController extends Controller
             return back()->with('error', 'Something went wrong while saving notes.');
         }
     }
-    public function downloadCv($id)
+    public function downloadCv(int $id)
     {
         $applicant = Applicant::findOrFail($id);
         $filePath = $applicant->cv_path;
@@ -1204,7 +1210,7 @@ class ApplicantController extends Controller
             return response()->json(['error' => 'File not found'], 404);
         }
     }
-    public function edit($id)
+    public function edit(int $id)
     {
         // Debug the incoming id
         Log::info('Trying to edit applicant with ID: ' . $id);
@@ -1220,7 +1226,7 @@ class ApplicantController extends Controller
 
         return view('applicants.edit', compact('applicant', 'jobCategories', 'jobSources'));
     }
-    public function history($id)
+    public function history(int $id)
     {
         // Debug the incoming id
         Log::info('Trying to edit applicant with ID: ' . $id);
@@ -1522,13 +1528,13 @@ class ApplicantController extends Controller
             ], 500);
         }
     }
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $applicant = Applicant::findOrFail($id);
         $applicant->delete();
         return redirect()->route('applicants.list')->with('success', 'Applicant deleted successfully');
     }
-    public function show($id)
+    public function show(int $id)
     {
         $applicant = Applicant::findOrFail($id);
         return view('applicants.show', compact('applicant'));
@@ -2085,7 +2091,7 @@ class ApplicantController extends Controller
     }
 
     // Helper methods
-    private function handleHangupCall($request, $user, $applicant, $sale, $notes)
+    private function handleHangupCall(Request $request, User $user, Applicant $applicant, Sale $sale, int $notes)
     {
         $noteDetail = '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
         $noteDetail .= '<strong>Call Hung up/Not Interested:</strong> Yes<br>';
