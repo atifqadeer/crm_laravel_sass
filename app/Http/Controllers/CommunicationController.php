@@ -474,6 +474,7 @@ class CommunicationController extends Controller
                 $data['module_id'] = $contact->contactable_id;
                 $data['module_type'] = $contact->contactable_type;
             } else {
+                $data['module_id'] = null;
                 $data['module_type'] = 'unknown';
             }
 
