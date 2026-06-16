@@ -19,3 +19,15 @@ yarn-error.log
 /.idea
 /.vscode
 /vite.config.js
+
+# backups / dumps
+*.sql
+*.zip
+
+# runtime data
+/public/uploads/
+/data.ms/
+/meilisearch/
+
+# laravel storage (already partially ignored but ensure)
+/storage/*.log
