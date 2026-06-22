@@ -243,7 +243,7 @@ class SaleController extends Controller
             'qualification' => 'required',
             'sale_notes' => 'required',
             'job_description' => 'nullable|string',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:10000', // max 10MB
+            'attachments.*' => 'nullable|file|extensions:pdf,doc,docx,txt|max:10000', // max 10MB
         ]);
 
         if ($validator->fails()) {
@@ -440,12 +440,11 @@ class SaleController extends Controller
             'qualification' => 'required',
             'sale_notes' => 'required',
             'job_description' => 'nullable',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,csv|max:10000',
+            'attachments.*' => 'file|mimes:pdf,doc,docx,txt|max:10000',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
                 'errors' => $validator->errors(),
                 'message' => 'Please fix the errors in the form'
             ], 422);
@@ -3121,15 +3120,15 @@ class SaleController extends Controller
 
             // Handle special cases first
             if ($orderColumn === 'job_source') {
-                $model->orderBy('job_source_id', $orderDirection);
+                    $model->orderBy('job_source_id', $orderDirection);
             } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('job_category_id', $orderDirection);
+                    $model->orderBy('job_category_id', $orderDirection);
             } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('job_title_id', $orderDirection);
+                    $model->orderBy('job_title_id', $orderDirection);
             }
             // Default case for valid columns
             elseif ($orderColumn && $orderColumn !== 'DT_RowIndex' && $orderColumn !== 'checkbox') {
-                $model->orderBy($orderColumn, $orderDirection);
+                    $model->orderBy($orderColumn, $orderDirection);
             }
             // Fallback if no valid order column is found
             else {

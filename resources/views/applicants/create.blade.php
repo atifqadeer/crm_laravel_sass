@@ -442,11 +442,14 @@
                 // Collect form data
                 const formData = new FormData(form);
 
-                // Add Dropzone file data to FormData
-            const dropzoneFiles = Dropzone.instances[0].getAcceptedFiles();  // Assuming Dropzone instance is properly initialized
-                dropzoneFiles.forEach(function(file) {
-                    formData.append('applicant_cv', file);
-                });
+                // Add Dropzone file data to FormData safely
+                const dropzoneEl = document.querySelector("#applicantCvDropzone");
+                if (dropzoneEl && dropzoneEl.dropzone) {
+                    const dropzoneFiles = dropzoneEl.dropzone.getAcceptedFiles();
+                    dropzoneFiles.forEach(function(file) {
+                        formData.append('applicant_cv', file);
+                    });
+                }
 
                 // Submit form data with the file attached
                 fetch(form.action, {
