@@ -234,5 +234,54 @@
         }
     });
 </script>
+<script>
+    function trimEdgeWhitespace(value) {
+        // Removes whitespace only from the start and end; preserves internal whitespace.
+        return String(value).replace(/^\s+|\s+$/g, '');
+    }
+
+    function removeAllWhitespace(value) {
+        // Removes *all* whitespace characters (spaces, tabs, newlines, etc.)
+        return String(value).replace(/\s+/g, '');
+    }
+
+    function setCaretToEndAfterPaste(el, startIndex, insertedText) {
+        const cursor = startIndex + String(insertedText).length;
+        if (typeof el.setSelectionRange === 'function') {
+            el.setSelectionRange(cursor, cursor);
+        }
+        el.dispatchEvent(new Event('input', {
+            bubbles: true
+        }));
+    }
+
+    document.addEventListener('paste', (e) => {
+        const el = e.target;
+        if (!el || !(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
+
+        const text = e.clipboardData?.getData('text') ?? '';
+
+        // If this is an email input (type="email"), remove each whitespace inside too.
+        // Note: we only apply this when the user pastes.
+        const isEmailField = el instanceof HTMLInputElement && el.type === 'email';
+
+        const normalized = isEmailField ?
+            removeAllWhitespace(text) :
+            trimEdgeWhitespace(text);
+
+        // If nothing to change, let default behavior happen
+        if (normalized === text) return;
+
+        e.preventDefault();
+
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? el.value.length;
+
+        el.value = el.value.slice(0, start) + normalized + el.value.slice(end);
+
+        setCaretToEndAfterPaste(el, start, normalized);
+    });
+</script>
+
 @include('layouts.partials/xplosip-widget')
 @yield('script-bottom')

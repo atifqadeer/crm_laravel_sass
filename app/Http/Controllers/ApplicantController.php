@@ -124,7 +124,7 @@ class ApplicantController extends Controller
                 ],
                 'applicant_experience' => 'nullable|string',
                 'applicant_notes' => 'required|string|max:255',
-                'applicant_cv' => 'nullable|file|mimes:docx,doc,csv,pdf,txt|max:10000',
+                'applicant_cv' => 'nullable|file|mimes:docx,doc,pdf,txt|max:10000',
             ],
             [
                 // Custom error messages
@@ -1316,7 +1316,7 @@ class ApplicantController extends Controller
                 // Other fields
                 'applicant_experience' => 'nullable|string',
                 'applicant_notes' => 'required|string|max:255',
-                'applicant_cv' => 'file|mimes:docx,doc,csv,pdf,txt|max:10000', // 10MB
+                'applicant_cv' => 'file|mimes:docx,doc,pdf,txt|max:10000', // 10MB
             ],
             [
                 'applicant_email_secondary.different' => 'Secondary email must be different from primary email.',

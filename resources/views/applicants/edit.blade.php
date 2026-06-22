@@ -176,7 +176,7 @@
                                 <i class="h1 ri-upload-cloud-2-line"></i>
                                 <h3>Drop files here or click to upload.</h3>
                                 <span class="text-muted fs-13">
-                                    Allowed file types: docx, doc, csv, pdf (Max 10MB)
+                                    Allowed file types: docx, doc, pdf, txt (Max 10MB)
                                 </span>
                             </div>
                         </div>
