@@ -44,6 +44,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-export-all',
             'applicant-export-emails',
             'applicant-import',
+            'applicant-show-blocked-data',
 
              // Office Permissions
             'office-index',

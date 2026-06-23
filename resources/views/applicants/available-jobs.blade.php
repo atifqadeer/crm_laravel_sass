@@ -7,47 +7,63 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-lg-12">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>PostCode:</strong><span  style="font-size:18px;"> {{ strtoupper($applicant->applicant_postcode) ?? 'N/A' }}</span></li>
-                                    <li><strong>Name:</strong> {{ $applicant->applicant_name ?? 'N/A' }}</li>
-                                    <li><strong>Email <small>(Primary)</small>:</strong> {{ $applicant->applicant_email ?? 'N/A' }}</li>
-                                    <li><strong>Email <small>(Secondary)</small>:</strong> {{ $applicant->applicant_email_secondary ?? 'N/A' }}</li>
-                                    <li><strong>Phone <small>(Primary)</small>:</strong> {{ $applicant->applicant_phone ?? 'N/A' }}</li>
-                                    <li><strong>Phone <small>(Secondary)</small>:</strong> {{ $applicant->applicant_phone_secondary ?? 'N/A' }}</li>
-                                    <li><strong>Landline:</strong> {{ $applicant->applicant_landline ?? 'N/A' }}</li>
-                                </ul>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>PostCode:</strong>
+                                            <span style="font-size:18px;">
+                                                {{ strtoupper($applicant->applicant_postcode) ?? 'N/A' }}
+                                            </span>
+                                            <button type="button"
+                                                class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode"
+                                                data-postcode="{{ strtoupper($applicant->applicant_postcode ?? 'N/A') }}"
+                                                title="Copy Postcode">
+                                                <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                            </button>
+                                        </li>
+                                        <li><strong>Name:</strong> {{ $applicant->applicant_name ?? 'N/A' }}</li>
+                                        <li><strong>Email <small>(Primary)</small>:</strong>
+                                            {{ $applicant->applicant_email ?? 'N/A' }}</li>
+                                        <li><strong>Email <small>(Secondary)</small>:</strong>
+                                            {{ $applicant->applicant_email_secondary ?? 'N/A' }}</li>
+                                        <li><strong>Phone <small>(Primary)</small>:</strong>
+                                            {{ $applicant->applicant_phone ?? 'N/A' }}</li>
+                                        <li><strong>Phone <small>(Secondary)</small>:</strong>
+                                            {{ $applicant->applicant_phone_secondary ?? 'N/A' }}</li>
+                                        <li><strong>Landline:</strong> {{ $applicant->applicant_landline ?? 'N/A' }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Applicant ID#:</strong> {{ $applicant->id ?? 'N/A' }}</li>
+                                        <li><strong>Gender:</strong>
+                                            @if ($applicant->gender == 'm')
+                                                Male
+                                            @elseif($applicant->gender == 'f')
+                                                Female
+                                            @else
+                                                Unknown
+                                            @endif
+                                        </li>
+                                        <li><strong>Category:</strong>
+                                            {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
+                                        <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
+                                        <li><strong>Source:</strong> {{ $jobSource ? ucwords($jobSource->name) : 'N/A' }}
+                                        </li>
+                                        <li><strong>Status:</strong>
+                                            @php
+                                                $status = $applicant->status;
+                                                if ($status == '1') {
+                                                    $statusClass = '<span class="badge bg-success">Active</span>';
+                                                } else {
+                                                    $statusClass = '<span class="badge bg-danger">Inactive</span>';
+                                                }
+                                            @endphp
+                                            {!! $statusClass !!}
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>Applicant ID#:</strong> {{ $applicant->id ?? 'N/A' }}</li>
-                                    <li><strong>Gender:</strong>
-                                        @if($applicant->gender == 'm')
-                                            Male
-                                        @elseif($applicant->gender == 'f')
-                                            Female
-                                        @else
-                                            Unknown
-                                        @endif
-                                    </li>
-                                    <li><strong>Category:</strong> {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
-                                    <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
-                                    <li><strong>Source:</strong> {{ $jobSource ? ucwords($jobSource->name) : 'N/A' }}</li>
-                                    <li><strong>Status:</strong>
-                                        @php
-                                            $status = $applicant->status;
-                                            if ($status == '1') {
-                                                $statusClass = '<span class="badge bg-success">Active</span>';
-                                            } else {
-                                                $statusClass = '<span class="badge bg-danger">Inactive</span>';
-                                            }
-                                        @endphp
-                                        {!! $statusClass !!}
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
                         </div>
                     </div>
                 </div>
@@ -61,11 +77,13 @@
                     <div class="row">
                         <div class="col-xl-12">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h4 class="card-title">Active Jobs within {{ $radius }}KMs / {{ $radiusInMiles }}Miles</h4>
+                                <h4 class="card-title">Active Jobs within {{ $radius }}KMs /
+                                    {{ $radiusInMiles }}Miles</h4>
                                 <div>
                                     <!-- Button Dropdown -->
                                     <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
@@ -129,28 +147,28 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
-    
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -171,10 +189,10 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#sales_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getAvailableJobs')),  // Fetch data from the backend
+                    url: @json(route('getAvailableJobs')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         d.applicant_id = {{ $applicant->id }};
@@ -191,51 +209,92 @@
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'office_name', name: 'offices.office_name'},
-                    { data: 'unit_name', name: 'units.unit_name'  },
-                    { data: 'position_type', name: 'sales.position_type', searchable: false },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
-                    { data: 'experience', name: 'sales.experience' },
-                    { data: 'qualification', name: 'sales.qualification' },
-                    { data: 'salary', name: 'sales.salary' },
-                    { data: 'cv_limit', name: 'sales.cv_limit' },
-                    { data: 'sale_notes', name: 'sales.sale_notes', orderable: false },
-                    { data: 'status', name: 'sales.status', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'updated_at',
+                        name: 'sales.updated_at'
+                    },
+                    {
+                        data: 'office_name',
+                        name: 'offices.office_name'
+                    },
+                    {
+                        data: 'unit_name',
+                        name: 'units.unit_name'
+                    },
+                    {
+                        data: 'position_type',
+                        name: 'sales.position_type',
+                        searchable: false
+                    },
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'sale_postcode',
+                        name: 'sales.sale_postcode'
+                    },
+                    {
+                        data: 'experience',
+                        name: 'sales.experience'
+                    },
+                    {
+                        data: 'qualification',
+                        name: 'sales.qualification'
+                    },
+                    {
+                        data: 'salary',
+                        name: 'sales.salary'
+                    },
+                    {
+                        data: 'cv_limit',
+                        name: 'sales.cv_limit'
+                    },
+                    {
+                        data: 'sale_notes',
+                        name: 'sales.sale_notes',
+                        orderable: false
+                    },
+                    {
+                        data: 'status',
+                        name: 'sales.status',
+                        orderable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
                 columnDefs: [
                     {
-                        targets: 10,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 13,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 13, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -245,7 +304,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#sales_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#sales_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -259,39 +319,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -312,7 +374,7 @@
                 },
             });
             // Status filter dropdown handler
-            $('.status-filter').on('click', function () {
+            $('.status-filter').on('click', function() {
                 currentFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -346,14 +408,14 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-    
+
         // Function to mark as not interested modal
         function markNotInterestedModal(applicantID, saleID) {
             const modalId = `markApplicantNotInterestedModal-${applicantID}-${saleID}`;
@@ -397,7 +459,7 @@
             $(`#${modalId}`).modal('show');
 
             // Handle save click
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
@@ -406,7 +468,7 @@
                         $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
 
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -421,11 +483,13 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // AJAX
                 $.ajax({
-                    url: '{{ route("markApplicantNotInterestedOnSale") }}',
+                    url: '{{ route('markApplicantNotInterestedOnSale') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
@@ -433,17 +497,17 @@
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Marked as not interested successfully!');
                         $(`#${modalId}`).modal('hide');
                         $(`#${formId}`)[0].reset();
                         $(`#${textareaId}`).removeClass('is-valid').next('.invalid-feedback').remove();
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         toastr.error('An error occurred while saving notes.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -668,7 +732,7 @@
             }
 
             // Reset form on modal show
-            $(`#${modalId}`).on('show.bs.modal', function () {
+            $(`#${modalId}`).on('show.bs.modal', function() {
                 $(`#${formId}`)[0].reset();
                 $(`#${noteId}`).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
             });
@@ -677,7 +741,7 @@
             $(`#${modalId}`).modal('show');
 
             // Handle save button click
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${noteId}`).val();
 
                 if (!notes) {
@@ -686,7 +750,7 @@
                         $(`#${noteId}`).after('<div class="invalid-feedback">Please enter note details.</div>');
                     }
 
-                    $(`#${noteId}`).on('input', function () {
+                    $(`#${noteId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -700,25 +764,27 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = $(`#${formId}`).serialize() + '&_token={{ csrf_token() }}';
 
                 $.ajax({
-                    url: '{{ route("sendCVtoQuality") }}',
+                    url: '{{ route('sendCVtoQuality') }}',
                     type: 'POST',
                     data: formData,
-                    success: function (response) {
+                    success: function(response) {
                         console.log(response);
                         toastr.success(response.message);
 
                         $(`#${modalId}`).modal('hide');
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function () {
+                    error: function() {
                         toastr.error(response.message);
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -768,7 +834,7 @@
             $(`#${modalId}`).modal('show');
 
             // Save button click handler
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
@@ -777,7 +843,7 @@
                         $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
 
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -793,28 +859,30 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Send via AJAX
                 $.ajax({
-                    url: '{{ route("markApplicantNoNursingHome") }}',
+                    url: '{{ route('markApplicantNoNursingHome') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Marked as no nursing home successfully!');
                         $(`#${modalId}`).modal('hide');
                         $(`#${formId}`)[0].reset();
                         $(`#${textareaId}`).removeClass('is-valid').next('.invalid-feedback').remove();
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         toastr.error('An error occurred while saving.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -864,7 +932,7 @@
             $(`#${modalId}`).modal('show');
 
             // Attach save button handler (remove old if re-attached)
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
@@ -874,7 +942,7 @@
                     }
 
                     // Real-time validation
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -890,11 +958,13 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // AJAX request
                 $.ajax({
-                    url: '{{ route("markApplicantCallback") }}',
+                    url: '{{ route('markApplicantCallback') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
@@ -902,23 +972,22 @@
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Mark callback saved successfully!');
                         $(`#${modalId}`).modal('hide');
                         $(`#${formId}`)[0].reset();
                         $(`#${textareaId}`).removeClass('is-valid').next('.invalid-feedback').remove();
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         toastr.error('An error occurred while saving notes.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-
     </script>
 @endsection
 @endsection

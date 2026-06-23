@@ -299,7 +299,7 @@ class ApplicantController extends Controller
 
             $jobCategory = JobCategory::find($request->job_category_id);
             $jobCategoryName = $jobCategory ? $jobCategory->name : '';
-            
+
             $jobTitle = JobTitle::find($request->job_title_id);
             $jobTitleName = $jobTitle ? $jobTitle->name : '';
 
@@ -854,7 +854,7 @@ class ApplicantController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-    
+
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -869,7 +869,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-    
+
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -877,7 +877,7 @@ class ApplicantController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-    
+
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -1851,7 +1851,7 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-               ->addColumn('job_details', function ($row) {
+                ->addColumn('job_details', function ($row) {
                     $status = match ((int) $row->sale_status) {
                         1 => 'Active|bg-success',
                         0 => 'Closed|bg-danger',
@@ -2517,7 +2517,17 @@ class ApplicantController extends Controller
                     ';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    return $sale->formatted_postcode; // Using accessor
+                    $rawPostcode = trim($sale->sale_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $sale->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($sale->sale_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                 })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
@@ -2664,7 +2674,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'position_type', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'sale_postcode', 'paid_status', 'experience', 'position_type', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

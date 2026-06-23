@@ -152,7 +152,33 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'job_sources.name as job_source_name',
                         DB::raw("(ACOS(SIN($lat * PI() / 180) * SIN(lat * PI() / 180) + 
                                     COS($lat * PI() / 180) * COS(lat * PI() / 180) * 
-                                    COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance")
+                                    COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance"),
+                        // ✅ Single variable: picks module_notes first, falls back to applicant_notes
+                        DB::raw("
+                            COALESCE(
+                                (SELECT mn.details FROM module_notes mn
+                                WHERE mn.module_noteable_id = applicants.id
+                                AND mn.module_noteable_type = 'Horsefly\\\\Applicant'
+                                ORDER BY mn.created_at DESC LIMIT 1),
+                                (SELECT an.details FROM applicant_notes an
+                                WHERE an.applicant_id = applicants.id
+                                ORDER BY an.created_at DESC LIMIT 1)
+                            ) AS notes_details
+                        "),
+
+                        // ✅ Single variable: picks module_notes date first, falls back to applicant_notes, then updated_at
+                        DB::raw("
+                            COALESCE(
+                                (SELECT mn.created_at FROM module_notes mn
+                                WHERE mn.module_noteable_id = applicants.id
+                                AND mn.module_noteable_type = 'Horsefly\\\\Applicant'
+                                ORDER BY mn.created_at DESC LIMIT 1),
+                                (SELECT an.created_at FROM applicant_notes an
+                                WHERE an.applicant_id = applicants.id
+                                ORDER BY an.created_at DESC LIMIT 1),
+                                applicants.updated_at
+                            ) AS notes_created_at
+                        "),
                     ])
                     ->where('applicants.status', 1)
                     ->where('applicants.is_blocked', 0)
@@ -195,7 +221,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
                 // Filter applicants by the job title IDs
                 $model->whereIn('applicants.job_title_id', $jobTitleIds)
-                    ->orderBy('applicants.updated_at', 'desc');
+                    ->orderBy('notes_created_at', 'desc');
 
                 // Fetch all applicants without pagination
                 $applicants = $model->get(); // No pagination here, we are getting all the results
@@ -203,7 +229,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 // Map the results into the desired format
                 $finalResults = $applicants->map(function ($item) use ($sale_id) {
                     return [
-                        'updated_at' => $item->updated_at ? $item->updated_at->format('d M Y, h:i A') : 'N/A',
+                        'date' => $item->notes_created_at ? Carbon::parse($item->notes_created_at)->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
                         'applicant_email' => $item->applicant_email,
                         'applicant_email_secondary' => $item->applicant_email_secondary,
@@ -217,11 +243,11 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicant_experience' => $item->applicant_experience,
                         'applicant_source' => $item->job_source_name ? strtoupper($item->job_source_name) : '',
                         'have_nursing_home_experience' =>
-                            $item->have_nursing_home_experience == 1
+                        $item->have_nursing_home_experience == 1
                             ? 'Yes'
                             : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
 
-                        'applicant_notes' => htmlspecialchars($item->applicant_notes),
+                        'applicant_notes' => htmlspecialchars($item->notes_details),
                         'status' => (function () use ($item, $sale_id) {
                             // Default
                             $status_value = 'Open';
@@ -254,7 +280,6 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             }
 
                             return ucwords($status_value);
-
                         })(),
 
                     ];
@@ -606,7 +631,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'all':
                 return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
             case 'withinRadius':
-                return ['Updated At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
