@@ -163,12 +163,12 @@
                                     </div>
                                 
                                     <!-- Dropzone -->
-                                    <div id="applicantCvDropzone" class="dropzone dz-clickable">
+                                    <div id="salesAttachmentDropzone" class="dropzone dz-clickable">
                                         <div class="dz-message needsclick">
                                             <i class="h1 ri-upload-cloud-2-line"></i>
                                             <h3>Drop files here or click to upload.</h3>
                                             <span class="text-muted fs-13">
-                                                Allowed file types: docx, doc, csv, pdf (Max 10MB)
+                                                Allowed file types: docx, doc, pdf, txt (Max 10MB)
                                             </span>
                                         </div>
                                     </div>
@@ -331,10 +331,14 @@
                 // Gather form data
                 const formData = new FormData(form);
 
-                const dropzoneFiles = Dropzone.instances[0].getAcceptedFiles();  // Assuming Dropzone instance is properly initialized
-                dropzoneFiles.forEach(function(file) {
-                    formData.append('attachments[]', file);
-                });
+                // Add Dropzone file data to FormData safely
+                const dropzoneEl = document.querySelector("#salesAttachmentDropzone");
+                if (dropzoneEl && dropzoneEl.dropzone) {
+                    const dropzoneFiles = dropzoneEl.dropzone.getAcceptedFiles();
+                    dropzoneFiles.forEach(function(file) {
+                        formData.append('attachments[]', file);
+                    });
+                }
 
                 fetch(form.action, {
                         method: 'POST',

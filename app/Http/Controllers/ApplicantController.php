@@ -62,11 +62,6 @@ class ApplicantController extends Controller
         return strtoupper(preg_replace('/[\s\-]/', '', trim($postcode)));
     }
 
-    /**
-     * Display a listing of the applicants.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
@@ -124,7 +119,7 @@ class ApplicantController extends Controller
                 ],
                 'applicant_experience' => 'nullable|string',
                 'applicant_notes' => 'required|string|max:255',
-                'applicant_cv' => 'nullable|file|mimes:docx,doc,csv,pdf,txt|max:10000',
+                'applicant_cv' => 'nullable|file|extensions:docx,doc,pdf,txt|max:10000',
             ],
             [
                 // Custom error messages
@@ -304,7 +299,7 @@ class ApplicantController extends Controller
 
             $jobCategory = JobCategory::find($request->job_category_id);
             $jobCategoryName = $jobCategory ? $jobCategory->name : '';
-            
+
             $jobTitle = JobTitle::find($request->job_title_id);
             $jobTitleName = $jobTitle ? $jobTitle->name : '';
 
@@ -859,7 +854,7 @@ class ApplicantController extends Controller
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
-    
+
                     $query->where(function ($q) use ($clean) {
                         $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
@@ -874,7 +869,7 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-    
+
                     if ($path && str_starts_with($path, 'uploads/')) {
 
                         $fullPath = public_path($path);
@@ -882,7 +877,7 @@ class ApplicantController extends Controller
                         if (!$applicant->is_blocked && file_exists($fullPath)) {
 
                             $url = asset($path); // direct public URL
-    
+
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                         <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
                                     </a>';
@@ -1316,7 +1311,7 @@ class ApplicantController extends Controller
                 // Other fields
                 'applicant_experience' => 'nullable|string',
                 'applicant_notes' => 'required|string|max:255',
-                'applicant_cv' => 'file|mimes:docx,doc,csv,pdf,txt|max:10000', // 10MB
+                'applicant_cv' => 'nullable|file|extensions:docx,doc,pdf,txt|max:10000', // 10MB
             ],
             [
                 'applicant_email_secondary.different' => 'Secondary email must be different from primary email.',
@@ -1598,7 +1593,7 @@ class ApplicantController extends Controller
     {
         // ✅ Validate request
         $request->validate([
-            'resume' => 'required|file|mimes:pdf,doc,docx,txt|max:10240',
+            'resume' => 'required|file|extensions:pdf,doc,docx,txt|max:10240',
             'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
@@ -1856,7 +1851,7 @@ class ApplicantController extends Controller
                         </div>
                     ';
                 })
-               ->addColumn('job_details', function ($row) {
+                ->addColumn('job_details', function ($row) {
                     $status = match ((int) $row->sale_status) {
                         1 => 'Active|bg-success',
                         0 => 'Closed|bg-danger',
@@ -1899,6 +1894,258 @@ class ApplicantController extends Controller
                 ->make(true);
         }
     }
+    /*** working with history ***/
+    // public function getApplicantHistoryAjaxRequest(Request $request)
+    // {
+    //     $id = $request->applicant_id;
+
+    //     $model = Applicant::query()
+    //         ->where('applicants.id', $id)
+
+    //         // Applicant -> History
+    //         ->join('history', function ($join) {
+    //             $join->on('history.applicant_id', '=', 'applicants.id')
+    //                 ->where('history.status', 1);
+    //         })
+
+    //         // History -> Sales
+    //         ->join('sales', 'sales.id', '=', 'history.sale_id')
+
+    //         // Latest CRM note for same applicant + sale
+    //         ->leftJoinSub(
+    //             DB::table('crm_notes')
+    //                 ->select(
+    //                     'id',
+    //                     'applicant_id',
+    //                     'sale_id',
+    //                     'details',
+    //                     'created_at'
+    //                 )
+    //                 ->whereIn('id', function ($query) {
+    //                     $query->selectRaw('MAX(id)')
+    //                         ->from('crm_notes')
+    //                         ->groupBy('applicant_id', 'sale_id');
+    //                 }),
+    //             'latest_crm',
+    //             function ($join) {
+    //                 $join->on('latest_crm.applicant_id', '=', 'history.applicant_id')
+    //                     ->on('latest_crm.sale_id', '=', 'history.sale_id');
+    //             }
+    //         )
+
+    //         // Latest Quality note for same applicant + sale
+    //         ->leftJoinSub(
+    //             DB::table('quality_notes')
+    //                 ->select(
+    //                     'id',
+    //                     'applicant_id',
+    //                     'sale_id',
+    //                     'details',
+    //                     'created_at'
+    //                 )
+    //                 ->where('status', 1)
+    //                 ->whereIn('id', function ($query) {
+    //                     $query->selectRaw('MAX(id)')
+    //                         ->from('quality_notes')
+    //                         ->where('status', 1)
+    //                         ->groupBy('applicant_id', 'sale_id');
+    //                 }),
+    //             'latest_quality',
+    //             function ($join) {
+    //                 $join->on('latest_quality.applicant_id', '=', 'history.applicant_id')
+    //                     ->on('latest_quality.sale_id', '=', 'history.sale_id');
+    //             }
+    //         )
+
+    //         ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //         ->join('units', 'units.id', '=', 'sales.unit_id')
+
+    //         ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+    //         ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+
+    //         ->select([
+
+    //             // Applicant
+    //             'applicants.id as app_id',
+    //             'applicants.applicant_name',
+
+    //             // History
+    //             'history.sub_stage as history_sub_stage',
+    //             'history.created_at as history_created_at',
+
+    //             // CRM
+    //             'latest_crm.id as crm_notes_id',
+    //             'latest_crm.details as crm_note_details',
+    //             'latest_crm.created_at as crm_notes_created_at',
+
+    //             // Quality
+    //             'latest_quality.id as quality_notes_id',
+    //             'latest_quality.details as quality_note_details',
+    //             'latest_quality.created_at as quality_notes_created_at',
+
+    //             // Sale
+    //             'sales.id as sale_id',
+    //             'sales.sale_postcode',
+    //             'sales.is_on_hold',
+    //             'sales.status as sale_status',
+    //             'sales.job_type as sale_job_type',
+    //             'sales.position_type',
+    //             'sales.experience as sale_experience',
+    //             'sales.qualification as sale_qualification',
+    //             'sales.salary',
+    //             'sales.timing',
+    //             'sales.created_at as sale_posted_date',
+    //             'sales.benefits',
+
+    //             // Office / Unit
+    //             'offices.office_name',
+    //             'units.unit_name',
+
+    //             // Jobs
+    //             'job_titles.name as job_title_name',
+    //             'job_categories.name as job_category_name',
+    //         ]);
+
+    //     /*** Sorting */
+    //     if ($request->has('order')) {
+    //         $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+    //         $direction = $request->input('order.0.dir', 'asc');
+
+    //         switch ($orderColumn) {
+    //             case 'job_category':
+    //                 $model->orderBy('job_category_name', $direction);
+    //                 break;
+    //             case 'job_title':
+    //                 $model->orderBy('job_title_name', $direction);
+    //                 break;
+    //             case 'crm_note_details':
+    //                 $model->orderBy('crm_note_details', $direction);
+    //                 break;
+    //             case 'history_sub_stage':
+    //                 $model->orderBy('history_sub_stage', $direction);
+    //                 break;
+    //             case 'sale_postcode':
+    //                 $model->orderBy('sale_postcode', $direction);
+    //                 break;
+    //             case 'crm_notes_created_at':
+    //                 $model->orderBy('crm_notes_created_at', $direction);
+    //                 break;
+    //             case 'history_created_at':
+    //                 $model->orderBy('history_created_at', $direction);
+    //                 break;
+    //             default:
+    //                 if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+    //                     $model->orderBy($orderColumn, $direction);
+    //                 } else {
+    //                     $model->orderBy('history_created_at', 'desc');
+    //                 }
+    //         }
+    //     } else {
+    //         $model->orderBy('history_created_at', 'desc');
+    //     }
+
+    //     /*** Search */
+    //     if ($request->has('search.value')) {
+    //         $search = $request->input('search.value');
+
+    //         $model->where(function ($q) use ($search) {
+    //             $q->where('history.sub_stage', 'LIKE', "%{$search}%")
+    //                 ->orWhere('history.created_at', 'LIKE', "%{$search}%")
+    //                 ->orWhere('latest_crm.details', 'LIKE', "%{$search}%") // use latest_crm alias
+    //                 ->orWhere('sales.sale_postcode', 'LIKE', "%{$search}%")
+    //                 ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('offices.office_name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('units.unit_name', 'LIKE', "%{$search}%");
+    //         });
+    //     }
+
+    //     if ($request->ajax()) {
+    //         return DataTables::eloquent($model)
+    //             ->addIndexColumn()
+    //             ->addColumn('history_created_at', function ($row) {
+    //                 return Carbon::parse($row->history_created_at)->format('d M Y, h:i A');
+    //             })
+    //             ->addColumn('job_title', function ($row) {
+    //                 return $row->job_title_name ? strtoupper($row->job_title_name) : '-';
+    //             })
+    //             ->addColumn('sub_stage', function ($row) {
+    //                 return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->history_sub_stage)) . '</span>';
+    //             })
+    //             ->addColumn('details', function ($row) {
+    //                 $notesDetails = '';
+
+    //                 if ($row->quality_note_details) {
+    //                     $notesDetails = $row->quality_note_details;
+    //                 } else if ($row->crm_note_details) {
+    //                     $notesDetails = $row->crm_note_details;
+    //                 }
+
+    //                 $short = Str::limit(strip_tags($notesDetails), 100);
+    //                 $full = e($notesDetails);
+    //                 $id = 'note-' . $row->crm_notes_id;
+
+    //                 return '
+    //                     <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+    //                     <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
+    //                         <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    //                             <div class="modal-content">
+    //                                 <div class="modal-header">
+    //                                     <h5 class="modal-title">Notes</h5>
+    //                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    //                                 </div>
+    //                                 <div class="modal-body">' . nl2br($full) . '</div>
+    //                                 <div class="modal-footer">
+    //                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+    //                                 </div>
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 ';
+    //             })
+    //             ->addColumn('job_details', function ($row) {
+    //                 $status = match ((int) $row->sale_status) {
+    //                     1 => 'Active|bg-success',
+    //                     0 => 'Closed|bg-danger',
+    //                     2 => 'Pending|bg-warning',
+    //                     3 => 'Rejected|bg-danger',
+    //                     default => 'Unknown|bg-secondary',
+    //                 };
+
+    //                 $data = htmlspecialchars(json_encode([
+    //                     'sale_id'       => $row->sale_id,
+    //                     'posted_date'   => Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'),
+    //                     'office'        => $row->office_name,
+    //                     'unit'          => $row->unit_name,
+    //                     'postcode'      => $row->sale_postcode,
+    //                     'category'      => $row->job_category_name,
+    //                     'title'         => $row->job_title_name,
+    //                     'status'        => $status,
+    //                     'timing'        => strip_tags($row->timing ?? ''),
+    //                     'experience'    => strip_tags($row->sale_experience ?? ''),
+    //                     'salary'        => strip_tags($row->salary ?? ''),
+    //                     'position'      => strtoupper(str_replace('-', ' ', $row->position_type ?? '')),
+    //                     'qualification' => strip_tags($row->sale_qualification ?? ''),
+    //                     'benefits'      => strip_tags($row->benefits ?? ''),
+    //                 ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
+
+    //                 return '<a href="javascript:void(0);" class="show-job-details" data-info="' . $data . '">
+    //                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+    //                         </a>';
+    //             })
+    //             ->addColumn('job_category', function ($row) {
+    //                 $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
+    //                 return $row->job_category_name ? $row->job_category_name . $stype : '-';
+    //             })
+    //             ->addColumn('action', function ($row) {
+    //                 return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int) $row->app_id . ',' . (int) $row->sale_id . ')">
+    //                             <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
+    //                         </a>';
+    //             })
+    //             ->rawColumns(['history_created_at', 'details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
+    //             ->make(true);
+    //     }
+    // }
     private function generateJobDetailsModal($data)
     {
         $modalId = 'jobDetailsModal_' . $data->sale_id;  // Unique modal ID for each applicant's job details
@@ -2522,7 +2769,17 @@ class ApplicantController extends Controller
                     ';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    return $sale->formatted_postcode; // Using accessor
+                    $rawPostcode = trim($sale->sale_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $sale->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($sale->sale_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                 })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
@@ -2669,7 +2926,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['sale_notes', 'paid_status', 'experience', 'position_type', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'sale_postcode', 'paid_status', 'experience', 'position_type', 'qualification', 'salary', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }

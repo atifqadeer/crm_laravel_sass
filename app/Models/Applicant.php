@@ -116,7 +116,7 @@ class Applicant extends Model
         'applicant_landline_normalized',
     ];
 
-      /**
+    /**
      * Cached check for whether the indexed *_normalized phone columns exist.
      * Lets scopePhoneMatches() and the saving hook work both before and after
      * the add_normalized_phone_columns migration has been run, with a single
@@ -147,12 +147,12 @@ class Applicant extends Model
     protected static function booted(): void
     {
         static::saving(function (self $applicant) {
-            if (! static::hasPhoneNormalizedColumns()) {
+            if (!static::hasPhoneNormalizedColumns()) {
                 return;
             }
-            $applicant->applicant_phone_normalized           = PhoneNumber::normalize($applicant->applicant_phone);
+            $applicant->applicant_phone_normalized = PhoneNumber::normalize($applicant->applicant_phone);
             $applicant->applicant_phone_secondary_normalized = PhoneNumber::normalize($applicant->applicant_phone_secondary);
-            $applicant->applicant_landline_normalized        = PhoneNumber::normalize($applicant->applicant_landline);
+            $applicant->applicant_landline_normalized = PhoneNumber::normalize($applicant->applicant_landline);
         });
     }
 
@@ -164,23 +164,23 @@ class Applicant extends Model
      */
     public function scopePhoneMatches($query, ?string $number)
     {
-        $raw  = (string) $number;
+        $raw = (string) $number;
         $tail = PhoneNumber::tail($number);
 
         return $query->where(function ($q) use ($raw, $tail) {
             $q->where('applicant_phone', $raw)
-              ->orWhere('applicant_phone_secondary', $raw)
-              ->orWhere('applicant_landline', $raw);
+                ->orWhere('applicant_phone_secondary', $raw)
+                ->orWhere('applicant_landline', $raw);
 
             if ($tail !== null) {
                 if (static::hasPhoneNormalizedColumns()) {
                     $q->orWhere('applicant_phone_normalized', $tail)
-                      ->orWhere('applicant_phone_secondary_normalized', $tail)
-                      ->orWhere('applicant_landline_normalized', $tail);
+                        ->orWhere('applicant_phone_secondary_normalized', $tail)
+                        ->orWhere('applicant_landline_normalized', $tail);
                 } else {
                     $q->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_phone, '[^0-9]', ''), 10) = ?", [$tail])
-                      ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_phone_secondary, '[^0-9]', ''), 10) = ?", [$tail])
-                      ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_landline, '[^0-9]', ''), 10) = ?", [$tail]);
+                        ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_phone_secondary, '[^0-9]', ''), 10) = ?", [$tail])
+                        ->orWhereRaw("RIGHT(REGEXP_REPLACE(applicant_landline, '[^0-9]', ''), 10) = ?", [$tail]);
                 }
             }
         });
@@ -234,7 +234,7 @@ class Applicant extends Model
     {
         // Default searchable columns (must exist in the table for the 'database' engine)
         $array = [
-            'id' => (int)$this->id,
+            'id' => (int) $this->id,
             'applicant_name' => $this->applicant_name,
             'applicant_email' => $this->applicant_email,
             'applicant_email_secondary' => $this->applicant_email_secondary,

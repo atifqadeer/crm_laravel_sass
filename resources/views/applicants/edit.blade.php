@@ -176,7 +176,7 @@
                                 <i class="h1 ri-upload-cloud-2-line"></i>
                                 <h3>Drop files here or click to upload.</h3>
                                 <span class="text-muted fs-13">
-                                    Allowed file types: docx, doc, csv, pdf (Max 10MB)
+                                    Allowed file types: docx, doc, pdf, txt (Max 10MB)
                                 </span>
                             </div>
                         </div>
@@ -301,11 +301,14 @@
             // Collect form data
             const formData = new FormData(form);
 
-            // Add Dropzone file data to FormData
-            const dropzoneFiles = Dropzone.instances[0].getAcceptedFiles();  // Assuming Dropzone instance is properly initialized
-            dropzoneFiles.forEach(function(file) {
-                formData.append('applicant_cv', file);
-            });
+            // Add Dropzone file data to FormData safely
+            const dropzoneEl = document.querySelector("#applicantCvDropzone");
+            if (dropzoneEl && dropzoneEl.dropzone) {
+                const dropzoneFiles = dropzoneEl.dropzone.getAcceptedFiles();
+                dropzoneFiles.forEach(function(file) {
+                    formData.append('applicant_cv', file);
+                });
+            }
             
             // Add any additional data
             formData.append('job_title_id', document.getElementById('job_title').value);
