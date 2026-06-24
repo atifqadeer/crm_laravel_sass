@@ -3411,19 +3411,19 @@ class SaleController extends Controller
 
                         $safe = e($num);
 
-                        $linkClass = $showBlockedData
-                            ? 'text-white text-decoration-none'
-                            : 'text-primary text-decoration-none';
+                        if ($showBlockedData) {
+                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
+                                . "<a href=\"javascript:void(0)\" "
+                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
+                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                        }
 
-                        $labelStyle = $showBlockedData
-                            ? 'style="color:#fff !important;"'
-                            : '';
-
-                        return "<strong {$labelStyle}>{$prefix}:</strong>
-                            <a href=\"javascript:void(0)\"
-                            onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
-                            class=\"{$linkClass}\"
-                            title=\"Click to dial {$safe}\">{$safe}</a>";
+                        return "<strong>{$prefix}:</strong> "
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
                     };
 
                     $parts = [];
@@ -3442,9 +3442,10 @@ class SaleController extends Controller
 
                     $phones = implode('<br>', $parts) ?: '-';
 
-                    // Only blocked + permission gets black background + white text
                     if ($showBlockedData) {
-                        return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
+                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
                     }
 
                     return $phones;
@@ -4055,7 +4056,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicantPhone', function ($row) {
 
-                    if ($row->is_blocked && !Gate::allows('row-show-blocked-data')) {
+                    if ($row->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
@@ -4066,19 +4067,19 @@ class SaleController extends Controller
 
                         $safe = e($num);
 
-                        $linkClass = $showBlockedData
-                            ? 'text-white text-decoration-none'
-                            : 'text-primary text-decoration-none';
+                        if ($showBlockedData) {
+                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
+                                . "<a href=\"javascript:void(0)\" "
+                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
+                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                        }
 
-                        $labelStyle = $showBlockedData
-                            ? 'style="color:#fff !important;"'
-                            : '';
-
-                        return "<strong {$labelStyle}>{$prefix}:</strong>
-                            <a href=\"javascript:void(0)\"
-                            onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
-                            class=\"{$linkClass}\"
-                            title=\"Click to dial {$safe}\">{$safe}</a>";
+                        return "<strong>{$prefix}:</strong> "
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
                     };
 
                     $parts = [];
@@ -4097,9 +4098,10 @@ class SaleController extends Controller
 
                     $phones = implode('<br>', $parts) ?: '-';
 
-                    // Only blocked + permission gets black background + white text
                     if ($showBlockedData) {
-                        return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
+                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
                     }
 
                     return $phones;

@@ -242,7 +242,8 @@
                     },
                     {
                         data: 'applicantPhone',
-                        name: 'applicantPhone'
+                        name: 'applicantPhone',
+                        orderable: false
                     },
                     {
                         data: 'stage',

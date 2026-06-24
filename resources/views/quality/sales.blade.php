@@ -15,7 +15,21 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <div class="position-relative flex-grow-1" style="display: flex;">
+                                        <input type="text" id="customSearchInput" class="form-control w-100"
+                                            placeholder="Search ...">
+                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i
+                                                class="ri-close-line"></i></button>
+                                    </div>
+                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- Status Filter Dropdown -->
                                 <div class="dropdown d-inline">
@@ -358,7 +372,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function (settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -434,6 +448,40 @@
                     pagination.html(paginationHtml);
                 },
             });
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
+
             // Type filter dropdown handler
             $('.type-filter').on('click', function () {
                 currentTypeFilter = $(this).text().toLowerCase();
