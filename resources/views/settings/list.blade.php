@@ -61,8 +61,8 @@
                             id="menu-sms" aria-controls="form-sms">SMS Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-smtp" type="button"
                             id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
-                        <button class="list-group-item list-group-item-action" data-target="#form-serpapi" type="button"
-                            id="menu-serpapi" aria-controls="form-serpapi">SerpApi Settings</button>
+                        {{-- <button class="list-group-item list-group-item-action" data-target="#form-serpapi" type="button"
+                            id="menu-serpapi" aria-controls="form-serpapi">SerpApi Settings</button> --}}
                         <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button"
                             id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
                     </div>
@@ -247,7 +247,7 @@
                             </form>
                         </section>
                         <!-- SerpApi Settings Form -->
-                        <section id="form-serpapi" class="settings-form-section">
+                        {{-- <section id="form-serpapi" class="settings-form-section">
                             <form id="serpapiSettingsForm" data-type="serpapi">
                                 @csrf
                                 <div class="mb-3">
@@ -300,7 +300,7 @@
                                     <button type="submit" class="btn btn-success">Save SerpApi Settings</button>
                                 </div>
                             </form>
-                        </section>
+                        </section> --}}
                         <!-- Scraper Settings Form -->
                         <section id="form-scraper" class="settings-form-section">
                             <form id="scraperSettingsForm" data-type="scraper">
@@ -378,6 +378,18 @@
                                                 name="actors[__INDEX__][base_url]"
                                                 value="https://api.apify.com/v2/datasets">
                                         </div>
+                                        <div class="col-md-12 mb-4">
+                                            <label class="form-label">Office Prompt <small class="text-info">(To scrap the
+                                                    office/company
+                                                    contact information)</small></label>
+                                            <textarea col="1" rows="5" name="scraper_prompt_office" class="form-control scraper-prompt-office"></textarea>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Unit Prompt <small class="text-info">(To scrap the
+                                                    unit/branch contact
+                                                    information)</small></label>
+                                            <textarea col="1" rows="5" name="scraper_prompt_unit" class="form-control scraper-prompt-unit"></textarea>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -450,6 +462,7 @@
                     // General Settings
                     if (data.general) {
                         $('#site_name').val(data.general.site_name || '');
+                        $('#scraper_prompt').val(data.general.scraper_prompt || '');
                     }
 
                     // Profile Settings
@@ -499,19 +512,19 @@
                     }
 
                     // SerpApi Settings
-                    if (data.serpapi && data.serpapi.serpapi_settings) {
-                        const serpapiSettings = data.serpapi.serpapi_settings;
-                        $('#serpapi_api_key').val(serpapiSettings.api_key || '');
-                        $('#serpapi_engine').val(serpapiSettings.engine || 'google');
-                        $('#serpapi_keywords').val(serpapiSettings.keywords || '');
-                        $('#serpapi_url').val(serpapiSettings.url || 'https://serpapi.com');
-                        $('#serpapi_excluded_hosts').val(Array.isArray(serpapiSettings.excluded_hosts) ?
-                            serpapiSettings.excluded_hosts.join('\n') :
-                            (serpapiSettings.excluded_hosts || ''));
+                    // if (data.serpapi && data.serpapi.serpapi_settings) {
+                    //     const serpapiSettings = data.serpapi.serpapi_settings;
+                    //     $('#serpapi_api_key').val(serpapiSettings.api_key || '');
+                    //     $('#serpapi_engine').val(serpapiSettings.engine || 'google');
+                    //     $('#serpapi_keywords').val(serpapiSettings.keywords || '');
+                    //     $('#serpapi_url').val(serpapiSettings.url || 'https://serpapi.com');
+                    //     $('#serpapi_excluded_hosts').val(Array.isArray(serpapiSettings.excluded_hosts) ?
+                    //         serpapiSettings.excluded_hosts.join('\n') :
+                    //         (serpapiSettings.excluded_hosts || ''));
 
-                        console.log('Loaded SerpApi excluded hosts from DB:', serpapiSettings
-                            .excluded_hosts);
-                    }
+                    //     console.log('Loaded SerpApi excluded hosts from DB:', serpapiSettings
+                    //         .excluded_hosts);
+                    // }
 
                     // SMTP Settings
                     if (data.smtp && Array.isArray(data.smtp) && data.smtp.length > 0) {
@@ -732,6 +745,8 @@
                 $card.find('.scraper-actor-id').val(actor.actor_id || '');
                 $card.find('.scraper-token').val(actor.token || '');
                 $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/datasets');
+                $card.find('.scraper-prompt-office').val(actor.scraper_prompt_office || '');
+                $card.find('.scraper-prompt-unit').val(actor.scraper_prompt_unit || '');
 
                 // ✅ Check if existing record
                 const isExisting = !!actor.key;
@@ -755,6 +770,8 @@
                 $card.find('.scraper-actor-id').attr('name', `actors[${index}][actor_id]`);
                 $card.find('.scraper-token').attr('name', `actors[${index}][token]`);
                 $card.find('.scraper-base-url').attr('name', `actors[${index}][base_url]`);
+                $card.find('.scraper-prompt-office').attr('name', `actors[${index}][scraper_prompt_office]`);
+                $card.find('.scraper-prompt-unit').attr('name', `actors[${index}][scraper_prompt_unit]`);
 
                 return $card;
             }

@@ -1259,16 +1259,22 @@ class SettingController extends Controller
         try {
             $request->validate([
                 'site_name' => 'required|string|max:50',
+                'scraper_prompt' => 'nullable|string',
             ]);
 
             Setting::updateOrCreate(
                 ['key' => 'site_name'], // condition (find by key)
-                ['value' => $request->site_name] // update or insert value
+                ['value' => $request->site_name, 'group' => 'general'] // update or insert value
+            );
+
+            Setting::updateOrCreate(
+                ['key' => 'scraper_prompt'],
+                ['value' => $request->input('scraper_prompt', ''), 'group' => 'general']
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Site Name saved successfully.'
+                'message' => 'Settings saved successfully.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1353,6 +1359,8 @@ class SettingController extends Controller
                 'actors.*.actor_id' => 'nullable|string',
                 'actors.*.token' => 'nullable|string',
                 'actors.*.base_url' => 'nullable|url',
+                'actors.*.scraper_prompt_office' => 'nullable',
+                'actors.*.scraper_prompt_unit' => 'nullable',
             ]);
 
             if ($validator->fails()) {
@@ -1390,6 +1398,8 @@ class SettingController extends Controller
                             'actor_id' => trim($actor['actor_id'] ?? ''),
                             'token' => trim($actor['token'] ?? ''),
                             'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2'),
+                            'scraper_prompt_office' => trim($actor['scraper_prompt_office'] ?? null),
+                            'scraper_prompt_unit' => trim($actor['scraper_prompt_unit'] ?? null),
                         ]),
                         'group' => 'scraper',
                         'type' => 'json',

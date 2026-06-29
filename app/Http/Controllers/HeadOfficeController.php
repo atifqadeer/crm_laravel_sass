@@ -339,6 +339,7 @@ class HeadOfficeController extends Controller
                 $join->on('contacts.contactable_id', '=', 'offices.id')
                     ->where('contacts.contactable_type', 'Horsefly\\Office');
             })
+            ->whereNotIn('status', [4])
             ->select('offices.*')
             ->distinct();
 

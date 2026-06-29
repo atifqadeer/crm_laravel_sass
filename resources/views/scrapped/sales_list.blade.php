@@ -270,8 +270,8 @@
                                     <th>#</th>
                                     <th>Created Date</th>
                                     <th>Head Office</th>
-                                    <th>Head Office Email</th>
-                                    <th>Head Office Phone</th>
+                                    {{-- <th>Head Office Email</th> --}}
+                                    {{-- <th>Head Office Phone</th> --}}
                                     <th>Unit Name</th>
                                     <th width="8%">PostCode</th>
                                     <th>Position Type</th>
@@ -542,14 +542,14 @@
                         data: 'office_name',
                         name: 'offices.office_name'
                     },
-                    {
-                        data: 'office_emails',
-                        name: 'office_emails'
-                    },
-                    {
-                        data: 'office_phones',
-                        name: 'office_phones'
-                    },
+                    // {
+                    //     data: 'office_emails',
+                    //     name: 'office_emails'
+                    // },
+                    // {
+                    //     data: 'office_phones',
+                    //     name: 'office_phones'
+                    // },
                     {
                         data: 'unit_name',
                         name: 'units.unit_name'
@@ -621,12 +621,6 @@
                     },
                     {
                         targets: 8, // Column index for 'action'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12, // Column index for 'action'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }

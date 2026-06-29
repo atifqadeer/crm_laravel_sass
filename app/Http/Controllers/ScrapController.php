@@ -1450,6 +1450,15 @@ class ScrapController extends Controller
     {
         $statusFilter = $request->input('status_filter', '');
 
+        $scraper = Setting::where('group', 'scraper')
+            ->where('type', 'json')
+            ->where('key', 'scrap_apify_indeed')
+            ->first();
+
+        $value = json_decode($scraper->value, true);
+
+        $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
+
         // Base query
         $model = Office::withTrashed()
             ->with(['contact']) // Eager load contact relationship to solve N+1 Problem
@@ -1554,7 +1563,7 @@ class ScrapController extends Controller
                 ->addColumn('checkbox', function ($office) {
                     return '<input type="checkbox" class="office-checkbox" value="' . (int) $office->id . '" id="office_' . (int) $office->id . '">';
                 })
-                ->addColumn('office_name', function ($office) {
+                ->addColumn('office_name', function ($office) use ($scraper_office_prompt) {
                     $output = $office->formatted_office_name;
 
                     if ($office->office_website) {
@@ -1562,6 +1571,25 @@ class ScrapController extends Controller
                         <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                     </a>';
                     }
+
+                    // Fill template placeholders
+                    $office_replace = [
+                        $office->office_name,
+                        (!empty($office->formatted_postcode) && $office->formatted_postcode !== 'UNKNOWN')
+                            ? $office->formatted_postcode
+                            : '',
+                    ];
+
+                    $prev_val = ['{company_name}', '{postcode}'];
+                    $perplexityPrompt = str_replace($prev_val, $office_replace, $scraper_office_prompt);
+
+                    $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
+
+                    $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                                    class="text-primary ms-1"
+                                    title="Search with Perplexity">
+                                    <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
+                                </a>';
 
                     return $output;
                 })
@@ -1682,6 +1710,16 @@ class ScrapController extends Controller
         $statusFilter = $request->input('status_filter');
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
+        $scraper = Setting::where('group', 'scraper')
+            ->where('type', 'json')
+            ->where('key', 'scrap_apify_indeed')
+            ->first();
+
+        $value = json_decode($scraper->value, true);
+
+        $scraper_office_unit = $value['scraper_prompt_unit'] ?? null;
+        $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
+
         $query = Unit::withTrashed()
             ->select('units.*', 'offices.office_name as office_name', 'unit_contacts.contact_email as contact_email', 'unit_contacts.contact_phone as contact_phone', 'unit_contacts.contact_landline as contact_landline')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
@@ -1792,7 +1830,7 @@ class ScrapController extends Controller
                 return '<input type="checkbox" class="unit-checkbox" value="' . (int) $u->id . '" id="unit_' . (int) $u->id . '">';
             })
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
-            ->addColumn('office_name', function ($u) {
+            ->addColumn('office_name', function ($u) use ($scraper_office_prompt) {
                 $output = $u->office?->formatted_office_name;
 
                 if ($u->office?->office_website) {
@@ -1800,6 +1838,27 @@ class ScrapController extends Controller
                     <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                     </a>';
                 }
+
+                // Fill template placeholders
+                $office_replace = [
+                    $u->office_name,
+                    $u->unit_name,
+                    (!empty($u->formatted_postcode) && $u->formatted_postcode !== 'UNKNOWN')
+                        ? $u->formatted_postcode
+                        : '',
+                ];
+
+                $prev_val = ['{company_name}', '{unit_name}', '{postcode}'];
+                $perplexityPrompt = str_replace($prev_val, $office_replace, $scraper_office_prompt);
+
+                $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
+
+                $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                                    class="text-primary ms-1"
+                                    title="Search with Perplexity">
+                                    <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
+                                </a>';
+
 
                 return $output;
             })
@@ -1809,7 +1868,7 @@ class ScrapController extends Controller
                     $query->where('offices.office_name', 'LIKE', "%{$word}%");
                 }
             })
-            ->addColumn('unit_name', function ($u) {
+            ->addColumn('unit_name', function ($u) use ($scraper_office_unit) {
                 $output = $u->formatted_unit_name;
 
                 if ($u->unit_website) {
@@ -1817,6 +1876,26 @@ class ScrapController extends Controller
                     <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                     </a>';
                 }
+
+                // Fill template placeholders
+                $office_replace = [
+                    $u->office?->formatted_office_name,
+                    $u->formatted_unit_name,
+                    (!empty($u->formatted_postcode) && $u->formatted_postcode !== 'UNKNOWN')
+                        ? $u->formatted_postcode
+                        : '',
+                ];
+
+                $prev_val = ['{company_name}', '{unit_name}', '{postcode}'];
+                $perplexityPrompt = str_replace($prev_val, $office_replace, $scraper_office_unit);
+
+                $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
+
+                $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                                    class="text-primary ms-1"
+                                    title="Search with Perplexity">
+                                    <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
+                                </a>';
 
                 return $output;
             })
@@ -2032,9 +2111,17 @@ class ScrapController extends Controller
         $userFilter = $request->input('user_filter', ''); // Default is empty (no filter)
         $sourceFilter = $request->input('source_filter', ''); // Default is empty (no filter)
 
+        $scraper = Setting::where('group', 'scraper')
+            ->where('type', 'json')
+            ->where('key', 'scrap_apify_indeed')
+            ->first();
+
+        $value = json_decode($scraper->value, true);
+
+        $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
+        $scraper_unit_prompt = $value['scraper_prompt_unit'] ?? null;
+
         // 🚀 OPTIMIZED: Fetch only essential columns for list view
-        // Removed expensive JOINs: latest_notes, office_contacts, audits
-        // These can be lazy-loaded or fetched on-demand
         $model = Sale::withTrashed()
             ->select([
                 'sales.id',
@@ -2206,7 +2293,7 @@ class ScrapController extends Controller
                 ->addColumn('checkbox', function ($sale) {
                     return '<input type="checkbox" class="sale-checkbox" value="' . (int) $sale->id . '" id="sale_' . (int) $sale->id . '">';
                 })
-                ->addColumn('office_name', function ($sale) {
+                ->addColumn('office_name', function ($sale) use ($scraper_office_prompt) {
                     $output = $sale->office_name ? ucwords($sale->office_name) : '-';
 
                     if ($sale->office_website) {
@@ -2214,6 +2301,27 @@ class ScrapController extends Controller
                         <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                         </a>';
                     }
+
+                    // Fill template placeholders
+                    $office_replace = [
+                        $sale->office_name,
+                        $sale->unit_name,
+                        (!empty($sale->formatted_postcode) && $sale->formatted_postcode !== 'UNKNOWN')
+                            ? $sale->formatted_postcode
+                            : '',
+                    ];
+
+                    $prev_val = ['{company_name}', '{unit_name}', '{postcode}'];
+                    $perplexityPrompt = str_replace($prev_val, $office_replace, $scraper_office_prompt);
+
+                    $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
+
+                    $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                                    class="text-primary ms-1"
+                                    title="Search with Perplexity">
+                                    <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
+                                </a>';
+
 
                     return $output;
                 })
@@ -2229,14 +2337,33 @@ class ScrapController extends Controller
                     $phones = explode(', ', $sale->office_phones);
                     return implode('<br>', array_map('htmlspecialchars', $phones));
                 })
-                ->addColumn('unit_name', function ($sale) {
+                ->addColumn('unit_name', function ($sale) use ($scraper_unit_prompt) {
                     $output = $sale->unit_name ? ucwords($sale->unit_name) : '-';
 
                     if ($sale->unit_website) {
                         $output .= '<br><a href="' . $sale->unit_website . '" target="_blank" class="text-info fs-24">
-                        <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                         </a>';
                     }
+
+                    $office_replace = [
+                        $sale->office_name,
+                        $sale->unit_name,
+                        (!empty($sale->formatted_postcode) && $sale->formatted_postcode !== 'UNKNOWN')
+                            ? $sale->formatted_postcode
+                            : '',
+                    ];
+
+                    $prev_val = ['{company_name}', '{unit_name}', '{postcode}'];
+                    $perplexityPrompt = str_replace($prev_val, $office_replace, $scraper_unit_prompt);
+
+                    $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
+
+                    $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                    class="text-primary ms-1"
+                    title="Search with Perplexity">
+                    <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
+                </a>';
 
                     return $output;
                 })

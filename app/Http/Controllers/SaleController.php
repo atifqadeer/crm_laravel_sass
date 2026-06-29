@@ -723,12 +723,19 @@ class SaleController extends Controller
                 'open_audits.created_at as open_date',
                 // CV count aggregate
                 DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv'),
-            ])->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')->leftJoin('offices', 'sales.office_id', '=', 'offices.id')->leftJoin('units', 'sales.unit_id', '=', 'units.id')->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ])
+            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+            ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             // Latest sale note via indexed join
             ->leftJoin(DB::raw('(SELECT sale_id, MAX(id) AS latest_id FROM sale_notes GROUP BY sale_id) AS latest_notes'), 'sales.id', '=', 'latest_notes.sale_id')
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
             // CV count via pre-aggregated JOIN
-            ->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id');
+            ->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id')
+            ->whereNull('sales.deleted_at')
+            ->whereNotIn('sales.status', [4]);
 
         if ($request->filled('search.value')) {
             $searchTerm = (string) $request->input('search.value');
@@ -1194,7 +1201,8 @@ class SaleController extends Controller
                 $query->whereNotNull('audits.id')
                     ->orWhereNull('audits.id');
             })
-            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
+            ->whereNull('sales.deleted_at');
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
@@ -1562,7 +1570,8 @@ class SaleController extends Controller
 
             // Join the actual sale_notes record
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
-            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+            ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
+            ->whereNull('sales.deleted_at');
 
         if ($request->filled('search.value')) {
             $searchTerm = (string) $request->input('search.value');
@@ -1910,8 +1919,10 @@ class SaleController extends Controller
                 'users.name as user_name',
                 'audits.created_at as closed_date',
                 DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv')
-            ])->where('sales.status', 0)
+            ])
+            ->where('sales.status', 0)
             ->where('sales.is_on_hold', 0)
+            ->whereNull('sales.deleted_at')
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
@@ -2176,7 +2187,8 @@ class SaleController extends Controller
             ->leftJoin('audits', 'audits.id', '=', 'latest_open_audit_ids.id')
             ->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id')
             ->where('sales.status', 1)
-            ->where('sales.is_on_hold', 0);
+            ->where('sales.is_on_hold', 0)
+            ->whereNull('sales.deleted_at');
 
         // 2. Scout Search
         if ($request->filled('search.value')) {
@@ -2433,6 +2445,7 @@ class SaleController extends Controller
             ])
             ->where('sales.status', 1) // open sales
             ->where('sales.is_on_hold', 2) // Not on hold
+            ->whereNull('sales.deleted_at')
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
@@ -2812,6 +2825,7 @@ class SaleController extends Controller
             ])
             ->where('sales.status', 1)
             ->where('sales.is_on_hold', 1)
+            ->whereNull('sales.deleted_at')
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
@@ -3130,6 +3144,7 @@ class SaleController extends Controller
                     COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance")
             ])
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->where("is_in_nurse_home", false)
             ->having('distance', '<', $radius)
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')

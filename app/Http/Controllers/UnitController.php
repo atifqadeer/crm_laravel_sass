@@ -189,7 +189,8 @@ class UnitController extends Controller
             ->select('units.*', 'offices.office_name as office_name')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->whereNull('units.deleted_at')
-            ->with('office', 'contacts');
+            ->with('office', 'contacts')
+            ->whereNotIn('units.status', [4]);
 
         if ($statusFilter === 'active') {
             $query->where('units.status', 1);
