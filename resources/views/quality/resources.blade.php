@@ -164,11 +164,10 @@
                                     <th>Date</th>
                                     <th>Sent By</th>
                                     <th>Applicant Name</th>
-                                    {{-- <th>Email</th> --}}
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th width="10%">Phone</th>
+                                    <th width="10%">Phone / Landline</th>
                                     <th>Applicant Resume</th>
                                     <th>CRM Resume</th>
                                     <th>Head Office</th>
@@ -316,7 +315,6 @@
                         data: 'applicant_name',
                         name: 'applicants.applicant_name'
                     },
-                    // { data: 'applicant_email', name: 'applicants.applicant_email' },
                     {
                         data: 'job_title',
                         name: 'job_titles.name'
@@ -331,7 +329,8 @@
                     },
                     {
                         data: 'applicantPhone',
-                        name: 'applicantPhone'
+                        name: 'applicantPhone',
+                        orderable: false,
                     },
                     {
                         data: 'applicant_resume',

@@ -721,28 +721,31 @@ class ApplicantController extends Controller
                     }
                     return $html;
                 })
-                ->editColumn('applicantEmail', function ($applicant) {
-                    $email = '';
-                    if ($applicant->is_blocked) {
-                        $email = "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $email = $applicant->applicant_email;
-
-                        if ($applicant->applicant_email_secondary) {
-                            $email .= '<br>' . $applicant->applicant_email_secondary;
-                        }
+                ->addColumn('applicantEmail', function ($applicant) {
+                    // Blocked applicant + no permission
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $email; // Using accessor
-                })
-                // ─── Per-Column Search Handlers (Optimized) ───────────────────────
-                ->filterColumn('applicant_name', function ($query, $keyword) {
-                    $query->where('applicants.applicant_name', 'LIKE', trim($keyword) . "%");
+                    $email = $applicant->applicant_email_secondary
+                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+                        : $applicant->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
                 })
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
                     $keyword = trim($keyword);
                     $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
                         ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                })
+                ->filterColumn('applicant_name', function ($query, $keyword) {
+                    $query->where('applicants.applicant_name', 'LIKE', trim($keyword) . "%");
                 })
                 ->filterColumn('applicants.applicant_postcode', function ($query, $keyword) {
                     // Normalize postcode search by removing spaces and dashes
@@ -758,21 +761,12 @@ class ApplicantController extends Controller
                 ->filterColumn('job_sources.name', function ($query, $keyword) {
                     $query->where('job_sources.name', 'LIKE', trim($keyword) . "%");
                 })
-                ->filterColumn('applicantPhone', function ($query, $keyword) {
-                    $clean = preg_replace('/[^0-9]/', '', $keyword);
-                    $query->where(function ($q) use ($clean) {
-                        $q->where('applicants.applicant_phone', 'LIKE', "{$clean}%")
-                            ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "{$clean}%")
-                            ->orWhere('applicants.applicant_landline', 'LIKE', "{$clean}%");
-                    });
-                })
                 ->filterColumn('applicant_notes', function ($query, $keyword) {
                     $query->where('applicants.applicant_notes', 'LIKE', "%" . trim($keyword) . "%");
                 })
                 ->filterColumn('applicants.applicant_experience', function ($query, $keyword) {
                     $query->where('applicants.applicant_experience', 'LIKE', "%" . trim($keyword) . "%");
                 })
-                // ───────────────────────────────────────────────────────────────────
                 ->editColumn('applicant_postcode', function ($applicant) {
                     $rawPostcode = trim($applicant->applicant_postcode);
                     if (empty($rawPostcode))
@@ -823,35 +817,57 @@ class ApplicantController extends Controller
                     }
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    // Helper: wrap a number as a click-to-dial link using the xplosip widget.
-                    $dialLink = function (string $num, string $label): string {
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
+
                         $safe = e($num);
-                        return "<strong title=\"{$label}\">"
-                            . substr($label, 0, 1) . ':</strong> '
+
+                        if ($showBlockedData) {
+                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
+                                . "<a href=\"javascript:void(0)\" "
+                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
+                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                        }
+
+                        return "<strong>{$prefix}:</strong> "
                             . "<a href=\"javascript:void(0)\" "
                             . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
                             . "class=\"text-primary text-decoration-none\" "
                             . "title=\"Click to dial {$safe}\">{$safe}</a>";
                     };
 
-                    $items = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $items[] = $dialLink($applicant->applicant_phone, 'Primary Phone');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $items[] = $dialLink($applicant->applicant_phone_secondary, 'Secondary Phone');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $items[] = $dialLink($applicant->applicant_landline, 'Landline');
+                    $parts = [];
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
                     }
 
-                    return !empty($items) ? implode('<br>', $items) : '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
-                // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
 
