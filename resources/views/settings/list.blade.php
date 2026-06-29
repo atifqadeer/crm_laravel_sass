@@ -423,8 +423,6 @@
     <!-- Moment JS -->
     <script src="{{ asset('js/moment.min.js') }}"></script>
 
-    {{-- @vite(['resources/js/pages/settings.js']) --}}
-
     <script>
         $(document).ready(function() {
             // Ensure jQuery is loaded
