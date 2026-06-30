@@ -36,7 +36,7 @@ class UnitController extends Controller
      */
     public function index()
     {
-        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
         return view('units.list', compact('offices'));
     }
     public function create()
@@ -189,7 +189,8 @@ class UnitController extends Controller
             ->select('units.*', 'offices.office_name as office_name')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->whereNull('units.deleted_at')
-            ->with('office', 'contacts');
+            ->with('office', 'contacts')
+            ->whereNotIn('units.status', [4]);
 
         if ($statusFilter === 'active') {
             $query->where('units.status', 1);
@@ -219,7 +220,7 @@ class UnitController extends Controller
                     ->where('contactable_type', 'Horsefly\\Unit')
                     ->where(function ($q) use ($search) {
                         $q->where('contact_email', 'LIKE', "%{$search}%")
-                        ->orWhere('contact_phone', 'LIKE', "%{$search}%");
+                            ->orWhere('contact_phone', 'LIKE', "%{$search}%");
                     })->pluck('contactable_id')->toArray();
 
                 $allIds = array_unique(array_merge($unitIdsFromElastic, $unitIdsByOffice, $contactIds));
@@ -245,10 +246,9 @@ class UnitController extends Controller
             $query->orderBy('units.created_at', 'desc');
         }
 
-
         /* -------------------------------------------------
-     | DataTables Response
-     -------------------------------------------------*/
+        | DataTables Response
+        -------------------------------------------------*/
         return DataTables::eloquent($query)
             ->addIndexColumn()
 
@@ -292,30 +292,30 @@ class UnitController extends Controller
                 $keyword = trim($keyword);
                 $query->whereExists(function ($q) use ($keyword) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_email', 'LIKE', "{$keyword}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_email', 'LIKE', "{$keyword}%");
                 });
             })
             ->filterColumn('contact_phone', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
                 $query->whereExists(function ($q) use ($clean) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_phone', 'LIKE', "{$clean}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_phone', 'LIKE', "{$clean}%");
                 });
             })
             ->filterColumn('contact_landline', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
                 $query->whereExists(function ($q) use ($clean) {
                     $q->select(DB::raw(1))
-                      ->from('contacts')
-                      ->whereColumn('contacts.contactable_id', 'units.id')
-                      ->where('contacts.contactable_type', \Horsefly\Unit::class)
-                      ->where('contact_landline', 'LIKE', "{$clean}%");
+                        ->from('contacts')
+                        ->whereColumn('contacts.contactable_id', 'units.id')
+                        ->where('contacts.contactable_type', \Horsefly\Unit::class)
+                        ->where('contact_landline', 'LIKE', "{$clean}%");
                 });
             })
 

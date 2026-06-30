@@ -344,6 +344,8 @@ class HeadOfficeController extends Controller
                 ->where('contacts.contactable_type', 'Horsefly\\Office');
         })
             ->select('offices.*')
+            ->whereNotIn('offices.status', [4])
+            ->whereNull('offices.deleted_at')
             ->distinct();
 
         // Apply status filter
