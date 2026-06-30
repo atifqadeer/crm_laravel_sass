@@ -549,7 +549,7 @@ class HeadOfficeController extends Controller
             Log::info('Head Office not found with ID: ' . $id);
         }
 
-        $redirect_url = $request->input('redirect_url', route('head-offices.list'));
+        $redirect_url = $request->input('redirect_url', 'head-offices.list');
 
         return view('head-offices.edit', compact('office', 'contacts', 'redirect_url'));
     }
@@ -694,7 +694,7 @@ class HeadOfficeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Head Office updated successfully',
-                'redirect' => route('head-offices.list')
+                'redirect' => route($request->redirect_url)
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating head office: ' . $e->getMessage());

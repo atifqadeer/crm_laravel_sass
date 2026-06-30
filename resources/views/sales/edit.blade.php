@@ -24,8 +24,9 @@
                                     <label for="job_category" class="form-label">Job Category</label>
                                     <select class="form-select" id="job_category" name="job_category_id" required>
                                         <option value="">Choose a Job Category</option>
-                                        @foreach($jobCategories as $category)
-                                            <option value="{{ $category->id }}" {{ old('job_category_id', $sale->job_category_id == $category->id ? 'selected' : '') }}>
+                                        @foreach ($jobCategories as $category)
+                                            <option value="{{ $category->id }}"
+                                                {{ old('job_category_id', $sale->job_category_id == $category->id ? 'selected' : '') }}>
                                                 {{ $category->name }}
                                             </option>
                                         @endforeach
@@ -38,8 +39,12 @@
                                     <label for="job_type" class="form-label">Job Type</label>
                                     <select class="form-select" id="job_type" name="job_type" required>
                                         <option value="">Choose a Job Type</option>
-                                        <option value="specialist" {{ old('job_type', $sale->job_type == "specialist" ? 'selected' : '') }}>Specialist</option>
-                                        <option value="regular" {{ old('job_type', $sale->job_type == "regular" ? 'selected' : '') }}>Regular</option>
+                                        <option value="specialist"
+                                            {{ old('job_type', $sale->job_type == 'specialist' ? 'selected' : '') }}>
+                                            Specialist</option>
+                                        <option value="regular"
+                                            {{ old('job_type', $sale->job_type == 'regular' ? 'selected' : '') }}>Regular
+                                        </option>
                                     </select>
                                     <div class="invalid-feedback">Please select a job type</div>
                                 </div>
@@ -54,7 +59,7 @@
                                     <div class="invalid-feedback">Please select a job title</div>
                                 </div>
                             </div>
-                             <div class="col-lg-3 col-md-6 col-sm-12">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_source_id" class="form-label">Job Source</label>
                                     <select class="form-select" id="job_source_id" name="job_source_id">
@@ -76,8 +81,8 @@
                                     <label for="office_id" class="form-label">Head Office</label>
                                     <select class="form-select" id="office_id" name="office_id" required>
                                         <option value="">Choose a Head Office</option>
-                                        @foreach($offices as $office)
-                                            <option value="{{ $office->id }}" 
+                                        @foreach ($offices as $office)
+                                            <option value="{{ $office->id }}"
                                                 {{ old('office_id', $sale->office_id == $office->id ? 'selected' : '') }}>
                                                 {{ $office->office_name }}
                                             </option>
@@ -122,8 +127,12 @@
                                     <label for="position_type" class="form-label">Position Type</label>
                                     <select class="form-select" id="position_type" name="position_type" required>
                                         <option value="">Choose a Type</option>
-                                        <option value="full time" {{ old('position_type', $sale->position_type == 'full time' ? 'selected' : '') }}>Full Time</option>
-                                        <option value="part time" {{ old('position_type', $sale->position_type == 'part time' ? 'selected' : '') }}>Part Time</option>
+                                        <option value="full time"
+                                            {{ old('position_type', $sale->position_type == 'full time' ? 'selected' : '') }}>
+                                            Full Time</option>
+                                        <option value="part time"
+                                            {{ old('position_type', $sale->position_type == 'part time' ? 'selected' : '') }}>
+                                            Part Time</option>
                                     </select>
                                     <div class="invalid-feedback">Please select a position type</div>
                                 </div>
@@ -156,8 +165,8 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="timing" class="form-label">Timing</label>
-                                    <textarea class="form-control summernotee" id="timing" name="timing" rows="3"
-                                        placeholder="Enter Timing" required>{!! old('timing', $sale->timing) !!}</textarea>
+                                    <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing"
+                                        required>{!! old('timing', $sale->timing) !!}</textarea>
                                     <div class="invalid-feedback">Please provide timing</div>
                                 </div>
                             </div>
@@ -173,33 +182,29 @@
                                 <div class="mb-3">
                                     <label for="benefits" class="form-label">Benefits</label>
                                     <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3"
-                                        placeholder="Enter Benefits"
-                                        required>{!! old('benefits', $sale->benefits) !!}</textarea>
+                                        placeholder="Enter Benefits" required>{!! old('benefits', $sale->benefits) !!}</textarea>
                                     <div class="invalid-feedback">Please provide benefits</div>
                                 </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="qualification" class="form-label">Qualification</label>
-                                    <textarea class="form-control summernotee" id="qualification" name="qualification"
-                                        rows="3" placeholder="Enter Qualification"
-                                        required>{!! old('qualification', $sale->qualification) !!}</textarea>
+                                    <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3"
+                                        placeholder="Enter Qualification" required>{!! old('qualification', $sale->qualification) !!}</textarea>
                                     <div class="invalid-feedback">Please provide qualification</div>
                                 </div>
                             </div>
                             <div class="col-lg-12">
                                 <div class="mb-3">
                                     <label for="job_description" class="form-label">Job Description</label>
-                                    <textarea id="job_description" name="job_description"
-                                        class="form-control summernote">{!! old('job_description', $sale->job_description) !!}</textarea>
+                                    <textarea id="job_description" name="job_description" class="form-control summernote">{!! old('job_description', $sale->job_description) !!}</textarea>
                                     <div class="invalid-feedback"></div>
                                 </div>
                             </div>
                             <div class="col-lg-12">
                                 <div class="mb-3">
                                     <label for="sale_notes" class="form-label">Notes</label>
-                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="7"
-                                        placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="7" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
                                     <div class="invalid-feedback">Please provide notes</div>
                                 </div>
                             </div>
@@ -259,17 +264,18 @@
                             <div class="col-lg-12">
                                 <div class="mb-3">
                                     <!-- <div class="form-group">
-                                                <label for="attachment">Attachment</label>
-                                                <input type="file" class="form-control" name="attachments[]" id="attachment"
-                                                    multiple>
-                                                <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-                                            </div> -->
-                                    @if($sale->documents->isNotEmpty())
+                                                    <label for="attachment">Attachment</label>
+                                                    <input type="file" class="form-control" name="attachments[]" id="attachment"
+                                                        multiple>
+                                                    <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
+                                                </div> -->
+                                    @if ($sale->documents->isNotEmpty())
                                         <div class="col-lg-12">
                                             <div class="mt-3">
-                                                <label for="sale_documents" class="form-label">Already Attached Files</label>
+                                                <label for="sale_documents" class="form-label">Already Attached
+                                                    Files</label>
                                                 <ul class="list-group">
-                                                    @foreach($sale->documents as $document)
+                                                    @foreach ($sale->documents as $document)
                                                         <li
                                                             class="list-group-item d-flex justify-content-between align-items-center">
                                                             <a href="{{ asset($document->document_path) }}"
@@ -298,7 +304,7 @@
                         <div class="mb-3 rounded">
                             <div class="row justify-content-end g-2">
                                 <div class="col-lg-2">
-                                    <a href="{{ route('sales.list') }}" class="btn btn-dark w-100">Cancel</a>
+                                    <a href="{{ route($redirect_url) }}" class="btn btn-dark w-100">Cancel</a>
                                 </div>
                                 <div class="col-lg-2">
                                     <button type="submit" class="btn btn-primary w-100">
@@ -342,10 +348,10 @@
 
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Initialize Select2 on all select elements
             $('select.form-select').select2({
-                placeholder: function () {
+                placeholder: function() {
                     return $(this).data('placeholder') || 'Choose an option';
                 },
                 allowClear: true,
@@ -380,7 +386,7 @@
     </script>
     <script>
         // Form validation
-        (function () {
+        (function() {
             'use strict'
             const forms = document.querySelectorAll('.needs-validation')
             Array.from(forms).forEach(form => {
@@ -394,10 +400,10 @@
             })
         })()
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Handle form submission
             const form = document.getElementById('editSaleForm');
-            form.addEventListener('submit', function (e) {
+            form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
                 const submitBtn = form.querySelector('button[type="submit"]');
@@ -412,19 +418,19 @@
                 const dropzoneEl = document.querySelector("#salesAttachmentDropzone");
                 if (dropzoneEl && dropzoneEl.dropzone) {
                     const dropzoneFiles = dropzoneEl.dropzone.getAcceptedFiles();
-                    dropzoneFiles.forEach(function (file) {
+                    dropzoneFiles.forEach(function(file) {
                         formData.append('attachments[]', file);
                     });
                 }
 
                 fetch(form.action, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: formData
-                })
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -469,7 +475,7 @@
             });
 
             // Postcode formatting
-            document.getElementById('sale_postcode').addEventListener('input', function (e) {
+            document.getElementById('sale_postcode').addEventListener('input', function(e) {
                 const cursorPos = this.selectionStart;
                 let rawValue = this.value.replace(/[^a-z0-9\s]/gi, '');
 
@@ -485,7 +491,7 @@
         });
 
         // Dynamic fetching logic with Select2 support
-        $(document).ready(function () {
+        $(document).ready(function() {
             const office_id = $('#office_id');
             const unit_id = $('#unit_id');
             const jobTitle = $('#job_title');
@@ -495,7 +501,7 @@
             function fetchOfficeUnits() {
                 const officeId = office_id.val();
                 if (officeId) {
-                    $.getJSON(`/getOfficeUnits?office_id=${officeId}`, function (data) {
+                    $.getJSON(`/getOfficeUnits?office_id=${officeId}`, function(data) {
                         unit_id.empty().append('<option value="">Choose a Unit</option>');
                         data.forEach(unit => {
                             unit_id.append(new Option(unit.unit_name, unit.id));
@@ -514,7 +520,8 @@
                 const categoryId = jobCategory.val();
                 const type = jobType.val();
                 if (categoryId && type) {
-                    $.getJSON(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`, function (data) {
+                    $.getJSON(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`, function(
+                        data) {
                         jobTitle.empty().append('<option value="">Choose a Job Title</option>');
                         data.forEach(title => {
                             jobTitle.append(new Option(title.name.toUpperCase(), title.id));
@@ -536,23 +543,23 @@
 
             // Initial load
             if (office_id.val()) {
-                const initialUnitId = '{{ old("unit_id", $sale->unit_id) }}';
+                const initialUnitId = '{{ old('unit_id', $sale->unit_id) }}';
                 unit_id.data('selected-unit-id', initialUnitId);
                 fetchOfficeUnits();
             }
 
             if (jobCategory.val() && jobType.val()) {
-                const initialJobTitleId = '{{ old("job_title_id", $sale->job_title_id) }}';
+                const initialJobTitleId = '{{ old('job_title_id', $sale->job_title_id) }}';
                 jobTitle.data('selected-job-title-id', initialJobTitleId);
                 fetchJobTitles();
             }
         });
 
         // delete file
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const removeButtons = document.querySelectorAll('.remove-document-btn');
             removeButtons.forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function() {
                     const documentId = this.getAttribute('data-document-id');
                     const listItem = this.closest('li');
 
@@ -570,13 +577,13 @@
                     }).then((result) => {
                         if (result.isConfirmed) {
                             fetch(`{{ route('sales.remove_document', ['id' => '__DOCUMENT_ID__']) }}`
-                                .replace('__DOCUMENT_ID__', documentId), {
-                                method: 'DELETE',
-                                headers: {
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'Accept': 'application/json',
-                                },
-                            })
+                                    .replace('__DOCUMENT_ID__', documentId), {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'Accept': 'application/json',
+                                        },
+                                    })
                                 .then(response => response.json())
                                 .then(data => {
                                     if (data.success) {

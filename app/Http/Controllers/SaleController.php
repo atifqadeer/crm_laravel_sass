@@ -422,7 +422,7 @@ class SaleController extends Controller
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        $redirect_url = $request->input('redirect_url', route('sales.list'));
+        $redirect_url = $request->input('redirect_url', 'sales.list');
 
         return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url', 'jobSources'));
     }
@@ -635,7 +635,7 @@ class SaleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Sale updated successfully',
-                'redirect' => route('sales.list')
+                'redirect' => route($request->redirect_url)
             ]);
         } catch (Exception $e) {
             Log::error('Error updating sale: ' . $e->getMessage());

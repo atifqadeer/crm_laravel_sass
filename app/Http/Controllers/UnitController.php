@@ -443,7 +443,7 @@ class UnitController extends Controller
             ->where('contactable_type', 'Horsefly\Unit')
             ->get();
 
-        $redirect_url = $request->input('redirect_url', route('units.list'));
+        $redirect_url = $request->input('redirect_url', 'units.list');
 
         return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url'));
     }
@@ -588,7 +588,7 @@ class UnitController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Unit updated successfully',
-                'redirect' => route('units.list')
+                'redirect' => route($request->redirect_url)
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating unit: ' . $e->getMessage());

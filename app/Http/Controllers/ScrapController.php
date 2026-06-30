@@ -1455,7 +1455,7 @@ class ScrapController extends Controller
             ->where('key', 'scrap_apify_indeed')
             ->first();
 
-        $value = json_decode($scraper->value, true);
+        $value = $scraper ? json_decode($scraper->value, true) : [];
 
         $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
 
@@ -1676,7 +1676,7 @@ class ScrapController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">';
                     if (Gate::allows('office-edit')) {
-                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id, 'redirect_url' => route('scrap.office.list')]) . '">Edit</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id, 'redirect_url' => 'scrap.office.list']) . '">Edit</a></li>';
                     }
                     if (Gate::allows('office-view')) {
                         $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(' . (int) $office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
@@ -1715,7 +1715,7 @@ class ScrapController extends Controller
             ->where('key', 'scrap_apify_indeed')
             ->first();
 
-        $value = json_decode($scraper->value, true);
+        $value = $scraper ? json_decode($scraper->value, true) : [];
 
         $scraper_office_unit = $value['scraper_prompt_unit'] ?? null;
         $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
@@ -1983,7 +1983,7 @@ class ScrapController extends Controller
                         <ul class="dropdown-menu">';
 
                 if (Gate::allows('unit-edit')) {
-                    $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id, 'redirect_url' => route('scrap.unit.list')]) . '">Edit</a></li>';
+                    $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id, 'redirect_url' => 'scrap.unit.list']) . '">Edit</a></li>';
                 }
                 if (Gate::allows('unit-view')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="showDetailsModal('
@@ -2116,7 +2116,7 @@ class ScrapController extends Controller
             ->where('key', 'scrap_apify_indeed')
             ->first();
 
-        $value = json_decode($scraper->value, true);
+        $value = $scraper ? json_decode($scraper->value, true) : [];
 
         $scraper_office_prompt = $value['scraper_prompt_office'] ?? null;
         $scraper_unit_prompt = $value['scraper_prompt_unit'] ?? null;
@@ -2504,7 +2504,7 @@ class ScrapController extends Controller
                                     <ul class="dropdown-menu">';
 
                     if (Gate::allows('sale-edit')) {
-                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int) $sale->id, 'redirect_url' => route('scrap.sales.list')]) . '">Edit</a></li>';
+                        $action .= '<li><a class="dropdown-item" href="' . route('sales.edit', ['id' => (int) $sale->id, 'redirect_url' => 'scrap.sales.list']) . '">Edit</a></li>';
                     }
 
                     if (Gate::allows('sale-view')) {
