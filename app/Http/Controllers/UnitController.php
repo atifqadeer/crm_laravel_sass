@@ -430,15 +430,22 @@ class UnitController extends Controller
         $unit = Unit::findOrFail($id);
         return view('units.details', compact('unit'));
     }
-    public function edit($id)
+    public function edit($id, Request $request)
     {
-        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
         $unit = Unit::find($id);
+        if ($unit->status == 4) {
+            $offices = Office::where('status', 4)->whereNull('deleted_at')->select('id', 'office_name')->get();
+        } else {
+            $offices = Office::where('status', 1)->whereNull('deleted_at')->select('id', 'office_name')->get();
+        }
+
         $contacts = Contact::where('contactable_id', $unit->id)
             ->where('contactable_type', 'Horsefly\Unit')
             ->get();
 
-        return view('units.edit', compact('offices', 'unit', 'contacts'));
+        $redirect_url = $request->input('redirect_url', route('units.list'));
+
+        return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url'));
     }
     public function update(Request $request)
     {

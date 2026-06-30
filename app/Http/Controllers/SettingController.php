@@ -13,15 +13,15 @@ use Horsefly\JobTitle;
 use Horsefly\User;
 use Horsefly\SmsTemplate;
 use Horsefly\SmtpSetting;
+use Illuminate\Support\Str;
 use Horsefly\Setting;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Services\ScrapService;
 
 class SettingController extends Controller
 {
@@ -1136,6 +1136,21 @@ class SettingController extends Controller
         $response = [];
 
         foreach ($settings as $group => $items) {
+            if ($group === 'scraper') {
+                $actors = $items
+                    ->filter(fn($item) => $item->type === 'json')
+                    ->mapWithKeys(function ($item) {
+                        $decoded = json_decode($item->value, true);
+                        // Optional: Add the key itself inside the actor data for easy reference
+                        $decoded['key'] = $item->key;        // e.g. "scrap_apify_instagram"
+                        return [$item->key => $decoded];
+                    })
+                    ->values()           // This converts it back to a simple indexed array (0, 1, 2...)
+                    ->toArray();
+                $response['scraper']['actors'] = $actors;
+                continue;
+            }
+
             // For simple groups (general, sms, profile, google_maps, notifications...)
             $response[$group] = $items->mapWithKeys(function ($item) {
                 // Cast based on type field
@@ -1452,4 +1467,179 @@ class SettingController extends Controller
             ], 500);
         }
     }
+
+    public function saveScraperSettings(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'actors' => 'required|array|min:1',
+                'actors.*.provider' => 'required|string|in:scrap,apify,other',
+                'actors.*.source' => 'required|string',
+                'actors.*.actor_id' => 'nullable|string',
+                'actors.*.token' => 'nullable|string',
+                'actors.*.base_url' => 'nullable|url',
+                'actors.*.scraper_prompt_office' => 'nullable',
+                'actors.*.scraper_prompt_unit' => 'nullable',
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            $actors = array_values(array_filter(
+                $request->input('actors', []),
+                fn($a) => is_array($a) && collect($a)->contains(fn($v) => trim((string) $v) !== '')
+            ));
+            if (empty($actors)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'At least one valid scraper actor must be provided.',
+                ], 422);
+            }
+            foreach ($actors as $actor) {
+                $provider = strtolower(trim($actor['provider'] ?? 'scrap'));
+                $source = strtolower(trim($actor['source'] ?? 'source'));
+                $sourceKey = Str::slug($source, '_');
+                $key = "scrap_{$provider}_{$sourceKey}";
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    [
+                        'value' => json_encode([
+                            'provider' => $provider,
+                            'source' => $source,
+                            'actor_id' => trim($actor['actor_id'] ?? ''),
+                            'token' => trim($actor['token'] ?? ''),
+                            'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2'),
+                            'scraper_prompt_office' => trim($actor['scraper_prompt_office'] ?? null),
+                            'scraper_prompt_unit' => trim($actor['scraper_prompt_unit'] ?? null),
+                        ]),
+                        'group' => 'scraper',
+                        'type' => 'json',
+                    ]
+                );
+            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Scraper settings saved successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving settings.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function runScraperActor(string $key)
+    {
+        try {
+            $settings = Setting::where('key', $key)
+                ->where('group', 'scraper')
+                ->first();
+            if (!$settings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Scraper actor [{$key}] not found.",
+                ], 404);
+            }
+            $actor = json_decode($settings->value, true);
+            if (empty($actor) || !is_array($actor)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid actor configuration.',
+                ], 400);
+            }
+            if (empty($actor['base_url'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing base URL in actor configuration.',
+                ], 400);
+            }
+            // 1. Fetch jobs from the scraper API
+            $service = new ScrapService();
+            $jobs = $service->runConfig($actor, []);
+            $fetched = is_array($jobs) ? count($jobs) : 0;
+            if ($fetched === 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Scraper ran successfully but returned no jobs.',
+                    'fetched' => 0,
+                    'imported' => 0,
+                ]);
+            }
+            // 2. Import fetched jobs into the DB
+            $user = User::first();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No users found in the database. Cannot import.',
+                ], 400);
+            }
+            // 3. Route to the correct persist method based on the actor key
+            $controller = new ScrapController();
+            $imported = match (true) {
+                str_contains($key, 'scrap_apify_indeed') => $controller->persistJobsIndeed($jobs, $user),
+                str_contains($key, 'scrap_apify_totaljob') => $controller->persistJobsTotalJob($jobs, $user),
+                str_contains($key, 'scrap_apify_reed') => $controller->persistJobsReed($jobs, $user),
+                default => throw new \InvalidArgumentException("No persist handler defined for actor key: [{$key}]"),
+            };
+            $skipped = $fetched - $imported;
+            Log::info('[Scraper] runScraperActor completed', [
+                'key' => $key,
+                'fetched' => $fetched,
+                'imported' => $imported,
+                'skipped' => $skipped,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Scraper ran successfully. Fetched {$fetched} job(s), imported {$imported} new job(s), skipped {$skipped}.",
+                'fetched' => $fetched,
+                'imported' => $imported,
+                'skipped' => $skipped,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[Scraper] runScraperActor failed', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+             return response()->json([
+                'success' => false,
+                'message' => 'Error running scraper actor.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function deleteScraperActor(string $key)
+    {
+        try {
+            $setting = Setting::where('key', $key)
+                ->where('group', 'scraper')
+                ->first();
+            if (!$setting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Scraper actor [{$key}] not found.",
+                ], 404);
+            }
+            $setting->delete();
+            return response()->json([
+                'success' => true,
+                'message' => "Scraper actor {$key} deleted successfully.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[Scraper] deleteScraperActor failed', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting scraper actor.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

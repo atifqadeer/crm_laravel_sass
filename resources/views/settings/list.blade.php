@@ -36,6 +36,19 @@
         .smtp-entry:not(:first-child) .remove-smtp-btn {
             display: block;
         }
+
+        /* Add this inside your existing <style> block */
+        .form-range {
+            width: 100% !important;
+            display: block !important;
+            -webkit-appearance: auto !important;
+            appearance: auto !important;
+        }
+
+        .flex-grow-1 {
+            min-width: 0;
+            overflow: visible;
+        }
     </style>
 @endsection
 @section('content')
@@ -63,6 +76,8 @@
                             id="menu-smtp" aria-controls="form-smtp">SMTP Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-dialing" type="button"
                             id="menu-dialing" aria-controls="form-dialing">Dial Lock Settings</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-scraper" type="button"
+                            id="menu-scraper" aria-controls="form-scraper">Scraper Settings</button>
 
                     </div>
                 </div>
@@ -294,11 +309,12 @@
                                                 </div>
                                             </div>
                                             <div class="card-body">
-                                                <div class="d-flex align-items-center gap-3 mb-3">
-                                                    <div class="flex-grow-1">
-                                                        <input type="range" class="form-range m-0"
-                                                            id="same_user_slider" min="0" max="60"
-                                                            step="1" value="0">
+                                                <div
+                                                    style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                                                    <div style="flex:1 1 0; min-width:0;">
+                                                        <input type="range" id="same_user_slider" min="0"
+                                                            max="60" step="1" value="0"
+                                                            style="width:100%; display:block; margin:0;">
                                                     </div>
 
                                                     <div class="input-group flex-shrink-0" style="width:180px;">
@@ -336,18 +352,19 @@
                                                 </div>
                                             </div>
                                             <div class="card-body">
-                                                <div class="d-flex align-items-center gap-3 mb-3">
-                                                    <div class="flex-grow-1">
-                                                        <input type="range" class="form-range m-0"
-                                                            id="other_user_slider" min="1" max="60"
-                                                            step="1" value="5">
+                                                <div
+                                                    style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                                                    <div style="flex:1 1 0; min-width:0;">
+                                                        <input type="range" id="other_user_slider" min="0"
+                                                            max="60" step="1" value="0"
+                                                            style="width:100%; display:block; margin:0;">
                                                     </div>
 
                                                     <div class="input-group flex-shrink-0" style="width:180px;">
                                                         <input type="number" class="form-control text-center fw-bold"
                                                             id="dialing_lock_other_user_minutes"
-                                                            name="dialing_lock_other_user_minutes" min="1"
-                                                            max="60" value="5">
+                                                            name="dialing_lock_other_user_minutes" min="0"
+                                                            max="60" value="0">
                                                         <span class="input-group-text">Minutes</span>
                                                     </div>
                                                 </div>
@@ -381,11 +398,13 @@
                                                     <div class="col-md-6">
                                                         <label class="form-label fw-semibold">Max calls per agent /
                                                             day</label>
-                                                        <div class="d-flex align-items-center gap-3 mb-3">
-                                                            <div class="flex-grow-1">
-                                                                <input type="range" class="form-range m-0"
-                                                                    id="max_calls_slider" min="0" max="20"
-                                                                    step="1" value="3">
+                                                        <div
+                                                            style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                                                            <div style="flex:1 1 0; min-width:0;">
+                                                                <input type="range" id="max_calls_slider"
+                                                                    min="0" max="20" step="1"
+                                                                    value="0"
+                                                                    style="width:100%; display:block; margin:0;">
                                                             </div>
 
                                                             <div class="input-group flex-shrink-0" style="width:180px;">
@@ -393,7 +412,7 @@
                                                                     class="form-control text-center fw-bold"
                                                                     id="dialing_max_calls_per_day"
                                                                     name="dialing_max_calls_per_day" min="0"
-                                                                    max="20" value="3">
+                                                                    max="20" value="0">
                                                                 <span class="input-group-text">days</span>
                                                             </div>
                                                         </div>
@@ -411,18 +430,20 @@
                                                     <div class="col-md-6">
                                                         <label class="form-label fw-semibold">Call history
                                                             retention</label>
-                                                        <div class="d-flex align-items-center gap-3 mb-3">
-                                                            <div class="flex-grow-1">
-                                                                <input type="range" class="form-range m-0"
-                                                                    id="history_days_slider" min="1"
-                                                                    max="14" step="1" value="2">
+                                                        <div
+                                                            style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                                                            <div style="flex:1 1 0; min-width:0;">
+                                                                <input type="range" id="history_days_slider"
+                                                                    min="0" max="14" step="1"
+                                                                    value="0"
+                                                                    style="width:100%; display:block; margin:0;">
                                                             </div>
 
                                                             <div class="input-group flex-shrink-0" style="width:180px;">
                                                                 <input type="number"
                                                                     class="form-control text-center fw-bold"
                                                                     id="dialing_history_days" name="dialing_history_days"
-                                                                    min="1" max="14" value="2">
+                                                                    min="0" max="14" value="0">
                                                                 <span class="input-group-text">days</span>
                                                             </div>
                                                         </div>
@@ -487,6 +508,99 @@
                             </div>
 
                         </section>
+                        <!-- Scraper Settings Form -->
+                        <section id="form-scraper" class="settings-form-section">
+                            <form id="scraperSettingsForm" data-type="scraper">
+                                @csrf
+                                <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0">Scraper Actors</h5>
+                                        <small class="text-muted">Add one or more actor configurations for Scrap or other
+                                            providers.</small>
+                                    </div>
+                                </div>
+                                <div id="scraperCards"></div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <!-- <div class="text-muted small"></div> -->
+                                    <button type="button" class="btn btn-outline-primary left" id="addScraperCardBtn">
+                                        <i class="ri-add-line"></i> Add Actor Card
+                                    </button>
+                                    <button type="submit" class="btn btn-success">Save Scraper Settings</button>
+                                </div>
+                            </form>
+                        </section>
+                        <template id="scraperCardTemplate">
+                            <div class="card mb-3 scraper-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-title mb-0">Actor Configuration</h6>
+                                        <div class="d-flex align-items-center scraper-actions">
+                                            <span class="card-scraper-status small me-2"></span>
+                                            <button type="button" class="btn btn-success btn-sm run-scraper-actor me-2">
+                                                <i class="ri-play-line"></i> Run
+                                            </button>
+                                            <button type="button"
+                                                class="btn btn-outline-danger btn-sm remove-scraper-card me-3">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Provider</label>
+                                            <select class="form-select scraper-provider"
+                                                name="actors[__INDEX__][provider]">
+                                                <option value="apify">Apify</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Scrap Source</label>
+                                            <select class="form-select scraper-source" name="actors[__INDEX__][source]">
+                                                <option value="indeed">Indeed</option>
+                                                <option value="totaljob">TotalJob</option>
+                                                <option value="reed">Reed</option>
+                                                <option value="monster">Monster</option>
+                                                <option value="cvlibrary">CV Library</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Actor ID</label>
+                                            <input type="text" class="form-control scraper-actor-id"
+                                                name="actors[__INDEX__][actor_id]" value="">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Token</label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control scraper-token"
+                                                    name="actors[__INDEX__][token]" value="">
+                                                <button class="btn btn-outline-secondary toggle-token" type="button">
+                                                    <i class="ri-eye-line"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Base URL</label>
+                                            <input type="text" class="form-control scraper-base-url"
+                                                name="actors[__INDEX__][base_url]"
+                                                value="https://api.apify.com/v2/datasets">
+                                        </div>
+                                        <div class="col-md-12 mb-4">
+                                            <label class="form-label">Office Prompt <small class="text-info">(To scrap the
+                                                    office/company
+                                                    contact information)</small></label>
+                                            <textarea col="1" rows="5" name="scraper_prompt_office" class="form-control scraper-prompt-office"></textarea>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Unit Prompt <small class="text-info">(To scrap the
+                                                    unit/branch contact
+                                                    information)</small></label>
+                                            <textarea col="1" rows="5" name="scraper_prompt_unit" class="form-control scraper-prompt-unit"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -533,6 +647,8 @@
 
             // Store the initial SMTP entry template
             const $smtpTemplate = $('.smtp-entry').first().clone();
+            const scraperCardTemplateHtml = $('#scraperCardTemplate').html();
+            const $scraperCards = $('#scraperCards');
 
             // Debugging: Log available sections and initial state
             console.log('Available form sections:', $formSections.length, $formSections);
@@ -615,6 +731,23 @@
                         console.warn('No SMTP settings found or invalid format:', data.smtp);
                         $('#smtp-entries').empty().append($smtpTemplate.clone());
                     }
+
+                    // Scraper Settings
+                    let scraperActors = [];
+                    if (data.scraper && Array.isArray(data.scraper.actors) && data.scraper.actors
+                        .length > 0) {
+                        scraperActors = data.scraper.actors;
+                    } else {
+                        // Default row if nothing saved yet
+                        scraperActors = [{
+                            provider: 'apify',
+                            source: 'indeed',
+                            actor_id: '',
+                            token: '',
+                            base_url: 'https://api.apify.com/v2/datasets'
+                        }];
+                    }
+                    renderScraperCards(scraperActors);
 
                     // Contact Settings
                     if (data.contact) {
@@ -791,6 +924,199 @@
                 $('.remove-smtp-btn').toggleClass('d-none', $('.smtp-entry').length <= 1);
                 $('#removeSmtpBtn').toggleClass('d-none', $('.smtp-entry').length <= 1);
             }
+
+            let scraperCardCounter = 0;
+
+            function createScraperCard(actor = {}, index = 0) {
+                const providerValue = actor.provider || 'apify';
+                const sourceValue = actor.source || 'indeed';
+                const $card = $(scraperCardTemplateHtml);
+                const uniqueId = 'scraper-card-' + (++scraperCardCounter);
+                $card.attr('id', uniqueId);
+                $card.attr('data-key', actor.key || '');
+                // Set values
+                $card.find('.scraper-provider').val(providerValue);
+                $card.find('.scraper-source').val(sourceValue);
+                $card.find('.scraper-actor-id').val(actor.actor_id || '');
+                $card.find('.scraper-token').val(actor.token || '');
+                $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/datasets');
+                $card.find('.scraper-prompt-office').val(actor.scraper_prompt_office || '');
+                $card.find('.scraper-prompt-unit').val(actor.scraper_prompt_unit || '');
+                // ✅ Check if existing record
+                const isExisting = !!actor.key;
+                if (isExisting) {
+                    // Disable fields
+                    $card.find('.scraper-provider').prop('disabled', true);
+                    $card.find('.scraper-source').prop('disabled', true);
+                    // Add hidden inputs so values still submit
+                    $card.append(
+                        `<input type="hidden" name="actors[${index}][provider]" value="${providerValue}">`);
+                    $card.append(`<input type="hidden" name="actors[${index}][source]" value="${sourceValue}">`);
+                } else {
+                    // New card → keep editable + proper name attributes
+                    $card.find('.scraper-provider').attr('name', `actors[${index}][provider]`);
+                    $card.find('.scraper-source').attr('name', `actors[${index}][source]`);
+                }
+                // Always set names for other fields
+                $card.find('.scraper-actor-id').attr('name', `actors[${index}][actor_id]`);
+                $card.find('.scraper-token').attr('name', `actors[${index}][token]`);
+                $card.find('.scraper-base-url').attr('name', `actors[${index}][base_url]`);
+                $card.find('.scraper-prompt-office').attr('name', `actors[${index}][scraper_prompt_office]`);
+                $card.find('.scraper-prompt-unit').attr('name', `actors[${index}][scraper_prompt_unit]`);
+                return $card;
+            }
+
+            function updateScraperRemoveButtons() {
+                const count = $scraperCards.find('.scraper-card').length;
+                $scraperCards.find('.remove-scraper-card').toggleClass('d-none', count <= 1);
+            }
+
+            function renderScraperCards(actors) {
+                $scraperCards.empty();
+                if (!Array.isArray(actors) || actors.length === 0) {
+                    actors = [{}];
+                }
+                actors.forEach(function(actor) {
+                    $scraperCards.append(createScraperCard(actor));
+                });
+                updateScraperRemoveButtons();
+            }
+            $('#addScraperCardBtn').on('click', function() {
+                $scraperCards.append(createScraperCard({}));
+                updateScraperRemoveButtons();
+            });
+            $scraperCards.on('change', '.scraper-provider', function() {
+                toggleCardFields($(this).closest('.scraper-card'));
+            });
+            // Toggle show/hide token
+            $scraperCards.on('click', '.toggle-token', function() {
+                const $btn = $(this);
+                const $input = $btn.closest('.input-group').find('.scraper-token');
+                const $icon = $btn.find('i');
+                if ($input.attr('type') === 'password') {
+                    $input.attr('type', 'text');
+                    $icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    $input.attr('type', 'password');
+                    $icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+            // Toggle show/hide SerpApi API key
+            $(document).on('click', '.toggle-password', function() {
+                const $btn = $(this);
+                const $input = $btn.closest('.input-group').find('#serpapi_api_key');
+                const $icon = $btn.find('i');
+                if ($input.attr('type') === 'password') {
+                    $input.attr('type', 'text');
+                    $icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    $input.attr('type', 'password');
+                    $icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+            $scraperCards.on('click', '.run-scraper-actor', function() {
+                const $btn = $(this);
+                const $card = $btn.closest('.scraper-card');
+                const $cardStatus = $card.find('.card-scraper-status');
+                // Get key from attribute for reliability
+                const key = $card.attr('data-key');
+                if (!key || key === '') {
+                    $cardStatus.html('<span class="text-warning">Please save settings first</span>');
+                    $('#scraperStatus').html(
+                        '<span class="text-warning">Actor not saved yet. Please save settings first.</span>'
+                    );
+                    return;
+                }
+                // Highlight only this card
+                $card.addClass('border-primary shadow-sm');
+                $cardStatus.html(
+                    '<span class="spinner-border spinner-border-sm text-info"></span> <span class="ms-1">Running...</span>'
+                );
+                $('#scraperStatus').html('<span class="text-info">Running specific scraper...</span>');
+                const originalBtnHtml = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                $.ajax({
+                    url: '{{ route('settings.scraper.run', ':key') }}'.replace(':key', key),
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            const fetched = response.fetched || 0;
+                            const imported = response.imported || 0;
+                            const skipped = response.skipped || 0;
+                            const resText =
+                                `Total:${fetched} Imported:${imported} Skipped:${skipped}`;
+                            $cardStatus.html(
+                                `<span class="text-success fw-bold ms-1" title="Fetched: ${fetched}, Imported: ${imported}, Skipped: ${skipped}">${resText}</span>`
+                            );
+                            $('#scraperStatus').html(
+                                `<span class="text-success">Import success: ${resText}</span>`
+                            );
+                            toastr.success(`Run completed: ${resText}`);
+                        } else {
+                            $cardStatus.html('<span class="text-danger ms-1">Failed</span>');
+                            $('#scraperStatus').html('<span class="text-danger">Error: ' +
+                                response.message + '</span>');
+                        }
+                    },
+                    error: function(xhr) {
+                        $cardStatus.html('<span class="text-danger ms-1">Error</span>');
+                        $('#scraperStatus').html(
+                            '<span class="text-danger">Error running scraper.</span>');
+                        toastr.error('Connection error running scraper.');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).html(originalBtnHtml);
+                        setTimeout(() => {
+                            $card.removeClass('border-primary shadow-sm');
+                        }, 2000);
+                    }
+                });
+            });
+            $scraperCards.on('click', '.remove-scraper-card', function() {
+                const $card = $(this).closest('.scraper-card');
+                const key = $card.data('key');
+                if (key) {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'This will permanently delete this scraper actor from the database.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: '{{ route('settings.scraper.delete', ':key') }}'
+                                    .replace(':key', key),
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
+                                        'content')
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $card.remove();
+                                        updateScraperRemoveButtons();
+                                        toastr.success(response.message);
+                                    } else {
+                                        toastr.error(response.message);
+                                    }
+                                },
+                                error: function(xhr) {
+                                    toastr.error('Error deleting scraper actor.');
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    $card.remove();
+                    updateScraperRemoveButtons();
+                }
+            });
 
             // Handle form submissions
             $formSections.find('form').submit(function(e) {
@@ -1032,6 +1358,41 @@
                     //         $btn.prop('disabled', false).html(originalText);
                     //     }
                     // });
+                } else if (formType === 'scraper') {
+                    // ── Re-index cards before serializing ─────────────────────────────
+                    $('#scraperCards .scraper-card').each(function(index) {
+                        $(this).find('[name*="actors["]').each(function() {
+                            const newName = $(this).attr('name').replace(/actors\[\d+\]/,
+                                `actors[${index}]`);
+                            $(this).attr('name', newName);
+                        });
+                    });
+                    const formData = new FormData(this);
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+                    );
+                    $.ajax({
+                        url: '{{ route('settings.scraper.save') }}',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                toastr.success(response.message);
+                            } else {
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error('Error saving scraper settings:', xhr.responseText);
+                            toastr.error('Failed to save scraper settings: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
+                        },
+                        complete: function() {
+                            $btn.prop('disabled', false).html(originalText);
+                        }
+                    });
                 }
             });
             // ── Dial Lock Settings ──────────────────────────────────────────────────
@@ -1093,19 +1454,43 @@
             // (called after the main AJAX succeeds — we hook in via a custom event)
             $(document).on('dialingSettingsLoaded', function(e, data) {
                 if (!data) return;
-                var enabled = data.dialing_lock_enabled !== false && data.dialing_lock_enabled !==
-                    'false' && data.dialing_lock_enabled !== 0;
+
+                var enabled = data.dialing_lock_enabled !== false &&
+                    data.dialing_lock_enabled !== 'false' &&
+                    data.dialing_lock_enabled !== 0 &&
+                    data.dialing_lock_enabled !== '0';
+
                 var sameMin = parseInt(data.dialing_lock_same_user_minutes, 10) || 0;
                 var otherMin = parseInt(data.dialing_lock_other_user_minutes, 10) || 5;
-                var touchLimit = parseInt(data.contact_touch_limit, 10) || 0;
+                var maxCalls = parseInt(data.dialing_max_calls_per_day, 10) || 3;
+                var histDays = parseInt(data.dialing_history_days, 10) || 2;
 
+                // ── Master toggle ──────────────────────────────────────────────
                 $('#dialing_lock_enabled').prop('checked', enabled).trigger('change');
-                $('#dialing_lock_same_user_minutes').val(sameMin).trigger('change');
+
+                // ── Same-agent slider + input ──────────────────────────────────
                 $('#same_user_slider').val(sameMin);
-                $('#dialing_lock_other_user_minutes').val(otherMin).trigger('change');
-                $('#contact_touch_limit').val(touchLimit);
+                $('#dialing_lock_same_user_minutes').val(sameMin).trigger('change');
+
+                // ── Other-agents slider + input ───────────────────────────────
                 $('#other_user_slider').val(otherMin);
-                $('#same-user-preview').trigger('updatePreview');
+                $('#dialing_lock_other_user_minutes').val(otherMin).trigger('change');
+
+                // ── Max calls per day slider + input + preview ─────────────────
+                $('#max_calls_slider').val(maxCalls);
+                $('#dialing_max_calls_per_day').val(maxCalls);
+                if (maxCalls === 0) {
+                    $('#max-calls-preview').text('Limit: unlimited calls per agent/day');
+                } else {
+                    $('#max-calls-preview').text('Limit: ' + maxCalls + ' call' + (maxCalls === 1 ? '' :
+                        's') + ' per agent/day');
+                }
+
+                // ── History retention slider + input + preview ─────────────────
+                $('#history_days_slider').val(histDays);
+                $('#dialing_history_days').val(histDays);
+                $('#history-days-preview').text('Keep ' + histDays + ' day' + (histDays === 1 ? '' : 's') +
+                    ' of call history');
             });
 
             // ── Active locks table ──────────────────────────────────────────────

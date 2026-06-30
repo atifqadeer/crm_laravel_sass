@@ -2159,7 +2159,6 @@ class DashboardController extends Controller
         $daily_data['crm_invoiced'] = $this->getStageCount('crm_invoice', null, null, $startDate, $endDate);
         $daily_data['crm_disputed'] = $this->getStageCount('crm_dispute', null, null, $startDate, $endDate, true);
         $daily_data['crm_paid'] = $this->getStageCount('crm_paid', null, null, $startDate, $endDate);
-
         // Revert counts
         $daily_data['crm_revert'] = $this->getStageCount(null, 'crm_revert', null, $startDate, $endDate, null, true);
         $daily_data['quality_revert'] = $this->getStageCount(null, 'quality_revert', null, $startDate, $endDate, null, true);

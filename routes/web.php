@@ -23,6 +23,9 @@ use App\Http\Controllers\FreePBXController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DialLockController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\ScrapController;
+use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
+use App\Http\Middleware\IPAddress;
 
 /*
 |--------------------------------------------------------------------------
@@ -467,10 +470,40 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('save-smtp-settings', [SettingController::class, 'saveSmtpSettings'])->name('settings.smtp.save');
     Route::post('delete-smtp-settings', [SettingController::class, 'deleteSmtp'])->name('settings.smtp.delete');
     Route::post('save-dialing-settings', [SettingController::class, 'saveDialingSettings'])->name('settings.dialing.save');
+    Route::get('save-settings', [SettingController::class, ''])->name('settings.save');
+    Route::post('save-scraper-settings', [SettingController::class, 'saveScraperSettings'])->name('settings.scraper.save');
+    Route::delete('delete-scraper-actor/{key}', [SettingController::class, 'deleteScraperActor'])->name('settings.scraper.delete');
+    Route::post('run-scraper-actor/{key}', [SettingController::class, 'runScraperActor'])->name('settings.scraper.run');
 
     Route::post('module-notes/store', [ModuleNotesController::class, 'store'])->name('moduleNotes.store');
     Route::get('getModuleNotesHistory', [ModuleNotesController::class, 'getModuleNotesHistory'])->name('getModuleNotesHistory');
     Route::get('getModuleUpdateHistory', [ModuleNotesController::class, 'getModuleUpdateHistory'])->name('getModuleUpdateHistory');
+
+    Route::group(['prefix' => 'scrap'], function () {
+        Route::get('office-list', [ScrapController::class, 'officeIndex'])->name('scrap.office.list');
+        Route::get('unit-list', [ScrapController::class, 'unitIndex'])->name('scrap.unit.list');
+        Route::get('sales-list', [ScrapController::class, 'salesIndex'])->name('scrap.sales.list');
+    });
+    Route::get('scrap/import', [ScrapController::class, 'importIndex'])->name('scrap.import.index');
+    Route::post('scrap/import', [ScrapController::class, 'importJobs'])->name('scrap.import');
+    Route::get('getScrappedOffices', [ScrapController::class, 'getScrappedOffices'])->name('getScrappedOffices');
+    Route::get('getScrappedUnits', [ScrapController::class, 'getScrappedUnits'])->name('getScrappedUnits');
+    Route::get('getScrappedSales', [ScrapController::class, 'getScrappedSales'])->name('getScrappedSales');
+    Route::put('scrapped/office/restore', [ScrapController::class, 'scrappedOfficeRestore'])->name('scrapped.office.restore');
+    Route::put('scrapped/unit/restore', [ScrapController::class, 'scrappedUnitRestore'])->name('scrapped.unit.restore');
+    Route::put('scrapped/sale/restore', [ScrapController::class, 'scrappedSaleRestore'])->name('scrapped.sale.restore');
+    Route::delete('scrapped/office/destroy', [ScrapController::class, 'scrappedOfficeDestroy'])->name('scrapped.office.destroy');
+    Route::delete('scrapped/unit/destroy', [ScrapController::class, 'scrappedUnitDestroy'])->name('scrapped.unit.destroy');
+    Route::delete('scrapped/sale/destroy', [ScrapController::class, 'scrappedSaleDestroy'])->name('scrapped.sale.destroy');
+    Route::post('scrapped/sale/approve', [ScrapController::class, 'scrappedSaleApprove'])->name('scrapped.sale.approve');
+    Route::post('scrapped/unit/approve', [ScrapController::class, 'scrappedUnitApprove'])->name('scrapped.unit.approve');
+    Route::post('scrapped/office/approve', [ScrapController::class, 'scrappedOfficeApprove'])->name('scrapped.office.approve');
+    Route::get('/get-sale-emails', [ScrapController::class, 'getSaleEmails']);
+    Route::post('/send-email-to-offices', [ScrapController::class, 'sendEmailToOffices'])->name('send.email.to.offices');
+    Route::post('scrap/bulk-email-template', [ScrapController::class, 'getBulkEmailTemplate'])->name('scrap.bulk.email.template');
+    Route::post('scrap/bulk-offices-email-template', [ScrapController::class, 'getBulkOfficesEmailTemplate'])->name('scrap.bulk.offices.email.template');
+    Route::post('/send-bulk-emails-to-offices', [ScrapController::class, 'sendBulkEmailsToOffices'])->name('send.bulk.emails.to.offices');
+
 
     Route::group(['prefix' => 'freepbx-cdrs'], function () {
         Route::get('', [FreePBXController::class, 'index'])->name('freepbx-cdrs.list');

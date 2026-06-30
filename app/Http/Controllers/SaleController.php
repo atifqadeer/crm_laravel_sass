@@ -12,6 +12,7 @@ use Horsefly\SaleNote;
 use Horsefly\Applicant;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;
+use Horsefly\JobSource;
 use Horsefly\SaleDocument;
 use Horsefly\ModuleNote;
 use App\Observers\ActionObserver;
@@ -399,14 +400,31 @@ class SaleController extends Controller
             ], 500);
         }
     }
-    public function edit($id)
+    public function edit($id, Request $request)
     {
-        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
-        $jobCategories = JobCategory::where('is_active', 1)->get();
-        $jobTitles = JobTitle::where('is_active', 1)->get();
-
         $sale = Sale::with('documents')->find($id);
-        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles'));
+
+        if ($sale->status == 4) {
+            $offices = Office::where('status', 4)
+                ->whereNull('deleted_at')
+                ->select('id', 'office_name')
+                ->orderBy('office_name', 'asc')
+                ->get();
+        } else {
+            $offices = Office::where('status', 1)
+                        ->whereNull('deleted_at')
+                        ->select('id', 'office_name')
+                        ->orderBy('office_name', 'asc')
+                        ->get();
+        }
+
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
+
+        $redirect_url = $request->input('redirect_url', route('sales.list'));
+
+        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url', 'jobSources'));
     }
     public function update(Request $request)
     {
@@ -3816,7 +3834,7 @@ class SaleController extends Controller
     public function getOfficeUnits(Request $request)
     {
         $units = Unit::where('office_id', $request->input('office_id'))
-            ->where('status', 1)
+            // ->where('status', 1)
             ->whereNull('deleted_at')
             ->select('id', 'unit_name')
             ->get();
