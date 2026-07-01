@@ -114,11 +114,11 @@ return [
 
         'freepbx' => [
             'driver' => 'mysql',
-            'host' => env('DB_FREEPBX_HOST', '213.165.84.35'),
+            'host' => env('DB_FREEPBX_HOST', ''),
             'port' => env('DB_FREEPBX_PORT', '22'),
-            'database' => env('DB_FREEPBX_DATABASE', 'asteriskcdrdb'),
+            'database' => env('DB_FREEPBX_DATABASE', ''),
             'username' => env('DB_FREEPBX_USERNAME', 'root'),
-            'password' => env('DB_FREEPBX_PASSWORD', 'Wig83vMn'),
+            'password' => env('DB_FREEPBX_PASSWORD', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
