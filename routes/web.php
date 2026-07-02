@@ -133,6 +133,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('store', [UnitController::class, 'store'])->name('units.store');
         Route::get('{id}/edit', [UnitController::class, 'edit'])->name('units.edit');
         Route::post('update', [UnitController::class, 'update'])->name('units.update');
+        Route::post('{id}/change-status', [UnitController::class, 'changeUnitStatus'])->name('units.change-status');
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
     Route::get('unitsExport', [UnitController::class, 'export'])->name('unitsExport');

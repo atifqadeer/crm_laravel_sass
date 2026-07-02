@@ -332,7 +332,7 @@ class UnitController extends Controller
                 fn($u) =>
                 $u->status
                     ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-secondary">Inactive</span>'
+                    : '<span class="badge bg-danger">Inactive</span>'
             )
             ->addColumn('action', function ($u) {
                 $postcode    = $u->formatted_postcode;
@@ -350,6 +350,7 @@ class UnitController extends Controller
                 if (Gate::allows('unit-edit')) {
                     $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
                 }
+
                 if (Gate::allows('unit-view')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="showDetailsModal('
                         . (int)$u->id . ', '
@@ -361,6 +362,12 @@ class UnitController extends Controller
                 if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
                     $html .= '<li><hr class="dropdown-divider"></li>';
                 }
+                if (Gate::allows('unit-edit')) {
+                    $html .= $u->status == 0
+                        ? '<li><a class="dropdown-item text-secondary" href="javascript:void(0);" onclick="markUnitDisabledModal(' . (int)$u->id . ', 1)">Mark Enabled</a></li>'
+                        : '<li><a class="dropdown-item text-warning" href="javascript:void(0);" onclick="markUnitDisabledModal(' . (int)$u->id . ', 0)">Mark Disabled</a></li>';
+                }
+
                 if (Gate::allows('unit-view-notes-history')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewNotesHistory(' . $u->id . ')">Notes History</a></li>';
                 }
@@ -425,6 +432,60 @@ class UnitController extends Controller
 
         return redirect()->to(url()->previous());
     }
+    public function changeUnitStatus(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+            'status' => 'required', // 0 for disabled, 1 for enabled
+        ]);
+
+        $user = Auth::user();
+        $unit = Unit::findOrFail($id);
+
+        $status = trim($request->input('status'));
+        $reason = trim($request->input('reason'));
+        $noteText = $reason . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+        DB::beginTransaction();
+
+        try {
+            $unit->update([
+                'status' => $status,
+                'unit_notes' => $noteText,
+            ]);
+
+            ModuleNote::where([
+                'module_noteable_id' => $unit->id,
+                'module_noteable_type' => 'Horsefly\Unit'
+            ])->where('status', 1)->update(['status' => 0]);
+
+            $moduleNote = ModuleNote::create([
+                'details' => $noteText,
+                'module_noteable_id' => $unit->id,
+                'module_noteable_type' => 'Horsefly\Unit',
+                'user_id' => $user->id,
+                'status' => 1,
+            ]);
+
+            $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Unit status updated successfully.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating unit status: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to update the unit status.'
+            ], 500);
+        }
+    }
+
     public function unitDetails($id)
     {
         $unit = Unit::findOrFail($id);
