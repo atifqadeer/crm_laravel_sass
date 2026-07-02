@@ -46,7 +46,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-import',
             'applicant-show-blocked-data',
 
-             // Office Permissions
+            // Office Permissions
             'office-index',
             'office-filters',
             'office-view-note',
@@ -84,6 +84,7 @@ class PermissionsTableSeeder extends Seeder
             'unit-export',
             'unit-export-all',
             'unit-export-emails',
+            'unit-change-status',
 
             // Sale Permissions
             'sale-index',
@@ -162,7 +163,7 @@ class PermissionsTableSeeder extends Seeder
             'sale-rejected-view-documents',
             'sale-rejected-change-status',
             'sale-rejected-filters',
-            
+
             // Sale Sub Modules On Hold Sales Permissions
             'sale-hold-index',
             'sale-hold-view',
@@ -185,8 +186,8 @@ class PermissionsTableSeeder extends Seeder
             'sale-pending-hold-mark-dis-approved',
             'sale-pending-hold-filters',
 
-           // Resources Permissions
-           // Resource Sub Modules Direct Resources Permissions
+            // Resources Permissions
+            // Resource Sub Modules Direct Resources Permissions
             'resource-direct-index',
             'resource-direct-filters',
             'resource-direct-send-email-btn',
@@ -221,7 +222,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-rejected-export',
             'resource-rejected-export-all',
             'resource-rejected-export-emails',
-            
+
             // Resource Sub Modules Blocked Resources Permissions
             'resource-blocked-index',
             'resource-blocked-filters',
@@ -233,7 +234,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-blocked-export-all',
             'resource-blocked-export-emails',
             'resource-blocked-mark-unblock',
-           
+
             // Resource Sub Modules Not Interested Resources Permissions
             'resource-not-interested-index',
             'resource-not-interested-filters',

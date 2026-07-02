@@ -19,7 +19,6 @@ use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Carbon;
 use App\Observers\ActionObserver;
-use League\Csv\Reader;
 
 class UnitController extends Controller
 {
@@ -359,18 +358,21 @@ class UnitController extends Controller
                         . '\'' . e($postcode) . '\', '
                         . '\'' . e($status) . '\')">View</a></li>';
                 }
-                if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
-                    $html .= '<li><hr class="dropdown-divider"></li>';
-                }
-                if (Gate::allows('unit-edit')) {
+
+                if (Gate::allows('unit-change-status')) {
                     $html .= $u->status == 0
                         ? '<li><a class="dropdown-item text-secondary" href="javascript:void(0);" onclick="markUnitDisabledModal(' . (int)$u->id . ', 1)">Mark Enabled</a></li>'
                         : '<li><a class="dropdown-item text-warning" href="javascript:void(0);" onclick="markUnitDisabledModal(' . (int)$u->id . ', 0)">Mark Disabled</a></li>';
                 }
 
+                if (Gate::allows('unit-view-notes-history') || Gate::allows('unit-view-manager-details')) {
+                    $html .= '<li><hr class="dropdown-divider"></li>';
+                }
+
                 if (Gate::allows('unit-view-notes-history')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewNotesHistory(' . $u->id . ')">Notes History</a></li>';
                 }
+
                 if (Gate::allows('unit-view-manager-details')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="viewManagerDetails(' . $u->id . ')">Manager Details</a></li>';
                 }
