@@ -233,6 +233,7 @@ class DashboardController extends Controller
                 'cvs_requested' => 0,
                 'cvs_cleared'   => 0,
                 'cvs_rejected'  => 0,
+                'cvs_opened'    => 0,
             ];
 
             $crm_stats = array_fill_keys([
@@ -353,21 +354,23 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->get();
 
-                $quality_stats['cvs_requested'] = $cvNotes->count();
-
                 $pairs = $cvNotes
                     ->unique(fn($x) => $x->applicant_id . '-' . $x->sale_id)
                     ->values();
+
+                $quality_stats['cvs_requested'] = $pairs->count();
 
                 if ($pairs->isNotEmpty()) {
                     $applicantIds = $pairs->pluck('applicant_id')->unique()->values();
                     $saleIds      = $pairs->pluck('sale_id')->unique()->values();
 
+                    // ── created_at-based history: single creation-event sub_stages ──────
                     $histories = History::query()
                         ->whereIn('applicant_id', $applicantIds)
                         ->whereIn('sale_id', $saleIds)
                         ->whereBetween('created_at', [$startDate, $endDate])
                         ->whereIn('sub_stage', [
+                            'quality_cvs_hold',
                             'quality_reject',
                             'crm_reject',
                             'crm_request',
@@ -423,17 +426,20 @@ class DashboardController extends Controller
                         | QUALITY
                         |--------------------------------------------------------------------------
                         */
+                        /*
+                        |--------------------------------------------------------------------------
+                        | QUALITY — mutually exclusive bucket per pair
+                        | Priority: cleared > rejected > opened
+                        |--------------------------------------------------------------------------
+                        */
 
                         if ($pairCleared) {
                             $quality_stats['cvs_cleared']++;
                             $crm_stats['CRM_sent_cvs']++;
-                        }
-
-                        if (
-                            isset($pairHistory['quality_reject']) &&
-                            $pairHistory['quality_reject']->status == 1
-                        ) {
+                        } elseif (isset($pairHistory['quality_reject']) && $pairHistory['quality_reject']->status == 1) {
                             $quality_stats['cvs_rejected']++;
+                        } elseif (isset($pairHistory['quality_cvs_hold'])) {
+                            $quality_stats['cvs_opened']++;
                         }
 
                         /*
@@ -681,9 +687,30 @@ class DashboardController extends Controller
                     ->distinct()
                     ->get();
 
-                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+                // Fetch the latest history record for each applicant_id/sale_id pair in one query
+                $histories = History::query()
+                    ->where(function ($query) use ($cvNotes) {
+                        foreach ($cvNotes as $cv) {
+                            $query->orWhere(function ($q) use ($cv) {
+                                $q->where('applicant_id', $cv->applicant_id)
+                                    ->where('sale_id', $cv->sale_id);
+                            });
+                        }
+                    })
+                    ->orderByDesc('created_at')
+                    ->get()
+                    // rows are already newest-first, so unique() keeps the latest per pair
+                    ->unique(fn($h) => $h->applicant_id . '-' . $h->sale_id)
+                    ->keyBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
+
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Status', 'Date'];
 
                 foreach ($cvNotes as $i => $cv) {
+                    $historyKey = $cv->applicant_id . '-' . $cv->sale_id;
+                    $status = $histories->get($historyKey)?->sub_stage
+                        ? ucwords(str_replace('_', ' ', $histories->get($historyKey)->sub_stage))
+                        : '—';
+
                     $rows[] = [
                         $i + 1,
                         $cv->applicant->applicant_name  ?? '—',
@@ -693,6 +720,7 @@ class DashboardController extends Controller
                         $cv->sale->sale_postcode        ?? '—',
                         $cv->sale->office->office_name  ?? '—',
                         $cv->sale->unit->unit_name      ?? '—',
+                        $status,
                         $cv->created_at->format('d M Y h:i A'),
                     ];
                 }
@@ -702,18 +730,20 @@ class DashboardController extends Controller
                 // Counter  : unique pairs → isNotEmpty() on quality_cleared → 1 per pair
                 // Detail   : first() per pair to match that 1-per-pair count
                 // ══════════════════════════════════════════════════════════════════════
-            } elseif ($stat_key === 'cvs_cleared') {
+            } elseif (in_array($stat_key, ['cvs_cleared', 'cvs_rejected', 'cvs_opened'])) {
 
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
-                    ->distinct()
-                    ->get();
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
+                    ->values();
 
                 $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
                 foreach ($cvNotes as $cv) {
+
                     $cleared = History::query()
                         ->with($saleWith)
                         ->where('sub_stage', 'quality_cleared')
@@ -721,40 +751,26 @@ class DashboardController extends Controller
                         ->where('sale_id', $cv->sale_id)
                         ->whereBetween('updated_at', [$startDate, $endDate])
                         ->whereColumn('created_at', '!=', 'updated_at')
-                        ->first(); // 1 per pair — mirrors isNotEmpty() in counter
+                        ->first();
 
                     if ($cleared) {
-                        $rows[] = [
-                            count($rows) + 1,
-                            $cleared->applicant->applicant_name  ?? '—',
-                            $cleared->applicant->applicant_postcode ?? '—',
-                            $cleared->sale->jobCategory->name    ?? '—',
-                            $cleared->sale->jobTitle->name       ?? '—',
-                            $cleared->sale->sale_postcode        ?? '—',
-                            $cleared->sale->office->office_name  ?? '—',
-                            $cleared->sale->unit->unit_name      ?? '—',
-                            $cleared->updated_at->format('d M Y h:i A'),
-                        ];
+                        if ($stat_key === 'cvs_cleared') {
+                            $rows[] = [
+                                count($rows) + 1,
+                                $cleared->applicant->applicant_name     ?? '—',
+                                $cleared->applicant->applicant_postcode ?? '—',
+                                $cleared->sale->jobCategory->name       ?? '—',
+                                $cleared->sale->jobTitle->name          ?? '—',
+                                $cleared->sale->sale_postcode           ?? '—',
+                                $cleared->sale->office->office_name     ?? '—',
+                                $cleared->sale->unit->unit_name         ?? '—',
+                                $cleared->updated_at->format('d M Y h:i A'),
+                            ];
+                        }
+                        continue; // priority: cleared wins
                     }
-                }
 
-                // ══════════════════════════════════════════════════════════════════════
-                // CVS REJECTED
-                // Counter  : unique pairs → keyBy(sub_stage) quality_reject status=1 → 1 per pair
-                // Detail   : first() per pair to match that 1-per-pair count
-                // ══════════════════════════════════════════════════════════════════════
-            } elseif ($stat_key === 'cvs_rejected') {
-
-                $cvNotes = CVNote::query()
-                    ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->select('applicant_id', 'sale_id')
-                    ->distinct()
-                    ->get();
-
-                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
-
-                foreach ($cvNotes as $cv) {
+                    // rejected uses created_at — matches the counter's $histories query
                     $rejected = History::query()
                         ->with($saleWith)
                         ->where('sub_stage', 'quality_reject')
@@ -762,28 +778,49 @@ class DashboardController extends Controller
                         ->where('applicant_id', $cv->applicant_id)
                         ->where('sale_id', $cv->sale_id)
                         ->whereBetween('created_at', [$startDate, $endDate])
-                        ->first(); // 1 per pair — mirrors keyBy() in counter
+                        ->first();
 
                     if ($rejected) {
+                        if ($stat_key === 'cvs_rejected') {
+                            $rows[] = [
+                                count($rows) + 1,
+                                $rejected->applicant->applicant_name     ?? '—',
+                                $rejected->applicant->applicant_postcode ?? '—',
+                                $rejected->sale->jobCategory->name       ?? '—',
+                                $rejected->sale->jobTitle->name          ?? '—',
+                                $rejected->sale->sale_postcode           ?? '—',
+                                $rejected->sale->office->office_name     ?? '—',
+                                $rejected->sale->unit->unit_name         ?? '—',
+                                $rejected->created_at->format('d M Y h:i A'),
+                            ];
+                        }
+                        continue; // priority: rejected wins over opened
+                    }
+
+                    // opened uses updated_at + created_at!=updated_at — matches counter's $openedHistory
+                    $opened = History::query()
+                        ->with($saleWith)
+                        ->where('sub_stage', 'quality_cvs_hold')
+                        ->where('applicant_id', $cv->applicant_id)
+                        ->where('sale_id', $cv->sale_id)
+                        ->whereBetween('updated_at', [$startDate, $endDate])
+                        ->whereColumn('created_at', '!=', 'updated_at')
+                        ->first();
+
+                    if ($opened && $stat_key === 'cvs_opened') {
                         $rows[] = [
                             count($rows) + 1,
-                            $rejected->applicant->applicant_name  ?? '—',
-                            $rejected->applicant->applicant_postcode ?? '—',
-                            $rejected->sale->jobCategory->name    ?? '—',
-                            $rejected->sale->jobTitle->name       ?? '—',
-                            $rejected->sale->sale_postcode        ?? '—',
-                            $rejected->sale->office->office_name  ?? '—',
-                            $rejected->sale->unit->unit_name      ?? '—',
-                            $rejected->created_at->format('d M Y H:i A'),
+                            $opened->applicant->applicant_name     ?? '—',
+                            $opened->applicant->applicant_postcode ?? '—',
+                            $opened->sale->jobCategory->name       ?? '—',
+                            $opened->sale->jobTitle->name          ?? '—',
+                            $opened->sale->sale_postcode           ?? '—',
+                            $opened->sale->office->office_name     ?? '—',
+                            $opened->sale->unit->unit_name         ?? '—',
+                            $opened->updated_at->format('d M Y h:i A'),
                         ];
                     }
                 }
-
-                // ══════════════════════════════════════════════════════════════════════
-                // CRM STATS
-                // All CRM_* keys share the same bulk-fetch strategy.
-                // Gates mirror getUserStatistics() exactly so counts always match.
-                // ══════════════════════════════════════════════════════════════════════
             } elseif (str_starts_with($stat_key, 'CRM_')) {
 
                 $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
