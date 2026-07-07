@@ -764,38 +764,33 @@ class DashboardController extends Controller
             ];
 
             if (isset($salesStatMap[$stat_key])) {
-                $map    = $salesStatMap[$stat_key];
-                $audits = Audit::query()
-                    ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
+                $map = $salesStatMap[$stat_key];
+
+                // Mirrors: SELECT auditable_id, MAX(id) AS latest_id ... GROUP BY auditable_id
+                $latestAuditIds = Audit::query()
+                    ->selectRaw('MAX(id) as latest_id')
                     ->where('auditable_type', Sale::class)
                     ->where('user_id', $user_id)
                     ->where('message', 'LIKE', $map['message'])
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->whereHasMorph('auditable', [Sale::class], function ($q) use ($map) {
-                        $q->where('status', $map['status']);
+                    ->groupBy('auditable_id');
 
-                        if (!is_null($map['is_re_open'])) {
-                            $q->where('is_re_open', $map['is_re_open']);
-                        }
-
-                        if (!is_null($map['is_on_hold'])) {
-                            $q->where('is_on_hold', $map['is_on_hold']);
-                        }
+                $audits = Audit::query()
+                    ->joinSub($latestAuditIds, 'latest', function ($join) {
+                        $join->on('latest.latest_id', '=', 'audits.id');
                     })
-                    ->latest('created_at') // keep the latest audit if duplicates exist
-                    ->get()
-                    ->unique(function ($audit) {
-                        $sale = $audit->auditable;
-
-                        return implode('-', [
-                            $sale->office_id,
-                            $sale->unit_id,
-                            $sale->sale_postcode,
-                            $sale->job_category_id,
-                            $sale->job_title_id,
-                        ]);
+                    ->join('sales', 'sales.id', '=', 'audits.auditable_id')
+                    ->where('sales.status', $map['status'])
+                    ->when(!is_null($map['is_re_open']), function ($q) use ($map) {
+                        $q->where('sales.is_re_open', $map['is_re_open']);
                     })
-                    ->values();
+                    ->when(!is_null($map['is_on_hold']), function ($q) use ($map) {
+                        $q->where('sales.is_on_hold', $map['is_on_hold']);
+                    })
+                    ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
+                    ->select('audits.*')
+                    ->orderByDesc('audits.created_at')
+                    ->get();
 
                 $columns = ['#', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
@@ -811,6 +806,7 @@ class DashboardController extends Controller
                         $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
+
 
                 // ══════════════════════════════════════════════════════════════════════
                 // CVS REQUESTED
