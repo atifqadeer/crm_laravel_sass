@@ -684,8 +684,10 @@ class DashboardController extends Controller
                     ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->distinct()
-                    ->get();
+                    ->latest('created_at') // newest first
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
+                    ->values();
 
                 // Fetch the latest history record for each applicant_id/sale_id pair in one query
                 $histories = History::query()
@@ -733,9 +735,10 @@ class DashboardController extends Controller
             } elseif (in_array($stat_key, ['cvs_cleared', 'cvs_rejected', 'cvs_opened'])) {
 
                 $cvNotes = CVNote::query()
+                    ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->select('applicant_id', 'sale_id')
+                    ->latest('created_at') // newest first
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
@@ -830,6 +833,7 @@ class DashboardController extends Controller
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
+                    ->latest('created_at') // newest first
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
