@@ -729,10 +729,10 @@ class DashboardController extends Controller
                     })
                     ->join('sales', 'sales.id', '=', 'audits.auditable_id')
                     ->where('sales.status', $map['status'])
-                    ->when(!is_null($map['is_re_open']), function ($q) use ($map) {
+                    ->when(isset($map['is_re_open']) && !is_null($map['is_re_open']), function ($q) use ($map) {
                         $q->where('sales.is_re_open', $map['is_re_open']);
                     })
-                    ->when(!is_null($map['is_on_hold']), function ($q) use ($map) {
+                    ->when(isset($map['is_on_hold']) && !is_null($map['is_on_hold']), function ($q) use ($map) {
                         $q->where('sales.is_on_hold', $map['is_on_hold']);
                     })
                     ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
