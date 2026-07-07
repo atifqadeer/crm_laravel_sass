@@ -754,17 +754,16 @@ class DashboardController extends Controller
             // SALES STATS
             // ══════════════════════════════════════════════════════════════════════
             $salesStatMap = [
-                'open_sales'     => ['message' => '%has been created%', 'status' => 1, 'is_re_open' => null, 'is_on_hold' => null],
-                'reopen_sales'   => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 1,    'is_on_hold' => null],
-                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 0,    'is_on_hold' => null],
-                'pending_sales'  => ['message' => '%has been created%', 'status' => 2, 'is_re_open' => 0,    'is_on_hold' => null],
-                'onhold_sales'   => ['message' => '%sale-onhold%',      'status' => 1, 'is_re_open' => null, 'is_on_hold' => 1],
-                'rejected_sales' => ['message' => '%reject%',           'status' => 3, 'is_re_open' => null, 'is_on_hold' => null],
-                'close_sales'    => ['message' => '%close%',            'status' => 0, 'is_re_open' => null, 'is_on_hold' => null],
+                'open_sales'     => ['message' => '%has been created%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
+                'reopen_sales'   => ['message' => '%open%', 'status' => 1, 'is_re_open' => 1, 'is_on_hold' => 0],
+                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
+                'pending_sales'  => ['message' => '%has been created%', 'status' => 2, 'is_re_open' => 0, 'is_on_hold' => 0],
+                'onhold_sales'   => ['message' => '%sale-onhold%',      'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 1],
+                'rejected_sales' => ['message' => '%reject%',           'status' => 3, 'is_re_open' => 0, 'is_on_hold' => 0],
+                'close_sales'    => ['message' => '%close%',            'status' => 0, 'is_re_open' => 0, 'is_on_hold' => 0],
             ];
 
             if (isset($salesStatMap[$stat_key])) {
-
                 $map    = $salesStatMap[$stat_key];
                 $audits = Audit::query()
                     ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
@@ -1410,7 +1409,6 @@ class DashboardController extends Controller
             'details' => $salesDetails
         ]);
     }
-    // 
     public function getSalesAnalytic(Request $request)
     {
         $range = $request->input('range', 'month');
@@ -1418,93 +1416,39 @@ class DashboardController extends Controller
         if ($range === 'year') {
             $from = now()->startOfYear();
             $to = now()->endOfYear();
-            $grouping = 'MONTH(audits.created_at)';
+            $grouping = 'MONTH(created_at)';
             $rangeLabels = collect(range(1, 12))->map(function ($month) {
                 return Carbon::create()->month($month)->format('F');
             });
         } else {
             $from = now()->startOfMonth();
             $to = now()->endOfMonth();
-            $grouping = 'DATE(audits.created_at)';
+            $grouping = 'DATE(created_at)';
             $daysInMonth = now()->daysInMonth;
             $rangeLabels = collect(range(1, $daysInMonth))->map(function ($day) {
                 return now()->startOfMonth()->addDays($day - 1)->format('d M');
             });
         }
 
-        // Same distinct-column signature you used in the audit stats example
-        $distinctCols = [
-            'sales.office_id',
-            'sales.unit_id',
-            'sales.sale_postcode',
-            'sales.job_category_id',
-            'sales.job_title_id',
-        ];
-        $distinctColsSql = implode(', ', $distinctCols);
-        $countDistinctSql = "COUNT(DISTINCT $distinctColsSql)";
-
-        $base = Audit::query()
-            ->join('sales', function ($join) {
-                $join->on('sales.id', '=', 'audits.auditable_id')
-                    ->where('audits.auditable_type', Sale::class);
-            })
-            ->whereBetween('audits.created_at', [$from, $to]);
-
-        $keyByLabel = function ($item) use ($range) {
-            if ($range === 'year') {
-                return Carbon::create()->month((int) $item->label)->format('F');
-            }
-            return Carbon::parse($item->label)->format('d M');
-        };
-
-        $runMetric = function ($messageLike, $wheres) use ($base, $grouping, $countDistinctSql, $keyByLabel) {
-            $query = (clone $base)
-                ->where('audits.message', 'LIKE', $messageLike);
-
-            foreach ($wheres as $column => $value) {
-                $query->where($column, $value);
-            }
-
-            return $query
-                ->selectRaw("$grouping as label")
-                ->selectRaw("$countDistinctSql as count")
-                ->groupBy(DB::raw($grouping))
-                ->orderBy(DB::raw($grouping))
-                ->get()
-                ->keyBy($keyByLabel);
-        };
-
-        $newAddedData = $runMetric('%has been created%', [
-            'sales.status' => 1,
-        ]);
-
-        $pendingData = $runMetric('%has been created%', [
-            'sales.status' => 2,
-            'sales.is_re_open' => 0,
-        ]);
-
-        $reopenedData = $runMetric('%open%', [
-            'sales.status' => 1,
-            'sales.is_re_open' => 1,
-        ]);
-
-        $updatedData = $runMetric('%has been updated%', [
-            'sales.status' => 1,
-            'sales.is_re_open' => 0,
-        ]);
-
-        $rejectedData = $runMetric('%reject%', [
-            'sales.status' => 3,
-        ]);
-
-        $closedData = $runMetric('%close%', [
-            'sales.status' => 0,
-        ]);
-
-        $onholdData = $runMetric('%sale-onhold%', [
-            'sales.status' => 1,
-            'sales.is_on_hold' => 1,
-        ]);
+        $rawData = Sale::selectRaw("$grouping as label")
+            ->selectRaw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as new_added")
+            ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
+            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
+            ->selectRaw("SUM(CASE WHEN status = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as closed")
+            ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
+            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as updated")
+            ->whereBetween('created_at', [$from, $to])
+            ->groupBy(DB::raw($grouping))
+            ->orderBy(DB::raw($grouping))
+            ->get()
+            ->keyBy(function ($item) use ($range) {
+                if ($range === 'year') {
+                    return Carbon::create()->month((int)$item->label)->format('F');
+                } else {
+                    // $item->label is "YYYY-MM-DD"
+                    return Carbon::parse($item->label)->format('d M');
+                }
+            });
 
         $labels = [];
         $new = [];
@@ -1513,28 +1457,25 @@ class DashboardController extends Controller
         $pending = [];
         $rejected = [];
         $updated = [];
-        $onhold = [];
 
         foreach ($rangeLabels as $label) {
             $labels[] = $label;
-            $new[] = isset($newAddedData[$label]) ? (int) $newAddedData[$label]->count : 0;
-            $reopened[] = isset($reopenedData[$label]) ? (int) $reopenedData[$label]->count : 0;
-            $closed[] = isset($closedData[$label]) ? (int) $closedData[$label]->count : 0;
-            $pending[] = isset($pendingData[$label]) ? (int) $pendingData[$label]->count : 0;
-            $rejected[] = isset($rejectedData[$label]) ? (int) $rejectedData[$label]->count : 0;
-            $updated[] = isset($updatedData[$label]) ? (int) $updatedData[$label]->count : 0;
-            $onhold[] = isset($onholdData[$label]) ? (int) $onholdData[$label]->count : 0;
+            $new[] = isset($rawData[$label]) ? (int) $rawData[$label]->new_added : 0;
+            $reopened[] = isset($rawData[$label]) ? (int) $rawData[$label]->reopened : 0;
+            $closed[] = isset($rawData[$label]) ? (int) $rawData[$label]->closed : 0;
+            $pending[] = isset($rawData[$label]) ? (int) $rawData[$label]->pending : 0;
+            $rejected[] = isset($rawData[$label]) ? (int) $rawData[$label]->rejected : 0;
+            $updated[] = isset($rawData[$label]) ? (int) $rawData[$label]->updated : 0;
         }
 
         return response()->json([
             'labels' => $labels,
             'new_added' => $new,
+            'updated' => $updated,
             'reopened' => $reopened,
             'closed' => $closed,
             'pending' => $pending,
             'rejected' => $rejected,
-            'updated' => $updated,
-            'onhold' => $onhold,
         ]);
     }
     public function getUnreadMessages()
@@ -2596,322 +2537,6 @@ class DashboardController extends Controller
             'job_sources' => $jobSourceStats,
         ]);
     }
-
-    // public function getStatusDetails(Request $request)
-    // {
-    //     $status = $request->input('status');
-    //     $range = $request->input('range');
-    //     $inputDate = $request->input('date_range');
-
-    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
-
-    //     $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-    //     if (!$nurseCategory) {
-    //         return response()->json([
-    //             'title' => 'No Nurse Category Found',
-    //             'nurses' => 0,
-    //             'non_nurses' => 0
-    //         ]);
-    //     }
-
-    //     // Base applicant query
-    //     $applicantQuery = Applicant::query()->with(['jobCategory', 'jobTitle', 'jobSource']);
-
-    //     /**
-    //      * STATUS → QUERY MAPPING
-    //      */
-    //     switch ($status) {
-    //         case 'crm_sent_cvs':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'quality_cleared')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_open_cvs':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'quality_cvs_hold')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_rejected':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_reject')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_requested':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_request')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_request_rejected':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_request_reject')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_confirmed':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_request_confirm')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_prestart_attended':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_interview_attended')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_rebook':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_rebook')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_not_attended':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_interview_not_attended')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_declined':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_declined')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_date_started':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->whereIn('sub_stage', [
-    //                     'crm_start_date',
-    //                     'crm_start_date_back'
-    //                 ])
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_start_date_hold':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_start_date_hold')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_invoiced':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_invoice')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_disputed':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_dispute')
-    //                 ->where('status', 1)
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_paid':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_paid')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         case 'crm_revert':
-    //             $applicantQuery->whereHas('history', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('sub_stage', 'crm_revert')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-    //         case 'quality_revert':
-    //             $applicantQuery->whereHas('revertStages', function ($q) use ($startDate, $endDate) {
-    //                 $q->where('stage', 'quality_revert')
-    //                 ->whereBetween('created_at', [$startDate, $endDate]);
-    //             });
-    //             break;
-
-    //         default:
-    //             return response()->json([
-    //                 'title' => ucfirst(str_replace('_', ' ', $status)),
-    //                 'nurses' => 0,
-    //                 'non_nurses' => 0
-    //             ]);
-    //     }
-
-    //     // Getting job source stats
-    //     $jobSourceStats = (clone $applicantQuery)
-    //         ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
-    //         ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
-    //         ->groupBy('job_sources.name')
-    //         ->orderByDesc('total')
-    //         ->get();
-
-    //     return response()->json([
-    //         'title' => Str::title(str_replace('_', ' ', $status)) . " ({$displayDate})",
-    //         'crm_status' => $status,
-
-    //         'nurses_regular' => (clone $applicantQuery)
-    //             ->where('job_category_id', $nurseCategory->id)
-    //             ->where('job_type', 'regular')
-    //             ->count(),
-
-    //         'nurses_specialist' => (clone $applicantQuery)
-    //             ->where('job_category_id', $nurseCategory->id)
-    //             ->where('job_type', 'specialist')
-    //             ->count(),
-
-    //         'non_nurses_regular' => (clone $applicantQuery)
-    //             ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
-    //             ->where('job_type', 'regular')
-    //             ->count(),
-
-    //         'non_nurses_specialist' => (clone $applicantQuery)
-    //             ->whereNotIn('job_category_id', [$nurseCategory->id])  // More explicit check
-    //             ->where('job_type', 'specialist')
-    //             ->count(),
-
-    //         'job_sources' => $jobSourceStats,
-    //     ]);
-    // }
-
-    // public function getStatusDetails(Request $request)
-    // {
-    //     $status = $request->status;
-    //     $range = $request->range;
-    //     $inputDate = $request->date_range;
-
-    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
-
-    //     $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-    //     if (!$nurseCategory) {
-    //         return response()->json([
-    //             'title' => 'No Nurse Category Found',
-    //             'nurses' => 0,
-    //             'non_nurses' => 0
-    //         ]);
-    //     }
-
-    //     // Map status to stages
-    //     $historyMap = [
-    //         'crm_sent_cvs' => ['quality_cleared'],
-    //         'crm_open_cvs' => ['quality_cvs_hold'],
-    //         'crm_rejected' => ['crm_reject'],
-    //         'crm_requested' => ['crm_request'],
-    //         'crm_request_rejected' => ['crm_request_reject'],
-    //         'crm_confirmed' => ['crm_request_confirm'],
-    //         'crm_prestart_attended' => ['crm_interview_attended'],
-    //         'crm_rebook' => ['crm_rebook'],
-    //         'crm_not_attended' => ['crm_interview_not_attended'],
-    //         'crm_declined' => ['crm_declined'],
-    //         'crm_date_started' => ['crm_start_date','crm_start_date_back'],
-    //         'crm_start_date_hold' => ['crm_start_date_hold'],
-    //         'crm_invoiced' => ['crm_invoice'],
-    //         'crm_disputed' => ['crm_dispute'],
-    //         'crm_paid' => ['crm_paid'],
-    //     ];
-
-    //     $revertMap = [
-    //         'quality_revert' => ['quality_revert'],
-    //         'crm_revert' => ['crm_revert'],
-    //     ];
-
-    //     // CRM moved tabs if needed
-    //     $crmMap = [
-    //         'crm_sent_cvs' => ['quality_cleared'],
-    //         'crm_open_cvs' => ['quality_cvs_hold'],
-    //         'crm_rejected' => ['crm_reject'],
-    //         'crm_requested' => ['crm_request'],
-    //         'crm_request_rejected' => ['crm_request_reject'],
-    //         'crm_confirmed' => ['crm_request_confirm'],
-    //         'crm_prestart_attended' => ['crm_interview_attended'],
-    //         'crm_rebook' => ['crm_rebook'],
-    //         'crm_not_attended' => ['crm_interview_not_attended'],
-    //         'crm_declined' => ['crm_declined'],
-    //         'crm_date_started' => ['crm_start_date','crm_start_date_back'],
-    //         'crm_start_date_hold' => ['crm_start_date_hold'],
-    //         'crm_invoiced' => ['crm_invoice'],
-    //         'crm_disputed' => ['crm_dispute'],
-    //         'crm_paid' => ['crm_paid'],
-    //     ];
-
-    //     $historyStage = $historyMap[$status] ?? null;
-    //     $revertStage = $revertMap[$status] ?? null;
-    //     $crmStage = $crmMap[$status] ?? null;
-
-    //     // Active status for history or revert
-    //     $historyActive = in_array($status, ['crm_rejected','crm_request_rejected','crm_not_attended','crm_declined','crm_start_date_hold','crm_disputed']) ? 1 : null;
-    //     $revertActive = 1;
-
-    //     // Get base query
-    //     $applicantQuery = $this->getStageQuery(
-    //         $historyStage,
-    //         $revertStage,
-    //         $crmStage,
-    //         $startDate,
-    //         $endDate,
-    //         $historyActive,
-    //         $revertActive
-    //     );
-
-    //     $nurses_regular = (clone $applicantQuery)
-    //         ->where('job_category_id', $nurseCategory->id)
-    //         ->where('job_type', 'regular')
-    //         ->count();
-
-    //     $nurses_specialist = (clone $applicantQuery)
-    //         ->where('job_category_id', $nurseCategory->id)
-    //         ->where('job_type', 'specialist')
-    //         ->count();
-
-    //     $non_nurses_regular = (clone $applicantQuery)
-    //         ->where('job_category_id', '!=', $nurseCategory->id)
-    //         ->where('job_type', 'regular')
-    //         ->count();
-
-    //     $non_nurses_specialist = (clone $applicantQuery)
-    //         ->where('job_category_id', '!=', $nurseCategory->id)
-    //         ->where('job_type', 'specialist')
-    //         ->count();
-
-
-    //     // Job source stats
-    //     $jobSourceStats = (clone $applicantQuery)
-    //         ->join('job_sources', 'job_sources.id', '=', 'applicants.job_source_id')
-    //         ->selectRaw('job_sources.name, COUNT(applicants.id) as total')
-    //         ->groupBy('job_sources.name')
-    //         ->orderByDesc('total')
-    //         ->get();
-
-    //     return response()->json([
-    //         'title' => Str::title(str_replace('_', ' ', $status)) . " ({$displayDate})",
-    //         'crm_status' => $status,
-    //         'nurses_regular' => $nurses_regular,
-    //         'nurses_specialist' => $nurses_specialist,
-    //         'non_nurses_regular' => $non_nurses_regular,
-    //         'non_nurses_specialist' => $non_nurses_specialist,
-    //         'job_sources' => $jobSourceStats,
-    //     ]);
-    // }
 
     public function statisticsReportIndex(Request $request)
     {
