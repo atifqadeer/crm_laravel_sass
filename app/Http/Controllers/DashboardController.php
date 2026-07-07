@@ -335,7 +335,7 @@ class DashboardController extends Controller
                 ]);
 
                 $sales_stats['onhold_sales'] = $buildStat('%sale-onhold%', [
-                    'status'      => 1,
+                    // 'status'      => 1,
                     // 'is_on_hold'  => 1,
                     // 'is_re_open'  => 0,
                 ]);
@@ -704,11 +704,11 @@ class DashboardController extends Controller
             $salesStatMap = [
                 'open_sales'     => ['message' => '%has been created%'],
                 'reopen_sales'   => ['message' => '%open%'],
-                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
-                'pending_sales'  => ['message' => '%has been created%', 'status' => 2, 'is_re_open' => 0, 'is_on_hold' => 0],
-                'onhold_sales'   => ['message' => '%sale-onhold%',      'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 1],
-                'rejected_sales' => ['message' => '%reject%',           'status' => 3, 'is_re_open' => 0, 'is_on_hold' => 0],
-                'close_sales'    => ['message' => '%close%',            'status' => 0, 'is_re_open' => 0, 'is_on_hold' => 0],
+                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1],
+                'pending_sales'  => ['message' => '%has been created%', 'status' => 2],
+                'onhold_sales'   => ['message' => '%sale-onhold%'],
+                'rejected_sales' => ['message' => '%reject%'],
+                'close_sales'    => ['message' => '%close%'],
             ];
 
             if (isset($salesStatMap[$stat_key])) {
