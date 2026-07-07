@@ -295,8 +295,8 @@ class DashboardController extends Controller
                         ->where('auditable_type', 'Horsefly\\Sale')
                         ->where('user_id', $user_id)
                         ->where('message', 'LIKE', $messageLike)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->groupBy('auditable_id');
+                        ->whereBetween('created_at', [$startDate, $endDate]);
+                    // ->groupBy('auditable_id');
 
                     $query = Audit::query()
                         ->joinSub($latestAuditIds, 'latest', function ($join) {
@@ -720,8 +720,8 @@ class DashboardController extends Controller
                     ->where('auditable_type', 'Horsefly\\Sale')
                     ->where('user_id', $user_id)
                     ->where('message', 'LIKE', $map['message'])
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->groupBy('auditable_id');
+                    ->whereBetween('created_at', [$startDate, $endDate]);
+                // ->groupBy('auditable_id');
 
                 $audits = Audit::query()
                     ->joinSub($latestAuditIds, 'latest', function ($join) {
