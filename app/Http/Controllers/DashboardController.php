@@ -299,16 +299,26 @@ class DashboardController extends Controller
                     // ->groupBy('auditable_id');
 
                     $query = Audit::query()
-                        ->joinSub($latestAuditIds, 'latest', function ($join) {
-                            $join->on('latest.latest_id', '=', 'audits.id');
-                        })
-                        ->join('sales', 'sales.id', '=', 'audits.auditable_id');
+                        ->join('sales', 'sales.id', '=', 'audits.auditable_id')
+                        ->where('audits.auditable_type', 'Horsefly\\Sale')
+                        ->where('audits.user_id', $user_id)
+                        ->where('audits.message', 'LIKE', $messageLike)
+                        ->whereBetween('audits.created_at', [$startDate, $endDate])
+                        ->where('audits.id', function ($q) use ($user_id, $messageLike, $startDate, $endDate) {
+                            $q->from('audits as a2')
+                                ->selectRaw('MAX(a2.id)')
+                                ->where('a2.auditable_type', 'Horsefly\\Sale')
+                                ->where('a2.user_id', $user_id)
+                                ->where('a2.message', 'LIKE', $messageLike)
+                                ->whereBetween('a2.created_at', [$startDate, $endDate])
+                                ->whereColumn('a2.auditable_id', 'audits.auditable_id');
+                        });
 
                     foreach ($saleWheres as $column => $value) {
                         $query->where("sales.$column", $value);
                     }
 
-                    return $query->count('audits.id');
+                    return $query->count();
                 };
 
                 $sales_stats['open_sales'] = $buildStat('%has been created%', [
@@ -724,20 +734,28 @@ class DashboardController extends Controller
                 // ->groupBy('auditable_id');
 
                 $audits = Audit::query()
-                    ->joinSub($latestAuditIds, 'latest', function ($join) {
-                        $join->on('latest.latest_id', '=', 'audits.id');
-                    })
+                    ->with([
+                        'auditable' => fn($q) => $q->with([
+                            'jobCategory',
+                            'jobTitle',
+                            'office',
+                            'unit',
+                        ])
+                    ])
                     ->join('sales', 'sales.id', '=', 'audits.auditable_id')
-                    ->when(isset($map['status']) && !is_null($map['status']), function ($q) use ($map) {
+                    ->where('audits.auditable_type', 'Horsefly\\Sale')
+                    ->where('audits.user_id', $user_id)
+                    ->where('audits.message', 'LIKE', $map['message'])
+                    ->whereBetween('audits.created_at', [$startDate, $endDate])
+                    ->when(!is_null($map['status']), function ($q) use ($map) {
                         $q->where('sales.status', $map['status']);
                     })
-                    ->when(isset($map['is_re_open']) && !is_null($map['is_re_open']), function ($q) use ($map) {
+                    ->when(!is_null($map['is_re_open']), function ($q) use ($map) {
                         $q->where('sales.is_re_open', $map['is_re_open']);
                     })
-                    ->when(isset($map['is_on_hold']) && !is_null($map['is_on_hold']), function ($q) use ($map) {
+                    ->when(!is_null($map['is_on_hold']), function ($q) use ($map) {
                         $q->where('sales.is_on_hold', $map['is_on_hold']);
                     })
-                    ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
                     ->select('audits.*')
                     ->orderByDesc('audits.created_at')
                     ->get();
