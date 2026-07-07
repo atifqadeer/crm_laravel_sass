@@ -747,13 +747,13 @@ class DashboardController extends Controller
                     ->where('audits.user_id', $user_id)
                     ->where('audits.message', 'LIKE', $map['message'])
                     ->whereBetween('audits.created_at', [$startDate, $endDate])
-                    ->when(!is_null($map['status']), function ($q) use ($map) {
+                    ->when(isset($map['status']) && !is_null($map['status']), function ($q) use ($map) {
                         $q->where('sales.status', $map['status']);
                     })
-                    ->when(!is_null($map['is_re_open']), function ($q) use ($map) {
+                    ->when(isset($map['is_re_open']) && !is_null($map['is_re_open']), function ($q) use ($map) {
                         $q->where('sales.is_re_open', $map['is_re_open']);
                     })
-                    ->when(!is_null($map['is_on_hold']), function ($q) use ($map) {
+                    ->when(isset($map['is_on_hold']) && !is_null($map['is_on_hold']), function ($q) use ($map) {
                         $q->where('sales.is_on_hold', $map['is_on_hold']);
                     })
                     ->select('audits.*')
