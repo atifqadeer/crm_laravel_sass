@@ -289,12 +289,10 @@ class DashboardController extends Controller
 
             if ($role_type === 'sales') {
 
-                // Reusable builder: latest audit per auditable_id (scoped by user, message, date range),
-                // joined to sales, with extra sale-state filters applied.
                 $buildStat = function (string $messageLike, array $saleWheres) use ($user_id, $startDate, $endDate) {
                     $latestAuditIds = Audit::query()
                         ->selectRaw('MAX(id) as latest_id')
-                        ->where('auditable_type', Sale::class)
+                        ->where('auditable_type', 'Horsefly\\Sale')
                         ->where('user_id', $user_id)
                         ->where('message', 'LIKE', $messageLike)
                         ->whereBetween('created_at', [$startDate, $endDate])
@@ -356,11 +354,7 @@ class DashboardController extends Controller
                 ]);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | DATA ENTRY
-            |--------------------------------------------------------------------------
-            */ elseif ($role_type === 'data_entry') {
+            elseif ($role_type === 'data_entry') {
 
                 $data_entry_stats['applicants_created'] = Audit::query()
                     ->where('auditable_type', Applicant::class)
@@ -411,17 +405,6 @@ class DashboardController extends Controller
                         $pairHistory = collect($histories->get($pairKey, []))
                             ->keyBy('sub_stage');
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | QUALITY
-                        |--------------------------------------------------------------------------
-                        */
-                        /*
-                        |--------------------------------------------------------------------------
-                        | QUALITY — mutually exclusive bucket per pair
-                        | Priority: cleared > rejected > opened
-                        |--------------------------------------------------------------------------
-                        */
                         if (isset($pairHistory['quality_cleared'])) {
                             $quality_agent_stats['cvs_cleared']++;
                         } elseif (isset($pairHistory['quality_reject'])) {
@@ -437,7 +420,8 @@ class DashboardController extends Controller
             |--------------------------------------------------------------------------
             | CRM / AGENT / TEAM LEAD
             |--------------------------------------------------------------------------
-            */ else {
+            */ 
+            else {
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
@@ -737,7 +721,7 @@ class DashboardController extends Controller
                 // Mirrors: SELECT auditable_id, MAX(id) AS latest_id ... GROUP BY auditable_id
                 $latestAuditIds = Audit::query()
                     ->selectRaw('MAX(id) as latest_id')
-                    ->where('auditable_type', Sale::class)
+                    ->where('auditable_type', 'Horsefly\\Sale')
                     ->where('user_id', $user_id)
                     ->where('message', 'LIKE', $map['message'])
                     ->whereBetween('created_at', [$startDate, $endDate])
@@ -774,7 +758,6 @@ class DashboardController extends Controller
                         $audit->created_at->format('d M Y h:i A'),
                     ];
                 }
-
 
                 // ══════════════════════════════════════════════════════════════════════
                 // CVS REQUESTED
