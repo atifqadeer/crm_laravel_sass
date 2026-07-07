@@ -313,14 +313,13 @@ class DashboardController extends Controller
 
                 $sales_stats['open_sales'] = $buildStat('%has been created%', [
                     'status'      => 1,
-                    'is_re_open'  => 0,
-                    'is_on_hold'  => 0,
+                    // 'is_re_open'  => 0,
+                    // 'is_on_hold'  => 0,
                 ]);
 
                 $sales_stats['reopen_sales'] = $buildStat('%open%', [
                     'status'      => 1,
-                    'is_re_open'  => 1,
-                    'is_on_hold'  => 0,
+                    // 'is_re_open'  => 1,
                 ]);
 
                 $sales_stats['updated_sales'] = $buildStat('%has been updated%', [
@@ -352,9 +351,7 @@ class DashboardController extends Controller
                     'is_re_open'  => 0,
                     'is_on_hold'  => 0,
                 ]);
-            }
-
-            elseif ($role_type === 'data_entry') {
+            }elseif ($role_type === 'data_entry') {
 
                 $data_entry_stats['applicants_created'] = Audit::query()
                     ->where('auditable_type', Applicant::class)
