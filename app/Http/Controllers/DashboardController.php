@@ -312,13 +312,13 @@ class DashboardController extends Controller
                 };
 
                 $sales_stats['open_sales'] = $buildStat('%has been created%', [
-                    'status'      => 1,
+                    // 'status'      => 1,
                     // 'is_re_open'  => 0,
                     // 'is_on_hold'  => 0,
                 ]);
 
                 $sales_stats['reopen_sales'] = $buildStat('%open%', [
-                    'status'      => 1,
+                    // 'status'      => 1,
                     // 'is_re_open'  => 1,
                 ]);
 
@@ -702,8 +702,8 @@ class DashboardController extends Controller
             // SALES STATS
             // ══════════════════════════════════════════════════════════════════════
             $salesStatMap = [
-                'open_sales'     => ['message' => '%has been created%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
-                'reopen_sales'   => ['message' => '%open%', 'status' => 1],
+                'open_sales'     => ['message' => '%has been created%'],
+                'reopen_sales'   => ['message' => '%open%'],
                 'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
                 'pending_sales'  => ['message' => '%has been created%', 'status' => 2, 'is_re_open' => 0, 'is_on_hold' => 0],
                 'onhold_sales'   => ['message' => '%sale-onhold%',      'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 1],
@@ -728,7 +728,9 @@ class DashboardController extends Controller
                         $join->on('latest.latest_id', '=', 'audits.id');
                     })
                     ->join('sales', 'sales.id', '=', 'audits.auditable_id')
-                    ->where('sales.status', $map['status'])
+                    ->when(isset($map['status']) && !is_null($map['status']), function ($q) use ($map) {
+                        $q->where('sales.status', $map['status']);
+                    })
                     ->when(isset($map['is_re_open']) && !is_null($map['is_re_open']), function ($q) use ($map) {
                         $q->where('sales.is_re_open', $map['is_re_open']);
                     })
