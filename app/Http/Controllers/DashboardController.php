@@ -291,7 +291,7 @@ class DashboardController extends Controller
 
                 $buildStat = function (string $messageLike, array $saleWheres) use ($user_id, $startDate, $endDate) {
                     $latestAuditIds = Audit::query()
-                        ->selectRaw('MAX(id) as latest_id')
+                        // ->selectRaw('MAX(id) as latest_id')
                         ->where('auditable_type', 'Horsefly\\Sale')
                         ->where('user_id', $user_id)
                         ->where('message', 'LIKE', $messageLike)
@@ -716,7 +716,7 @@ class DashboardController extends Controller
 
                 // Mirrors: SELECT auditable_id, MAX(id) AS latest_id ... GROUP BY auditable_id
                 $latestAuditIds = Audit::query()
-                    ->selectRaw('MAX(id) as latest_id')
+                    // ->selectRaw('MAX(id) as latest_id')
                     ->where('auditable_type', 'Horsefly\\Sale')
                     ->where('user_id', $user_id)
                     ->where('message', 'LIKE', $map['message'])
