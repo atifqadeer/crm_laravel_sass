@@ -1140,11 +1140,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                                                                                                                                                    <div class="col-md-3 col-6 mb-2">
-                                                                                                                                                                        <small class="text-muted d-block">${src.name}</small>
-                                                                                                                                                                        <span class="fw-bold fs-5">${src.total}</span>
-                                                                                                                                                                    </div>
-                                                                                                                                                                `).join('')}
+                                                                                                                                                                        <div class="col-md-3 col-6 mb-2">
+                                                                                                                                                                            <small class="text-muted d-block">${src.name}</small>
+                                                                                                                                                                            <span class="fw-bold fs-5">${src.total}</span>
+                                                                                                                                                                        </div>
+                                                                                                                                                                    `).join('')}
                             </div>
                         `;
                 } else {
@@ -1462,7 +1462,13 @@
 
                     const rt = response.user_role_type;
 
-                    if ((rt === 'quality' || rt === 'team_lead' || rt === 'agent' || rt === 'crm') &&
+                    if ((rt === 'quality') &&
+                        response.quality_agent_stats && Object.keys(response.quality_agent_stats).length > 0) {
+                        notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
+                        notesHtml += renderStatBlock(response.quality_agent_stats, currentIcons, 'primary');
+                    }
+
+                    if ((rt === 'team_lead' || rt === 'agent' || rt === 'crm') &&
                         response.quality_stats && Object.keys(response.quality_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
                         notesHtml += renderStatBlock(response.quality_stats, currentIcons, 'primary');
@@ -1645,10 +1651,10 @@
                                 </thead>
                                 <tbody>
                                     ${response.rows.map(row => `
-                                                                    <tr>
-                                                                        ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
-                                                                    </tr>
-                                                                `).join('')}
+                                                                        <tr>
+                                                                            ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
+                                                                        </tr>
+                                                                    `).join('')}
                                 </tbody>
                             </table>
                         `;

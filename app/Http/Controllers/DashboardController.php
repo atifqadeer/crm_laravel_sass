@@ -13,7 +13,7 @@ use Horsefly\Message;
 use Horsefly\Audit;
 use Horsefly\CVNote;
 use Horsefly\CrmNote;
-use Horsefly\RevertStage;
+use Horsefly\QualityNotes;
 use Horsefly\ApplicantNote;
 use Horsefly\History;
 use App\Http\Controllers\Controller;
@@ -230,6 +230,12 @@ class DashboardController extends Controller
             $user_role = ucwords($role->name ?? '');
             $user_name = $user->name;
 
+            $quality_agent_stats = [
+                'cvs_cleared'   => 0,
+                'cvs_rejected'  => 0,
+                'cvs_opened'    => 0,
+            ];
+
             $quality_stats = [
                 'cvs_requested' => 0,
                 'cvs_cleared'   => 0,
@@ -401,11 +407,67 @@ class DashboardController extends Controller
                     ->where('message', 'LIKE', '%has been updated%')
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
+            } elseif ($role_type === 'quality') {
+                $qualityNotes = QualityNotes::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->get();
+
+                $pairs = $qualityNotes
+                    ->unique(fn($x) => $x->applicant_id . '-' . $x->sale_id)
+                    ->values();
+
+                if ($pairs->isNotEmpty()) {
+                    $applicantIds = $pairs->pluck('applicant_id')->unique()->values();
+                    $saleIds      = $pairs->pluck('sale_id')->unique()->values();
+
+                    // ── created_at-based history: single creation-event sub_stages ──────
+                    $histories = History::query()
+                        ->whereIn('applicant_id', $applicantIds)
+                        ->whereIn('sale_id', $saleIds)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereIn('sub_stage', [
+                            'quality_cvs_hold',
+                            'quality_reject',
+                            'quality_cleared',
+                        ])
+                        ->orderBy('id')
+                        ->get()
+                        ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
+
+
+                    foreach ($pairs as $pair) {
+
+                        $pairKey = $pair->applicant_id . '-' . $pair->sale_id;
+
+                        $pairHistory = collect($histories->get($pairKey, []))
+                            ->keyBy('sub_stage');
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | QUALITY
+                        |--------------------------------------------------------------------------
+                        */
+                        /*
+                        |--------------------------------------------------------------------------
+                        | QUALITY — mutually exclusive bucket per pair
+                        | Priority: cleared > rejected > opened
+                        |--------------------------------------------------------------------------
+                        */
+                        if (isset($pairHistory['quality_cleared'])) {
+                            $quality_agent_stats['cvs_cleared']++;
+                        } elseif (isset($pairHistory['quality_reject'])) {
+                            $quality_agent_stats['cvs_rejected']++;
+                        } elseif (isset($pairHistory['quality_cvs_hold'])) {
+                            $quality_agent_stats['cvs_opened']++;
+                        }
+                    }
+                }
             }
 
             /*
             |--------------------------------------------------------------------------
-            | QUALITY / CRM / AGENT / TEAM LEAD
+            | CRM / AGENT / TEAM LEAD
             |--------------------------------------------------------------------------
             */ else {
                 $cvNotes = CVNote::query()
@@ -648,6 +710,7 @@ class DashboardController extends Controller
                 'user_role'        => $user_role,
                 'user_role_type'   => $role_type,
                 'quality_stats'    => $quality_stats,
+                'quality_agent_stats'    => $quality_agent_stats,
                 'user_stats'       => $crm_stats,
                 'prev_user_stats'  => $prev_user_stats,
                 'data_entry_stats' => $data_entry_stats,
@@ -1347,6 +1410,7 @@ class DashboardController extends Controller
             'details' => $salesDetails
         ]);
     }
+    // 
     public function getSalesAnalytic(Request $request)
     {
         $range = $request->input('range', 'month');
@@ -1354,38 +1418,93 @@ class DashboardController extends Controller
         if ($range === 'year') {
             $from = now()->startOfYear();
             $to = now()->endOfYear();
-            $grouping = 'MONTH(created_at)';
+            $grouping = 'MONTH(audits.created_at)';
             $rangeLabels = collect(range(1, 12))->map(function ($month) {
                 return Carbon::create()->month($month)->format('F');
             });
         } else {
             $from = now()->startOfMonth();
             $to = now()->endOfMonth();
-            $grouping = 'DATE(created_at)';
+            $grouping = 'DATE(audits.created_at)';
             $daysInMonth = now()->daysInMonth;
             $rangeLabels = collect(range(1, $daysInMonth))->map(function ($day) {
                 return now()->startOfMonth()->addDays($day - 1)->format('d M');
             });
         }
 
-        $rawData = Sale::selectRaw("$grouping as label")
-            ->selectRaw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as new_added")
-            ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
-            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
-            ->selectRaw("SUM(CASE WHEN status = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as closed")
-            ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
-            ->whereBetween('created_at', [$from, $to])
-            ->groupBy(DB::raw($grouping))
-            ->orderBy(DB::raw($grouping))
-            ->get()
-            ->keyBy(function ($item) use ($range) {
-                if ($range === 'year') {
-                    return Carbon::create()->month((int)$item->label)->format('F');
-                } else {
-                    // $item->label is "YYYY-MM-DD"
-                    return Carbon::parse($item->label)->format('d M');
-                }
-            });
+        // Same distinct-column signature you used in the audit stats example
+        $distinctCols = [
+            'sales.office_id',
+            'sales.unit_id',
+            'sales.sale_postcode',
+            'sales.job_category_id',
+            'sales.job_title_id',
+        ];
+        $distinctColsSql = implode(', ', $distinctCols);
+        $countDistinctSql = "COUNT(DISTINCT $distinctColsSql)";
+
+        $base = Audit::query()
+            ->join('sales', function ($join) {
+                $join->on('sales.id', '=', 'audits.auditable_id')
+                    ->where('audits.auditable_type', Sale::class);
+            })
+            ->whereBetween('audits.created_at', [$from, $to]);
+
+        $keyByLabel = function ($item) use ($range) {
+            if ($range === 'year') {
+                return Carbon::create()->month((int) $item->label)->format('F');
+            }
+            return Carbon::parse($item->label)->format('d M');
+        };
+
+        $runMetric = function ($messageLike, $wheres) use ($base, $grouping, $countDistinctSql, $keyByLabel) {
+            $query = (clone $base)
+                ->where('audits.message', 'LIKE', $messageLike);
+
+            foreach ($wheres as $column => $value) {
+                $query->where($column, $value);
+            }
+
+            return $query
+                ->selectRaw("$grouping as label")
+                ->selectRaw("$countDistinctSql as count")
+                ->groupBy(DB::raw($grouping))
+                ->orderBy(DB::raw($grouping))
+                ->get()
+                ->keyBy($keyByLabel);
+        };
+
+        $newAddedData = $runMetric('%has been created%', [
+            'sales.status' => 1,
+        ]);
+
+        $pendingData = $runMetric('%has been created%', [
+            'sales.status' => 2,
+            'sales.is_re_open' => 0,
+        ]);
+
+        $reopenedData = $runMetric('%open%', [
+            'sales.status' => 1,
+            'sales.is_re_open' => 1,
+        ]);
+
+        $updatedData = $runMetric('%has been updated%', [
+            'sales.status' => 1,
+            'sales.is_re_open' => 0,
+        ]);
+
+        $rejectedData = $runMetric('%reject%', [
+            'sales.status' => 3,
+        ]);
+
+        $closedData = $runMetric('%close%', [
+            'sales.status' => 0,
+        ]);
+
+        $onholdData = $runMetric('%sale-onhold%', [
+            'sales.status' => 1,
+            'sales.is_on_hold' => 1,
+        ]);
 
         $labels = [];
         $new = [];
@@ -1393,14 +1512,18 @@ class DashboardController extends Controller
         $closed = [];
         $pending = [];
         $rejected = [];
+        $updated = [];
+        $onhold = [];
 
         foreach ($rangeLabels as $label) {
             $labels[] = $label;
-            $new[] = isset($rawData[$label]) ? (int) $rawData[$label]->new_added : 0;
-            $reopened[] = isset($rawData[$label]) ? (int) $rawData[$label]->reopened : 0;
-            $closed[] = isset($rawData[$label]) ? (int) $rawData[$label]->closed : 0;
-            $pending[] = isset($rawData[$label]) ? (int) $rawData[$label]->pending : 0;
-            $rejected[] = isset($rawData[$label]) ? (int) $rawData[$label]->rejected : 0;
+            $new[] = isset($newAddedData[$label]) ? (int) $newAddedData[$label]->count : 0;
+            $reopened[] = isset($reopenedData[$label]) ? (int) $reopenedData[$label]->count : 0;
+            $closed[] = isset($closedData[$label]) ? (int) $closedData[$label]->count : 0;
+            $pending[] = isset($pendingData[$label]) ? (int) $pendingData[$label]->count : 0;
+            $rejected[] = isset($rejectedData[$label]) ? (int) $rejectedData[$label]->count : 0;
+            $updated[] = isset($updatedData[$label]) ? (int) $updatedData[$label]->count : 0;
+            $onhold[] = isset($onholdData[$label]) ? (int) $onholdData[$label]->count : 0;
         }
 
         return response()->json([
@@ -1410,6 +1533,8 @@ class DashboardController extends Controller
             'closed' => $closed,
             'pending' => $pending,
             'rejected' => $rejected,
+            'updated' => $updated,
+            'onhold' => $onhold,
         ]);
     }
     public function getUnreadMessages()

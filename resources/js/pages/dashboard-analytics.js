@@ -26,7 +26,7 @@ var chartOptions = {
         },
         toolbar: { show: false },
     },
-    colors: ["#47ad94", "#604ae3", "#f0643b", "#ffc107", "#dc3545"], 
+    colors: ["#47ad94", "#4dabf7", "#604ae3", "#f0643b", "#ffc107", "#dc3545"], 
     // New, Reopened, Closed, Pending, Rejected (red)
     dataLabels: { enabled: false },
     stroke: {
@@ -37,6 +37,7 @@ var chartOptions = {
     },
     series: [
         { name: "New Sales", data: [] },
+        { name: "Updated Sales", data: [] },
         { name: "Re-Opened Sales", data: [] },
         { name: "Closed Sales", data: [] },
         { name: "Pending Sales", data: [] },
@@ -112,6 +113,7 @@ function fetchSalesAnalytic(range = "month") {
                 labels: data.labels,
                 series: [
                     { name: "New Sales", data: data.new_added },
+                    { name: "Updated Sales", data: data.updated },
                     { name: "Re-Opened Sales", data: data.reopened },
                     { name: "Closed Sales", data: data.closed },
                     { name: "Pending Sales", data: data.pending },
