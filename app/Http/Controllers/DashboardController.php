@@ -284,44 +284,102 @@ class DashboardController extends Controller
             if ($role_type === 'sales') {
 
                 $base = Audit::query()
-                    ->where('auditable_type', Sale::class)
-                    ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate]);
+                    ->join('sales', function ($join) {
+                        $join->on('sales.id', '=', 'audits.auditable_id')
+                            ->where('audits.auditable_type', Sale::class);
+                    })
+                    ->where('audits.user_id', $user_id)
+                    ->latest('audits.created_at')
+                    ->whereBetween('audits.created_at', [$startDate, $endDate]);
 
                 $sales_stats['open_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%has been created%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 1))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%has been created%')
+                    ->where('sales.status', 1)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
 
                 $sales_stats['reopen_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%has been updated%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 1)->where('is_re_open', 1))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%has been updated%')
+                    ->where('sales.status', 1)
+                    ->where('sales.is_re_open', 1)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
+
 
                 $sales_stats['updated_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%has been updated%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 1)->where('is_re_open', 0))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%has been updated%')
+                    ->where('sales.status', 1)
+                    ->where('sales.is_re_open', 0)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
 
                 $sales_stats['pending_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%has been created%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 2)->where('is_re_open', 0))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%has been created%')
+                    ->where('sales.status', 2)
+                    ->where('sales.is_re_open', 0)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
 
                 $sales_stats['onhold_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%sale-onhold%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 1)->where('is_on_hold', 1))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%sale-onhold%')
+                    ->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 1)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
 
                 $sales_stats['rejected_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%reject%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 3))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%reject%')
+                    ->where('sales.status', 3)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
 
                 $sales_stats['close_sales'] = (clone $base)
-                    ->where('message', 'LIKE', '%close%')
-                    ->whereHasMorph('auditable', [Sale::class], fn($q) => $q->where('status', 0))
-                    ->count();
+                    ->where('audits.message', 'LIKE', '%close%')
+                    ->where('sales.status', 0)
+                    ->distinct()
+                    ->count([
+                        'sales.office_id',
+                        'sales.unit_id',
+                        'sales.sale_postcode',
+                        'sales.job_category_id',
+                        'sales.job_title_id',
+                    ]);
             }
 
             /*
@@ -653,11 +711,29 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->whereHasMorph('auditable', [Sale::class], function ($q) use ($map) {
                         $q->where('status', $map['status']);
-                        if (!is_null($map['is_re_open'])) $q->where('is_re_open', $map['is_re_open']);
-                        if (!is_null($map['is_on_hold'])) $q->where('is_on_hold', $map['is_on_hold']);
+
+                        if (!is_null($map['is_re_open'])) {
+                            $q->where('is_re_open', $map['is_re_open']);
+                        }
+
+                        if (!is_null($map['is_on_hold'])) {
+                            $q->where('is_on_hold', $map['is_on_hold']);
+                        }
                     })
-                    ->distinct()
-                    ->get();
+                    ->latest('created_at') // keep the latest audit if duplicates exist
+                    ->get()
+                    ->unique(function ($audit) {
+                        $sale = $audit->auditable;
+
+                        return implode('-', [
+                            $sale->office_id,
+                            $sale->unit_id,
+                            $sale->sale_postcode,
+                            $sale->job_category_id,
+                            $sale->job_title_id,
+                        ]);
+                    })
+                    ->values();
 
                 $columns = ['#', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
 
