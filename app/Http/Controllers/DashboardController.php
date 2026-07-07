@@ -324,32 +324,32 @@ class DashboardController extends Controller
 
                 $sales_stats['updated_sales'] = $buildStat('%has been updated%', [
                     'status'      => 1,
-                    'is_re_open'  => 0,
-                    'is_on_hold'  => 0,
+                    // 'is_re_open'  => 0,
+                    // 'is_on_hold'  => 0,
                 ]);
 
                 $sales_stats['pending_sales'] = $buildStat('%has been created%', [
                     'status'      => 2,
-                    'is_re_open'  => 0,
-                    'is_on_hold'  => 0,
+                    // 'is_re_open'  => 0,
+                    // 'is_on_hold'  => 0,
                 ]);
 
                 $sales_stats['onhold_sales'] = $buildStat('%sale-onhold%', [
                     'status'      => 1,
-                    'is_on_hold'  => 1,
-                    'is_re_open'  => 0,
+                    // 'is_on_hold'  => 1,
+                    // 'is_re_open'  => 0,
                 ]);
 
                 $sales_stats['rejected_sales'] = $buildStat('%reject%', [
-                    'status'      => 3,
-                    'is_re_open'  => 0,
-                    'is_on_hold'  => 0,
+                    // 'status'      => 3,
+                    // 'is_re_open'  => 0,
+                    // 'is_on_hold'  => 0,
                 ]);
 
                 $sales_stats['close_sales'] = $buildStat('%close%', [
-                    'status'      => 0,
-                    'is_re_open'  => 0,
-                    'is_on_hold'  => 0,
+                    // 'status'      => 0,
+                    // 'is_re_open'  => 0,
+                    // 'is_on_hold'  => 0,
                 ]);
             } elseif ($role_type === 'data_entry') {
 
