@@ -351,7 +351,7 @@ class DashboardController extends Controller
                     'is_re_open'  => 0,
                     'is_on_hold'  => 0,
                 ]);
-            }elseif ($role_type === 'data_entry') {
+            } elseif ($role_type === 'data_entry') {
 
                 $data_entry_stats['applicants_created'] = Audit::query()
                     ->where('auditable_type', Applicant::class)
@@ -417,8 +417,7 @@ class DashboardController extends Controller
             |--------------------------------------------------------------------------
             | CRM / AGENT / TEAM LEAD
             |--------------------------------------------------------------------------
-            */ 
-            else {
+            */ else {
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
                     ->whereBetween('created_at', [$startDate, $endDate])
@@ -704,7 +703,7 @@ class DashboardController extends Controller
             // ══════════════════════════════════════════════════════════════════════
             $salesStatMap = [
                 'open_sales'     => ['message' => '%has been created%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
-                'reopen_sales'   => ['message' => '%open%', 'status' => 1, 'is_re_open' => 1, 'is_on_hold' => 0],
+                'reopen_sales'   => ['message' => '%open%', 'status' => 1],
                 'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 0],
                 'pending_sales'  => ['message' => '%has been created%', 'status' => 2, 'is_re_open' => 0, 'is_on_hold' => 0],
                 'onhold_sales'   => ['message' => '%sale-onhold%',      'status' => 1, 'is_re_open' => 0, 'is_on_hold' => 1],
