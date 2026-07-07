@@ -104,6 +104,7 @@ class DashboardController extends Controller
     public function getUsersForDashboard(Request $request)
     {
         $model = User::query()->where('is_active', 1)
+            ->whereNotIn('users.id', [1, 101]) // Exclude super admin
             ->leftJoin('model_has_roles', function ($join) {
                 $join->on('users.id', '=', 'model_has_roles.model_id')
                     ->where('model_has_roles.model_type', '=', User::class);
