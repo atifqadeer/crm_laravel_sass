@@ -289,103 +289,71 @@ class DashboardController extends Controller
 
             if ($role_type === 'sales') {
 
-                $base = Audit::query()
-                    ->join('sales', function ($join) {
-                        $join->on('sales.id', '=', 'audits.auditable_id')
-                            ->where('audits.auditable_type', Sale::class);
-                    })
-                    ->where('audits.user_id', $user_id)
-                    ->latest('audits.created_at')
-                    ->whereBetween('audits.created_at', [$startDate, $endDate]);
+                // Reusable builder: latest audit per auditable_id (scoped by user, message, date range),
+                // joined to sales, with extra sale-state filters applied.
+                $buildStat = function (string $messageLike, array $saleWheres) use ($user_id, $startDate, $endDate) {
+                    $latestAuditIds = Audit::query()
+                        ->selectRaw('MAX(id) as latest_id')
+                        ->where('auditable_type', Sale::class)
+                        ->where('user_id', $user_id)
+                        ->where('message', 'LIKE', $messageLike)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->groupBy('auditable_id');
 
-                $sales_stats['open_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%has been created%')
-                    ->where('sales.status', 1)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                    $query = Audit::query()
+                        ->joinSub($latestAuditIds, 'latest', function ($join) {
+                            $join->on('latest.latest_id', '=', 'audits.id');
+                        })
+                        ->join('sales', 'sales.id', '=', 'audits.auditable_id');
 
-                $sales_stats['reopen_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%has been updated%')
-                    ->where('sales.status', 1)
-                    ->where('sales.is_re_open', 1)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                    foreach ($saleWheres as $column => $value) {
+                        $query->where("sales.$column", $value);
+                    }
 
+                    return $query->count('audits.id');
+                };
 
-                $sales_stats['updated_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%has been updated%')
-                    ->where('sales.status', 1)
-                    ->where('sales.is_re_open', 0)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                $sales_stats['open_sales'] = $buildStat('%has been created%', [
+                    'status'      => 1,
+                    'is_re_open'  => 0,
+                    'is_on_hold'  => 0,
+                ]);
 
-                $sales_stats['pending_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%has been created%')
-                    ->where('sales.status', 2)
-                    ->where('sales.is_re_open', 0)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                $sales_stats['reopen_sales'] = $buildStat('%open%', [
+                    'status'      => 1,
+                    'is_re_open'  => 1,
+                    'is_on_hold'  => 0,
+                ]);
 
-                $sales_stats['onhold_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%sale-onhold%')
-                    ->where('sales.status', 1)
-                    ->where('sales.is_on_hold', 1)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                $sales_stats['updated_sales'] = $buildStat('%has been updated%', [
+                    'status'      => 1,
+                    'is_re_open'  => 0,
+                    'is_on_hold'  => 0,
+                ]);
 
-                $sales_stats['rejected_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%reject%')
-                    ->where('sales.status', 3)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                $sales_stats['pending_sales'] = $buildStat('%has been created%', [
+                    'status'      => 2,
+                    'is_re_open'  => 0,
+                    'is_on_hold'  => 0,
+                ]);
 
-                $sales_stats['close_sales'] = (clone $base)
-                    ->where('audits.message', 'LIKE', '%close%')
-                    ->where('sales.status', 0)
-                    ->distinct()
-                    ->count([
-                        'sales.office_id',
-                        'sales.unit_id',
-                        'sales.sale_postcode',
-                        'sales.job_category_id',
-                        'sales.job_title_id',
-                    ]);
+                $sales_stats['onhold_sales'] = $buildStat('%sale-onhold%', [
+                    'status'      => 1,
+                    'is_on_hold'  => 1,
+                    'is_re_open'  => 0,
+                ]);
+
+                $sales_stats['rejected_sales'] = $buildStat('%reject%', [
+                    'status'      => 3,
+                    'is_re_open'  => 0,
+                    'is_on_hold'  => 0,
+                ]);
+
+                $sales_stats['close_sales'] = $buildStat('%close%', [
+                    'status'      => 0,
+                    'is_re_open'  => 0,
+                    'is_on_hold'  => 0,
+                ]);
             }
 
             /*
