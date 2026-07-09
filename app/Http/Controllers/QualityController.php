@@ -2292,6 +2292,24 @@ class QualityController extends Controller
                     'sale_id' => $sale_id,
                     'applicant_id' => $applicant_id
                 ])->update(['status' => 0]);
+
+                History::where([
+                    "applicant_id" => $applicant_id,
+                    "sale_id" => $sale_id,
+                    'status' => 1
+                ])->update(["status" => 0]);
+
+                $history = new History();
+                $history->applicant_id = $applicant_id;
+                $history->user_id = $user->id;
+                $history->sale_id = $sale_id;
+                $history->stage = 'quality';
+                $history->sub_stage = 'quality_rejected';
+                $history->save();
+
+                /** Update UID */
+                $history->history_uid = md5((string) $history->id);
+                $history->save();
             } elseif ($status == 'cleared') {
                 Applicant::where("id", $applicant_id)
                     ->update([
