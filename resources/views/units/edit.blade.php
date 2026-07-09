@@ -28,7 +28,7 @@
                                 <div class="mb-3">
                                     <label for="office_id" class="form-label">Head Office</label>
                                     <select class="form-select" id="office_id" name="office_id"
-                                        @cannot('unit-edit-head-office') disabled @endcannot required>
+                                        @cannot('unit-edit-head-office') readonly @endcannot required>
                                         <option value="">Choose a Head Office</option>
                                         @foreach ($offices as $office)
                                             <option value="{{ $office->id }}"
