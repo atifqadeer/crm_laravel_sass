@@ -27,8 +27,12 @@
                             <div class="{{ $colClass }}">
                                 <div class="mb-3">
                                     <label for="office_id" class="form-label">Head Office</label>
-                                    <select class="form-select" id="office_id" name="office_id"
-                                        @cannot('unit-edit-head-office') readonly @endcannot required>
+                                    @cannot('unit-edit-head-office')
+                                        <input type="hidden" name="office_id" value="{{ old('office_id', $unit->office_id) }}">
+                                    @endcannot
+
+                                    <select class="form-select" id="office_id"
+                                        @cannot('unit-edit-head-office') disabled @endcannot required>
                                         <option value="">Choose a Head Office</option>
                                         @foreach ($offices as $office)
                                             <option value="{{ $office->id }}"
