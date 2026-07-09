@@ -31,7 +31,7 @@
                                         <input type="hidden" name="office_id" value="{{ old('office_id', $unit->office_id) }}">
                                     @endcannot
 
-                                    <select class="form-select" id="office_id"
+                                    <select class="form-select" name="office_id" id="office_id"
                                         @cannot('unit-edit-head-office') disabled @endcannot required>
                                         <option value="">Choose a Head Office</option>
                                         @foreach ($offices as $office)
