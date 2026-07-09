@@ -870,8 +870,6 @@ class DashboardController extends Controller
                 $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
 
                 // No whereBetween(created_at) here — same reasoning as above: the CV
-                // note is already scoped to the window, the outcome can land later.
-                // orderBy('id') so "last()" below is genuinely chronological.
                 $allHistory = History::query()
                     ->whereIn('sub_stage', [
                         'quality_cleared',
