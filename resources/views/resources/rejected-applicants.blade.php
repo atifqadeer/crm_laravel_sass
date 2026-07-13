@@ -1,13 +1,14 @@
 @extends('layouts.vertical', ['title' => 'Rejected Resources List', 'subTitle' => 'Resources'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
     <div class="row">
@@ -15,11 +16,29 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
+                                        style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- Date Range filter -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 3 Months</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
@@ -31,8 +50,10 @@
                                 </div>
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                            Category</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -43,12 +64,12 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
                                             <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox" value=""
-                                                    id="all-categories" data-title-id="">
+                                                <input class="form-check-input category-filter" type="checkbox"
+                                                    value="" id="all-categories" data-title-id="">
                                                 <label class="form-check-label" for="all-categories">All Category</label>
                                             </div>
 
-                                            @foreach($jobCategories as $category)
+                                            @foreach ($jobCategories as $category)
                                                 <div class="form-check">
                                                     <input class="form-check-input category-filter" type="checkbox"
                                                         value="{{ $category->id }}" id="category_{{ $category->id }}"
@@ -62,7 +83,8 @@
                                 </div>
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
@@ -87,8 +109,8 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
                                             <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox" value=""
-                                                    id="all-titles" data-title-id="">
+                                                <input class="form-check-input title-filter" type="checkbox"
+                                                    value="" id="all-titles" data-title-id="">
                                                 <label class="form-check-label" for="all-titles">All Titles</label>
                                             </div>
                                             @foreach ($jobTitles as $title)
@@ -105,11 +127,14 @@
                                 </div>
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allRejected']) }}">Export All Data</a>
+                                        <a class="dropdown-item"
+                                            href="{{ route('applicantsExport', ['type' => 'allRejected']) }}">Export All
+                                            Data</a>
                                         {{-- <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'emailsRejected']) }}">Export Emails</a> --}}
                                     </div>
                                 </div>
@@ -136,8 +161,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th>Phone</th>
-                                    <th>Landline</th>
+                                    <th>Phone / Landline</th>
                                     <th>Experience</th>
                                     <th>Source</th>
                                     <th>Notes</th>
@@ -155,35 +179,35 @@
             </div>
         </div>
 
-    </div>  
+    </div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <!-- Add daterangepicker -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
@@ -211,61 +235,113 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#applicants_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getResourcesRejectedApplicants')),  // Fetch data from the backend
+                    url: @json(route('getResourcesRejectedApplicants')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
-                        d.date_filter = currentDateFilter;  // Send the current filter value as a parameter
+                        d.type_filter =
+                            currentTypeFilter; // Send the current filter value as a parameter
+                        d.category_filter =
+                            currentCategoryFilters; // Send the current filter value as a parameter
+                        d.title_filter =
+                            currentTitleFilters; // Send the current filter value as a parameter
+                        d.date_filter =
+                            currentDateFilter; // Send the current filter value as a parameter
+                        if (d.search && d.search.value) {
+                            d.search.value = d.search.value.toString().trim();
+                        }
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'crm_notes_created', name: 'crm_notes.created_at' },
-                    { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
-                    { data: 'applicant_experience', name: 'applicants.applicant_experience' },
-                    { data: 'job_source', name: 'job_sources.name' },
-                    { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
-                    { data: 'sub_stage', name: 'history.sub_stage' },
-                    { data: 'action', name: 'action', orderable: false, searchable: false }
-                ],
-                columnDefs: [
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
                     {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        data: 'crm_notes_created',
+                        name: 'crm_notes.created_at'
+                    },
+                    {
+                        data: 'applicant_name',
+                        name: 'applicants.applicant_name'
+                    },
+                    {
+                        data: 'applicantEmail',
+                        name: 'applicantEmail'
+                    },
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'applicant_postcode',
+                        name: 'applicants.applicant_postcode'
+                    },
+                    {
+                        data: 'applicantPhone',
+                        name: 'applicantPhone'
+                    },
+                    {
+                        data: 'applicant_experience',
+                        name: 'applicants.applicant_experience'
+                    },
+                    {
+                        data: 'job_source',
+                        name: 'job_sources.name'
+                    },
+                    {
+                        data: 'applicant_notes',
+                        name: 'applicants.applicant_notes',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'sub_stage',
+                        name: 'history.sub_stage'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                columnDefs: [{
+                        targets: 11, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 13,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 12, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -275,7 +351,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#applicants_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -289,39 +366,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -341,8 +420,44 @@
                     pagination.html(paginationHtml);
                 },
             });
+
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
+
             // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
+            $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -378,7 +493,8 @@
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
+                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' +
+                    selectedLabels.length +
                     ')' : 'All Categories');
 
                 // Trigger DataTable reload with the selected filters
@@ -409,14 +525,15 @@
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
+                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels
+                    .length +
                     ')' : 'All Titles');
 
                 // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
             // Status filter dropdown handler
-            $('.date-filter').on('click', function () {
+            $('.date-filter').on('click', function() {
                 // Get the clicked text and convert to lowercase
                 currentDateFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
 
@@ -475,14 +592,14 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-        
+
         // Function to show the notes modal
         function showNotesModal(applicantId, notes, applicantName, applicantPostcode) {
             const modalId = 'showNotesModal-' + applicantId;
@@ -569,19 +686,19 @@
 
             // AJAX call to retrieve notes
             $.ajax({
-                url: '{{ route("getApplicantHistorybyStatus") }}',
+                url: '{{ route('getApplicantHistorybyStatus') }}',
                 type: 'GET',
                 data: {
                     id: applicantId,
                     status: 'rejected'
                 },
-                success: function (response) {
+                success: function(response) {
                     let notesHtml = '';
 
                     if (!response.data || response.data.length === 0) {
                         notesHtml = '<p>No record found.</p>';
                     } else {
-                        response.data.forEach(function (note) {
+                        response.data.forEach(function(note) {
                             const created = moment(note.created_at).format('DD MMM YYYY, h:mmA');
                             const status = note.status;
                             const badgeClass = status == 1 ? 'bg-success' : 'bg-dark';
@@ -601,14 +718,16 @@
                     $(`#${loaderId}`).hide();
                     $(`#${contentId}`).removeClass('d-none').html(notesHtml);
                 },
-                error: function () {
+                error: function() {
                     $(`#${loaderId}`).hide();
-                    $(`#${contentId}`).removeClass('d-none').html('<p>There was an error retrieving the notes. Please try again later.</p>');
+                    $(`#${contentId}`).removeClass('d-none').html(
+                        '<p>There was an error retrieving the notes. Please try again later.</p>');
                 }
             });
         }
 
-        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, createdAt,status) {
+        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
+            jobCategory, jobSource, createdAt, status) {
             const modalId = 'showDetailsModal-' + applicantId;
 
             // Remove existing modal with same ID (if any)
@@ -664,12 +783,10 @@
             }, 300); // Adjust delay as needed
 
             // Remove modal from DOM on close
-            $(`#${modalId}`).on('hidden.bs.modal', function () {
+            $(`#${modalId}`).on('hidden.bs.modal', function() {
                 $(this).remove();
             });
         }
-
     </script>
-    
 @endsection
-@endsection                        
+@endsection
