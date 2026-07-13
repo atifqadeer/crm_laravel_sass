@@ -119,7 +119,7 @@ class ResourceController extends Controller
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
             ->where('sales.status', 1)
             ->where('sales.is_on_hold', 0);
-        
+
         // Filter by type if it's not empty
         switch ($typeFilter) {
             case 'specialist':
@@ -789,7 +789,7 @@ class ResourceController extends Controller
                             $email .= '<br>' . $applicant->applicant_email_secondary;
                         }
                     }
-                    
+
                     return $email; // Using accessor
                 })
                 // In your DataTable or controller
@@ -798,7 +798,7 @@ class ResourceController extends Controller
 
                     $query->where(function ($q) use ($keyword) {
                         $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                            ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
                     });
                 })
                 ->addColumn('customStatus', function ($applicant) {
@@ -932,7 +932,24 @@ class ResourceController extends Controller
         $dateFilter     = $request->input('date_filter', '');
         $radius         = 15; // in kilometers
 
-        // Latest CRM notes using window function
+        $movedTabValues = [
+            'interview_not_attended',
+            'request_reject',
+            'cv_sent_reject',
+            'start_date_hold',
+            'start_date_hold_save',
+        ];
+
+        $subStageValues = [
+            'crm_interview_not_attended',
+            'crm_request_reject',
+            'crm_reject',
+            'crm_start_date_hold',
+            'crm_start_date_hold_save',
+        ];
+
+        // Filter BEFORE ranking, so ROW_NUMBER() only partitions the rows
+        // that could ever survive the outer WHERE — much smaller sort/window cost.
         $latestNotes = DB::table('crm_notes')
             ->select(
                 'id',
@@ -943,9 +960,9 @@ class ResourceController extends Controller
                 'created_at',
                 'updated_at',
                 DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as row_num')
-            );
+            )
+            ->whereIn('moved_tab_to', $movedTabValues);
 
-        // Latest history using window function
         $latestHistory = DB::table('history')
             ->select(
                 'id',
@@ -955,18 +972,22 @@ class ResourceController extends Controller
                 'status',
                 'created_at',
                 DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as row_num')
-            );
+            )
+            ->whereIn('sub_stage', $subStageValues)
+            ->where('status', 1);
 
         $model = Applicant::query()
             ->select([
                 'crm_notes.details',
                 'crm_notes.created_at as crm_notes_created',
+
                 'applicants.id',
                 'applicants.applicant_name',
                 'applicants.job_title_id',
                 'applicants.job_category_id',
                 'applicants.applicant_postcode',
                 'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
                 'applicants.applicant_experience',
                 'applicants.applicant_notes',
                 'applicants.paid_status',
@@ -977,18 +998,21 @@ class ResourceController extends Controller
                 'applicants.lat',
                 'applicants.lng',
                 'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.is_blocked',
+
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
                 DB::raw('
-                    CASE 
-                        WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
-                        WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
-                        WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
-                        WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
-                        ELSE "Unknown Status"
-                    END AS sub_stage
-                ')
+            CASE 
+                WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
+                WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
+                WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
+                WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
+                ELSE "Unknown Status"
+            END AS sub_stage
+        ')
             ])
             ->joinSub($latestNotes, 'crm_notes', function ($join) {
                 $join->on('applicants.id', '=', 'crm_notes.applicant_id')
@@ -1002,58 +1026,18 @@ class ResourceController extends Controller
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->whereIn('history.sub_stage', [
-                'crm_interview_not_attended',
-                'crm_request_reject',
-                'crm_reject',
-                'crm_start_date_hold',
-                'crm_start_date_hold_save'
-            ])
-            ->whereIn('crm_notes.moved_tab_to', [
-                'interview_not_attended',
-                'request_reject',
-                'cv_sent_reject',
-                'start_date_hold',
-                'start_date_hold_save'
-            ])
             ->where([
-                'applicants.status' => 1,
-                'history.status'    => 1,
+                'applicants.status'             => 1,
                 'applicants.is_in_nurse_home'   => false,
                 'applicants.is_blocked'         => false,
                 'applicants.is_callback_enable' => false,
                 'applicants.is_no_job'          => false,
             ])
-            ->with(['jobTitle', 'jobCategory', 'jobSource']);
-
-        $salesLocations = Sale::select('id', 'job_title_id', 'lat', 'lng', 'sale_postcode')
-            ->where('status', 1)
-            ->where('is_on_hold', 0)
-            ->whereNotNull('lat')
-            ->whereNotNull('lng')
-            ->get();
-
-        // ✅ Distance/Postcode filter
-        // if ($salesLocations->isNotEmpty()) {
-        //     $postcodes = $salesLocations->pluck('sale_postcode')->filter()->toArray();
-
-        //     $model->where(function ($query) use ($salesLocations, $radius, $postcodes) {
-        //         foreach ($salesLocations as $sale) {
-        //             $query->orWhereRaw("
-        //                 (6371 * ACOS(
-        //                     COS(RADIANS(?)) * COS(RADIANS(applicants.lat)) * 
-        //                     COS(RADIANS(applicants.lng) - RADIANS(?)) + 
-        //                     SIN(RADIANS(?)) * SIN(RADIANS(applicants.lat))
-        //                 )) <= ?",
-        //                 [$sale->lat, $sale->lng, $sale->lat, $radius]
-        //             );
-        //         }
-
-        //         if (!empty($postcodes)) {
-        //             $query->orWhereIn('applicants.applicant_postcode', $postcodes);
-        //         }
-        //     });
-        // }
+            ->whereNull('applicants.deleted_at');
+        // NOTE: history.status = 1 and the sub_stage/moved_tab_to whereIns are now
+        // enforced inside the subqueries above (cheaper — filters before ranking).
+        // If a row must ALSO exist with sub_stage/moved_tab_to outside the "latest"
+        // one to be excluded, keep the outer whereIn as well — see caveat below.
 
         // ✅ Date filter
         if ($dateFilter) {
@@ -1063,24 +1047,17 @@ class ResourceController extends Controller
 
             switch ($dateFilter) {
                 case 'last-3-months':
-                    // Last 3 months (up to now)
                     $start_date = $now->copy()->subMonths(3)->startOfDay();
                     break;
-
                 case 'last-6-months':
-                    // From 6 months ago up to 3 months ago (skip the most recent 3 months)
                     $end_date   = $now->copy()->subMonths(3)->endOfDay();
                     $start_date = $end_date->copy()->subMonths(6)->startOfDay();
                     break;
-
                 case 'last-9-months':
-                    // From 9 months ago up to 6 months ago (skip the most recent 6 months)
                     $end_date   = $now->copy()->subMonths(6)->endOfDay();
                     $start_date = $end_date->copy()->subMonths(9)->startOfDay();
                     break;
-
                 case 'others':
-                    // From 5 years ago up to 15 months ago (skip the most recent 15 months)
                     $end_date   = $now->copy()->subMonths(15)->endOfDay();
                     $start_date = $end_date->copy()->subYears(5)->startOfDay();
                     break;
@@ -1091,19 +1068,24 @@ class ResourceController extends Controller
             }
         }
 
-        // ✅ Sorting
-        if ($request->has('order')) {
-            $orderColumn   = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
+        // ✅ Sorting — whitelist to prevent invalid/unsafe columns and ambiguous-column errors
+        $sortMap = [
+            'job_source'      => 'applicants.job_source_id',
+            'job_category'    => 'applicants.job_category_id',
+            'job_title'       => 'applicants.job_title_id',
+            'applicant_name'  => 'applicants.applicant_name',
+            'applicant_email' => 'applicants.applicant_email',
+            'created_at'      => 'applicants.created_at',
+            'updated_at'      => 'crm_notes.updated_at',
+            // add any other DataTables-sortable columns explicitly here
+        ];
 
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
+        if ($request->has('order')) {
+            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc';
+
+            if (isset($sortMap[$orderColumn])) {
+                $model->orderBy($sortMap[$orderColumn], $orderDirection);
             } else {
                 $model->orderBy('crm_notes.updated_at', 'desc');
             }
@@ -1111,18 +1093,19 @@ class ResourceController extends Controller
             $model->orderBy('crm_notes.updated_at', 'desc');
         }
 
-        // ✅ Search
+        // ✅ Search — filter on already-joined columns directly instead of orWhereHas
+        // (avoids a correlated EXISTS subquery per relation on every row)
         if (!empty($searchTerm)) {
             $model->where(function ($query) use ($searchTerm) {
-                $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%")
-                    ->orWhereHas('jobTitle', fn($q) => $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%"))
-                    ->orWhereHas('jobCategory', fn($q) => $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%"))
-                    ->orWhereHas('jobSource', fn($q) => $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%"));
+                $like = "%{$searchTerm}%";
+                $query->where('applicants.applicant_name', 'LIKE', $like)
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', $like)
+                    ->orWhere('applicants.applicant_phone', 'LIKE', $like)
+                    ->orWhere('applicants.applicant_experience', 'LIKE', $like)
+                    ->orWhere('applicants.applicant_landline', 'LIKE', $like)
+                    ->orWhere('job_titles.name', 'LIKE', $like)
+                    ->orWhere('job_categories.name', 'LIKE', $like)
+                    ->orWhere('job_sources.name', 'LIKE', $like);
             });
         }
 
@@ -1152,12 +1135,24 @@ class ResourceController extends Controller
                 })
                 ->addColumn('job_source', fn($a) => $a->jobSource ? ucwords($a->jobSource->name) : '-')
                 ->addColumn('applicant_name', fn($a) => $a->formatted_applicant_name)
-                ->addColumn('applicant_postcode', function ($a) {
-                    if ($a->lat && $a->lng) {
+                ->editColumn('applicant_postcode', function ($a) {
+                    $rawPostcode = trim($a->applicant_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $a->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($a->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    if ($a->lat != null && $a->lng != null && !$a->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $a->id, 'radius' => 15]);
-                        return '<a href="' . $url . '" style="color:blue;">' . $a->formatted_postcode . '</a>';
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+                    } else {
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
-                    return $a->formatted_postcode;
                 })
                 ->addColumn('applicant_notes', function ($a) {
                     $notes = e(htmlspecialchars($a->details, ENT_QUOTES, 'UTF-8'));
@@ -1171,8 +1166,67 @@ class ResourceController extends Controller
                                ' . $shortNotes . '
                             </a>';
                 })
-                ->addColumn('applicant_phone', fn($a) => $a->formatted_phone)
-                ->addColumn('applicant_landline', fn($a) => $a->formatted_landline)
+                ->addColumn('applicantPhone', function ($a) {
+
+                    if ($a->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
+                    }
+
+                    $showBlockedData = $a->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
+
+                        $safe = e($num);
+
+                        if ($showBlockedData) {
+                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
+                                . "<a href=\"javascript:void(0)\" "
+                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
+                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                        }
+
+                        return "<strong>{$prefix}:</strong> "
+                            . "<a href=\"javascript:void(0)\" "
+                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
+                            . "class=\"text-primary text-decoration-none\" "
+                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
+                    };
+
+                    $parts = [];
+
+                    if (!empty($a->applicant_phone)) {
+                        $parts[] = $dialLink($a->applicant_phone, 'P');
+                    }
+
+                    if (!empty($a->applicant_phone_secondary)) {
+                        $parts[] = $dialLink($a->applicant_phone_secondary, 'S');
+                    }
+
+                    if (!empty($a->applicant_landline)) {
+                        $parts[] = $dialLink($a->applicant_landline, 'L');
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
+                })
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
+                })
                 ->addColumn('applicant_experience', function ($a) {
                     if (empty($a->applicant_experience) || $a->applicant_experience === 'NULL') {
                         return '-';
@@ -1208,6 +1262,29 @@ class ResourceController extends Controller
                         'Start Date Hold'     => '<span class="badge bg-info">Start Date Hold</span>',
                         default               => '<span class="badge bg-warning">Unknown</span>',
                     };
+                })
+                ->addColumn('applicantEmail', function ($a) {
+                    // Blocked applicant + no permission
+                    if ($a->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
+                    }
+
+                    $email = $a->applicant_email_secondary
+                        ? $a->applicant_email . '<br>' . $a->applicant_email_secondary
+                        : $a->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($a->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
+                })
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
                 })
                 ->addColumn('action', function ($a) {
                     $landline = $a->formatted_landline;
@@ -1261,8 +1338,8 @@ class ResourceController extends Controller
                     'applicant_notes',
                     'applicant_experience',
                     'applicant_postcode',
-                    'applicant_landline',
-                    'applicant_phone',
+                    'applicantPhone',
+                    'applicantEmail',
                     'job_title',
                     'sub_stage',
                     'job_category',
@@ -2728,12 +2805,12 @@ class ResourceController extends Controller
                     $query->where('applicants.is_temp_not_interested', 1)
                         ->orWhereNotNull('applicants_pivot_sales.applicant_id');
                 })
-                ->where('applicants.is_blocked', 0)
-                ->where('applicants.is_no_job', 0)
-                ->where(function ($q) {
-                    $q->where('applicants.have_nursing_home_experience', 0)
-                        ->orWhereNull('applicants.have_nursing_home_experience');
-                });
+                    ->where('applicants.is_blocked', 0)
+                    ->where('applicants.is_no_job', 0)
+                    ->where(function ($q) {
+                        $q->where('applicants.have_nursing_home_experience', 0)
+                            ->orWhereNull('applicants.have_nursing_home_experience');
+                    });
                 break;
 
             case 'blocked':
@@ -2948,7 +3025,7 @@ class ResourceController extends Controller
                             $email .= '<br>' . $applicant->applicant_email_secondary;
                         }
                     }
-                    
+
                     return $email; // Using accessor
                 })
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
@@ -2956,7 +3033,7 @@ class ResourceController extends Controller
 
                     $query->where(function ($q) use ($keyword) {
                         $q->whereRaw('LOWER(applicants.applicant_email) LIKE ?', ["%{$keyword}%"])
-                        ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
+                            ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
                     });
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
@@ -3188,7 +3265,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">';
-                    if(Gate::allows('resource-category-view')){
+                    if (Gate::allows('resource-category-view')) {
                         $html .= '<li>
                                 <a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
@@ -3206,20 +3283,20 @@ class ResourceController extends Controller
                                 )">View Details</a>
                             </li>';
                     }
-                    if(Gate::allows('resource-category-upload-applicant-resume')){
+                    if (Gate::allows('resource-category-upload-applicant-resume')) {
                         $html .= '<li>
                                     <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
                                     <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
                                 </li>';
                     }
-                    if(Gate::allows('resource-category-upload-crm-resume')){
+                    if (Gate::allows('resource-category-upload-crm-resume')) {
                         $html .= '<li>
                                     <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
                                     <!-- Hidden File Input -->
                                     <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                 </li>';
                     }
-                    if(Gate::allows('resource-category-view-notes-history')){
+                    if (Gate::allows('resource-category-view-notes-history')) {
                         $html .= '<li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
                                 </ul>

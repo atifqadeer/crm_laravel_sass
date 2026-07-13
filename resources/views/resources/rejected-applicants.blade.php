@@ -280,7 +280,9 @@
                     },
                     {
                         data: 'applicantEmail',
-                        name: 'applicantEmail'
+                        name: 'applicantEmail',
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'job_title',
@@ -296,7 +298,9 @@
                     },
                     {
                         data: 'applicantPhone',
-                        name: 'applicantPhone'
+                        name: 'applicantPhone', // ← Use the same as data key
+                        orderable: false,
+                        searchable: true,
                     },
                     {
                         data: 'applicant_experience',
