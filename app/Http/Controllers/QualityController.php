@@ -775,42 +775,686 @@ class QualityController extends Controller
                 ->make(true);
         }
     }
+    // public function getResourcesByTypeAjaxRequest(Request $request)
+    // {
+    //     $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
+    //     $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
+    //     $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
+    //     $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
+
+    //     // -----------------------------------------------------------------------
+    //     // Base query
+    //     // -----------------------------------------------------------------------
+    //     $model = Applicant::query()
+    //         ->select([
+    //             'applicants.id',
+    //             'applicants.applicant_name',
+    //             'applicants.applicant_email',
+    //             'applicants.applicant_email_secondary',
+    //             'applicants.applicant_phone',
+    //             'applicants.applicant_phone_secondary',
+    //             'applicants.applicant_postcode',
+    //             'applicants.applicant_landline',
+    //             'applicants.is_blocked',
+    //             'applicants.applicant_cv',
+    //             'applicants.updated_cv',
+    //             'applicants.job_category_id',
+    //             'applicants.job_title_id',
+    //             'applicants.job_type',
+
+    //             'job_titles.name as job_title_name',
+    //             'job_categories.name as job_category_name',
+    //             'job_sources.name as job_source_name',
+    //         ])
+    //         ->where('applicants.status', 1)
+    //         ->whereNull('applicants.deleted_at')
+    //         ->leftJoin('job_titles',     'applicants.job_title_id',    '=', 'job_titles.id')
+    //         ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+    //         ->leftJoin('job_sources',    'applicants.job_source_id',   '=', 'job_sources.id');
+
+    //     $commonSaleSelect = [
+    //         'offices.office_name as office_name',
+    //         'sales.id as sale_id',
+    //         'sales.job_category_id as sale_category_id',
+    //         'sales.job_title_id as sale_title_id',
+    //         'sales.sale_postcode',
+    //         'sales.job_type as sale_job_type',
+    //         'sales.timing',
+    //         'sales.salary',
+    //         'sales.experience as sale_experience',
+    //         'sales.qualification as sale_qualification',
+    //         'sales.benefits',
+    //         'sales.office_id as sale_office_id',
+    //         'sales.unit_id as sale_unit_id',
+    //         'sales.position_type',
+    //         'sales.status as sale_status',
+    //         'units.unit_name',
+    //         'units.unit_postcode',
+    //         'units.unit_website',
+    //         'users.name as user_name',
+    //     ];
+
+    //     switch ($statusFilter) {
+
+    //         // -----------------------------------------------------------------------
+    //         case 'open cvs':
+    //             $model
+    //                 ->joinSub(
+    //                     $this->latestCvNoteByStatusSubquery(),
+    //                     'lcn',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lcn.applicant_id')
+    //                 )
+    //                 ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
+    //                 ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //                 ->join('units',   'units.id',   '=', 'sales.unit_id')
+    //                 ->joinSub(
+    //                     $this->latestHistorySubquery(['quality_cvs_hold']),
+    //                     'lh',
+    //                     fn($j) =>
+    //                     $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
+    //                         ->on('lcn.sale_id',      '=', 'lh.sale_id')
+    //                 )
+    //                 ->joinSub(
+    //                     $this->latestRevertStageSubquery(),
+    //                     'lrs',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lrs.applicant_id')
+    //                         ->on('sales.id',      '=', 'lrs.sale_id')
+    //                 )
+    //                 ->join('users', 'users.id', '=', 'lrs.user_id')
+    //                 ->addSelect(array_merge($commonSaleSelect, [
+    //                     'lrs.notes as notes_detail',
+    //                     'lrs.stage as revert_stage',
+    //                     'lrs.updated_at as notes_created_at',
+    //                 ]));
+    //             break;
+
+    //         // -----------------------------------------------------------------------
+    //         case 'no job cvs':
+    //             $model
+    //                 ->joinSub(
+    //                     $this->latestCvNoteByStatusSubquery(),
+    //                     'lcn',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lcn.applicant_id')
+    //                 )
+    //                 ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
+    //                 ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //                 ->join('units',   'units.id',   '=', 'sales.unit_id')
+    //                 ->joinSub(
+    //                     $this->latestHistorySubquery(['no_job_quality_cvs']),
+    //                     'lh',
+    //                     fn($j) =>
+    //                     $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
+    //                         ->on('lcn.sale_id',      '=', 'lh.sale_id')
+    //                 )
+    //                 ->join('users', 'users.id', '=', 'lcn.user_id')
+    //                 ->addSelect(array_merge($commonSaleSelect, [
+    //                     'lcn.details as notes_detail',
+    //                     'lcn.created_at as notes_created_at',
+    //                 ]));
+    //             break;
+
+    //         // -----------------------------------------------------------------------
+    //         case 'rejected cvs':
+    //             $model
+    //                 ->joinSub(
+    //                     $this->latestQualityNoteSubquery(['rejected']),
+    //                     'lqn',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lqn.applicant_id')
+    //                 )
+    //                 ->join('sales',   'sales.id',   '=', 'lqn.sale_id')
+    //                 ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //                 ->join('units',   'units.id',   '=', 'sales.unit_id')
+    //                 ->joinSub(
+    //                     $this->earliestCvNoteSubquery(),
+    //                     'ecn',
+    //                     fn($j) =>
+    //                     $j->on('lqn.applicant_id', '=', 'ecn.applicant_id')
+    //                         ->on('lqn.sale_id',      '=', 'ecn.sale_id')
+    //                 )
+    //                 ->join('users', 'users.id', '=', 'ecn.user_id')
+    //                 ->addSelect(array_merge($commonSaleSelect, [
+    //                     'lqn.details as notes_detail',
+    //                     'lqn.created_at as notes_created_at',
+    //                 ]));
+    //             break;
+
+    //         // -----------------------------------------------------------------------
+    //         case 'cleared cvs':
+    //             $model
+    //                 ->joinSub(
+    //                     $this->latestQualityNoteSubquery(['cleared', 'cleared_no_job']),
+    //                     'lqn',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lqn.applicant_id')
+    //                 )
+    //                 ->join('sales',   'sales.id',   '=', 'lqn.sale_id')
+    //                 ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //                 ->join('units',   'units.id',   '=', 'sales.unit_id')
+    //                 ->joinSub(
+    //                     $this->earliestCvNoteSubquery(),
+    //                     'ecn',
+    //                     fn($j) =>
+    //                     $j->on('lqn.applicant_id', '=', 'ecn.applicant_id')
+    //                         ->on('lqn.sale_id',      '=', 'ecn.sale_id')
+    //                 )
+    //                 ->join('users', 'users.id', '=', 'ecn.user_id')
+    //                 ->addSelect(array_merge($commonSaleSelect, [
+    //                     'lqn.details as notes_detail',
+    //                     'lqn.created_at as notes_created_at',
+    //                 ]));
+    //             break;
+
+    //         // -----------------------------------------------------------------------
+    //         case 'requested cvs':
+    //         default:
+    //             $model
+    //                 ->joinSub(
+    //                     $this->latestCvNoteByStatusSubquery(),
+    //                     'lcn',
+    //                     fn($j) =>
+    //                     $j->on('applicants.id', '=', 'lcn.applicant_id')
+    //                 )
+    //                 ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
+    //                 ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //                 ->join('units',   'units.id',   '=', 'sales.unit_id')
+    //                 ->joinSub(
+    //                     $this->latestHistorySubquery(['quality_cvs']),
+    //                     'lh',
+    //                     fn($j) =>
+    //                     $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
+    //                         ->on('lcn.sale_id',      '=', 'lh.sale_id')
+    //                 )
+    //                 ->join('users', 'users.id', '=', 'lcn.user_id')
+    //                 ->addSelect(array_merge($commonSaleSelect, [
+    //                     'lcn.details as notes_detail',
+    //                     'lcn.created_at as notes_created_at',
+    //                 ]));
+    //             break;
+    //     }
+
+    //     // Filter by type if it's not empty
+    //     if ($categoryFilter) {
+    //         $model->whereIn('applicants.job_category_id', $categoryFilter);
+    //     }
+
+    //     // Filter by type if it's not empty
+    //     if ($titleFilter) {
+    //         $model->whereIn('applicants.job_title_id', $titleFilter);
+    //     }
+
+    //     // Sorting logic
+    //     if ($request->has('order')) {
+    //         $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+    //         $orderDirection = $request->input('order.0.dir', 'asc');
+
+    //         if ($orderColumn === 'job_source') {
+    //             $model->orderBy('applicants.job_source_id', $orderDirection);
+    //         } elseif ($orderColumn === 'job_category') {
+    //             $model->orderBy('applicants.job_category_id', $orderDirection);
+    //         } elseif ($orderColumn === 'job_title') {
+    //             $model->orderBy('applicants.job_title_id', $orderDirection);
+    //         } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+    //             $model->orderBy($orderColumn, $orderDirection);
+    //         } else {
+    //             $model->orderBy('notes_created_at', 'desc');
+    //         }
+    //     } else {
+    //         $model->orderBy('notes_created_at', 'desc');
+    //     }
+
+    //     if ($request->has('search.value')) {
+    //         $searchTerm = (string) $request->input('search.value');
+
+    //         if (!empty($searchTerm)) {
+    //             $model->where(function ($query) use ($searchTerm) {
+    //                 // Direct column searches
+    //                 $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%")
+    //                     ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$searchTerm}%"]) // Relationship searches with explicit table names and LOWER 
+    //                     ->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$searchTerm}%"])
+    //                     ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$searchTerm}%"]);
+
+    //                 // Relationship searches with explicit table names
+    //                 $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
+    //                     $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
+    //                 });
+
+    //                 $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
+    //                     $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
+    //                 });
+
+    //                 $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
+    //                     $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
+    //                 });
+
+    //                 $query->orWhereHas('user', function ($q) use ($searchTerm) {
+    //                     $q->where('users.name', 'LIKE', "%{$searchTerm}%");
+    //                 });
+    //             });
+    //         }
+    //     }
+
+    //     // Filter by type if it's not empty
+    //     switch ($typeFilter) {
+    //         case 'specialist':
+    //             $model->where('applicants.job_type', 'specialist');
+    //             break;
+    //         case 'regular':
+    //             $model->where('applicants.job_type', 'regular');
+    //             break;
+    //     }
+
+    //     if ($request->ajax()) {
+    //         // Clone the model query and strip ORDER BY for the count query
+    //         $countModel = clone $model;
+    //         $countModel->getQuery()->orders = null;
+
+    //         return DataTables::eloquent($model)
+    //             ->skipTotalRecords()
+    //             ->addIndexColumn() // This will automatically add a serial number to the rows
+    //             ->addColumn("user_name", function ($applicant) {
+    //                 return ucwords($applicant->user_name) ?? '-';
+    //             })
+    //             ->addColumn('job_title', function ($applicant) {
+    //                 return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
+    //             })
+    //             ->addColumn('job_category', function ($sale) {
+    //                 $type = $sale->job_type;
+    //                 $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+    //                 return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
+    //             })
+    //             ->addColumn('job_source', function ($applicant) {
+    //                 return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+    //             })
+    //             ->editColumn('applicant_name', function ($applicant) {
+    //                 return $applicant->formatted_applicant_name; // Using accessor
+    //             })
+    //             ->addColumn('applicantEmail', function ($applicant) {
+    //                 // Blocked applicant + no permission
+    //                 if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+    //                     return "<span class='badge bg-dark'>Blocked</span>";
+    //                 }
+
+    //                 $email = $applicant->applicant_email_secondary
+    //                     ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+    //                     : $applicant->applicant_email;
+
+    //                 // Blocked applicant + has permission
+    //                 if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+    //                     return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+    //                 }
+
+    //                 // Normal applicant
+    //                 return $email;
+    //             })
+    //             ->filterColumn('applicantEmail', function ($query, $keyword) {
+    //                 $keyword = trim($keyword);
+    //                 $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+    //                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+    //             })
+    //             ->editColumn('applicant_postcode', function ($applicant) {
+    //                 $status_value = 'open';
+    //                 if ($applicant->paid_status == 'close') {
+    //                     $status_value = 'paid';
+    //                 } else {
+    //                     foreach ($applicant->cv_notes as $key => $value) {
+    //                         if ($value->status == 'active') {
+    //                             $status_value = 'sent';
+    //                             break;
+    //                         } elseif ($value->status == 'disable') {
+    //                             $status_value = 'reject';
+    //                         }
+    //                     }
+    //                 }
+
+    //                 $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+    //                                 data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+    //                                 <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+    //                             </button>';
+
+    //                 if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked) {
+    //                     $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+    //                     $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>';
+    //                     return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+    //                 } else {
+    //                     return '<div class="d-flex align-items-center justify-content-between"><span>' . $applicant->formatted_postcode . '</span>' . $copyBtn . '</div>';
+    //                 }
+    //             })
+    //             ->editColumn('sale_postcode', function ($applicant) {
+    //                 $salePostcode = strtoupper($applicant->sale_postcode);
+    //                 $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+    //                                 data-postcode="' . e($salePostcode) . '" title="Copy Postcode">
+    //                                 <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+    //                             </button>';
+
+
+    //                 return '<div class="d-flex align-items-center justify-content-between"><span>' . $salePostcode . '</span>' . $copyBtn . '</div>';
+    //             })
+    //             ->addColumn('notes_detail', function ($applicant) {
+    //                 $fullHtml = $applicant->notes_detail; // HTML from Summernote
+    //                 $id = 'qua-' . $applicant->id;
+    //                 $copyId = "copy-quality-resources-notes-" . $applicant->id;
+
+    //                 // 1. Convert HTML to readable plain text for copying
+    //                 $plainText = strip_tags($fullHtml); // remove all HTML
+    //                 $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
+    //                 $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
+    //                 $plainText = trim($plainText);
+
+    //                 // 2. Generate short preview (first 100 chars) for table
+    //                 $shortPreview = Str::limit($plainText, 100);
+    //                 $shortPreviewHtml = nl2br(e($shortPreview)); // preserve line breaks safely
+
+    //                 return '
+    //                     <div>
+    //                         <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+    //                             ' . $shortPreviewHtml . '
+    //                         </a>
+    //                         <br>
+
+    //                         <!-- Hidden full plain text for copy -->
+    //                         <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
+
+    //                         <!-- Copy button under short note -->
+    //                         <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
+    //                             Copy Notes
+    //                         </button>
+    //                     </div>
+
+    //                     <!-- Modal showing full formatted HTML notes -->
+    //                     <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+    //                         <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    //                             <div class="modal-content">
+    //                                 <div class="modal-header">
+    //                                     <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
+    //                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    //                                 </div>
+    //                                 <div class="modal-body" style="color:#5d7186">
+    //                                     ' . $fullHtml . '
+    //                                 </div>
+    //                                 <div class="modal-footer">
+    //                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+    //                                 </div>
+    //                             </div>
+    //                         </div>
+    //                     </div>';
+    //             })
+    //             ->addColumn('applicantPhone', function ($applicant) {
+
+    //                 if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+    //                     return "<span class='badge bg-dark'>Blocked</span>";
+    //                 }
+
+    //                 $showBlockedData = $applicant->is_blocked
+    //                     && Gate::allows('applicant-show-blocked-data');
+
+    //                 $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
+
+    //                     $safe = e($num);
+
+    //                     $linkClass = $showBlockedData
+    //                         ? 'text-white text-decoration-none'
+    //                         : 'text-primary text-decoration-none';
+
+    //                     $labelStyle = $showBlockedData
+    //                         ? 'style="color:#fff !important;"'
+    //                         : '';
+
+    //                     return "<strong {$labelStyle}>{$prefix}:</strong>
+    //                         <a href=\"javascript:void(0)\"
+    //                         onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
+    //                         class=\"{$linkClass}\"
+    //                         title=\"Click to dial {$safe}\">{$safe}</a>";
+    //                 };
+
+    //                 $parts = [];
+
+    //                 if (!empty($applicant->applicant_phone)) {
+    //                     $parts[] = $dialLink($applicant->applicant_phone, 'P');
+    //                 }
+
+    //                 if (!empty($applicant->applicant_phone_secondary)) {
+    //                     $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+    //                 }
+
+    //                 if (!empty($applicant->applicant_landline)) {
+    //                     $parts[] = $dialLink($applicant->applicant_landline, 'L');
+    //                 }
+
+    //                 $phones = implode('<br>', $parts) ?: '-';
+
+    //                 // Only blocked + permission gets black background + white text
+    //                 if ($showBlockedData) {
+    //                     return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
+    //                 }
+
+    //                 return $phones;
+    //             })
+    //             ->filterColumn('applicantPhone', function ($query, $keyword) {
+    //                 $clean = preg_replace('/[^0-9]/', '', $keyword);
+    //                 $query->where(function ($q) use ($clean) {
+    //                     $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+    //                         ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+    //                         ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+    //                 });
+    //             })
+    //             ->addColumn('notes_created_at', function ($applicant) {
+    //                 return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA');
+    //             })
+    //             ->editColumn('applicant_resume', function ($applicant) {
+    //                 $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
+
+    //                 if ($path && str_starts_with($path, 'uploads/')) {
+
+    //                     $fullPath = public_path($path);
+
+    //                     if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+    //                         $url = asset($path); // direct public URL
+
+    //                         return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+    //                                     <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
+    //                                 </a>';
+    //                     }
+    //                 }
+
+    //                 return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+    //                             <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+    //                         </button>';
+    //             })
+    //             ->addColumn('crm_resume', function ($applicant) {
+    //                 $path = $applicant->updated_cv;
+
+    //                 if ($path && str_starts_with($path, 'uploads/')) {
+
+    //                     $fullPath = public_path($path);
+
+    //                     if (!$applicant->is_blocked && file_exists($fullPath)) {
+
+    //                         $url = asset($path);
+
+    //                         return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
+    //                                     <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
+    //                                 </a>';
+    //                     }
+    //                 }
+
+    //                 return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+    //                             <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+    //                         </button>';
+    //             })
+    //             ->addColumn('customStatus', function ($applicant) {
+    //                 $status_value = 'open';
+    //                 $color_class = 'bg-success';
+    //                 if ($applicant->paid_status == 'close') {
+    //                     $status_value = 'paid';
+    //                     $color_class = 'bg-info';
+    //                 } else {
+    //                     foreach ($applicant->cv_notes as $key => $value) {
+    //                         if ($value->status == 'active') {
+    //                             $status_value = 'sent';
+    //                             $color_class = 'bg-success';
+    //                             break;
+    //                         } elseif ($value->status == 'disable') {
+    //                             $status_value = 'reject';
+    //                             $color_class = 'bg-danger';
+    //                         }
+    //                     }
+    //                 }
+
+    //                 $status = '';
+    //                 $status .= '<span class="badge ' . $color_class . '">';
+    //                 $status .= strtoupper($status_value);
+    //                 $status .= '</span>';
+    //                 return $status;
+    //             })
+    //             ->addColumn('action', function ($applicant) use ($statusFilter) {
+    //                 $html = '<div class="btn-group dropstart"> 
+    //                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
+    //                             <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
+    //                             <ul class="dropdown-menu">';
+
+    //                 $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+    //                 $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+
+    //                 if ($applicant->sale_status == 1) {
+    //                     $status = '<span class="badge bg-success">Active</span>';
+    //                 } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+    //                     $status = '<span class="badge bg-danger">Closed</span>';
+    //                 } elseif ($applicant->sale_status == 2) {
+    //                     $status = '<span class="badge bg-warning">Pending</span>';
+    //                 } elseif ($applicant->sale_status == 3) {
+    //                     $status = '<span class="badge bg-danger">Rejected</span>';
+    //                 } else {
+    //                     $status = '<span class="badge bg-secondary">Unknown</span>';
+    //                 }
+
+    //                 $jobData = [
+    //                     'sale_id'       => (int) $applicant->sale_id,
+    //                     'office_name'   => ucwords($applicant->office_name ?? ''),
+    //                     'unit_name'     => ucwords($applicant->unit_name ?? ''),
+    //                     'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
+    //                     'job_category'  => ucwords($applicant->job_category_name ?? ''),
+    //                     'job_title'     => strtoupper($applicant->job_title_name ?? ''),
+    //                     'status'        => $status,       // RAW HTML
+    //                     'timing'        => $applicant->timing ?? '',
+    //                     'experience'    => $applicant->sale_experience ?? '',
+    //                     'salary'        => $applicant->salary ?? '',
+    //                     'position'      => $position,     // RAW HTML
+    //                     'qualification' => $applicant->sale_qualification ?? '',
+    //                     'benefits'      => $applicant->benefits ?? '',
+    //                 ];
+
+    //                 $html .= '<li>
+    //                     <a href="javascript:void(0);"
+    //                     class="dropdown-item job-details"
+    //                     data-job=\'' . json_encode(
+    //                     $jobData,
+    //                     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+    //                 ) . '\'>
+    //                     Job Details
+    //                     </a>
+    //                 </li>';
+
+
+    //                 // Status-specific actions
+    //                 switch ($statusFilter) {
+    //                     case 'active cvs':
+    //                         if (Gate::allows('quality-assurance-resource-clear-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-reject-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-open-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+    //                         }
+    //                         break;
+    //                     case 'open cvs':
+    //                         if (Gate::allows('quality-assurance-resource-revert-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-reject-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+    //                         }
+    //                         break;
+    //                     case 'no job cvs':
+    //                         if (Gate::allows('quality-assurance-resource-clear-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-reject-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+    //                         }
+    //                         break;
+    //                     case 'rejected cvs':
+    //                         if (Gate::allows('quality-assurance-resource-revert-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+    //                         }
+    //                         break;
+    //                     case 'cleared cvs':
+    //                         $html .= "";
+    //                         break;
+    //                     default:
+    //                         if (Gate::allows('quality-assurance-resource-clear-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-reject-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+    //                         }
+    //                         if (Gate::allows('quality-assurance-resource-open-cv')) {
+    //                             $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+    //                         }
+    //                         break;
+    //                 }
+    //                 // if (Gate::allows('quality-assurance-resource-upload-resume')) {
+    //                 //     $html .= '<li>
+    //                 //                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
+    //                 //                 <!-- Hidden File Input -->
+    //                 //                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
+    //                 //             </li>';
+    //                 // }
+    //                 if (Gate::allows('quality-assurance-resource-upload-resume')) {
+    //                     $html .= '<li>
+    //                                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+    //                                 <!-- Hidden File Input -->
+    //                                 <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+    //                             </li>';
+    //                 }
+    //                 // Common actions
+    //                 if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
+    //                     $html .= '<li><hr class="dropdown-divider"></li>';
+    //                 }
+    //                 if (Gate::allows('applicant-view-history')) {
+    //                     $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
+    //                 }
+    //                 if (Gate::allows('applicant-view-notes-history')) {
+    //                     $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+    //                 }
+
+    //                 $html .= '</ul></div>';
+
+    //                 return $html;
+    //             })
+    //             ->rawColumns(['notes_detail', 'notes_created_at', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+    //             ->make(true);
+    //     }
+    // }
+
+
     public function getResourcesByTypeAjaxRequest(Request $request)
     {
-        $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
-        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
-
-        // -----------------------------------------------------------------------
-        // Base query
-        // -----------------------------------------------------------------------
-        $model = Applicant::query()
-            ->select([
-                'applicants.id',
-                'applicants.applicant_name',
-                'applicants.applicant_email',
-                'applicants.applicant_email_secondary',
-                'applicants.applicant_phone',
-                'applicants.applicant_phone_secondary',
-                'applicants.applicant_postcode',
-                'applicants.applicant_landline',
-                'applicants.is_blocked',
-                'applicants.applicant_cv',
-                'applicants.updated_cv',
-                'applicants.job_category_id',
-                'applicants.job_title_id',
-                'applicants.job_type',
-
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-                'job_sources.name as job_source_name',
-            ])
-            ->where('applicants.status', 1)
-            ->whereNull('applicants.deleted_at')
-            ->leftJoin('job_titles',     'applicants.job_title_id',    '=', 'job_titles.id')
-            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources',    'applicants.job_source_id',   '=', 'job_sources.id');
+        $typeFilter     = $request->input('type_filter', '');
+        $categoryFilter = $request->input('category_filter', '');
+        $titleFilter    = $request->input('title_filter', '');
+        $statusFilter = (string) ($request->input('status_filter') ?? '');
 
         $commonSaleSelect = [
             'offices.office_name as office_name',
@@ -828,625 +1472,103 @@ class QualityController extends Controller
             'sales.unit_id as sale_unit_id',
             'sales.position_type',
             'sales.status as sale_status',
+            'sales.is_on_hold',           // was referenced in addColumn('action') but never selected — bug fix, not perf
             'units.unit_name',
             'units.unit_postcode',
             'units.unit_website',
             'users.name as user_name',
         ];
 
-        switch ($statusFilter) {
+        $model = Applicant::query()
+            ->select([
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_postcode',
+                'applicants.applicant_landline',
+                'applicants.is_blocked',
+                'applicants.applicant_cv',
+                'applicants.updated_cv',
+                'applicants.job_category_id',
+                'applicants.job_title_id',
+                'applicants.job_type',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
+            ])
+            ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
+            ->leftJoin('job_titles',     'applicants.job_title_id',    '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources',    'applicants.job_source_id',   '=', 'job_sources.id');
 
-            // -----------------------------------------------------------------------
-            case 'open cvs':
-                $model
-                    ->joinSub(
-                        $this->latestCvNoteByStatusSubquery(),
-                        'lcn',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lcn.applicant_id')
-                    )
-                    ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
-                    ->join('offices', 'offices.id', '=', 'sales.office_id')
-                    ->join('units',   'units.id',   '=', 'sales.unit_id')
-                    ->joinSub(
-                        $this->latestHistorySubquery(['quality_cvs_hold']),
-                        'lh',
-                        fn($j) =>
-                        $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
-                            ->on('lcn.sale_id',      '=', 'lh.sale_id')
-                    )
-                    ->joinSub(
-                        $this->latestRevertStageSubquery(),
-                        'lrs',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lrs.applicant_id')
-                            ->on('sales.id',      '=', 'lrs.sale_id')
-                    )
-                    ->join('users', 'users.id', '=', 'lrs.user_id')
-                    ->addSelect(array_merge($commonSaleSelect, [
-                        'lrs.notes as notes_detail',
-                        'lrs.stage as revert_stage',
-                        'lrs.updated_at as notes_created_at',
-                    ]));
-                break;
+        $this->applyStatusFilterJoins($model, $statusFilter, $commonSaleSelect);
 
-            // -----------------------------------------------------------------------
-            case 'no job cvs':
-                $model
-                    ->joinSub(
-                        $this->latestCvNoteByStatusSubquery(),
-                        'lcn',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lcn.applicant_id')
-                    )
-                    ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
-                    ->join('offices', 'offices.id', '=', 'sales.office_id')
-                    ->join('units',   'units.id',   '=', 'sales.unit_id')
-                    ->joinSub(
-                        $this->latestHistorySubquery(['no_job_quality_cvs']),
-                        'lh',
-                        fn($j) =>
-                        $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
-                            ->on('lcn.sale_id',      '=', 'lh.sale_id')
-                    )
-                    ->join('users', 'users.id', '=', 'lcn.user_id')
-                    ->addSelect(array_merge($commonSaleSelect, [
-                        'lcn.details as notes_detail',
-                        'lcn.created_at as notes_created_at',
-                    ]));
-                break;
+        // Eager-load only what still needs relation access in PHP (cv status derivation).
+        // This turns the previous N+1 (1 query per row, called twice) into exactly 1 query.
+        // NOTE: relation method on Applicant is defined as cv_notes() (snake_case),
+        // so the with() key MUST match it exactly — Laravel does not camelCase-normalize
+        // relationship names passed to with(). Using 'cvNotes' throws:
+        // "Call to undefined relationship [cvNotes] on model [Horsefly\Applicant]."
+        $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'status')]);
 
-            // -----------------------------------------------------------------------
-            case 'rejected cvs':
-                $model
-                    ->joinSub(
-                        $this->latestQualityNoteSubquery(['rejected']),
-                        'lqn',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lqn.applicant_id')
-                    )
-                    ->join('sales',   'sales.id',   '=', 'lqn.sale_id')
-                    ->join('offices', 'offices.id', '=', 'sales.office_id')
-                    ->join('units',   'units.id',   '=', 'sales.unit_id')
-                    ->joinSub(
-                        $this->earliestCvNoteSubquery(),
-                        'ecn',
-                        fn($j) =>
-                        $j->on('lqn.applicant_id', '=', 'ecn.applicant_id')
-                            ->on('lqn.sale_id',      '=', 'ecn.sale_id')
-                    )
-                    ->join('users', 'users.id', '=', 'ecn.user_id')
-                    ->addSelect(array_merge($commonSaleSelect, [
-                        'lqn.details as notes_detail',
-                        'lqn.created_at as notes_created_at',
-                    ]));
-                break;
+        $model
+            ->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
+            ->when($titleFilter,    fn($q) => $q->whereIn('applicants.job_title_id', $titleFilter))
+            ->when($typeFilter === 'specialist', fn($q) => $q->where('applicants.job_type', 'specialist'))
+            ->when($typeFilter === 'regular',    fn($q) => $q->where('applicants.job_type', 'regular'));
 
-            // -----------------------------------------------------------------------
-            case 'cleared cvs':
-                $model
-                    ->joinSub(
-                        $this->latestQualityNoteSubquery(['cleared', 'cleared_no_job']),
-                        'lqn',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lqn.applicant_id')
-                    )
-                    ->join('sales',   'sales.id',   '=', 'lqn.sale_id')
-                    ->join('offices', 'offices.id', '=', 'sales.office_id')
-                    ->join('units',   'units.id',   '=', 'sales.unit_id')
-                    ->joinSub(
-                        $this->earliestCvNoteSubquery(),
-                        'ecn',
-                        fn($j) =>
-                        $j->on('lqn.applicant_id', '=', 'ecn.applicant_id')
-                            ->on('lqn.sale_id',      '=', 'ecn.sale_id')
-                    )
-                    ->join('users', 'users.id', '=', 'ecn.user_id')
-                    ->addSelect(array_merge($commonSaleSelect, [
-                        'lqn.details as notes_detail',
-                        'lqn.created_at as notes_created_at',
-                    ]));
-                break;
+        $this->applySorting($model, $request);
+        $this->applySearch($model, $request);
 
-            // -----------------------------------------------------------------------
-            case 'requested cvs':
-            default:
-                $model
-                    ->joinSub(
-                        $this->latestCvNoteByStatusSubquery(),
-                        'lcn',
-                        fn($j) =>
-                        $j->on('applicants.id', '=', 'lcn.applicant_id')
-                    )
-                    ->join('sales',   'sales.id',   '=', 'lcn.sale_id')
-                    ->join('offices', 'offices.id', '=', 'sales.office_id')
-                    ->join('units',   'units.id',   '=', 'sales.unit_id')
-                    ->joinSub(
-                        $this->latestHistorySubquery(['quality_cvs']),
-                        'lh',
-                        fn($j) =>
-                        $j->on('lcn.applicant_id', '=', 'lh.applicant_id')
-                            ->on('lcn.sale_id',      '=', 'lh.sale_id')
-                    )
-                    ->join('users', 'users.id', '=', 'lcn.user_id')
-                    ->addSelect(array_merge($commonSaleSelect, [
-                        'lcn.details as notes_detail',
-                        'lcn.created_at as notes_created_at',
-                    ]));
-                break;
+        if (!$request->ajax()) {
+            return; // preserves original behavior (non-ajax path returned nothing)
         }
 
-        // Filter by type if it's not empty
-        if ($categoryFilter) {
-            $model->whereIn('applicants.job_category_id', $categoryFilter);
-        }
-
-        // Filter by type if it's not empty
-        if ($titleFilter) {
-            $model->whereIn('applicants.job_title_id', $titleFilter);
-        }
-
-        // Sorting logic
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
-
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            } elseif ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                $model->orderBy($orderColumn, $orderDirection);
-            } else {
-                $model->orderBy('notes_created_at', 'desc');
-            }
-        } else {
-            $model->orderBy('notes_created_at', 'desc');
-        }
-
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
-
-            if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
-                    // Direct column searches
-                    $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%")
-                        ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$searchTerm}%"]) // Relationship searches with explicit table names and LOWER 
-                        ->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$searchTerm}%"])
-                        ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$searchTerm}%"]);
-
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
-                        $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
-                        $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
-                    });
-
-                    $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
-                        $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
-                    });
-
-                    $query->orWhereHas('user', function ($q) use ($searchTerm) {
-                        $q->where('users.name', 'LIKE', "%{$searchTerm}%");
-                    });
+        return DataTables::eloquent($model)
+            ->skipTotalRecords()
+            ->addIndexColumn()
+            ->addColumn('user_name', fn($applicant) => ucwords($applicant->user_name ?? '') ?: '-')
+            // FIX: use the already-selected/aliased column instead of the lazy relation — eliminates N+1
+            ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
+            ->addColumn('job_category', function ($applicant) {
+                $stype = $applicant->sale_job_type === 'specialist'
+                    ? '<br>(' . ucwords('Specialist') . ')'
+                    : '';
+                return $applicant->job_category_name ? ucwords($applicant->job_category_name) . $stype : '-';
+            })
+            ->addColumn('job_source', fn($applicant) => $applicant->job_source_name ? ucwords($applicant->job_source_name) : '-')
+            ->editColumn('applicant_name', fn($applicant) => $applicant->formatted_applicant_name)
+            ->addColumn('applicantEmail', fn($applicant) => $this->renderApplicantEmail($applicant))
+            ->filterColumn('applicantEmail', function ($query, $keyword) {
+                $keyword = trim($keyword);
+                $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+            })
+            ->editColumn('applicant_postcode', fn($applicant) => $this->renderApplicantPostcode($applicant))
+            ->editColumn('sale_postcode', fn($applicant) => $this->renderSalePostcode($applicant))
+            ->addColumn('notes_detail', fn($applicant) => $this->renderNotesDetail($applicant))
+            ->addColumn('applicantPhone', fn($applicant) => $this->renderApplicantPhone($applicant))
+            ->filterColumn('applicantPhone', function ($query, $keyword) {
+                $clean = preg_replace('/[^0-9]/', '', $keyword);
+                $query->where(function ($q) use ($clean) {
+                    $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                        ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                        ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                 });
-            }
-        }
-
-        // Filter by type if it's not empty
-        switch ($typeFilter) {
-            case 'specialist':
-                $model->where('applicants.job_type', 'specialist');
-                break;
-            case 'regular':
-                $model->where('applicants.job_type', 'regular');
-                break;
-        }
-
-        if ($request->ajax()) {
-            // Clone the model query and strip ORDER BY for the count query
-            $countModel = clone $model;
-            $countModel->getQuery()->orders = null;
-
-            return DataTables::eloquent($model)
-                ->skipTotalRecords()
-                ->addIndexColumn() // This will automatically add a serial number to the rows
-                ->addColumn("user_name", function ($applicant) {
-                    return ucwords($applicant->user_name) ?? '-';
-                })
-                ->addColumn('job_title', function ($applicant) {
-                    return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
-                })
-                ->addColumn('job_category', function ($sale) {
-                    $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
-                })
-                ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
-                })
-                ->editColumn('applicant_name', function ($applicant) {
-                    return $applicant->formatted_applicant_name; // Using accessor
-                })
-                ->addColumn('applicantEmail', function ($applicant) {
-                    // Blocked applicant + no permission
-                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
-                        return "<span class='badge bg-dark'>Blocked</span>";
-                    }
-
-                    $email = $applicant->applicant_email_secondary
-                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
-                        : $applicant->applicant_email;
-
-                    // Blocked applicant + has permission
-                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
-                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
-                    }
-
-                    // Normal applicant
-                    return $email;
-                })
-                ->filterColumn('applicantEmail', function ($query, $keyword) {
-                    $keyword = trim($keyword);
-                    $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
-                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
-                })
-                ->editColumn('applicant_postcode', function ($applicant) {
-                    $status_value = 'open';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                    } else {
-                        foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
-                                $status_value = 'sent';
-                                break;
-                            } elseif ($value->status == 'disable') {
-                                $status_value = 'reject';
-                            }
-                        }
-                    }
-
-                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
-                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
-                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
-                                </button>';
-
-                    if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked) {
-                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>';
-                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
-                    } else {
-                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $applicant->formatted_postcode . '</span>' . $copyBtn . '</div>';
-                    }
-                })
-                ->editColumn('sale_postcode', function ($applicant) {
-                    $salePostcode = strtoupper($applicant->sale_postcode);
-                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
-                                    data-postcode="' . e($salePostcode) . '" title="Copy Postcode">
-                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
-                                </button>';
-
-
-                    return '<div class="d-flex align-items-center justify-content-between"><span>' . $salePostcode . '</span>' . $copyBtn . '</div>';
-                })
-                ->addColumn('notes_detail', function ($applicant) {
-                    $fullHtml = $applicant->notes_detail; // HTML from Summernote
-                    $id = 'qua-' . $applicant->id;
-                    $copyId = "copy-quality-resources-notes-" . $applicant->id;
-
-                    // 1. Convert HTML to readable plain text for copying
-                    $plainText = strip_tags($fullHtml); // remove all HTML
-                    $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
-                    $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
-                    $plainText = trim($plainText);
-
-                    // 2. Generate short preview (first 100 chars) for table
-                    $shortPreview = Str::limit($plainText, 100);
-                    $shortPreviewHtml = nl2br(e($shortPreview)); // preserve line breaks safely
-
-                    return '
-                        <div>
-                            <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
-                                ' . $shortPreviewHtml . '
-                            </a>
-                            <br>
-
-                            <!-- Hidden full plain text for copy -->
-                            <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
-
-                            <!-- Copy button under short note -->
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
-                                Copy Notes
-                            </button>
-                        </div>
-
-                        <!-- Modal showing full formatted HTML notes -->
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body" style="color:#5d7186">
-                                        ' . $fullHtml . '
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>';
-                })
-                ->addColumn('applicantPhone', function ($applicant) {
-
-                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
-                        return "<span class='badge bg-dark'>Blocked</span>";
-                    }
-
-                    $showBlockedData = $applicant->is_blocked
-                        && Gate::allows('applicant-show-blocked-data');
-
-                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-                        $safe = e($num);
-
-                        $linkClass = $showBlockedData
-                            ? 'text-white text-decoration-none'
-                            : 'text-primary text-decoration-none';
-
-                        $labelStyle = $showBlockedData
-                            ? 'style="color:#fff !important;"'
-                            : '';
-
-                        return "<strong {$labelStyle}>{$prefix}:</strong>
-                            <a href=\"javascript:void(0)\"
-                            onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
-                            class=\"{$linkClass}\"
-                            title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
-
-                    $parts = [];
-
-                    if (!empty($applicant->applicant_phone)) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-
-                    if (!empty($applicant->applicant_phone_secondary)) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-
-                    if (!empty($applicant->applicant_landline)) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
-                    }
-
-                    $phones = implode('<br>', $parts) ?: '-';
-
-                    // Only blocked + permission gets black background + white text
-                    if ($showBlockedData) {
-                        return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
-                    }
-
-                    return $phones;
-                })
-                ->filterColumn('applicantPhone', function ($query, $keyword) {
-                    $clean = preg_replace('/[^0-9]/', '', $keyword);
-                    $query->where(function ($q) use ($clean) {
-                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
-                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
-                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
-                    });
-                })
-                ->addColumn('notes_created_at', function ($applicant) {
-                    return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA');
-                })
-                ->editColumn('applicant_resume', function ($applicant) {
-                    $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
-
-                    if ($path && str_starts_with($path, 'uploads/')) {
-
-                        $fullPath = public_path($path);
-
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
-
-                            $url = asset($path); // direct public URL
-
-                            return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
-                                        <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
-                                    </a>';
-                        }
-                    }
-
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
-                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
-                            </button>';
-                })
-                ->addColumn('crm_resume', function ($applicant) {
-                    $path = $applicant->updated_cv;
-
-                    if ($path && str_starts_with($path, 'uploads/')) {
-
-                        $fullPath = public_path($path);
-
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
-
-                            $url = asset($path);
-
-                            return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
-                                        <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>
-                                    </a>';
-                        }
-                    }
-
-                    return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
-                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
-                            </button>';
-                })
-                ->addColumn('customStatus', function ($applicant) {
-                    $status_value = 'open';
-                    $color_class = 'bg-success';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                        $color_class = 'bg-info';
-                    } else {
-                        foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
-                                $status_value = 'sent';
-                                $color_class = 'bg-success';
-                                break;
-                            } elseif ($value->status == 'disable') {
-                                $status_value = 'reject';
-                                $color_class = 'bg-danger';
-                            }
-                        }
-                    }
-
-                    $status = '';
-                    $status .= '<span class="badge ' . $color_class . '">';
-                    $status .= strtoupper($status_value);
-                    $status .= '</span>';
-                    return $status;
-                })
-                ->addColumn('action', function ($applicant) use ($statusFilter) {
-                    $html = '<div class="btn-group dropstart"> 
-                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
-                                <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
-                                <ul class="dropdown-menu">';
-
-                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
-                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
-
-                    if ($applicant->sale_status == 1) {
-                        $status = '<span class="badge bg-success">Active</span>';
-                    } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
-                        $status = '<span class="badge bg-danger">Closed</span>';
-                    } elseif ($applicant->sale_status == 2) {
-                        $status = '<span class="badge bg-warning">Pending</span>';
-                    } elseif ($applicant->sale_status == 3) {
-                        $status = '<span class="badge bg-danger">Rejected</span>';
-                    } else {
-                        $status = '<span class="badge bg-secondary">Unknown</span>';
-                    }
-
-                    $jobData = [
-                        'sale_id'       => (int) $applicant->sale_id,
-                        'office_name'   => ucwords($applicant->office_name ?? ''),
-                        'unit_name'     => ucwords($applicant->unit_name ?? ''),
-                        'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
-                        'job_category'  => ucwords($applicant->job_category_name ?? ''),
-                        'job_title'     => strtoupper($applicant->job_title_name ?? ''),
-                        'status'        => $status,       // RAW HTML
-                        'timing'        => $applicant->timing ?? '',
-                        'experience'    => $applicant->sale_experience ?? '',
-                        'salary'        => $applicant->salary ?? '',
-                        'position'      => $position,     // RAW HTML
-                        'qualification' => $applicant->sale_qualification ?? '',
-                        'benefits'      => $applicant->benefits ?? '',
-                    ];
-
-                    $html .= '<li>
-                        <a href="javascript:void(0);"
-                        class="dropdown-item job-details"
-                        data-job=\'' . json_encode(
-                        $jobData,
-                        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-                    ) . '\'>
-                        Job Details
-                        </a>
-                    </li>';
-
-
-                    // Status-specific actions
-                    switch ($statusFilter) {
-                        case 'active cvs':
-                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-open-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
-                            }
-                            break;
-                        case 'open cvs':
-                            if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            }
-                            break;
-                        case 'no job cvs':
-                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            }
-                            break;
-                        case 'rejected cvs':
-                            if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
-                            }
-                            break;
-                        case 'cleared cvs':
-                            $html .= "";
-                            break;
-                        default:
-                            if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
-                            }
-                            if (Gate::allows('quality-assurance-resource-open-cv')) {
-                                $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
-                            }
-                            break;
-                    }
-                    // if (Gate::allows('quality-assurance-resource-upload-resume')) {
-                    //     $html .= '<li>
-                    //                 <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int)$applicant->id . ')">Upload Applicant Resume</a>
-                    //                 <!-- Hidden File Input -->
-                    //                 <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
-                    //             </li>';
-                    // }
-                    if (Gate::allows('quality-assurance-resource-upload-resume')) {
-                        $html .= '<li>
-                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
-                                    <!-- Hidden File Input -->
-                                    <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
-                                </li>';
-                    }
-                    // Common actions
-                    if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><hr class="dropdown-divider"></li>';
-                    }
-                    if (Gate::allows('applicant-view-history')) {
-                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
-                    }
-                    if (Gate::allows('applicant-view-notes-history')) {
-                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
-                    }
-
-                    $html .= '</ul></div>';
-
-                    return $html;
-                })
-                ->rawColumns(['notes_detail', 'notes_created_at', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'job_source', 'action'])
-                ->make(true);
-        }
+            })
+            ->addColumn('notes_created_at', fn($applicant) => Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'))
+            ->editColumn('applicant_resume', fn($applicant) => $this->renderResumeLink($applicant->applicant_cv, $applicant->is_blocked, 'success'))
+            ->addColumn('crm_resume', fn($applicant) => $this->renderResumeLink($applicant->updated_cv, $applicant->is_blocked, 'primary'))
+            ->addColumn('customStatus', fn($applicant) => $this->renderCustomStatus($applicant))
+            ->addColumn('action', fn($applicant) => $this->renderActionMenu($applicant, $statusFilter))
+            ->rawColumns(['notes_detail', 'notes_created_at', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+            ->make(true);
     }
+
     private function latestQualityNoteSubquery(array $statuses): Builder
     {
         return DB::table('quality_notes as qn')
@@ -1489,24 +1611,19 @@ class QualityController extends Controller
 
     private function latestCvNoteByStatusSubquery(): Builder
     {
-        return DB::table('cv_notes as cn')
-            ->joinSub(
-                DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
-                    ->where('status', 1)
-                    ->groupBy('applicant_id', 'sale_id'),
-                'cn_max',
-                fn($j) => $j->on('cn.applicant_id', '=', 'cn_max.applicant_id')
-                    ->on('cn.sale_id', '=', 'cn_max.sale_id')
-                    ->on('cn.id', '=', 'cn_max.max_id')
-            )
-            ->select([
-                'cn.applicant_id',
-                'cn.sale_id',
-                'cn.user_id',
-                'cn.details',
-                'cn.created_at',
-            ]);
+        return DB::query()->fromSub(
+            DB::table('cv_notes')
+                ->select([
+                    'applicant_id',
+                    'sale_id',
+                    'user_id',
+                    'details',
+                    'created_at',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as rn'),
+                ])
+                ->where('status', 1),
+            'ranked'
+        )->where('rn', 1)->select(['applicant_id', 'sale_id', 'user_id', 'details', 'created_at']);
     }
 
     private function latestHistorySubquery(array $subStages): Builder
@@ -1549,6 +1666,462 @@ class QualityController extends Controller
             ]);
     }
 
+    private function applyStatusFilterJoins($model, string $statusFilter, array $commonSaleSelect): void
+    {
+        match ($statusFilter) {
+            'open cvs' => $model
+                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lcn.sale_id')
+                ->join('offices', 'offices.id', '=', 'sales.office_id')
+                ->join('units', 'units.id', '=', 'sales.unit_id')
+                ->joinSub($this->latestHistorySubquery(['quality_cvs_hold']), 'lh', fn($j) => $j
+                    ->on('lcn.applicant_id', '=', 'lh.applicant_id')
+                    ->on('lcn.sale_id', '=', 'lh.sale_id'))
+                ->joinSub($this->latestRevertStageSubquery(), 'lrs', fn($j) => $j
+                    ->on('applicants.id', '=', 'lrs.applicant_id')
+                    ->on('sales.id', '=', 'lrs.sale_id'))
+                ->join('users', 'users.id', '=', 'lrs.user_id')
+                ->addSelect(array_merge($commonSaleSelect, [
+                    'lrs.notes as notes_detail',
+                    'lrs.stage as revert_stage',
+                    'lrs.updated_at as notes_created_at',
+                ])),
+
+            'no job cvs' => $model
+                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lcn.sale_id')
+                ->join('offices', 'offices.id', '=', 'sales.office_id')
+                ->join('units', 'units.id', '=', 'sales.unit_id')
+                ->joinSub($this->latestHistorySubquery(['no_job_quality_cvs']), 'lh', fn($j) => $j
+                    ->on('lcn.applicant_id', '=', 'lh.applicant_id')
+                    ->on('lcn.sale_id', '=', 'lh.sale_id'))
+                ->join('users', 'users.id', '=', 'lcn.user_id')
+                ->addSelect(array_merge($commonSaleSelect, [
+                    'lcn.details as notes_detail',
+                    'lcn.created_at as notes_created_at',
+                ])),
+
+            'rejected cvs' => $model
+                ->joinSub($this->latestQualityNoteSubquery(['rejected']), 'lqn', fn($j) => $j->on('applicants.id', '=', 'lqn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lqn.sale_id')
+                ->join('offices', 'offices.id', '=', 'sales.office_id')
+                ->join('units', 'units.id', '=', 'sales.unit_id')
+                ->joinSub($this->earliestCvNoteSubquery(), 'ecn', fn($j) => $j
+                    ->on('lqn.applicant_id', '=', 'ecn.applicant_id')
+                    ->on('lqn.sale_id', '=', 'ecn.sale_id'))
+                ->join('users', 'users.id', '=', 'ecn.user_id')
+                ->addSelect(array_merge($commonSaleSelect, [
+                    'lqn.details as notes_detail',
+                    'lqn.created_at as notes_created_at',
+                ])),
+
+            'cleared cvs' => $model
+                ->joinSub($this->latestQualityNoteSubquery(['cleared', 'cleared_no_job']), 'lqn', fn($j) => $j->on('applicants.id', '=', 'lqn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lqn.sale_id')
+                ->join('offices', 'offices.id', '=', 'sales.office_id')
+                ->join('units', 'units.id', '=', 'sales.unit_id')
+                ->joinSub($this->earliestCvNoteSubquery(), 'ecn', fn($j) => $j
+                    ->on('lqn.applicant_id', '=', 'ecn.applicant_id')
+                    ->on('lqn.sale_id', '=', 'ecn.sale_id'))
+                ->join('users', 'users.id', '=', 'ecn.user_id')
+                ->addSelect(array_merge($commonSaleSelect, [
+                    'lqn.details as notes_detail',
+                    'lqn.created_at as notes_created_at',
+                ])),
+
+            default => $model // covers 'requested cvs' and the original default branch
+                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lcn.sale_id')
+                ->join('offices', 'offices.id', '=', 'sales.office_id')
+                ->join('units', 'units.id', '=', 'sales.unit_id')
+                ->joinSub($this->latestHistorySubquery(['quality_cvs']), 'lh', fn($j) => $j
+                    ->on('lcn.applicant_id', '=', 'lh.applicant_id')
+                    ->on('lcn.sale_id', '=', 'lh.sale_id'))
+                ->join('users', 'users.id', '=', 'lcn.user_id')
+                ->addSelect(array_merge($commonSaleSelect, [
+                    'lcn.details as notes_detail',
+                    'lcn.created_at as notes_created_at',
+                ])),
+        };
+    }
+
+    private function applySorting($model, Request $request): void
+    {
+        $orderColumn    = null;
+        $orderDirection = 'asc';
+
+        if ($request->has('order')) {
+            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+        }
+
+        match (true) {
+            $orderColumn === 'job_source'   => $model->orderBy('applicants.job_source_id', $orderDirection),
+            $orderColumn === 'job_category' => $model->orderBy('applicants.job_category_id', $orderDirection),
+            $orderColumn === 'job_title'    => $model->orderBy('applicants.job_title_id', $orderDirection),
+            $orderColumn && $orderColumn !== 'DT_RowIndex' => $model->orderBy($orderColumn, $orderDirection),
+            default => $model->orderBy('notes_created_at', 'desc'),
+        };
+    }
+
+    private function applySearch($model, Request $request): void
+    {
+        $searchTerm = trim((string) $request->input('search.value', ''));
+
+        if ($searchTerm === '') {
+            return;
+        }
+
+        // NOTE: all four whereHas() calls removed. job_titles, job_categories,
+        // job_sources, and users are already LEFT/INNER JOINed into the base
+        // query — filtering their already-aliased columns directly avoids four
+        // redundant correlated EXISTS subqueries per search request.
+        $model->where(function ($query) use ($searchTerm) {
+            $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%")
+                ->orWhereRaw('LOWER(sales.sale_postcode) LIKE ?', ["%{$searchTerm}%"])
+                ->orWhereRaw('LOWER(offices.office_name) LIKE ?', ["%{$searchTerm}%"])
+                ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$searchTerm}%"])
+                ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
+        });
+    }
+
+    private function renderApplicantEmail($applicant): string
+    {
+        $email = $applicant->applicant_email ?? '';
+        $secondaryEmail = $applicant->applicant_email_secondary ?? '';
+
+        if ($email && $secondaryEmail) {
+            return e($email) . '<br>' . e($secondaryEmail);
+        }
+
+        return e($email ?: $secondaryEmail ?: '-');
+    }
+
+    private function renderApplicantPostcode($applicant): string
+    {
+        $status_value = 'open';
+        if ($applicant->paid_status == 'close') {
+            $status_value = 'paid';
+        } else {
+            foreach ($applicant->cv_notes as $key => $value) {
+                if ($value->status == 'active') {
+                    $status_value = 'sent';
+                    break;
+                } elseif ($value->status == 'disable') {
+                    $status_value = 'reject';
+                }
+            }
+        }
+
+        $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                        data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                        <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                    </button>';
+
+        if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject' && !$applicant->is_blocked) {
+            $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+            $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>';
+            return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+        } else {
+            return '<div class="d-flex align-items-center justify-content-between"><span>' . $applicant->formatted_postcode . '</span>' . $copyBtn . '</div>';
+        }
+    }
+
+    private function renderSalePostcode($applicant): string
+    {
+        $salePostcode = strtoupper($applicant->sale_postcode);
+        $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($salePostcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+
+        return '<div class="d-flex align-items-center justify-content-between"><span>' . $salePostcode . '</span>' . $copyBtn . '</div>';
+    }
+
+    private function renderNotesDetail($applicant): string
+    {
+        $fullHtml = $applicant->notes_detail; // HTML from Summernote
+        $id = 'qua-' . $applicant->id;
+        $copyId = "copy-quality-resources-notes-" . $applicant->id;
+
+        // 1. Convert HTML to readable plain text for copying
+        $plainText = strip_tags($fullHtml); // remove all HTML
+        $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
+        $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
+        $plainText = trim($plainText);
+
+        // 2. Generate short preview (first 100 chars) for table
+        $shortPreview = Str::limit($plainText, 100);
+        $shortPreviewHtml = nl2br(e($shortPreview)); // preserve line breaks safely
+
+        return '
+                            <div>
+                                <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                                    ' . $shortPreviewHtml . '
+                                </a>
+                                <br>
+
+                                <!-- Hidden full plain text for copy -->
+                                <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
+
+                                <!-- Copy button under short note -->
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
+                                    Copy Notes
+                                </button>
+                            </div>
+
+                            <!-- Modal showing full formatted HTML notes -->
+                            <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body" style="color:#5d7186">
+                                            ' . $fullHtml . '
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+    }
+
+    private function renderApplicantPhone($applicant): string
+    {
+        if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+            return "<span class='badge bg-dark'>Blocked</span>";
+        }
+
+        $showBlockedData = $applicant->is_blocked
+            && Gate::allows('applicant-show-blocked-data');
+
+        $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
+
+            $safe = e($num);
+
+            $linkClass = $showBlockedData
+                ? 'text-white text-decoration-none'
+                : 'text-primary text-decoration-none';
+
+            $labelStyle = $showBlockedData
+                ? 'style="color:#fff !important;"'
+                : '';
+
+            return "<strong {$labelStyle}>{$prefix}:</strong>
+                            <a href=\"javascript:void(0)\"
+                            onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
+                            class=\"{$linkClass}\"
+                            title=\"Click to dial {$safe}\">{$safe}</a>";
+        };
+
+        $parts = [];
+
+        if (!empty($applicant->applicant_phone)) {
+            $parts[] = $dialLink($applicant->applicant_phone, 'P');
+        }
+
+        if (!empty($applicant->applicant_phone_secondary)) {
+            $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+        }
+
+        if (!empty($applicant->applicant_landline)) {
+            $parts[] = $dialLink($applicant->applicant_landline, 'L');
+        }
+
+        $phones = implode('<br>', $parts) ?: '-';
+
+        // Only blocked + permission gets black background + white text
+        if ($showBlockedData) {
+            return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
+        }
+
+        return $phones;
+    }
+
+    private function renderResumeLink($cvPath, $isBlocked, $color): string
+    {
+
+        if ($cvPath && str_starts_with($cvPath, 'uploads/')) {
+
+            $fullPath = public_path($cvPath);
+
+            if (!$isBlocked && file_exists($fullPath)) {
+
+                $url = asset($cvPath); // direct public URL
+
+                return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
+                                        <iconify-icon icon="solar:download-square-bold" class="text-' . $color . ' fs-28"></iconify-icon>
+                                    </a>';
+            }
+        }
+
+        return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">
+                                <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
+                            </button>';
+    }
+
+    private function renderCustomStatus($applicant): string
+    {
+        $status_value = 'open';
+        $color_class = 'bg-success';
+        if ($applicant->paid_status == 'close') {
+            $status_value = 'paid';
+            $color_class = 'bg-info';
+        } else {
+            foreach ($applicant->cv_notes as $key => $value) {
+                if ($value->status == 'active') {
+                    $status_value = 'sent';
+                    $color_class = 'bg-success';
+                    break;
+                } elseif ($value->status == 'disable') {
+                    $status_value = 'reject';
+                    $color_class = 'bg-danger';
+                }
+            }
+        }
+
+        $status = '';
+        $status .= '<span class="badge ' . $color_class . '">';
+        $status .= strtoupper($status_value);
+        $status .= '</span>';
+        return $status;
+    }
+
+    private function renderActionMenu($applicant, $statusFilter)
+    {
+        $html = '<div class="btn-group dropstart"> 
+                                <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
+                                <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
+                                <ul class="dropdown-menu">';
+
+        $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+        $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+
+        if ($applicant->sale_status == 1) {
+            $status = '<span class="badge bg-success">Active</span>';
+        } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+            $status = '<span class="badge bg-danger">Closed</span>';
+        } elseif ($applicant->sale_status == 2) {
+            $status = '<span class="badge bg-warning">Pending</span>';
+        } elseif ($applicant->sale_status == 3) {
+            $status = '<span class="badge bg-danger">Rejected</span>';
+        } else {
+            $status = '<span class="badge bg-secondary">Unknown</span>';
+        }
+
+        $jobData = [
+            'sale_id'       => (int) $applicant->sale_id,
+            'office_name'   => ucwords($applicant->office_name ?? ''),
+            'unit_name'     => ucwords($applicant->unit_name ?? ''),
+            'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
+            'job_category'  => ucwords($applicant->job_category_name ?? ''),
+            'job_title'     => strtoupper($applicant->job_title_name ?? ''),
+            'status'        => $status,       // RAW HTML
+            'timing'        => $applicant->timing ?? '',
+            'experience'    => $applicant->sale_experience ?? '',
+            'salary'        => $applicant->salary ?? '',
+            'position'      => $position,     // RAW HTML
+            'qualification' => $applicant->sale_qualification ?? '',
+            'benefits'      => $applicant->benefits ?? '',
+        ];
+
+        $html .= '<li>
+                        <a href="javascript:void(0);"
+                        class="dropdown-item job-details"
+                        data-job=\'' . json_encode(
+            $jobData,
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+        ) . '\'>
+                        Job Details
+                        </a>
+                    </li>';
+
+
+        // Status-specific actions
+        switch ($statusFilter) {
+            case 'active cvs':
+                if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-open-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                }
+                break;
+            case 'open cvs':
+                if (Gate::allows('quality-assurance-resource-revert-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                }
+                break;
+            case 'no job cvs':
+                if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                }
+                break;
+            case 'rejected cvs':
+                if (Gate::allows('quality-assurance-resource-revert-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+                }
+                break;
+            case 'cleared cvs':
+                $html .= "";
+                break;
+            default:
+                if (Gate::allows('quality-assurance-resource-clear-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-reject-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                }
+                if (Gate::allows('quality-assurance-resource-open-cv')) {
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                }
+                break;
+        }
+        if (Gate::allows('quality-assurance-resource-upload-resume')) {
+            $html .= '<li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <!-- Hidden File Input -->
+                                    <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                                </li>';
+        }
+        // Common actions
+        if (Gate::allows('applicant-view-history') || Gate::allows('applicant-view-notes-history')) {
+            $html .= '<li><hr class="dropdown-divider"></li>';
+        }
+        if (Gate::allows('applicant-view-history')) {
+            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
+        }
+        if (Gate::allows('applicant-view-notes-history')) {
+            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+        }
+
+        $html .= '</ul></div>';
+
+        return $html;
+    }
+
+    /**** sale part */
     public function getSalesByTypeAjaxRequest(Request $request)
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
