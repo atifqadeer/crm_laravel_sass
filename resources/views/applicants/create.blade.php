@@ -2,14 +2,12 @@
 
 @section('css')
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 @endsection
 
 @section('content')
-    @php
-        $jobCategories = \Horsefly\JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
-        $jobSources = \Horsefly\JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
-
-    @endphp
     <div class="row">
         <div class="col-xl-12 col-lg-12">
             <form id="createApplicantForm" action="{{ route('applicants.store') }}" method="POST" class="needs-validation"
@@ -87,7 +85,8 @@
                                         <option value="">Choose Gender</option>
                                         <option value="m" {{ old('gender' == 'm' ? 'selected' : '') }}>Male</option>
                                         <option value="f" {{ old('gender' == 'f' ? 'selected' : '') }}>Female</option>
-                                        <option value="u" {{ old('gender' == 'u' ? 'selected' : '') }} selected>Unknown
+                                        <option value="u" {{ old('gender' == 'u' ? 'selected' : '') }} selected>
+                                            Unknown
                                         </option>
                                     </select>
                                     <div class="invalid-feedback">Please provide gender</div>
@@ -157,14 +156,14 @@
                                 <div class="mb-3">
                                     <label for="applicant_experience" class="form-label">Experience <small
                                             class="text-info">(Optional)</small></label>
-                                    <textarea class="form-control" id="applicant_experience" name="applicant_experience" rows="3"
+                                    <textarea class="form-control" id="applicant_experience" name="applicant_experience" rows="7"
                                         placeholder="Enter Experience">{{ old('applicant_experience') }}</textarea>
                                 </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="applicant_notes" class="form-label">Notes</label>
-                                    <textarea class="form-control" id="applicant_notes" name="applicant_notes" rows="3" placeholder="Enter Notes"
+                                    <textarea class="form-control" id="applicant_notes" name="applicant_notes" rows="7" placeholder="Enter Notes"
                                         required>{{ old('applicant_notes') }}</textarea>
                                     <div class="invalid-feedback">Please provide notes</div>
 
@@ -303,7 +302,20 @@
     <!-- Summernote JS -->
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
+        $(document).ready(function() {
+            // Initialize Select2 on all select elements
+            $('select.form-select').select2({
+                placeholder: function() {
+                    return $(this).data('placeholder');
+                },
+                allowClear: true,
+                width: '100%'
+            });
+        });
         // Form validation
         (function() {
             'use strict'
@@ -437,7 +449,8 @@
 
                 const submitBtn = form.querySelector('button[type="submit"]');
                 submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                submitBtn.innerHTML =
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
 
                 // Collect form data
                 const formData = new FormData(form);
@@ -460,36 +473,39 @@
                         },
                         body: formData
                     })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) { 
-                    toastr.success(data.message);
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            toastr.success(data.message);
                             form.reset();
                             form.classList.remove('was-validated');
 
                             window.location.reload();
-                } else {
-                        // Handle validation errors
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Save';
-
-                    if (data.errors) {
-                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                        form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
-
-                            // Display new errors
-                            Object.entries(data.errors).forEach(([field, messages]) => {
-                                const input = form.querySelector(`[name="${field}"]`);
-                            const feedback = input?.closest('.mb-3')?.querySelector('.invalid-feedback');
-
-                                if (input && feedback) {
-                                    input.classList.add('is-invalid');
-                                    feedback.textContent = messages.join(' ');
-                                }
-                            });
                         } else {
-                        toastr.error(data.message);
-                    }
+                            // Handle validation errors
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Save';
+
+                            if (data.errors) {
+                                form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove(
+                                    'is-invalid'));
+                                form.querySelectorAll('.invalid-feedback').forEach(el => el
+                                    .textContent = '');
+
+                                // Display new errors
+                                Object.entries(data.errors).forEach(([field, messages]) => {
+                                    const input = form.querySelector(`[name="${field}"]`);
+                                    const feedback = input?.closest('.mb-3')?.querySelector(
+                                        '.invalid-feedback');
+
+                                    if (input && feedback) {
+                                        input.classList.add('is-invalid');
+                                        feedback.textContent = messages.join(' ');
+                                    }
+                                });
+                            } else {
+                                toastr.error(data.message);
+                            }
                         }
                     })
                     .catch(error => {

@@ -71,9 +71,19 @@ class ApplicantController extends Controller
     }
     public function create()
     {
-        $jobSources = JobSource::orderBy('name', 'asc')->get();
-        $jobCategories = JobCategory::orderBy('name', 'asc')->get();
-        $jobTitles = JobTitle::orderBy('name', 'asc')->get();
+        if (Gate::allows('show-private-data')) {
+            $jobSources = JobSource::where('is_active', 1)
+                ->orderBy('name', 'asc')
+                ->get();
+        } else {
+            $jobSources = JobSource::where('is_active', 1)
+                ->whereNotIn('id', [10, 11, 12])
+                ->orderBy('name', 'asc')
+                ->get();
+        }
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+
         return view('applicants.create', compact('jobSources', 'jobCategories', 'jobTitles'));
     }
     public function store(Request $request)
@@ -1228,7 +1238,16 @@ class ApplicantController extends Controller
 
         $applicant = Applicant::find($id);
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
-        $jobSources = JobSource::where('is_active', 1)->orderBy('name', 'asc')->get();
+        if (Gate::allows('show-private-data')) {
+            $jobSources = JobSource::where('is_active', 1)
+                ->orderBy('name', 'asc')
+                ->get();
+        } else {
+            $jobSources = JobSource::where('is_active', 1)
+                ->whereNotIn('id', [10, 11, 12])
+                ->orderBy('name', 'asc')
+                ->get();
+        }
 
         // Check if the applicant is found
         if (!$applicant) {
@@ -2528,7 +2547,8 @@ class ApplicantController extends Controller
         $applicant_id = $request->input('applicant_id');
         $radius = $request->input('radius');
 
-        $applicant = Applicant::with('cv_notes')->findOrFail($applicant_id);
+        $applicant = Applicant::with('cv_notes')
+            ->findOrFail($applicant_id);
 
         $lat = $applicant->lat;
         $lon = $applicant->lng;
@@ -2578,11 +2598,23 @@ class ApplicantController extends Controller
 
             // Join the actual sale_notes record
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
-
+            ->whereNull('sales.deleted_at')
             ->where('sales.status', 1)
             ->where('sales.is_on_hold', 0)
             ->having("distance", "<", $radius)
             ->orderBy("distance");
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                  ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         /** 🔹 Job Title Filtering */
         $jobTitle = JobTitle::find($applicant->job_title_id);

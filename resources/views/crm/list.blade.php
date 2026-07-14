@@ -17,7 +17,20 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <button id="openToPaid" class="btn btn-success my-1" style="display: none;">
                                     Open To Applicants
@@ -493,7 +506,7 @@
                 rowId: function(data) {
                     return 'row_' + data.id;
                 },
-                dom: 'flrtip',
+                dom: 'lrtip',
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -564,6 +577,41 @@
 
                     pagination.html(paginationHtml);
                 }
+            });
+
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
             });
 
             // Type filter handler

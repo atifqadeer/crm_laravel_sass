@@ -8,26 +8,15 @@ use Horsefly\Office;
 use Horsefly\Unit;
 use Horsefly\Applicant;
 use Horsefly\Region;
-use Horsefly\ModuleNote;
 use Horsefly\JobTitle;
-use Horsefly\JobSource;
-use Horsefly\CVNote;
-use Horsefly\History;
 use Horsefly\JobCategory;
-use Horsefly\ApplicantPivotSale;
-use Horsefly\NotesForRangeApplicant;
-use App\Exports\ApplicantsExport;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Auth;
+use Horsefly\Setting;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 
 class RegionController extends Controller
 {
@@ -76,6 +65,7 @@ class RegionController extends Controller
             ])
             ->with(['cv_notes', 'jobTitle', 'jobCategory', 'jobSource'])
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->where('applicants.is_blocked', false)
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
@@ -449,7 +439,20 @@ class RegionController extends Controller
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
-            ->whereRaw("UPPER(TRIM(sales.sale_postcode)) REGEXP '^($district)[0-9]'");
+            ->whereRaw("UPPER(TRIM(sales.sale_postcode)) REGEXP '^($district)[0-9]'")
+            ->whereNull('sales.deleted_at');
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');

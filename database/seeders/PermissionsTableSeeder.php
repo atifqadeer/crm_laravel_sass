@@ -453,6 +453,9 @@ class PermissionsTableSeeder extends Seeder
             // Administrator Sub Modules Settings Permissions
             'administrator-setting-index',
 
+            //settings Permissions
+            'show-private-data',
+
         ];
 
         foreach ($permissions as $permission) {

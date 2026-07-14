@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Horsefly\Sale;
-use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\ApplicantNote;
 use Horsefly\ApplicantPivotSale;
 use Horsefly\NotesForRangeApplicant;
 use Horsefly\Applicant;
 use Horsefly\JobCategory;
+use Horsefly\Setting;
+use Horsefly\CrmNote;
+use Horsefly\JobTitle;
 use Horsefly\User;
 use Horsefly\ModuleNote;
 use App\Exports\EmailExport;
@@ -20,15 +22,10 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use Exception;
 use Carbon\Carbon;
-use Horsefly\CrmNote;
-use Horsefly\JobTitle;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Cache;
 
 class ResourceController extends Controller
 {
@@ -119,6 +116,18 @@ class ResourceController extends Controller
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
             ->where('sales.status', 1)
             ->where('sales.is_on_hold', 0);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         // Filter by type if it's not empty
         switch ($typeFilter) {
@@ -469,11 +478,6 @@ class ResourceController extends Controller
     }
     public function getResourcesIndirectApplicants(Request $request)
     {
-        // --- Normalize boolean input ---
-        // $request->merge([
-        //     'updated_sales_filter' => filter_var($request->updated_sales_filter, FILTER_VALIDATE_BOOLEAN),
-        // ]);
-
         // --- Validation ---
         $validated = $request->validate([
             'category_filter' => 'nullable|array',
@@ -496,7 +500,7 @@ class ResourceController extends Controller
             [$start_date, $end_date] = explode('|', $dateRange);
             $start_date = Carbon::parse($start_date)->startOfDay();
             $end_date = Carbon::parse($end_date)->endOfDay();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Invalid date range filter: ' . $dateRange, ['error' => $e->getMessage()]);
             $start_date = Carbon::today()->startOfDay();
             $end_date = Carbon::today()->endOfDay();
@@ -558,6 +562,18 @@ class ResourceController extends Controller
                 });
             })
             ->distinct();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $salesQuery->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         $salesData = $salesQuery->get();
 
@@ -859,6 +875,7 @@ class ResourceController extends Controller
                 'users.name as user_name',
             ])
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->where('applicants.is_no_job', true)
             ->whereNotNull('applicants.lat')
             ->whereNotNull('applicants.lng')
@@ -1005,14 +1022,14 @@ class ResourceController extends Controller
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
                 DB::raw('
-            CASE 
-                WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
-                WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
-                WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
-                WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
-                ELSE "Unknown Status"
-            END AS sub_stage
-        ')
+                    CASE 
+                        WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
+                        WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
+                        WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
+                        WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
+                        ELSE "Unknown Status"
+                    END AS sub_stage
+                ')
             ])
             ->joinSub($latestNotes, 'crm_notes', function ($join) {
                 $join->on('applicants.id', '=', 'crm_notes.applicant_id')
@@ -1034,10 +1051,6 @@ class ResourceController extends Controller
                 'applicants.is_no_job'          => false,
             ])
             ->whereNull('applicants.deleted_at');
-        // NOTE: history.status = 1 and the sub_stage/moved_tab_to whereIns are now
-        // enforced inside the subqueries above (cheaper — filters before ranking).
-        // If a row must ALSO exist with sub_stage/moved_tab_to outside the "latest"
-        // one to be excluded, keep the outer whereIn as well — see caveat below.
 
         // ✅ Date filter
         if ($dateFilter) {
@@ -1388,7 +1401,7 @@ class ResourceController extends Controller
                 'data' => $history,
                 'success' => true
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
                 'error' => 'An unexpected error occurred. Please try again later.',
@@ -1413,6 +1426,8 @@ class ResourceController extends Controller
             ])
             ->where('applicants.is_blocked', true)
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
+
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
@@ -1706,6 +1721,7 @@ class ResourceController extends Controller
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
             ->where('applicants.is_no_job', false)
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->whereIn('applicants.paid_status', ['open', 'pending'])
             ->with(['cv_notes' => function ($query) {
                 $query->select('status', 'applicant_id', 'sale_id', 'user_id')
@@ -1938,6 +1954,7 @@ class ResourceController extends Controller
             ])
             ->where('applicants.is_no_job', true)
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->joinSub($latestNotesSub, 'module_notes', function ($join) {
                 $join->on('applicants.id', '=', 'module_notes.module_noteable_id');
             })
@@ -2332,9 +2349,11 @@ class ResourceController extends Controller
                 'notes_for_range_applicants.reason',
                 'applicants_pivot_sales.created_at as pivot_created_at',
             ])
-            ->where('applicants.is_no_job', false)
-            ->where('applicants.is_temp_not_interested', true)
+            ->where('applicants.is_no_job', 0)
+            ->where('applicants.is_temp_not_interested', 1)
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
+
             ->join('applicants_pivot_sales', 'applicants_pivot_sales.applicant_id', '=', 'applicants.id')
             ->join('notes_for_range_applicants', 'applicants_pivot_sales.id', '=', 'notes_for_range_applicants.applicants_pivot_sales_id')
             ->join('sales', 'sales.id', '=', 'applicants_pivot_sales.sale_id')
@@ -2793,6 +2812,7 @@ class ResourceController extends Controller
                     WHERE mn.module_noteable_type = 'Horsefly\\\\Applicant'
                 ) as latest_module_note"), 'applicants.id', '=', 'latest_module_note.module_noteable_id')
             ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
             ->where(function ($query) use ($today) {
                 $query->where('applicants.is_job_within_radius', 1)
                     ->orWhereDate('applicants.created_at', '=', $today);
@@ -3385,7 +3405,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => "$unblockedCount applicant(s) unblocked successfully.",
             ], 200);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             DB::rollBack();
 
             Log::error("Failed to revert blocked applicants: " . $exception->getMessage());
@@ -3446,7 +3466,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => "$revertedCount applicant(s) reverted from 'No Job'."
             ]);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             DB::rollBack();
 
             Log::error("Failed to revert no job applicants: " . $exception->getMessage());
@@ -3500,7 +3520,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => "$updatedCount applicant(s) marked as having nursing home experience.",
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Failed to mark applicants as nursing home experience: " . $e->getMessage());
 
@@ -3553,7 +3573,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => "$updatedCount applicant(s) marked as having no nursing home experience.",
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Failed to mark applicants as no nursing home experience: " . $e->getMessage());
 
@@ -3634,7 +3654,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => "Applicants marked as interested successfully."
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
 
             Log::error('Failed to mark applicant as interested: ' . $e->getMessage());
@@ -3697,7 +3717,7 @@ class ResourceController extends Controller
 
             DB::commit();
             return redirect()->back()->with('success', 'Applicant marked as not interested successfully.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
 
             Log::error('Failed to mark applicant not interested: ' . $e->getMessage());
@@ -3782,7 +3802,7 @@ class ResourceController extends Controller
                 'success' => true,
                 'message' => 'Callback marked successfully!',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Failed to mark applicant callback: ' . $e->getMessage());
 

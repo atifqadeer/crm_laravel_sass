@@ -20,6 +20,7 @@ class Sale extends Model
         'unit_id',
         'job_category_id',
         'job_title_id',
+        'job_source_id',
         'job_type',
         'position_type',
         'sale_postcode',

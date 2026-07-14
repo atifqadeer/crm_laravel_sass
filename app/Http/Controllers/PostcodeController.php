@@ -6,15 +6,15 @@ use Horsefly\CVNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Horsefly\Sale;
-use Horsefly\Applicant;
 use Horsefly\Office;
+use Horsefly\Setting;
 use Horsefly\Unit;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use App\Traits\Geocode;
+use Illuminate\Support\Facades\Gate;
 
 class PostcodeController extends Controller
 {
@@ -67,53 +67,51 @@ class PostcodeController extends Controller
 
         // If not found in Sale or lat/lng are invalid, try in Applicant
         // if (!$job_result || !$isValidCoordinates($job_result->lat, $job_result->lng)) {
-            // $job_result = Applicant::where('applicant_postcode', $postcode)
-            //     ->first();
-            // $postcodeResult = DB::table('postcodes')->where('postcode', $postcode)->first();
+        // $job_result = Applicant::where('applicant_postcode', $postcode)
+        //     ->first();
+        // $postcodeResult = DB::table('postcodes')->where('postcode', $postcode)->first();
 
-            // Normalize user input
-            $normalizedPostcode = strtolower(str_replace(' ', '', trim($postcode)));
+        // Normalize user input
+        $normalizedPostcode = strtolower(str_replace(' ', '', trim($postcode)));
 
-            $postcodeResult = DB::table('postcodes')
-                ->whereRaw(
-                    "REPLACE(LOWER(postcode), ' ', '') = ?",
-                    [$normalizedPostcode]
-                )
-                ->first();
-            
-            if(!$postcodeResult || !$isValidCoordinates($postcodeResult->lat, $postcodeResult->lng)){
-                $outcodeResult = DB::table('outcodepostcodes')->whereRaw(
-                                        "REPLACE(LOWER(outcode), ' ', '') = ?",
-                                        [$normalizedPostcode]
-                                    )->first();
+        $postcodeResult = DB::table('postcodes')
+            ->whereRaw(
+                "REPLACE(LOWER(postcode), ' ', '') = ?",
+                [$normalizedPostcode]
+            )
+            ->first();
 
-                if(!$outcodeResult || !$isValidCoordinates($outcodeResult->lat, $outcodeResult->lng)){
-                    try {
-                        $result = $this->geocode($postcode);
+        if (!$postcodeResult || !$isValidCoordinates($postcodeResult->lat, $postcodeResult->lng)) {
+            $outcodeResult = DB::table('outcodepostcodes')->whereRaw(
+                "REPLACE(LOWER(outcode), ' ', '') = ?",
+                [$normalizedPostcode]
+            )->first();
 
-                        // If geocode fails, throw
-                        if (!isset($result['lat']) || !isset($result['lng'])) {
-                            throw new \Exception('Geolocation failed. Latitude and longitude not found.');
-                        }
+            if (!$outcodeResult || !$isValidCoordinates($outcodeResult->lat, $outcodeResult->lng)) {
+                try {
+                    $result = $this->geocode($postcode);
 
-                        $lati = $result['lat'];
-                        $longi = $result['lng'];
-
-                    } catch (\Exception $e) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Unable to locate address: ' . $e->getMessage()
-                        ], 400);
+                    // If geocode fails, throw
+                    if (!isset($result['lat']) || !isset($result['lng'])) {
+                        throw new \Exception('Geolocation failed. Latitude and longitude not found.');
                     }
-                }else{
-                    $lati = $outcodeResult->lat;
-                    $longi = $outcodeResult->lng;
-                }
 
-            }else{
-                $lati = $postcodeResult->lat;
-                $longi = $postcodeResult->lng;
+                    $lati = $result['lat'];
+                    $longi = $result['lng'];
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unable to locate address: ' . $e->getMessage()
+                    ], 400);
+                }
+            } else {
+                $lati = $outcodeResult->lat;
+                $longi = $outcodeResult->lng;
             }
+        } else {
+            $lati = $postcodeResult->lat;
+            $longi = $postcodeResult->lng;
+        }
 
         // }else{
         //     $lati = $job_result->lat;
@@ -148,12 +146,12 @@ class PostcodeController extends Controller
                     ->where(["id" => $unit_id, "status" => 1])
                     ->first();
                 $unit = $unit->unit_name;
-                
+
                 $jobCategory = JobCategory::select("name")
                     ->where(["id" => $category_id])
                     ->first();
                 $jobCategory = $jobCategory->name;
-                
+
                 $jobTitle = JobTitle::select("name")
                     ->where(["id" => $title_id])
                     ->first();
@@ -186,10 +184,23 @@ class PostcodeController extends Controller
             COS(? * PI() / 180) * COS(lat * PI() / 180) * 
             COS((? - lng) * PI() / 180)) * 6371) AS distance
         ", [$lat, $lat, $lon])
-        ->having("distance", "<", $radius)  // No need to convert radius anymore
-        ->orderBy("distance")
-        ->where("status", 1)
-        ->where("is_on_hold", 0);
+            ->having("distance", "<", $radius)  // No need to convert radius anymore
+            ->orderBy("distance")
+            ->where("status", 1)
+            ->whereNull("deleted_at")
+            ->where("is_on_hold", 0);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $location_distance->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('id', $hidePrivateData)
+                  ->orWhereNull('id');
+            });
+        }
 
         if ($is_specialist) {
             $location_distance = $location_distance->where('job_type', 'specialist');
@@ -199,5 +210,4 @@ class PostcodeController extends Controller
 
         return $result;
     }
-
 }

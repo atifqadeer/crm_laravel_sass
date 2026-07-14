@@ -145,6 +145,7 @@ class CrmController extends Controller
                         fn($join) =>
                         $join->on('cv_notes.sale_id', '=', 'sales.id')
                             ->where('sales.status', 1)
+                            ->whereNull('sales.deleted_at')
                     )
                     ->join(
                         'offices',
@@ -241,8 +242,8 @@ class CrmController extends Controller
                     }
                 )
                     ->join('sales', function ($join) {
-                        $join->on('quality_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('quality_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -373,8 +374,8 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_last_notes.applicant_id');
                 })
                     ->join('sales', function ($join) {
-                        $join->on('crm_last_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_last_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -493,8 +494,8 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -598,8 +599,8 @@ class CrmController extends Controller
                     }
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -715,8 +716,8 @@ class CrmController extends Controller
                     }
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -843,8 +844,8 @@ class CrmController extends Controller
                     }
                 )
                     ->join('sales', function ($join) {
-                        $join->on('latest_crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('latest_crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -975,8 +976,8 @@ class CrmController extends Controller
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                     })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1094,8 +1095,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1214,8 +1215,8 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1316,8 +1317,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1411,8 +1412,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1526,8 +1527,8 @@ class CrmController extends Controller
                     $join->on('applicants.id', '=', 'crm_notes.applicant_id');
                 })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1628,8 +1629,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1739,8 +1740,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1850,8 +1851,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -1948,8 +1949,8 @@ class CrmController extends Controller
                     fn($join) => $join->on('applicants.id', '=', 'crm_notes.applicant_id')
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -2040,8 +2041,8 @@ class CrmController extends Controller
                     }
                 )
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -2161,8 +2162,8 @@ class CrmController extends Controller
                             ->on('quality_notes.sale_id', '=', 'crm_notes.sale_id');
                     })
                     ->join('sales', function ($join) {
-                        $join->on('crm_notes.sale_id', '=', 'sales.id');
-                        // ->where('sales.status', 1);
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
                     })
                     ->join('offices', function ($join) {
                         $join->on('sales.office_id', '=', 'offices.id');
@@ -2229,6 +2230,18 @@ class CrmController extends Controller
                         'users.name as user_name',
                     ]);
                 break;
+        }
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                    ->orWhereNull('sales.job_source_id');
+            });
         }
 
         // Apply other filters (typeFilter, categoryFilter, titleFilter)
@@ -5014,6 +5027,84 @@ class CrmController extends Controller
                 ->rawColumns(['notes_detail', 'applicant_email', 'show_created_at', 'user_name', 'applicantPhone', 'schedule_date', 'paid_status', 'job_details', 'applicant_postcode', 'job_title', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
+    }
+
+    private function commonSelect(): array
+    {
+        return [
+            'offices.office_name as office_name',
+            'sales.id as sale_id',
+            'sales.job_category_id as sale_category_id',
+            'sales.job_title_id as sale_title_id',
+            'sales.sale_postcode',
+            'sales.job_type as sale_job_type',
+            'sales.timing',
+            'sales.salary',
+            'sales.experience as sale_experience',
+            'sales.qualification as sale_qualification',
+            'sales.benefits',
+            'sales.office_id as sale_office_id',
+            'sales.unit_id as sale_unit_id',
+            'sales.position_type',
+            'sales.status as sale_status',
+            'sales.created_at as sale_posted_date',
+            'units.unit_name',
+            'units.unit_postcode',
+            'units.unit_website',
+            'interviews.schedule_time',
+            'interviews.schedule_date',
+            'interviews.status as interview_status',
+            'users.name as user_name',
+        ];
+    }
+
+    /** Latest row per (applicant_id, sale_id) for a notes table, filtered by moved_tab_to. */
+    private function latestNoteSub(
+        string $table,
+        array $movedTabTo,
+        bool $useMin = false,
+        bool $requireStatus = true,
+        array $extraCols = []
+    ) {
+        $agg = $useMin ? 'MIN(id)' : 'MAX(id)';
+        return DB::table('crm_notes as cn_latest')
+            ->select('cn_latest.applicant_id', 'cn_latest.sale_id', 'cn_latest.details as latest_details', 'cn_latest.created_at as latest_created_at')
+            ->whereIn("cn_latest.moved_tab_to", ["declined"])
+            // ->where('cn_latest.status', 1)
+            ->whereIn('cn_latest.id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                    ->from('crm_notes')
+                    // ->where('status', 1)
+                    ->whereIn("moved_tab_to", ["declined"])
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+    }
+
+    private function latestCvNoteSub()
+    {
+        return DB::table('cv_notes')
+            ->select('applicant_id', 'sale_id', 'user_id', 'status', 'created_at')
+            ->whereIn('id', function ($sub) {
+                $sub->select(DB::raw('MAX(id)'))
+                    ->from('cv_notes')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+    }
+
+    /** sales -> offices -> units, with the existence check against `history`. */
+    private function applyCoreJoins($model, string $notesAlias, array $subStages)
+    {
+        return $model
+            ->join('sales', fn($j) => $j->on("{$notesAlias}.sale_id", '=', 'sales.id')->whereNull('sales.deleted_at'))
+            ->join('offices', fn($j) => $j->on('sales.office_id', '=', 'offices.id'))
+            ->join('units', fn($j) => $j->on('sales.unit_id', '=', 'units.id'))
+            ->whereExists(function ($q) use ($notesAlias, $subStages) {
+                $q->select(DB::raw(1))->from('history')
+                    ->whereColumn('history.applicant_id', "{$notesAlias}.applicant_id")
+                    ->whereColumn('history.sale_id', "{$notesAlias}.sale_id")
+                    ->whereIn('history.sub_stage', $subStages)
+                    ->where('history.status', 1);
+            });
     }
 
     /** CRM Sent CV */

@@ -12,18 +12,14 @@ use Horsefly\Office;
 use Horsefly\Message;
 use Horsefly\Audit;
 use Horsefly\CVNote;
+use Horsefly\Setting;
 use Horsefly\CrmNote;
 use Horsefly\QualityNotes;
 use Horsefly\ApplicantNote;
 use Horsefly\History;
 use App\Http\Controllers\Controller;
-use Horsefly\LoginDetail;
-use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Hash;
-use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,10 +61,28 @@ class DashboardController extends Controller
         $cutoffDate       = $now->copy()->subDays(36)->endOfDay();
 
         // Preload counts that are quick
-        $applicantsCount = Applicant::where('status', 1)->count();
-        $officesCount    = Office::where('status', 1)->count();
-        $unitsCount      = Unit::where('status', 1)->count();
-        $salesCount      = Sale::where('status', 1)->where('is_on_hold', 0)->count();
+        $applicantsCount = Applicant::where('status', 1)->whereNull('deleted_at')->count();
+        $officesCount    = Office::where('status', 1)->whereNull('deleted_at')->count();
+        $unitsCount      = Unit::where('status', 1)->whereNull('deleted_at')->count();
+
+        $query = Sale::where('status', 1)
+            ->whereNull('deleted_at')
+            ->where('is_on_hold', 0);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $query->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('job_source_id', $hidePrivateData)
+                    ->orWhereNull('job_source_id');
+            });
+        }
+
+        $salesCount = $query->count();
 
         // 🧠 Optimize by getting applicant IDs that exist in pivot table once
         $linkedApplicantIds = DB::table('applicants_pivot_sales')->distinct()->pluck('applicant_id');
@@ -76,6 +90,7 @@ class DashboardController extends Controller
         // Cache those IDs in memory for all 3 queries
         $unlinkedApplicants = Applicant::query()
             ->where('status', 1)
+            ->whereNull('deleted_at')
             ->whereNotIn('id', $linkedApplicantIds);
 
         // Use clones to avoid re-query building overhead
@@ -104,7 +119,7 @@ class DashboardController extends Controller
     public function getUsersForDashboard(Request $request)
     {
         $model = User::query()->where('is_active', 1)
-            ->whereNotIn('users.id', [1, 101]) // Exclude super admin
+            ->whereNotIn('users.id', [1, 101, 190]) // Exclude super admin
             ->leftJoin('model_has_roles', function ($join) {
                 $join->on('users.id', '=', 'model_has_roles.model_id')
                     ->where('model_has_roles.model_type', '=', User::class);
@@ -1473,25 +1488,66 @@ class DashboardController extends Controller
         $startOfWeek = now()->startOfWeek();
         $endOfWeek = now()->endOfWeek();
 
-        $dailyCounts = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])
-            ->select(DB::raw('DAYOFWEEK(created_at) as day'), DB::raw('COUNT(*) as total'))
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $canHidePrivateData = !Gate::allows('show-private-data') && !empty($hidePrivateData);
+
+        /*
+     * Weekly chart data
+     */
+        $dailyCountsQuery = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+
+        if ($canHidePrivateData) {
+            $dailyCountsQuery->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('job_source_id', $hidePrivateData)
+                    ->orWhereNull('job_source_id');
+            });
+        }
+
+        $dailyCounts = $dailyCountsQuery
+            ->select(
+                DB::raw('DAYOFWEEK(created_at) as day'),
+                DB::raw('COUNT(*) as total')
+            )
             ->groupBy(DB::raw('DAYOFWEEK(created_at)'))
             ->pluck('total', 'day');
 
         // Format: 1 = Sunday, 7 = Saturday
         $chartData = [];
+
         for ($i = 1; $i <= 7; $i++) {
             $chartData[] = $dailyCounts[$i] ?? 0;
         }
 
-        $salesDetails = Sale::with(['office', 'unit'])
-            ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
-            ->get(['id', 'unit_id', 'office_id', 'sale_postcode', 'created_at']);
+        /*
+     * Weekly sales details
+     */
+        $salesDetailsQuery = Sale::with(['office', 'unit'])
+            ->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+
+        if ($canHidePrivateData) {
+            $salesDetailsQuery->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('job_source_id', $hidePrivateData)
+                    ->orWhereNull('job_source_id');
+            });
+        }
+
+        $salesDetails = $salesDetailsQuery->get([
+            'id',
+            'unit_id',
+            'office_id',
+            'sale_postcode',
+            'created_at',
+        ]);
 
         return response()->json([
-            'total' => array_sum($chartData),
+            'total'     => array_sum($chartData),
             'chartData' => $chartData,
-            'details' => $salesDetails
+            'details'   => $salesDetails,
         ]);
     }
     public function getSalesAnalytic(Request $request)
@@ -1515,7 +1571,7 @@ class DashboardController extends Controller
             });
         }
 
-        $rawData = Sale::selectRaw("$grouping as label")
+        $query = Sale::selectRaw("$grouping as label")
             ->selectRaw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as new_added")
             ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
             ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
@@ -1523,16 +1579,30 @@ class DashboardController extends Controller
             ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
             ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as updated")
             ->whereBetween('created_at', [$from, $to])
-            ->groupBy(DB::raw($grouping))
+            ->whereNull('deleted_at');
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && !empty($hidePrivateData)) {
+            $query->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('job_source_id', $hidePrivateData)
+                    ->orWhereNull('job_source_id');
+            });
+        }
+
+        $rawData = $query->groupBy(DB::raw($grouping))
             ->orderBy(DB::raw($grouping))
             ->get()
             ->keyBy(function ($item) use ($range) {
                 if ($range === 'year') {
-                    return Carbon::create()->month((int)$item->label)->format('F');
-                } else {
-                    // $item->label is "YYYY-MM-DD"
-                    return Carbon::parse($item->label)->format('d M');
+                    return Carbon::create()->month((int) $item->label)->format('F');
                 }
+
+                return Carbon::parse($item->label)->format('d M');
             });
 
         $labels = [];
@@ -2194,147 +2264,7 @@ class DashboardController extends Controller
             'sources' => $jobSources
         ]);
     }
-    // public function getChartData(Request $request)
-    // {
-    //     $range = $request->input('range');
-    //     $inputDate = $request->input('date_range');
 
-    //     $validator = Validator::make($request->all(), [
-    //         'range' => 'required',
-    //         'date_range' => 'required',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json(['error' => $validator->errors()->all()], 422);
-    //     }
-
-    //     [$startDate, $endDate, $displayDate] = $this->parseDateRange($range, $inputDate);
-        
-    //     /* -------------------------
-    //     DATA QUERIES
-    //     --------------------------*/
-
-    //     $daily_data = [];
-        
-    //     /** CRM **/
-    //     $daily_data['crm_sent'] = History::where('sub_stage', 'quality_cleared')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-    //     $daily_data['crm_open_cvs'] = History::where('sub_stage', 'quality_cvs_hold')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();;
-    //     $daily_data['crm_rejected'] = History::where([
-    //             'sub_stage' => 'crm_reject',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_requested'] = History::where('sub_stage', 'crm_request')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_request_rejected'] = History::where([
-    //             'sub_stage' => 'crm_request_reject',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_confirmed'] = History::where('sub_stage', 'crm_request_confirm')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_prestart_attended'] = History::where('sub_stage', 'crm_interview_attended')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_rebook'] = History::where('sub_stage', 'crm_rebook')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_not_attended'] = History::where([
-    //             'sub_stage' => 'crm_interview_not_attended',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_declined'] = History::where([
-    //             'sub_stage' => 'crm_declined',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_date_started'] = History::whereIn('sub_stage', [
-    //             'crm_start_date',
-    //             'crm_start_date_back'
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_start_date_hold'] = History::where([
-    //             'sub_stage' => 'crm_start_date_hold',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_invoiced'] = History::where('sub_stage', 'crm_invoice')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_disputed'] = History::where([
-    //             'sub_stage' => 'crm_dispute',
-    //             'status' => 1
-    //         ])->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_paid'] = History::where('sub_stage', 'crm_paid')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     $daily_data['crm_revert'] = RevertStage::where('stage', 'crm_revert')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-    //     $daily_data['quality_revert'] = RevertStage::where('stage', 'quality_revert')
-    //         ->whereBetween('created_at', [$startDate, $endDate])->count();
-
-    //     /* -------------------------
-    //     CHART RESPONSE
-    //     --------------------------*/
-
-    //     return response()->json([
-    //         'date' => $displayDate,
-    //         'labels' => [
-    //             'Sent CVs', 
-    //             'Open CVs', 
-    //             'Rejected CVs',
-    //             'Requested CVs', 
-    //             'Rejected By Request', 
-    //             'Confirmation', 
-    //             'Rebook', 
-    //             'Attended (Pre-Start)',
-    //             'Declined', 
-    //             'Not Attended',
-    //             'Start Date', 
-    //             'Start Date Hold', 
-    //             'Invoice', 
-    //             'Dispute',
-    //             'Paid', 
-    //             'Crm Revert', 
-    //             'Quality Revert', 
-    //         ],
-    //         'series' => [
-    //             $daily_data['crm_sent'],
-    //             $daily_data['crm_open_cvs'],
-    //             $daily_data['crm_rejected'],
-    //             $daily_data['crm_requested'],
-    //             $daily_data['crm_request_rejected'],
-    //             $daily_data['crm_confirmed'],
-    //             $daily_data['crm_rebook'],
-    //             $daily_data['crm_prestart_attended'],
-    //             $daily_data['crm_declined'],
-    //             $daily_data['crm_not_attended'],
-    //             $daily_data['crm_date_started'],
-    //             $daily_data['crm_start_date_hold'],
-    //             $daily_data['crm_invoiced'],
-    //             $daily_data['crm_disputed'],
-    //             $daily_data['crm_paid'],
-    //             $daily_data['crm_revert'],
-    //             $daily_data['quality_revert'],
-    //         ],
-    //     ]);
-    // }
-    /**
-     * Get a base query for applicants with optional joins and filters.
-     *
-     * @param string|null $subStage Optional History sub_stage filter
-     * @param string|null $revertStage Optional RevertStage stage filter
-     * @param string|null $crmSubStage Optional CRM Notes moved_tab_to filter
-     * @param string|null $startDate
-     * @param string|null $endDate
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
     // Private function returning Builder
     private function getStageQuery(
         $historyStage = null,

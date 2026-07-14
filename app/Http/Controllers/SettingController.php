@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Services\ScrapService;
+use Illuminate\Support\Facades\Gate;
 
 class SettingController extends Controller
 {
@@ -424,6 +425,18 @@ class SettingController extends Controller
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
         $query = JobSource::query();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $query->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('id', $hidePrivateData)
+                    ->orWhereNull('id');
+            });
+        }
 
         // Search filter
         if ($request->has('search.value')) {
@@ -1605,7 +1618,7 @@ class SettingController extends Controller
                 'key' => $key,
                 'error' => $e->getMessage(),
             ]);
-             return response()->json([
+            return response()->json([
                 'success' => false,
                 'message' => 'Error running scraper actor.',
                 'error' => $e->getMessage(),
@@ -1641,5 +1654,4 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
 }

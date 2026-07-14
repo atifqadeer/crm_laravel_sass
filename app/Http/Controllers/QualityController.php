@@ -7,6 +7,7 @@ use Horsefly\Sale;
 use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\SaleNote;
+use Horsefly\Setting;
 use Horsefly\QualityNotes;
 use Horsefly\History;
 use Horsefly\CVNote;
@@ -30,9 +31,7 @@ use App\Traits\SendSMS;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\Cache;
 
 class QualityController extends Controller
 {
@@ -2158,6 +2157,18 @@ class QualityController extends Controller
 
             ->leftJoin('sale_notes AS updated_notes', 'updated_notes.id', '=', 'latest_notes.latest_id')
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->where(function ($q) use ($hidePrivateData) {
+                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
