@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+
+// Import necessary models
 use Horsefly\Sale;
 use Horsefly\Office;
 use Horsefly\Unit;
@@ -21,27 +23,32 @@ use Horsefly\History;
 use Horsefly\JobCategory;
 use Horsefly\ApplicantPivotSale;
 use Horsefly\NotesForRangeApplicant;
+
+// Import traits for sending emails, SMS, and geocoding
+use App\Traits\SendEmails;
+use App\Traits\SendSMS;
+use App\Traits\Geocode;
+
+// Import necessary observers
+use App\Observers\ActionObserver;
+
+// Import necessary classes
 use App\Exports\ApplicantsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\File;
-use App\Observers\ActionObserver;
-use App\Traits\SendEmails;
-use App\Traits\SendSMS;
-use App\Traits\Geocode;
+use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Str;
-use Illuminate\Http\Response;
 
 class ApplicantController extends Controller
 {
@@ -208,7 +215,7 @@ class ApplicantController extends Controller
                 $extension = $request->file('applicant_cv')->getClientOriginalExtension();
 
                 // Clean filename
-                $filename = preg_replace('/\s+/', '_', trim($filename));
+                $filename = preg_replace('/[\s-]+/', '_', trim($filename));
 
                 // Unique filename
                 $fileNameToStore = $filename . '_' . time() . '.' . $extension;
@@ -1425,7 +1432,7 @@ class ApplicantController extends Controller
                 $extension = $request->file('applicant_cv')->getClientOriginalExtension();
 
                 // 🔤 Clean filename
-                $filename = preg_replace('/\s+/', '_', trim($filename));
+                $filename = preg_replace('/[\s-]+/', '_', trim($filename));
 
                 // 🕒 Unique filename
                 $fileNameToStore = $filename . '_' . time() . '.' . $extension;
@@ -1572,7 +1579,6 @@ class ApplicantController extends Controller
     public function uploadCv(Request $request)
     {
         // Get file and applicant data
-        $file = $request->file('resume');
         $applicantId = $request->input('applicant_id');
 
         // Fetch applicant
@@ -1595,22 +1601,26 @@ class ApplicantController extends Controller
         $publicPath = public_path($directory);
 
         // Ensure directory exists
-        // if (!file_exists($publicPath)) {
-        //     mkdir($publicPath, 0777, true);
-        // }
-
         if (!File::exists($publicPath)) {
             File::makeDirectory($publicPath, 0755, true, true);
         }
 
-        // Generate unique filename
-        $fileName = $applicantId . '_' . time() . '.' . $file->getClientOriginalExtension();
+        // Original name & extension
+        $filenameWithExt = $request->file('resume')->getClientOriginalName();
+        $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+        $extension = $request->file('resume')->getClientOriginalExtension();
+
+        // Clean filename
+        $filename = preg_replace('/[\s-]+/', '_', trim($filename));
+
+        // Unique filename
+        $fileNameToStore = $filename . '_' . time() . '.' . $extension;
 
         // Move file to public directory
-        $file->move($publicPath, $fileName);
+        $request->file('resume')->move($publicPath, $fileNameToStore);
 
         // Store relative path in DB
-        $filePath = "{$directory}/{$fileName}";
+        $filePath = "{$directory}/{$fileNameToStore}";
 
         // Update applicant
         $applicant->update([
@@ -1632,7 +1642,6 @@ class ApplicantController extends Controller
             'applicant_id' => 'required|integer|exists:applicants,id',
         ]);
 
-        $file = $request->file('resume');
         $applicantId = $request->input('applicant_id');
 
         // 🔎 Get applicant
@@ -1655,24 +1664,27 @@ class ApplicantController extends Controller
         $directory = "uploads/resume/{$year}/{$month}/{$day}";
         $destinationPath = public_path($directory);
 
-        // 📁 Create directory if missing
-        // if (!file_exists($destinationPath)) {
-        //     mkdir($destinationPath, 0777, true);
-        // }
-
         if (!File::exists($destinationPath)) {
             File::makeDirectory($destinationPath, 0755, true, true);
         }
 
-        // 🧾 Generate filename
-        $extension = $file->getClientOriginalExtension();
-        $fileName = $applicantId . '_' . time() . '.' . $extension;
+        // Original name & extension
+        $filenameWithExt = $request->file('resume')->getClientOriginalName();
+        $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+        $extension = $request->file('resume')->getClientOriginalExtension();
+
+        // Clean filename
+        $filename = preg_replace('/[\s-]+/', '_', trim($filename));
+
+        // Unique filename
+        $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+
 
         // 🚚 Move file to public directory
-        $file->move($destinationPath, $fileName);
+        $request->file('resume')->move($destinationPath, $fileNameToStore);
 
         // ✅ Save relative path in DB
-        $relativePath = $directory . '/' . $fileName;
+        $relativePath = $directory . '/' . $fileNameToStore;
         $applicant->update(['updated_cv' => $relativePath]);
 
         // 📤 Response
@@ -2612,7 +2624,7 @@ class ApplicantController extends Controller
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $model->where(function ($q) use ($hidePrivateData) {
                 $q->whereNotIn('sales.job_source_id', $hidePrivateData)
-                  ->orWhereNull('sales.job_source_id');
+                    ->orWhereNull('sales.job_source_id');
             });
         }
 
