@@ -332,40 +332,48 @@
         })()
 
         document.addEventListener('DOMContentLoaded', function() {
-            const jobTitle = document.getElementById('job_title');
-            const jobCategory = document.getElementById('job_category');
-            const jobType = document.getElementById('job_type');
+            const $jobTitle = $('#job_title');
+            const $jobCategory = $('#job_category');
+            const $jobType = $('#job_type');
 
-            if (!jobTitle || !jobCategory || !jobType) {
+            if (!$jobTitle.length || !$jobCategory.length || !$jobType.length) {
                 console.warn("One or more elements are missing: job_title, job_category, or job_type.");
                 return;
             }
 
             function fetchJobTitles() {
-                const categoryId = jobCategory.value;
-                const type = jobType.value;
+                const categoryId = $jobCategory.val();
+                const type = $jobType.val();
 
                 if (categoryId && type) {
-                    fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
+                    fetch(`{{ route('getJobTitlesByCategory') }}?job_category_id=${categoryId}&job_type=${type}`, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        })
                         .then(response => response.json())
                         .then(data => {
-                            jobTitle.innerHTML = '<option value="">Choose a Job Title</option>';
+                            $jobTitle.empty().append('<option value="">Choose a Job Title</option>');
                             data.forEach(title => {
-                                const option = document.createElement('option');
-                                option.value = title.id;
-                                option.textContent = title.name.toUpperCase();
-                                jobTitle.appendChild(option);
+                                const option = new Option(title.name.toUpperCase(), title.id, false,
+                                    false);
+                                $jobTitle.append(option);
                             });
+                            // Refresh Select2 UI so the new options actually show up
+                            $jobTitle.trigger('change.select2');
                         })
                         .catch(error => {
                             console.error('Error fetching job titles:', error);
-                            // alert('Failed to fetch job titles.');
                         });
+                } else {
+                    $jobTitle.empty().append('<option value="">Choose a Job Title</option>').trigger(
+                        'change.select2');
                 }
             }
 
-            jobCategory.addEventListener('change', fetchJobTitles);
-            jobType.addEventListener('change', fetchJobTitles);
+            // Use jQuery's change binding — this fires reliably with Select2
+            $jobCategory.on('change', fetchJobTitles);
+            $jobType.on('change', fetchJobTitles);
         });
 
         document.addEventListener('DOMContentLoaded', function() {

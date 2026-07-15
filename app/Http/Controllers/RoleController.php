@@ -126,8 +126,8 @@ class RoleController extends Controller
         if ($request->has('search.value')) {
             $searchTerm = strtolower(str_replace(' ', '-', $request->input('search.value')));
             if (!empty($searchTerm)) {
-            // Replace hyphens with spaces in DB and search term for comparison
-            $query->whereRaw('LOWER(REPLACE(name, "-", " ")) LIKE ?', ["%" . str_replace('-', ' ', $searchTerm) . "%"]);
+                // Replace hyphens with spaces in DB and search term for comparison
+                $query->whereRaw('LOWER(REPLACE(name, "-", " ")) LIKE ?', ["%" . str_replace('-', ' ', $searchTerm) . "%"]);
             }
         }
 
@@ -185,6 +185,7 @@ class RoleController extends Controller
             $searchTerm = strtolower($request->input('search.value'));
             if (!empty($searchTerm)) {
                 $query->whereRaw('LOWER(name) LIKE ?', ["%{$searchTerm}%"]);
+                $query->whereRaw('LOWER(type) LIKE ?', ["%{$searchTerm}%"]);
             }
         }
 
@@ -207,6 +208,9 @@ class RoleController extends Controller
                 ->addColumn('name', function ($role) {
                     return ucwords($role->name);
                 })
+                ->addColumn('type', function ($role) {
+                    return ucwords(str_replace('_', ' ', $role->type) ?? '-');
+                })
                 ->addColumn('permissions_count', function ($role) {
                     $totalPermissions = \Spatie\Permission\Models\Permission::count();
                     $assignedPermissions = $role->permissions()->count();
@@ -225,11 +229,11 @@ class RoleController extends Controller
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="' . route('roles.edit', ['id' => $role->id]) . '">Edit</a></li>
-                                    <li><a class="dropdown-item" href="'. route('roles.view', ['id' => $role->id]) .'">View</a></li>
+                                    <li><a class="dropdown-item" href="' . route('roles.view', ['id' => $role->id]) . '">View</a></li>
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['action','updated_at', 'created_at'])
+                ->rawColumns(['action', 'updated_at', 'type', 'created_at'])
                 ->make(true);
         }
     }
@@ -244,7 +248,7 @@ class RoleController extends Controller
         $groupedPermissions = collect($permissions)->groupBy(function ($permission) {
             return explode('-', $permission->name)[0];
         });
-        
+
         return view('roles.edit', compact('role', 'permissions', 'rolePermissions', 'groupedPermissions'));
     }
     public function view($id)
@@ -258,7 +262,7 @@ class RoleController extends Controller
         $groupedPermissions = collect($permissions)->groupBy(function ($permission) {
             return explode('-', $permission->name)[0];
         });
-        
+
         return view('roles.view', compact('role', 'permissions', 'rolePermissions', 'groupedPermissions'));
     }
     public function permissionUpdate(Request $request)

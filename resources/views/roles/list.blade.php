@@ -1,13 +1,14 @@
 @extends('layouts.vertical', ['title' => 'Roles List', 'subTitle' => 'Home'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
 
@@ -18,7 +19,9 @@
                     <div class="row justify-content-between">
                         <div class="col-lg-12">
                             <div class="text-md-end mt-3">
-                                <a href="{{ route('roles.create') }}"><button type="button" class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create Role</button></a>
+                                <a href="{{ route('roles.create') }}"><button type="button"
+                                        class="btn btn-success ml-1 my-1"><i class="ri-add-line"></i> Create
+                                        Role</button></a>
                             </div>
                         </div>
                         <!-- end col-->
@@ -40,6 +43,7 @@
                                     <th>Created At</th>
                                     <th>Updated At</th>
                                     <th>Name</th>
+                                    <th>Group</th><!-- type -->
                                     <th>Permissions Count</th>
                                     <th>Action</th>
                                 </tr>
@@ -60,28 +64,28 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
-    
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -102,36 +106,65 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#roles_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getRoles')),  // Fetch data from the backend
+                    url: @json(route('getRoles')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                        d.status_filter = currentFilter; // Send the current filter value as a parameter
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#roles_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#roles_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'roles.created_at' },
-                    { data: 'updated_at', name: 'roles.updated_at' },
-                    { data: 'name', name: 'roles.name'  },
-                    { data: 'permissions_count', name: 'permissions_count', orderable: false, searchable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'roles.created_at'
+                    },
+                    {
+                        data: 'updated_at',
+                        name: 'roles.updated_at'
+                    },
+                    {
+                        data: 'name',
+                        name: 'roles.name'
+                    },
+                    {
+                        data: 'type',
+                        name: 'roles.type'
+                    },
+                    {
+                        data: 'permissions_count',
+                        name: 'permissions_count',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -141,7 +174,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#roles_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#roles_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -155,39 +189,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -210,7 +246,7 @@
 
             // Handle filter button clicks and send filter parameters to the DataTable
             $('.dropdown-item').on('click', function() {
-                  currentFilter = $(this).text().toLowerCase();
+                currentFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
                 const formattedText = currentFilter
@@ -243,15 +279,13 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-
     </script>
-    
 @endsection
-@endsection                        
+@endsection
