@@ -1435,7 +1435,6 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
     public function saveDialingSettings(Request $request)
     {
         try {
@@ -1480,7 +1479,6 @@ class SettingController extends Controller
             ], 500);
         }
     }
-
     public function saveScraperSettings(Request $request)
     {
         try {
@@ -1491,6 +1489,7 @@ class SettingController extends Controller
                 'actors.*.actor_id' => 'nullable|string',
                 'actors.*.token' => 'nullable|string',
                 'actors.*.base_url' => 'nullable|url',
+                'actors.*.exclude_data' => 'nullable|string',
                 'actors.*.scraper_prompt_office' => 'nullable',
                 'actors.*.scraper_prompt_unit' => 'nullable',
             ]);
@@ -1524,7 +1523,8 @@ class SettingController extends Controller
                             'source' => $source,
                             'actor_id' => trim($actor['actor_id'] ?? ''),
                             'token' => trim($actor['token'] ?? ''),
-                            'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2'),
+                            'base_url' => trim($actor['base_url'] ?? 'https://api.apify.com/v2/datasets'),
+                            'exclude_data' => trim($actor['exclude_data'] ?? ''),
                             'scraper_prompt_office' => trim($actor['scraper_prompt_office'] ?? null),
                             'scraper_prompt_unit' => trim($actor['scraper_prompt_unit'] ?? null),
                         ]),

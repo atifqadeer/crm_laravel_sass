@@ -182,10 +182,30 @@ class ScrapController extends Controller
         set_time_limit(0);
 
         $importedCount       = 0;
-        $companyWebsiteCache = [];
-        $unitWebsiteCache = [];
+
+        // ===============================
+        // EXCLUSION LIST — fetched once, reused for every record in this chunk
+        // ===============================
+        $excludeList = $this->getExcludedCompanyNames('scrap_apify_indeed');
 
         foreach ($jobs as $jobIndex => $job) {
+
+            $companyName = trim($job['companyName'] ?? $job['source'] ?? 'Unknown Company');
+
+            Log::info('[ScrapImport] Checking company for exclusion', [
+                'raw_companyName' => $companyName,
+                'exclude_list'    => $excludeList,
+                'is_excluded'     => $this->isCompanyExcluded($companyName, $excludeList),
+            ]);
+
+            if ($this->isCompanyExcluded($companyName, $excludeList)) {
+                Log::info('[ScrapImport] Skipping excluded company', [
+                    'company'   => $companyName,
+                    'job_index' => $jobIndex + 1,
+                ]);
+
+                continue;
+            }
 
             DB::beginTransaction();
 
@@ -512,7 +532,6 @@ class ScrapController extends Controller
     public function persistJobsTotalJob(array $jobs)
     {
         $importedCount      = 0;
-        $companyWebsiteCache = [];  // ← shared cache across jobs
 
         set_time_limit(0);
 
@@ -841,7 +860,6 @@ class ScrapController extends Controller
     public function persistJobsReed(array $jobs)
     {
         $importedCount       = 0;
-        $companyWebsiteCache = [];   // shared cache across all jobs
 
         set_time_limit(0);
 
@@ -1142,12 +1160,6 @@ class ScrapController extends Controller
             ]);
 
             if (!$response->successful()) {
-                // Log::warning('[ScrapImport] Postcodes API failed', [
-                //     'status' => $response->status(),
-                //     'lat' => $lat,
-                //     'lng' => $lng,
-                // ]);
-
                 return null;
             }
 
@@ -1155,19 +1167,8 @@ class ScrapController extends Controller
 
             return $data['result'][0]['postcode'] ?? null;
         } catch (ConnectionException $e) {
-            // ✅ Catches timeout specifically
-            // Log::warning('[ScrapImport] Postcodes API timed out', [
-            //     'lat' => $lat,
-            //     'lng' => $lng,
-            // ]);
-
             return null;
         } catch (Throwable $e) {
-            // Log::warning('[ScrapImport] Reverse geocode failed', [
-            //     'error' => $e->getMessage(),
-            //     'lat' => $lat,
-            //     'lng' => $lng,
-            // ]);
 
             return null;
         }
@@ -1419,6 +1420,101 @@ class ScrapController extends Controller
         }
 
         return $phone;
+    }
+
+    /**
+     * Load and normalize the exclusion list for a scraper config key.
+     * Returns [] if config/JSON/exclude_data is missing or invalid — never throws.
+     */
+    private function getExcludedCompanyNames(string $key): array
+    {
+        try {
+            $setting = Setting::where('key', $key)
+                ->where('group', 'scraper')
+                ->first();
+
+            if (!$setting || empty($setting->value)) {
+                return [];
+            }
+
+            // Handle both: value already cast to array, OR value is a raw JSON string
+            if (is_array($setting->value)) {
+                $config = $setting->value;
+            } else {
+                $config = json_decode($setting->value, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    return [];
+                }
+            }
+
+            if (empty($config['exclude_data'])) {
+                return [];
+            }
+
+            $rawData = $config['exclude_data'];
+
+            // exclude_data itself might be a plain comma-separated string
+            // instead of an array — normalize to an array first.
+            if (is_string($rawData)) {
+                $rawData = explode(',', $rawData);
+            }
+
+            if (!is_array($rawData)) {
+                return [];
+            }
+
+            $normalized = [];
+
+            foreach ($rawData as $value) {
+                if (!is_string($value) && !is_numeric($value)) {
+                    continue;
+                }
+
+                // Each entry might ALSO contain comma-separated values
+                // e.g. "nhs, agency" as a single array element.
+                $parts = explode(',', (string) $value);
+
+                foreach ($parts as $part) {
+                    $part = strtolower(trim($part));
+                    if ($part !== '') {
+                        $normalized[] = $part;
+                    }
+                }
+            }
+
+            // de-duplicate in case the same term appears via both paths
+            return array_values(array_unique($normalized));
+        } catch (Throwable $e) {
+            Log::warning('[ScrapImport] Failed to load exclusion list, continuing without filtering.', [
+                'key'   => $key,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Case-insensitive, whitespace-trimmed, PARTIAL match against the exclusion list.
+     * $companyName may contain the excluded term anywhere in the string.
+     */
+    private function isCompanyExcluded(string $companyName, array $excludeList): bool
+    {
+        if (empty($excludeList) || trim($companyName) === '') {
+            return false;
+        }
+
+        // collapse repeated whitespace too, in case of scraped double-spaces
+        $normalizedCompany = strtolower(preg_replace('/\s+/', ' ', trim($companyName)));
+
+        foreach ($excludeList as $excludedTerm) {
+            // $normalizedCompany = haystack (the company name)
+            // $excludedTerm      = needle   (the excluded keyword) — DO NOT swap these
+            if ($excludedTerm !== '' && str_contains($normalizedCompany, $excludedTerm)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /************************ END OF PRIVATE FUNCTIONS FOR SCRAPPING ******************/
@@ -3811,68 +3907,4 @@ class ScrapController extends Controller
 
         return $jobSource;
     }
-
-    // private function getSerpApiSettings(): array
-    // {
-    //     $setting = Setting::where('key', 'serpapi_settings')->first();
-
-    //     if ($setting && $setting->type === 'json') {
-    //         $settings = json_decode($setting->value, true);
-    //         return [
-    //             'api_key' => $settings['api_key'] ?? '',
-    //             'engine' => $settings['engine'] ?? 'google',
-    //             'keywords' => $settings['keywords'] ?? 'uk official website',
-    //             'url' => $settings['url'] ?? 'https://serpapi.com/search',
-    //             'excluded_hosts' => $this->normalizeSerpApiExcludedHosts($settings['excluded_hosts'] ?? []),
-    //         ];
-    //     }
-
-    //     // Fallback to defaults if no settings found
-    //     return [
-    //         'api_key' => '',
-    //         'engine' => 'google',
-    //         'keywords' => 'uk official website',
-    //         'url' => 'https://serpapi.com/search',
-    //         'excluded_hosts' => [
-    //             'wikipedia.org',
-    //             'wikimedia.org',
-    //         ],
-    //     ];
-    // }
-
-    // private function normalizeSerpApiExcludedHosts(array|string|null $excludedHosts): array
-    // {
-    //     if (is_string($excludedHosts)) {
-    //         $excludedHosts = preg_split('/[\r\n,]+/', $excludedHosts);
-    //     }
-
-    //     if (!is_array($excludedHosts)) {
-    //         return [];
-    //     }
-
-    //     $normalized = [];
-    //     foreach ($excludedHosts as $host) {
-    //         $host = trim((string) $host);
-    //         if ($host === '') {
-    //             continue;
-    //         }
-
-    //         if (preg_match('#^https?://#i', $host)) {
-    //             $parsedHost = parse_url($host, PHP_URL_HOST);
-    //             if ($parsedHost) {
-    //                 $host = $parsedHost;
-    //             }
-    //         }
-
-    //         $host = strtolower($host);
-    //         $host = preg_replace('#^www\.#', '', $host);
-    //         $host = rtrim($host, '/');
-
-    //         if ($host !== '') {
-    //             $normalized[] = $host;
-    //         }
-    //     }
-
-    //     return array_values(array_unique($normalized));
-    // }
 }

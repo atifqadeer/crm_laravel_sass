@@ -585,17 +585,21 @@
                                                 name="actors[__INDEX__][base_url]"
                                                 value="https://api.apify.com/v2/datasets">
                                         </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Exclude Data <small class="text-info">(Optional)</small></label>
+                                            <textarea name="actors[__INDEX__][exclude_data]" class="form-control scraper-exclude-data" rows="5" placeholder="Enter data to exclude agency or company with comma separator"></textarea>
+                                        </div>
                                         <div class="col-md-12 mb-4">
                                             <label class="form-label">Office Prompt <small class="text-info">(To scrap the
                                                     office/company
                                                     contact information)</small></label>
-                                            <textarea col="1" rows="5" name="scraper_prompt_office" class="form-control scraper-prompt-office"></textarea>
+                                            <textarea col="1" rows="5" name="actors[__INDEX__][scraper_prompt_office]" class="form-control scraper-prompt-office"></textarea>
                                         </div>
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Unit Prompt <small class="text-info">(To scrap the
                                                     unit/branch contact
                                                     information)</small></label>
-                                            <textarea col="1" rows="5" name="scraper_prompt_unit" class="form-control scraper-prompt-unit"></textarea>
+                                            <textarea col="1" rows="5" name="actors[__INDEX__][scraper_prompt_unit]" class="form-control scraper-prompt-unit"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -940,6 +944,7 @@
                 $card.find('.scraper-actor-id').val(actor.actor_id || '');
                 $card.find('.scraper-token').val(actor.token || '');
                 $card.find('.scraper-base-url').val(actor.base_url || 'https://api.apify.com/v2/datasets');
+                $card.find('.scraper-exclude-data').val(actor.exclude_data || '');
                 $card.find('.scraper-prompt-office').val(actor.scraper_prompt_office || '');
                 $card.find('.scraper-prompt-unit').val(actor.scraper_prompt_unit || '');
                 // ✅ Check if existing record
@@ -961,6 +966,7 @@
                 $card.find('.scraper-actor-id').attr('name', `actors[${index}][actor_id]`);
                 $card.find('.scraper-token').attr('name', `actors[${index}][token]`);
                 $card.find('.scraper-base-url').attr('name', `actors[${index}][base_url]`);
+                $card.find('.scraper-exclude-data').attr('name', `actors[${index}][exclude_data]`);
                 $card.find('.scraper-prompt-office').attr('name', `actors[${index}][scraper_prompt_office]`);
                 $card.find('.scraper-prompt-unit').attr('name', `actors[${index}][scraper_prompt_unit]`);
                 return $card;

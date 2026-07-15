@@ -108,7 +108,7 @@ class ScrapImport extends Command
             }
 
             $this->info("Importing jobs into database...");
-            $imported = $this->persistByKey($controller, $key, $jobs, $user);
+            $imported = $this->persistByKey($controller, $key, $jobs);
             $this->info("Done. Imported {$imported} new job(s) (skipped duplicates).");
 
             Log::info('[Scraper] CLI import completed', [

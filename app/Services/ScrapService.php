@@ -69,7 +69,7 @@ class ScrapService
     public function runConfig(array $actor, array $input = []): array
     {
         $token = trim($actor['token'] ?? '');
-        $baseUrl = trim($actor['base_url'] ?? '') ?: config('services.scrap.base_url', 'https://api.apify.com/v2');
+        $baseUrl = trim($actor['base_url'] ?? '') ?: config('services.scrap.base_url', 'https://api.apify.com/v2/datasets');
         $actorId = trim($actor['actor_id'] ?? '');
 
         if (empty($baseUrl)) {
