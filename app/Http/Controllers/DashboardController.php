@@ -1499,7 +1499,7 @@ class DashboardController extends Controller
         /*
      * Weekly chart data
      */
-        $dailyCountsQuery = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+        $dailyCountsQuery = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])->whereNotIn('status', [4, 5]); // Exclude closed and rejected sales
 
         if ($canHidePrivateData) {
             $dailyCountsQuery->where(function ($q) use ($hidePrivateData) {
@@ -1527,7 +1527,8 @@ class DashboardController extends Controller
      * Weekly sales details
      */
         $salesDetailsQuery = Sale::with(['office', 'unit'])
-            ->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+            ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->whereNotIn('status', [4, 5]); // Exclude closed and rejected sales
 
         if ($canHidePrivateData) {
             $salesDetailsQuery->where(function ($q) use ($hidePrivateData) {
@@ -1579,6 +1580,7 @@ class DashboardController extends Controller
             ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
             ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as updated")
             ->whereBetween('created_at', [$from, $to])
+            ->whereNotIn('status', [4, 5])
             ->whereNull('deleted_at');
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
