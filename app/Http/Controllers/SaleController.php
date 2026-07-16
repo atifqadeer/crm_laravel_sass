@@ -4041,7 +4041,7 @@ class SaleController extends Controller
                     $path = $applicant->applicant_cv;
                     if ($path && str_starts_with($path, 'uploads/')) {
                         $fullPath = public_path($path);
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
                             $url = asset($path);
                             return '<a href="' . $url . '" title="Download CV" target="_blank" class="text-decoration-none">
                                     <iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon>
@@ -4056,7 +4056,7 @@ class SaleController extends Controller
                     $path = $applicant->updated_cv;
                     if ($path && str_starts_with($path, 'uploads/')) {
                         $fullPath = public_path($path);
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
                             $url = asset($path);
                             return '<a href="' . $url . '" title="Download Updated CV" target="_blank" class="text-decoration-none">
                                     <iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon>

@@ -535,41 +535,6 @@
                             <h4 class="card-title">Weekly New Sales</h4>
                         </div>
                         <div class="card-body" style="min-height: 360px;">
-                            {{-- <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
-                                <div class="carousel-inner">
-                                    <div class="carousel-item active">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_1.jpg') }}"
-                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_2.jpg') }}"
-                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_3.png') }}"
-                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_4.jpg') }}"
-                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="{{ asset('images/dashboard/kingsburyPersonnel_5.jpg') }}"
-                                            class="d-block w-100 rounded img-fluid" style="height:170px" alt="crm">
-                                    </div>
-                                </div>
-                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions"
-                                    data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Previous</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions"
-                                    data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Next</span>
-                                </button>
-                            </div> --}}
-
                             <div id="sales_chart" class="apex-charts"></div>
                         </div>
                         <div class="card-footer border-top d-flex align-items-center justify-content-between">
@@ -1068,53 +1033,6 @@
             loadChartData(currentRange, currentDateRange);
         });
 
-        // function loadStatusDetails(statusKey) {
-        //     $.get('/statistics/status-details', {
-        //         status: statusKey,
-        //         range: currentRange,
-        //         date_range: currentDateRange
-        //     }, function (resp) {
-
-        //         $('#statusDetailsLabel').text(resp.title);
-        //         $('#statusDetailsLabel')
-        //             .text(resp.title)
-        //             .attr('data-crm-status', resp.crm_status);
-
-        //         $('#nursesRegularCount').text(resp.nurses_regular);
-        //         $('#nursesSpecialistCount').text(resp.nurses_specialist);
-        //         $('#nonNursesRegularCount').text(resp.non_nurses_regular);
-        //         $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist);
-
-        //         // 🔥 Job Sources
-        //         let jobSourceHtml = '';
-
-        //        if (resp.job_sources && resp.job_sources.length) {
-        //             jobSourceHtml += `
-    //                 <div class="row text-center">
-    //                     ${resp.job_sources.map(src => `
-        //                         <div class="col-md-3 col-6 mb-2">
-        //                             <small class="text-muted d-block">${src.name}</small>
-        //                             <span class="fw-bold fs-5">${src.total}</span>
-        //                         </div>
-        //                     `).join('')}
-    //                 </div>
-    //             `;
-        //         } else {
-        //             jobSourceHtml = `
-    //                 <div class="col-12 text-center text-muted">
-    //                     No job source data
-    //                 </div>
-    //             `;
-        //         }
-
-        //         $('#jobSourceStats').html(jobSourceHtml);
-
-        //         const modal = new bootstrap.Modal(document.getElementById('statusDetailsModal'));
-        //         modal.show();
-
-        //     });
-        // }
-
         function loadStatusDetails(statusKey) {
             $.get('/statistics/status-details', {
                 status: statusKey,
@@ -1140,11 +1058,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                                                                                                                                                            <div class="col-md-3 col-6 mb-2">
-                                                                                                                                                                                <small class="text-muted d-block">${src.name}</small>
-                                                                                                                                                                                <span class="fw-bold fs-5">${src.total}</span>
-                                                                                                                                                                            </div>
-                                                                                                                                                                        `).join('')}
+                                    <div class="col-md-3 col-6 mb-2">
+                                        <small class="text-muted d-block">${src.name}</small>
+                                        <span class="fw-bold fs-5">${src.total}</span>
+                                    </div>
+                                `).join('')}
                             </div>
                         `;
                 } else {

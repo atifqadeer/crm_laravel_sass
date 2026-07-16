@@ -583,7 +583,7 @@ class QualityController extends Controller
 
                         $fullPath = public_path($path);
 
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
 
                             $url = asset($path); // direct public URL
 
@@ -604,7 +604,7 @@ class QualityController extends Controller
 
                         $fullPath = public_path($path);
 
-                        if (!$applicant->is_blocked && file_exists($fullPath)) {
+                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
 
                             $url = asset($path);
 
