@@ -1392,13 +1392,15 @@
                         const qs = response.quality_stats;
 
                         // Calculate processed CVs
-                        qs.cvs_processed =
+                        var cvs_processed =
                             (parseInt(qs.cvs_cleared) || 0) +
                             (parseInt(qs.cvs_rejected) || 0) +
                             (parseInt(qs.cvs_opened) || 0);
 
+                        var remain_in_requested = (cvs_processed-qs.cvs_requested);
+
                         // Show as processed/requested
-                        qs.cvs_progress = `${qs.cvs_processed}/${parseInt(qs.cvs_requested) || 0}`;
+                        qs.cvs_requested = `${remain_in_requested}/${parseInt(qs.cvs_requested) || 0}`;
 
                         notesHtml += '<h6 class="mt-3">Quality Statistics</h6>';
                         notesHtml += renderStatBlock(qs, currentIcons, 'primary');

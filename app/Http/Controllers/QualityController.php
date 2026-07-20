@@ -1506,12 +1506,6 @@ class QualityController extends Controller
 
         $this->applyStatusFilterJoins($model, $statusFilter, $commonSaleSelect);
 
-        // Eager-load only what still needs relation access in PHP (cv status derivation).
-        // This turns the previous N+1 (1 query per row, called twice) into exactly 1 query.
-        // NOTE: relation method on Applicant is defined as cv_notes() (snake_case),
-        // so the with() key MUST match it exactly — Laravel does not camelCase-normalize
-        // relationship names passed to with(). Using 'cvNotes' throws:
-        // "Call to undefined relationship [cvNotes] on model [Horsefly\Applicant]."
         $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'status')]);
 
         $model
@@ -2877,23 +2871,6 @@ class QualityController extends Controller
                     'applicant_id' => $applicant_id
                 ])->update(['status' => 0]);
 
-                History::where([
-                    "applicant_id" => $applicant_id,
-                    "sale_id" => $sale_id,
-                    'status' => 1
-                ])->update(["status" => 0]);
-
-                $history = new History();
-                $history->applicant_id = $applicant_id;
-                $history->user_id = $user->id;
-                $history->sale_id = $sale_id;
-                $history->stage = 'quality';
-                $history->sub_stage = 'quality_rejected';
-                $history->save();
-
-                /** Update UID */
-                $history->history_uid = md5((string) $history->id);
-                $history->save();
             } elseif ($status == 'cleared') {
                 Applicant::where("id", $applicant_id)
                     ->update([
@@ -2969,8 +2946,9 @@ class QualityController extends Controller
                 /** Update UID */
                 $crm_notes->crm_notes_uid = md5($crm_notes->id);
                 $crm_notes->save();
+
             } elseif ($status == 'revert') { //Revert from Open Cv
-                $cv_count = CvNote::where([
+                $cv_count = CVNote::where([
                     'cv_notes.sale_id' => $sale_id,
                     'cv_notes.status' => 1
                 ])->count();
@@ -2985,12 +2963,12 @@ class QualityController extends Controller
                     ]);
                 }
 
-                CvNote::where([
+                CVNote::where([
                     'sale_id' => $sale_id,
                     'applicant_id' => $applicant_id
                 ])->update(['status' => 0]);
 
-                $cv_note = new CvNote();
+                $cv_note = new CVNote();
                 $cv_note->sale_id = $sale_id;
                 $cv_note->applicant_id = $applicant_id;
                 $cv_note->user_id = $user->id;
@@ -3037,7 +3015,7 @@ class QualityController extends Controller
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-                ->update(["status" => 0]);
+            ->update(["status" => 0]);
 
             $historyStatus = null;
             if ($status == 'rejected') {
