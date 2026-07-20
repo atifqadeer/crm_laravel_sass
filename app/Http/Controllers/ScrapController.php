@@ -374,7 +374,33 @@ class ScrapController extends Controller
                     }
                 }
 
-                $this->saveContactsForMorphable($office->id, Office::class, $jobContacts);
+                $allContacts = array_merge(
+                    $contactsList,
+                    $descriptionContacts,
+                    $jobContacts
+                );
+
+                $uniqueContacts = [];
+                $seen = [];
+
+                foreach ($allContacts as $contact) {
+                    $key = strtolower($contact['contact_email'] ?? '')
+                        . '|'
+                        . ($contact['contact_phone'] ?? '');
+
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+
+                    $seen[$key] = true;
+                    $uniqueContacts[] = $contact;
+                }
+
+                $this->saveContactsForMorphable(
+                    $office->id,
+                    Office::class,
+                    $uniqueContacts
+                );
 
                 // ===============================
                 // UNIT - WITH PROPER NAME MATCHING CHECK
@@ -2421,7 +2447,7 @@ class ScrapController extends Controller
 
                     $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
 
-                    $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                    $output .= '<br><a href="' . $perplexityUrl . '" target="_blank"
                                     class="text-primary ms-1"
                                     title="Search with Perplexity">
                                     <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
@@ -2464,7 +2490,7 @@ class ScrapController extends Controller
 
                     $perplexityUrl = 'https://www.perplexity.ai/search?q=' . urlencode($perplexityPrompt);
 
-                    $output .= '<a href="' . $perplexityUrl . '" target="_blank"
+                    $output .= '<br><a href="' . $perplexityUrl . '" target="_blank"
                     class="text-primary ms-1"
                     title="Search with Perplexity">
                     <iconify-icon icon="simple-icons:perplexity" class="fs-24"></iconify-icon>
