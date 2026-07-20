@@ -640,18 +640,30 @@
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const jobCategorySelect = document.getElementById('job_category');
-            const nurseToggleContainer = document.getElementById('nurseToggleContainer');
+        $(document).ready(function() {
 
-            jobCategorySelect.addEventListener('change', function() {
-                const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
-                if (selectedOption && selectedOption.text.toLowerCase() === 'nurse') {
-                    nurseToggleContainer.style.display = 'block';
+            function toggleNurseContainer() {
+
+                let selectedText = $('#job_category option:selected')
+                    .text()
+                    .trim()
+                    .toLowerCase();
+
+                if (selectedText === 'nurse') {
+                    $('#nurseToggleContainer').show();
                 } else {
-                    nurseToggleContainer.style.display = 'none';
+                    $('#nurseToggleContainer').hide();
                 }
+            }
+
+            // Initial page load
+            toggleNurseContainer();
+
+            // Works with Select2
+            $('#job_category').on('change', function() {
+                toggleNurseContainer();
             });
+
         });
     </script>
 @endsection

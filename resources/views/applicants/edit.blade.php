@@ -547,29 +547,29 @@
             fetchJobTitles();
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const jobCategorySelect = document.getElementById('job_category');
-            const nurseToggleContainer = document.getElementById('nurseToggleContainer');
+        $(document).ready(function() {
 
             function toggleNurseContainer() {
-                const selectedValue = parseInt(jobCategorySelect.value);
+                const selectedValue = parseInt($('#job_category').val());
 
                 if (selectedValue === 1) {
-                    nurseToggleContainer.style.display = 'block';
+                    $('#nurseToggleContainer').show();
                 } else {
-                    nurseToggleContainer.style.display = 'none';
+                    $('#nurseToggleContainer').hide();
 
-                    // Optionally clear radio buttons when hiding
-                    document.querySelectorAll('input[name="have_nursing_home_experience"]').forEach(input => {
-                        input.checked = false;
-                    });
+                    // Clear the radio buttons when hiding
+                    $('input[name="have_nursing_home_experience"]').prop('checked', false);
                 }
             }
 
-            jobCategorySelect.addEventListener('change', toggleNurseContainer);
-
-            // Call on page load to apply initial visibility
+            // Initial page load
             toggleNurseContainer();
+
+            // Works with Select2
+            $('#job_category').on('change', function() {
+                toggleNurseContainer();
+            });
+
         });
     </script>
 @endsection
