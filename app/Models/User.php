@@ -9,7 +9,6 @@ use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Foundation\Http\Kernel;
 
 class User extends Authenticatable
 {
@@ -43,6 +42,15 @@ class User extends Authenticatable
     ];
     protected $guarded = []; // allows all columns to be mass assignable (only if you're confident)
 
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return $this->hasPermissionTo($permission);
+    }
 
     /**
      * Get the attributes that should be cast.

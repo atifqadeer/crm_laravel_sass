@@ -24,8 +24,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DialLockController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ScrapController;
-use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
-use App\Http\Middleware\IPAddress;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +39,7 @@ use App\Http\Middleware\IPAddress;
 require __DIR__ . '/auth.php';
 
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('login', [LoginController::class, 'login']);
+Route::post('login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('message_receive', [CommunicationController::class, 'messageReceive']);

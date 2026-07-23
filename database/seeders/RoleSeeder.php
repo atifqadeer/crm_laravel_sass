@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Horsefly\User;
+use Carbon\Carbon;
 
 class RoleSeeder extends Seeder
 {
@@ -18,11 +19,12 @@ class RoleSeeder extends Seeder
     {
         // Insert roles
         DB::table('roles')->insert([
-            ['name' => 'super_admin', 'guard_name' => 'web'],
-            ['name' => 'admin', 'guard_name' => 'web'],
-            ['name' => 'crm', 'guard_name' => 'web'],
-            ['name' => 'sales', 'guard_name' => 'web'],
-            ['name' => 'quality', 'guard_name' => 'web'],
+            ['name' => 'super_admin', 'type' => 'super_admin', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['name' => 'admin', 'type' => 'admin', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['name' => 'crm', 'type' => 'crm', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['name' => 'sales', 'type' => 'sales', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['name' => 'quality', 'type' => 'quality', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['name' => 'agent', 'type' => 'agent', 'guard_name' => 'web', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
         ]);
 
         // Fetch the super_admin role

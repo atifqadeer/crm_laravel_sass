@@ -15,10 +15,20 @@ use Horsefly\JobTitle;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-class PostcodeController extends Controller
+class PostcodeController extends Controller implements HasMiddleware
 {
     use Geocode;
+
+    public static function middleware(): array
+    {
+        return [
+            'auth',
+            new Middleware('permission:postcode-index', only: ['index', 'getPostcodeResults'])
+        ];
+    }
 
     public function index()
     {
@@ -26,6 +36,7 @@ class PostcodeController extends Controller
 
         return view('postcode-finder.list', compact('jobCategories'));
     }
+
     public function getPostcodeResults(Request $request)
     {
         $today = Carbon::parse(date("Y-m-d"));
@@ -176,7 +187,7 @@ class PostcodeController extends Controller
             'job_category_id' => $job_category_id
         ]);
     }
-    function distance($lat, $lon, $radius, $job_category_id, $is_specialist = null)
+    function distance(float $lat, float $lon, int $radius, int $job_category_id, ?bool $is_specialist = null)
     {
         $location_distance = Sale::selectRaw("
             *, 
@@ -198,7 +209,7 @@ class PostcodeController extends Controller
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $location_distance->where(function ($q) use ($hidePrivateData) {
                 $q->whereNotIn('id', $hidePrivateData)
-                  ->orWhereNull('id');
+                    ->orWhereNull('id');
             });
         }
 
