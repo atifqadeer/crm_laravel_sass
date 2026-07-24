@@ -1,13 +1,14 @@
 @extends('layouts.vertical', ['title' => 'Blocked Resources List', 'subTitle' => 'Resources'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
     <div class="row">
@@ -19,8 +20,10 @@
                             <div class="text-md-end mt-3">
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                            Category</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -31,12 +34,12 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
                                             <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox" value=""
-                                                    id="all-categories" data-title-id="">
+                                                <input class="form-check-input category-filter" type="checkbox"
+                                                    value="" id="all-categories" data-title-id="">
                                                 <label class="form-check-label" for="all-categories">All Category</label>
                                             </div>
 
-                                            @foreach($jobCategories as $category)
+                                            @foreach ($jobCategories as $category)
                                                 <div class="form-check">
                                                     <input class="form-check-input category-filter" type="checkbox"
                                                         value="{{ $category->id }}" id="category_{{ $category->id }}"
@@ -50,7 +53,8 @@
                                 </div>
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
@@ -93,11 +97,14 @@
                                 </div>
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allBlocked']) }}">Export All Data</a>
+                                        <a class="dropdown-item"
+                                            href="{{ route('applicantsExport', ['type' => 'allBlocked']) }}">Export All
+                                            Data</a>
                                     </div>
                                 </div>
                                 <!-- Add Updated Sales Filter Button -->
@@ -127,8 +134,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th>Phone</th>
-                                    <th>Landline</th>
+                                    <th width="10%">Phone / Landline</th>
                                     <th>Experience</th>
                                     <th>Source</th>
                                     <th>Notes</th>
@@ -147,39 +153,39 @@
         </div>
 
     </div>
-  
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <!-- Add daterangepicker -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
-    
+
     <script>
         $(document).ready(function() {
             // Store the current filter in a variable
@@ -201,16 +207,19 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#applicants_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getResourcesBlockedApplicants')),  // Fetch data from the backend
+                    url: @json(route('getResourcesBlockedApplicants')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
+                        d.type_filter =
+                        currentTypeFilter; // Send the current filter value as a parameter
+                        d.category_filter =
+                        currentCategoryFilters; // Send the current filter value as a parameter
+                        d.title_filter =
+                        currentTitleFilters; // Send the current filter value as a parameter
 
                         // Clean up search parameter
                         if (d.search && d.search.value) {
@@ -222,44 +231,90 @@
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            );
                     }
                 },
-                columns: [
-                    { data: "checkbox", orderable:false, searchable:false},
-                    { data: 'updated_at', name: 'applicants.updated_at' },
-                    { data: 'applicant_name', name: 'applicants.applicant_name' },
-                    { data: 'applicant_email', name: 'applicants.applicant_email' },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'applicant_phone', name: 'applicants.applicant_phone' },
-                    { data: 'applicant_landline', name: 'applicants.applicant_landline' },
-                    { data: 'applicant_experience', name: 'applicants.applicant_experience' },
-                    { data: 'job_source', name: 'job_sources.name' },
-                    { data: 'applicant_notes', name: 'applicants.applicant_notes', orderable: false, searchable: false },
-                    { data: 'customStatus', name: 'customStatus', orderable: false, searchable: false },
-                    { data: 'action', name: 'action', orderable: false, searchable: false }
-                ],
-                columnDefs: [
+                columns: [{
+                        data: "checkbox",
+                        orderable: false,
+                        searchable: false
+                    },
                     {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        data: 'updated_at',
+                        name: 'applicants.updated_at'
+                    },
+                    {
+                        data: 'applicant_name',
+                        name: 'applicants.applicant_name'
+                    },
+                    {
+                        data: 'applicantEmail',
+                        name: 'applicantEmail'
+                    },
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'applicant_postcode',
+                        name: 'applicants.applicant_postcode'
+                    },
+                    {
+                        data: 'applicantPhone',
+                        name: 'applicantPhone'
+                    },
+                    {
+                        data: 'applicant_experience',
+                        name: 'applicants.applicant_experience'
+                    },
+                    {
+                        data: 'job_source',
+                        name: 'job_sources.name'
+                    },
+                    {
+                        data: 'applicant_notes',
+                        name: 'applicants.applicant_notes',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'customStatus',
+                        name: 'customStatus',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                columnDefs: [{
+                        targets: 12, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 13,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 13, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -269,7 +324,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#applicants_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -283,39 +339,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -336,8 +394,8 @@
                 },
             });
 
-             // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
+            // Type filter dropdown handler
+            $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -373,7 +431,8 @@
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
+                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' +
+                    selectedLabels.length +
                     ')' : 'All Categories');
 
                 // Trigger DataTable reload with the selected filters
@@ -404,7 +463,8 @@
                         return $(this).next('label').text().trim();
                     }).get();
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
+                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels
+                    .length +
                     ')' : 'All Titles');
 
                 // Trigger DataTable reload with the selected filters
@@ -413,7 +473,7 @@
 
         });
 
-         document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const checkboxes = document.querySelectorAll('#categoryList .form-check');
 
@@ -453,14 +513,14 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-        
+
         // Function to show the notes modal
         function showNotesModal(applicantID, notes, applicantName, applicantPostcode) {
             const modalId = `showNotesModal-${applicantID}`;
@@ -554,7 +614,7 @@
 
             // AJAX call to fetch notes
             $.ajax({
-                url: '{{ route("getModuleNotesHistory") }}',
+                url: '{{ route('getModuleNotesHistory') }}',
                 type: 'GET',
                 data: {
                     id: id,
@@ -588,11 +648,13 @@
                 error: function(xhr, status, error) {
                     console.log("Error fetching notes history:", error);
                     $(`#${loaderId}`).hide();
-                    $(`#${contentId}`).removeClass('d-none').html('<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>');
+                    $(`#${contentId}`).removeClass('d-none').html(
+                        '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
+                        );
                 }
             });
         }
-        
+
         // Function to show the notes modal
         function addShortNotesModal(applicantID) {
             const modalId = `shortNotesModal-${applicantID}`;
@@ -639,7 +701,7 @@
             $(`#${textareaId}`).next('.invalid-feedback').remove();
 
             // Save button handler
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val().trim();
 
                 if (!notes) {
@@ -649,7 +711,7 @@
                     }
 
                     // Live validation
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val().trim()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -665,11 +727,13 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
 
                 // Submit AJAX
                 $.ajax({
-                    url: '{{ route("storeShortNotes") }}',
+                    url: '{{ route('storeShortNotes') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
@@ -677,7 +741,7 @@
                         reason: 'casual',
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function () {
+                    success: function() {
                         toastr.success('Notes saved successfully!');
                         modal.hide();
                         $(`#${formId}`)[0].reset();
@@ -686,10 +750,10 @@
 
                         $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function () {
+                    error: function() {
                         toastr.error('An error occurred while saving notes.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -710,7 +774,8 @@
             }
         }
 
-        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle, jobCategory, jobSource, createdAt,status) {
+        function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
+            jobCategory, jobSource, createdAt, status) {
             const modalId = 'showDetailsModal-' + applicantId;
 
             // Remove existing modal with same ID (if any)
@@ -766,7 +831,7 @@
             }, 300); // Adjust delay as needed
 
             // Remove modal from DOM on close
-            $(`#${modalId}`).on('hidden.bs.modal', function () {
+            $(`#${modalId}`).on('hidden.bs.modal', function() {
                 $(this).remove();
             });
         }
@@ -824,7 +889,7 @@
             $('#statusDropdown').val(status); // this should now work
 
             // Handle the save button click
-            $('#saveNotesButton').off('click').on('click', function () {
+            $('#saveNotesButton').off('click').on('click', function() {
                 const notes = $('#detailsTextarea').val();
                 const selectedStatus = $('#statusDropdown').val();
 
@@ -847,14 +912,14 @@
                 }
 
                 if (hasError) {
-                    $('#detailsTextarea').on('input', function () {
+                    $('#detailsTextarea').on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
                     });
 
-                    $('#statusDropdown').on('change', function () {
+                    $('#statusDropdown').on('change', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -866,7 +931,7 @@
 
                 // AJAX request
                 $.ajax({
-                    url: '{{ route("changeStatus") }}',
+                    url: '{{ route('changeStatus') }}',
                     type: 'POST',
                     data: {
                         applicant_id: applicantID,
@@ -874,7 +939,7 @@
                         status: selectedStatus,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Applicant status changed successfully!');
                         $('#changeStatusModal').modal('hide');
                         $('#changeStatusForm')[0].reset();
@@ -883,7 +948,7 @@
 
                         $('#applicants_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         toastr.error('An error occurred while saving applicant status changed.');
                     }
                 });
@@ -918,7 +983,7 @@
                 $row.removeClass('selected');
             }
         });
-        
+
         // Add a listener to the "Select All" button for additional actions
         $('#submitSelectedButton').on('click', function() {
             var selectedIds = [];
@@ -927,7 +992,7 @@
             $('.applicant_checkbox:checked').each(function() {
                 selectedIds.push($(this).val());
             });
-             Swal.fire({
+            Swal.fire({
                 title: 'Are you sure?',
                 text: 'These applicants will be unblocked. Are you sure you want to continue?',
                 icon: 'warning',
@@ -942,7 +1007,7 @@
                     $.ajax({
                         url: 'revertBlockedApplicant', // Update the URL to match your route
                         type: 'post',
-                        data: { 
+                        data: {
                             ids: selectedIds,
                             _token: '{{ csrf_token() }}'
                         },
@@ -968,6 +1033,5 @@
             });
         });
     </script>
-    
 @endsection
-@endsection                        
+@endsection

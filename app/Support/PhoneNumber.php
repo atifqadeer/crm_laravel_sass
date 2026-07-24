@@ -56,4 +56,20 @@ class PhoneNumber
         }
         return strlen($digits) >= 10 ? substr($digits, -10) : $digits;
     }
+
+    /**
+     * Display mask: last 3 digits visible, the rest replaced with bullets,
+     * so agents can tell numbers apart without reading the full digits.
+     */
+    public static function mask(?string $number): string
+    {
+        $digits = self::digits($number);
+        if ($digits === '') {
+            return '';
+        }
+        // if (strlen($digits) <= 3) {
+        //     return str_repeat('•', strlen($digits));
+        // }
+        return str_repeat('•', strlen($digits) - 3) . substr($digits, -3);
+    }
 }

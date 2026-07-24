@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\DialLink;
+use App\Support\PhoneNumber;
 use Horsefly\Applicant;
 use Horsefly\DialCallLog;
 use Horsefly\DialLock;
@@ -9,6 +11,7 @@ use Horsefly\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -68,11 +71,16 @@ class DialLockController extends Controller
     /** GET /dialing/info?number=... — status for a number, personalised to the calling agent. */
     public function info(Request $request): JsonResponse
     {
-        $request->validate(['number' => ['required', 'string', 'max:30']]);
-        $key = DialLock::keyFor($request->input('number'));
+        $request->validate([
+            'token'  => ['nullable', 'string'],
+            'number' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $number = $this->resolveDialNumber($request);
+        $key = DialLock::keyFor($number);
         $cfg = $this->dialingSettings();
         $daily = $this->dailyCallInfo($key, $cfg);
-        
+
 
         if (!$key) {
             return response()->json(array_merge(['callCount' => 0, 'locked' => false, 'lastCalledAgo' => null], $daily));
@@ -118,12 +126,15 @@ class DialLockController extends Controller
     /** POST /dialing/acquire — try to start a call; lock or allow depending on per-user timers. */
     public function acquire(Request $request): JsonResponse
     {
-        $request->validate(['number' => ['required', 'string', 'max:30']]);
+        $request->validate([
+            'token'  => ['nullable', 'string'],
+            'number' => ['nullable', 'string', 'max:30'],
+        ]);
 
-        $number = trim($request->input('number'));
+        $number = $this->resolveDialNumber($request);
         $key    = DialLock::keyFor($number);
 
-        if (!$key) {
+        if (!$key || !$number) {
             return response()->json(['ok' => true, 'locked' => false, 'callCount' => 0]);
         }
 
@@ -162,9 +173,10 @@ class DialLockController extends Controller
                         'dailyLimitReached' => true,
                         'dailyCallCount'    => (int) $log->calls,
                         'dailyCallLimit'    => $cfg['max_calls_per_day'],
+                        'dialNumber'     => $number,
                         'remainingSeconds'  => $remaining,
                         'message'           => "Daily limit reached ({$log->calls}/{$cfg['max_calls_per_day']}) for this number. "
-                                              . "Resets in " . $this->humanSeconds($remaining) . ".",
+                            . "Resets in " . $this->humanSeconds($remaining) . ".",
                     ], 423);
                 }
             }
@@ -190,8 +202,8 @@ class DialLockController extends Controller
                                 'remainingSeconds' => $remaining,
                                 'lastCalledAgo'    => $ago,
                                 'message'          => "You already called this number {$ago}. "
-                                                    . "Your re-dial lock expires in " . $this->humanSeconds($remaining) . ". "
-                                                    . "Called " . (int) $row->call_count . "× in total.",
+                                    . "Your re-dial lock expires in " . $this->humanSeconds($remaining) . ". "
+                                    . "Called " . (int) $row->call_count . "× in total.",
                             ], 423);
                         }
                     }
@@ -212,8 +224,8 @@ class DialLockController extends Controller
                         'remainingSeconds' => $remaining,
                         'lastCalledAgo'    => $ago,
                         'message'          => "This number is being called by {$who} ({$ago}). "
-                                            . "Locked for another " . $this->humanSeconds($remaining) . ". "
-                                            . "Called " . (int) $row->call_count . "× in total.",
+                            . "Locked for another " . $this->humanSeconds($remaining) . ". "
+                            . "Called " . (int) $row->call_count . "× in total.",
                     ], 423);
                 }
             }
@@ -258,9 +270,12 @@ class DialLockController extends Controller
     /** POST /dialing/release — free a lock the calling agent holds. */
     public function release(Request $request): JsonResponse
     {
-        $request->validate(['number' => ['required', 'string', 'max:30']]);
+        $request->validate([
+            'token'  => ['nullable', 'string'],
+            'number' => ['nullable', 'string', 'max:30'],
+        ]);
 
-        $key = DialLock::keyFor($request->input('number'));
+        $key = DialLock::keyFor($this->resolveDialNumber($request));
         if ($key) {
             DialLock::where('phone_key', $key)
                 ->where('user_id', Auth::id())
@@ -273,16 +288,17 @@ class DialLockController extends Controller
     /** GET /dialing/active-locks — all currently active locks for the admin settings panel. */
     public function activeList(): JsonResponse
     {
+        $reveal = $this->canViewPhoneNumber();
         $locks = DialLock::where('expires_at', '>', now())
             ->orderBy('expires_at', 'asc')
             ->get()
-            ->map(fn ($r) => [
+            ->map(fn($r) => [
                 'id'               => $r->id,
-                'full_number'      => $r->full_number,
+                'full_number'      => $reveal ? $r->full_number : PhoneNumber::mask($r->full_number),
                 'user_name'        => $r->user_name ?: 'Unknown',
                 'locked_at'        => $r->locked_at?->format('H:i:s'),
                 'expires_at_iso'   => $r->expires_at?->toIso8601String(),
-                'remaining_seconds'=> (int) ceil(now()->diffInSeconds($r->expires_at)),
+                'remaining_seconds' => (int) ceil(now()->diffInSeconds($r->expires_at)),
                 'call_count'       => (int) $r->call_count,
             ]);
 
@@ -326,5 +342,20 @@ class DialLockController extends Controller
             return $r ? "{$m}m {$r}s" : "{$m}m";
         }
         return "{$s}s";
+    }
+
+    private function resolveDialNumber(Request $request): ?string
+    {
+        if ($request->filled('token')) {
+            return DialLink::resolve($request->input('token'));
+        }
+
+        $number = trim((string) $request->input('number', ''));
+        return $number !== '' ? $number : null;
+    }
+
+    private function canViewPhoneNumber(): bool
+    {
+        return Gate::allows('applicant-view-phone-number');
     }
 }

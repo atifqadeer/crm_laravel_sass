@@ -11,10 +11,14 @@ use Horsefly\Region;
 use Horsefly\JobTitle;
 use Horsefly\JobCategory;
 use Horsefly\Setting;
+
+use App\Support\DialLink;
+
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Gate;
 
@@ -66,7 +70,7 @@ class RegionController extends Controller
             ->with(['cv_notes', 'jobTitle', 'jobCategory', 'jobSource'])
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
-            ->where('applicants.is_blocked', false)
+            ->where('applicants.is_blocked', 0)
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
@@ -157,7 +161,12 @@ class RegionController extends Controller
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                    if (!$applicant->jobSource)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
+                })
+                ->filterColumn('job_sources.name', function ($query, $keyword) {
+                    $query->where('job_sources.name', 'LIKE', trim($keyword) . "%");
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -229,19 +238,49 @@ class RegionController extends Controller
                         </a>
                     ';
                 })
-                ->addColumn('applicant_phone', function ($applicant) {
-                    $strng = '';
-                    if($applicant->applicant_landline){
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $landline = '<strong>L:</strong> '.$applicant->applicant_landline;
+                ->addColumn('applicantPhone', function ($applicant) {
 
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone .'<br>'. $landline;
-                    }else{
-                        $phone = '<strong>P:</strong> '.$applicant->applicant_phone;
-                        $strng = $applicant->is_blocked ? "<span class='badge bg-dark'>Blocked</span>" : $phone;
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $strng;
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
+
+                    $parts = [];
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
+                })
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('applicant_email', function ($applicant) {
                     $email = '';
@@ -262,30 +301,6 @@ class RegionController extends Controller
                         return Carbon::parse($applicant->created_at)->format('d M Y, h:i A');
                     }
                 })
-                // ->addColumn('applicant_resume', function ($applicant) {
-                //     $filePath = $applicant->applicant_cv;
-                //     $fileExists = $applicant->applicant_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-success fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
-                // ->addColumn('crm_resume', function ($applicant) {
-                //     $filePath = $applicant->updated_cv;
-                //     $fileExists = $applicant->updated_cv && Storage::disk('public')->exists($filePath);
-
-                //     if (!$applicant->is_blocked && $fileExists) {
-                //         return '<a href="' . asset('storage/' . $filePath) . '" title="Download Updated CV" target="_blank" class="text-decoration-none">' .
-                //             '<iconify-icon icon="solar:download-square-bold" class="text-primary fs-28"></iconify-icon></a>';
-                //     }
-
-                //     return '<button disabled title="CV Not Available" class="border-0 bg-transparent p-0">' .
-                //         '<iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon></button>';
-                // })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
 
@@ -401,7 +416,7 @@ class RegionController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'created_at', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicant_phone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'created_at', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

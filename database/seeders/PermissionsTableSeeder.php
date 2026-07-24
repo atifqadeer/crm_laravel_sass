@@ -21,6 +21,8 @@ class PermissionsTableSeeder extends Seeder
             'dashboard-daily-analytics',
             'dashboard-users',
             'dashboard-users-stats',
+            'dashboard-agents-stats',
+            'dashboard-agents-chart',
 
             // Applicant Permissions
             'applicant-index',
@@ -37,6 +39,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-edit-name',
             'applicant-edit-email',
             'applicant-edit-phone',
+            'applicant-edit-landline',
             'applicant-edit-postcode',
             'applicant-delete',
             'applicant-view',
@@ -45,6 +48,7 @@ class PermissionsTableSeeder extends Seeder
             'applicant-export-emails',
             'applicant-import',
             'applicant-show-blocked-data',
+            'applicant-view-phone-number',
 
             // Office Permissions
             'office-index',
@@ -210,7 +214,8 @@ class PermissionsTableSeeder extends Seeder
             'resource-category-view-notes-history',
             'resource-category-create-nursing-home-btn',
             'resource-category-download-resume',
-            'resource-category-upload-resume',
+            'resource-category-upload-applicant-resume',
+            'resource-category-upload-crm-resume',
             'resource-category-view',
 
             // Resource Sub Modules Rejected Resources Permissions
@@ -264,6 +269,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-no-job-export-emails',
             'resource-no-job-revert-btn',
 
+
             // Quality Assurance Permissions
             // Quality Assurance Sub Modules Resources Permissions
             'quality-assurance-resource-index',
@@ -289,6 +295,7 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-sale-manager-details',
             'quality-assurance-sale-change-status',
             'quality-assurance-sale-view-documents',
+            'quality-assurance-sale-clear',
 
             // Regions Permissions
             // Region Sub Modules Resources Permissions
@@ -380,6 +387,9 @@ class PermissionsTableSeeder extends Seeder
 
             // Postcode Permissions
             'postcode-index',
+
+            // Scrap Permissions
+            'scrap-index',
 
             // Report Permissions
             'report-user-login',

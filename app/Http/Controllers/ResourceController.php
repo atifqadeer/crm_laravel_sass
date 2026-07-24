@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+
 use Horsefly\Sale;
 use Horsefly\Office;
 use Horsefly\ApplicantNote;
@@ -15,17 +16,23 @@ use Horsefly\CrmNote;
 use Horsefly\JobTitle;
 use Horsefly\User;
 use Horsefly\ModuleNote;
+
 use App\Exports\EmailExport;
+
+use App\Support\DialLink;
+
+use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str; 
+
 use Exception;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class ResourceController extends Controller
 {
@@ -680,31 +687,39 @@ class ResourceController extends Controller
                 ->addColumn('job_category', fn($applicant) => $applicant->job_category_name ? strtoupper($applicant->job_category_name) . ($applicant->job_type === 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '') : '-')
                 ->addColumn('job_source', fn($applicant) => strtoupper($applicant->job_source_name ?? '-'))
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
-                    return implode('<br>', $parts) ?: '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -1188,43 +1203,26 @@ class ResourceController extends Controller
                     $showBlockedData = $a->is_blocked
                         && Gate::allows('applicant-show-blocked-data');
 
-                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-                        $safe = e($num);
-
-                        if ($showBlockedData) {
-                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
-                                . "<a href=\"javascript:void(0)\" "
-                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
-                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                        }
-
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
 
                     if (!empty($a->applicant_phone)) {
-                        $parts[] = $dialLink($a->applicant_phone, 'P');
+                        $parts[] = DialLink::render($a->applicant_phone, 'Primary Phone', $class);
                     }
 
                     if (!empty($a->applicant_phone_secondary)) {
-                        $parts[] = $dialLink($a->applicant_phone_secondary, 'S');
+                        $parts[] = DialLink::render($a->applicant_phone_secondary, 'Secondary Phone', $class);
                     }
 
                     if (!empty($a->applicant_landline)) {
-                        $parts[] = $dialLink($a->applicant_landline, 'L');
+                        $parts[] = DialLink::render($a->applicant_landline, 'Landline', $class);
                     }
 
                     $phones = implode('<br>', $parts) ?: '-';
 
                     if ($showBlockedData) {
-                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
                             . $phones
                             . '</div>';
                     }
@@ -1531,6 +1529,29 @@ class ResourceController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
+                 ->addColumn('applicantEmail', function ($applicant) {
+                    // Blocked applicant + no permission
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
+                    }
+
+                    $email = $applicant->applicant_email_secondary
+                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+                        : $applicant->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
+                })
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     $status_value = 'open';
                     if ($applicant->paid_status == 'close') {
@@ -1567,11 +1588,49 @@ class ResourceController extends Controller
                             <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
                         </a>';
                 })
-                ->addColumn('applicant_phone', function ($applicant) {
-                    return $applicant->formatted_phone; // Using accessor
+                ->addColumn('applicantPhone', function ($applicant) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
+                    }
+
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
+
+                    $parts = [];
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
-                ->addColumn('applicant_landline', function ($applicant) {
-                    return $applicant->formatted_landline; // Using accessor
+                ->filterColumn('applicantPhone', function ($query, $keyword) {
+                    $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
+
+                    $query->where(function ($q) use ($clean) {
+                        $q->whereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"])
+                            ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
+                    });
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     if (empty($applicant->applicant_experience) || $applicant->applicant_experience === 'NULL') {
@@ -1684,7 +1743,7 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['checkbox', 'applicant_notes', 'applicant_experience', 'applicant_postcode', 'applicant_landline', 'applicant_phone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicant_notes', 'applicantEmail', 'applicant_experience', 'applicant_postcode', 'applicant_landline', 'applicantPhone', 'job_title', 'resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
@@ -3102,31 +3161,39 @@ class ResourceController extends Controller
                     return $notes;
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
-                    return implode('<br>', $parts) ?: '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.

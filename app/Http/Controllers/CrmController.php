@@ -24,6 +24,8 @@ use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
 
+use App\Support\DialLink;
+
 use App\Observers\ActionObserver;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
@@ -2310,6 +2312,7 @@ class CrmController extends Controller
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
+                ->skipTotalRecords()
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn("user_name", function ($applicant) {
                     return $applicant->user_name ? ucwords($applicant->user_name) : '-';
@@ -2348,31 +2351,39 @@ class CrmController extends Controller
                     return $button;
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
-                    return implode('<br>', $parts) ?: '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
@@ -2513,7 +2524,7 @@ class CrmController extends Controller
 
                     $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
-                    if ($smsNotification && $smsNotification->value == '1' && $sms_template && !empty($sms_template->template)) {
+                    if ($smsNotification && $sms_template && $smsNotification->value == '1' && !empty($sms_template->template)) {
                         $sms_template = $sms_template->template;
 
                         $replace = [$applicant->applicant_name, $applicant->unit_name];
@@ -2522,6 +2533,7 @@ class CrmController extends Controller
                         $newPhrase = str_replace($prev_val, $replace, $sms_template);
                         $formattedMessage = nl2br($newPhrase);
                     }
+
                     $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+
 use Horsefly\Sale;
 use Horsefly\Unit;
 use Horsefly\Office;
@@ -19,19 +20,24 @@ use Horsefly\JobCategory;
 use Horsefly\JobTitle;
 use Horsefly\ModuleNote;
 use Horsefly\User;
+
+use App\Traits\SendEmails;
+use App\Traits\SendSMS;
+
+use App\Support\DialLink;
+
 use App\Observers\ActionObserver;
+
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Query\Builder;
 use Yajra\DataTables\Facades\DataTables;
+use Carbon\Carbon;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use App\Traits\SendEmails;
-use App\Traits\SendSMS;
-use Exception;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Illuminate\Database\Query\Builder;
 
 class QualityController extends Controller
 {
@@ -538,31 +544,39 @@ class QualityController extends Controller
                         </div>';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
-                    return implode('<br>', $parts) ?: '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
                 ->filterColumn('applicantPhone', function ($query, $keyword) {
                     $clean = preg_replace('/[^0-9]/', '', $keyword); // remove spaces, dashes, etc.
@@ -1900,44 +1914,29 @@ class QualityController extends Controller
         $showBlockedData = $applicant->is_blocked
             && Gate::allows('applicant-show-blocked-data');
 
-        $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-            $safe = e($num);
-
-            $linkClass = $showBlockedData
-                ? 'text-white text-decoration-none'
-                : 'text-primary text-decoration-none';
-
-            $labelStyle = $showBlockedData
-                ? 'style="color:#fff !important;"'
-                : '';
-
-            return "<strong {$labelStyle}>{$prefix}:</strong>
-                            <a href=\"javascript:void(0)\"
-                            onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\"
-                            class=\"{$linkClass}\"
-                            title=\"Click to dial {$safe}\">{$safe}</a>";
-        };
+        $class = $showBlockedData ? 'show_hidden_phone' : '';
 
         $parts = [];
 
         if (!empty($applicant->applicant_phone)) {
-            $parts[] = $dialLink($applicant->applicant_phone, 'P');
+            $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
         }
 
         if (!empty($applicant->applicant_phone_secondary)) {
-            $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+            $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
         }
 
         if (!empty($applicant->applicant_landline)) {
-            $parts[] = $dialLink($applicant->applicant_landline, 'L');
+            $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
         }
 
         $phones = implode('<br>', $parts) ?: '-';
 
         // Only blocked + permission gets black background + white text
         if ($showBlockedData) {
-            return '<div class="bg-dark p-2 rounded">' . $phones . '</div>';
+            return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                . $phones
+                . '</div>';
         }
 
         return $phones;
@@ -2870,7 +2869,6 @@ class QualityController extends Controller
                     'sale_id' => $sale_id,
                     'applicant_id' => $applicant_id
                 ])->update(['status' => 0]);
-
             } elseif ($status == 'cleared') {
                 Applicant::where("id", $applicant_id)
                     ->update([
@@ -2946,7 +2944,6 @@ class QualityController extends Controller
                 /** Update UID */
                 $crm_notes->crm_notes_uid = md5($crm_notes->id);
                 $crm_notes->save();
-
             } elseif ($status == 'revert') { //Revert from Open Cv
                 $cv_count = CVNote::where([
                     'cv_notes.sale_id' => $sale_id,
@@ -3015,7 +3012,7 @@ class QualityController extends Controller
                 "applicant_id" => $applicant_id,
                 "sale_id" => $sale_id
             ])
-            ->update(["status" => 0]);
+                ->update(["status" => 0]);
 
             $historyStatus = null;
             if ($status == 'rejected') {

@@ -1,15 +1,18 @@
 @yield('css')
-@vite(['resources/scss/icons.scss','resources/scss/app.scss'])
+@vite(['resources/scss/icons.scss', 'resources/scss/app.scss'])
 @vite(['resources/js/config.js'])
 <style>
     html[data-bs-theme="light"] {
         $body-color: #252728;
+
         .table a {
             color: #252728 !important;
         }
+
         .table a:hover {
             color: #4393e3 !important;
         }
+
         .table>:not(caption)>*>* {
             padding: .85rem;
             color: var(--bs-table-color-state, var(--bs-table-color-type, #252728));
@@ -17,29 +20,39 @@
             border-bottom-width: var(--bs-border-width);
             box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
         }
+
+        .table .show_hidden_phone {
+            color: #ffffff !important;
+        }
     }
+
     html[data-bs-theme="dark"] {
         .table-light {
             --#{$prefix}table-color: var(--#{$prefix}body-color);
             --#{$prefix}table-bg: var(--#{$prefix}light);
             --#{$prefix}table-border-color: #{$table-group-separator-color};
         }
+
         .table a {
             color: #aab8c5 !important;
         }
+
         .table a:hover {
             color: #4393e3 !important;
         }
-        .dataTables_wrapper .dataTables_length, 
-        .dataTables_wrapper .dataTables_filter, 
-        .dataTables_wrapper .dataTables_info, 
-        .dataTables_wrapper .dataTables_processing, 
-        .dataTables_wrapper .dataTables_paginate{
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_processing,
+        .dataTables_wrapper .dataTables_paginate {
             color: #aab8c5 !important
         }
+
         table.dataTable tbody tr {
             background-color: transparent !important;
         }
+
         .bg-dark {
             --bs-bg-opacity: 1;
             background-color: rgba(var(--bs-light-rgb), var(--bs-bg-opacity)) !important;
@@ -64,12 +77,20 @@
     }
 
     @keyframes badgeBlink {
-        0%   { opacity: 1; }
-        50%  { opacity: 0.4; }
-        100% { opacity: 1; }
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+
+        100% {
+            opacity: 1;
+        }
     }
 
-     /* Premium Select2 UI Enhancements */
+    /* Premium Select2 UI Enhancements */
     .select2-container .select2-selection--single {
         height: 42px !important;
         border: 1px solid #e0e6ed !important;
@@ -90,7 +111,8 @@
     /* Clear Button (Remove Keyword) Styling */
     .select2-container--default .select2-selection--single .select2-selection__clear {
         position: absolute !important;
-        right: 35px !important; /* Positioned left of the arrow */
+        right: 35px !important;
+        /* Positioned left of the arrow */
         top: 50% !important;
         transform: translateY(-50%) !important;
         margin-right: 0 !important;
@@ -101,7 +123,8 @@
     }
 
     .select2-container--default .select2-selection--single .select2-selection__clear:hover {
-        color: #ef4444 !important; /* Alert Red on hover */
+        color: #ef4444 !important;
+        /* Alert Red on hover */
     }
 
     .select2-container--default .select2-selection--single .select2-selection__arrow {
@@ -112,7 +135,8 @@
     /* Focus & Open State */
     .select2-container--open .select2-selection--single,
     .select2-container--default.select2-container--focus .select2-selection--single {
-        border-color: #6366f1 !important; /* Soft Indigo */
+        border-color: #6366f1 !important;
+        /* Soft Indigo */
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
     }
 
@@ -127,8 +151,15 @@
     }
 
     @keyframes select2SlideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     /* Internal Search Box styling */

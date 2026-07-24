@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Http\Request;
+
 use Horsefly\User;
 use Horsefly\Sale;
 use Horsefly\Applicant;
@@ -17,16 +17,19 @@ use Horsefly\CrmNote;
 use Horsefly\QualityNotes;
 use Horsefly\ApplicantNote;
 use Horsefly\History;
-use App\Http\Controllers\Controller;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Validator;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;
 use Horsefly\Notification;
+
+use App\Support\DialLink;
+
+use App\Http\Controllers\Controller;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
@@ -1094,6 +1097,7 @@ class DashboardController extends Controller
                         'quality_cleared',
                         'quality_cvs_hold',
                         'quality_reject',
+                        'crm_save',
                         'crm_reject',
                         'crm_request',
                         'crm_request_confirm',
@@ -1163,20 +1167,24 @@ class DashboardController extends Controller
                     // Counter increments BEFORE the crm_reject guard, so no guard here.
                     // 1 per pair — mirrors isNotEmpty() in counter.
                     if ($stat_key === 'CRM_sent_cvs') {
-                        if ($pairCleared->isEmpty()) continue;
-                        $h      = $pairCleared->first();
-                        $rows[] = [
-                            count($rows) + 1,
-                            $h->applicant->applicant_name  ?? '—',
-                            $h->applicant->applicant_postcode ?? '—',
-                            $h->sale->jobCategory->name    ?? '—',
-                            $h->sale->jobTitle->name       ?? '—',
-                            $h->sale->sale_postcode        ?? '—',
-                            $h->sale->office->office_name  ?? '—',
-                            $h->sale->unit->unit_name      ?? '—',
-                            'CRM Sent CVs',
-                            $h->updated_at->format('d M Y h:i A'),
-                        ];
+                        if (
+                            isset($pairHistory['crm_save']) &&
+                            $pairHistory['crm_save']->status == 1
+                        ) {
+                            $h      = $pairHistory->first();
+                            $rows[] = [
+                                count($rows) + 1,
+                                $h->applicant->applicant_name  ?? '—',
+                                $h->applicant->applicant_postcode ?? '—',
+                                $h->sale->jobCategory->name    ?? '—',
+                                $h->sale->jobTitle->name       ?? '—',
+                                $h->sale->sale_postcode        ?? '—',
+                                $h->sale->office->office_name  ?? '—',
+                                $h->sale->unit->unit_name      ?? '—',
+                                'CRM Sent CVs',
+                                $h->updated_at->format('d M Y h:i A'),
+                            ];
+                        }
                         continue;
                     }
 
@@ -2870,31 +2878,39 @@ class DashboardController extends Controller
                     ';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
-                    if ($applicant->is_blocked) {
+
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $dialLink = function (string $num, string $prefix): string {
-                        $safe = e($num);
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $showBlockedData = $applicant->is_blocked
+                        && Gate::allows('applicant-show-blocked-data');
+
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
-                    if (!empty(trim((string) $applicant->applicant_phone))) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_phone_secondary))) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
-                    }
-                    if (!empty(trim((string) $applicant->applicant_landline))) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+
+                    if (!empty($applicant->applicant_phone)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
-                    return implode('<br>', $parts) ?: '-';
+                    if (!empty($applicant->applicant_phone_secondary)) {
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
+                    }
+
+                    if (!empty($applicant->applicant_landline)) {
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
+                    }
+
+                    $phones = implode('<br>', $parts) ?: '-';
+
+                    if ($showBlockedData) {
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                            . $phones
+                            . '</div>';
+                    }
+
+                    return $phones;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantPhone', function ($query, $keyword) {

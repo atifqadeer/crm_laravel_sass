@@ -32,6 +32,8 @@ use App\Traits\Geocode;
 // Import necessary observers
 use App\Observers\ActionObserver;
 
+use App\Support\DialLink;
+
 // Import necessary classes
 use App\Exports\ApplicantsExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -842,43 +844,26 @@ class ApplicantController extends Controller
                     $showBlockedData = $applicant->is_blocked
                         && Gate::allows('applicant-show-blocked-data');
 
-                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-                        $safe = e($num);
-
-                        if ($showBlockedData) {
-                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
-                                . "<a href=\"javascript:void(0)\" "
-                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
-                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                        }
-
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
 
                     if (!empty($applicant->applicant_phone)) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
                     if (!empty($applicant->applicant_phone_secondary)) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
                     }
 
                     if (!empty($applicant->applicant_landline)) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
                     }
 
                     $phones = implode('<br>', $parts) ?: '-';
 
                     if ($showBlockedData) {
-                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
                             . $phones
                             . '</div>';
                     }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+
 use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\User;
@@ -16,20 +18,24 @@ use Horsefly\JobTitle;
 use Horsefly\JobSource;
 use Horsefly\SaleDocument;
 use Horsefly\ModuleNote;
+
 use App\Observers\ActionObserver;
+
+use App\Support\DialLink;
+
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
-use App\Exports\SalesExport;
-use Maatwebsite\Excel\Facades\Excel;
-use Carbon\Carbon;
-use App\Traits\Geocode;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
+use App\Exports\SalesExport;
+use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Traits\Geocode;
 use Exception;
 
 class SaleController extends Controller
@@ -3982,43 +3988,26 @@ class SaleController extends Controller
                     $showBlockedData = $applicant->is_blocked
                         && Gate::allows('applicant-show-blocked-data');
 
-                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-                        $safe = e($num);
-
-                        if ($showBlockedData) {
-                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
-                                . "<a href=\"javascript:void(0)\" "
-                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
-                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                        }
-
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
 
                     if (!empty($applicant->applicant_phone)) {
-                        $parts[] = $dialLink($applicant->applicant_phone, 'P');
+                        $parts[] = DialLink::render($applicant->applicant_phone, 'Primary Phone', $class);
                     }
 
                     if (!empty($applicant->applicant_phone_secondary)) {
-                        $parts[] = $dialLink($applicant->applicant_phone_secondary, 'S');
+                        $parts[] = DialLink::render($applicant->applicant_phone_secondary, 'Secondary Phone', $class);
                     }
 
                     if (!empty($applicant->applicant_landline)) {
-                        $parts[] = $dialLink($applicant->applicant_landline, 'L');
+                        $parts[] = DialLink::render($applicant->applicant_landline, 'Landline', $class);
                     }
 
                     $phones = implode('<br>', $parts) ?: '-';
 
                     if ($showBlockedData) {
-                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
                             . $phones
                             . '</div>';
                     }
@@ -4627,8 +4616,6 @@ class SaleController extends Controller
                             </div>
                         </div>
                     ';
-                    // Tooltip content with additional data-bs-placement and title
-                    return $notes;
                 })
                 ->addColumn('applicantPhone', function ($row) {
 
@@ -4639,43 +4626,26 @@ class SaleController extends Controller
                     $showBlockedData = $row->is_blocked
                         && Gate::allows('applicant-show-blocked-data');
 
-                    $dialLink = function (string $num, string $prefix) use ($showBlockedData): string {
-
-                        $safe = e($num);
-
-                        if ($showBlockedData) {
-                            return "<strong style=\"color:#ffffff !important;\">{$prefix}:</strong> "
-                                . "<a href=\"javascript:void(0)\" "
-                                . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                                . "style=\"color:#ffffff !important; text-decoration:none;\" "
-                                . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                        }
-
-                        return "<strong>{$prefix}:</strong> "
-                            . "<a href=\"javascript:void(0)\" "
-                            . "onclick=\"if(window.xplosipDial){xplosipDial('{$safe}');}\" "
-                            . "class=\"text-primary text-decoration-none\" "
-                            . "title=\"Click to dial {$safe}\">{$safe}</a>";
-                    };
+                    $class = $showBlockedData ? 'show_hidden_phone' : '';
 
                     $parts = [];
 
                     if (!empty($row->applicant_phone)) {
-                        $parts[] = $dialLink($row->applicant_phone, 'P');
+                        $parts[] = DialLink::render($row->applicant_phone, 'Primary Phone', $class);
                     }
 
                     if (!empty($row->applicant_phone_secondary)) {
-                        $parts[] = $dialLink($row->applicant_phone_secondary, 'S');
+                        $parts[] = DialLink::render($row->applicant_phone_secondary, 'Secondary Phone', $class);
                     }
 
                     if (!empty($row->applicant_landline)) {
-                        $parts[] = $dialLink($row->applicant_landline, 'L');
+                        $parts[] = DialLink::render($row->applicant_landline, 'Landline', $class);
                     }
 
                     $phones = implode('<br>', $parts) ?: '-';
 
                     if ($showBlockedData) {
-                        return '<div style="background:#212529; padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
+                        return '<div class="bg-dark text-white" style="padding:6px 8px; border-radius:4px; color:#ffffff !important;">'
                             . $phones
                             . '</div>';
                     }
