@@ -298,7 +298,7 @@ class RegionController extends Controller
                     }
 
                     // Normal applicant
-                    return $email;
+                    return $email ?? '-';
                 })
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
                     $keyword = trim($keyword);
