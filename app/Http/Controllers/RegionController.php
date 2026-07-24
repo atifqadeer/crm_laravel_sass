@@ -282,15 +282,28 @@ class RegionController extends Controller
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
-                ->addColumn('applicant_email', function ($applicant) {
-                    $email = '';
-                    if($applicant->applicant_email_secondary){
-                        $email = $applicant->applicant_email .'<br>'.$applicant->applicant_email_secondary; 
-                    }else{
-                        $email = $applicant->applicant_email;
+                ->addColumn('applicantEmail', function ($applicant) {
+                    // Blocked applicant + no permission
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $email; // Using accessor
+                    $email = $applicant->applicant_email_secondary
+                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+                        : $applicant->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
+                })
+                ->filterColumn('applicantEmail', function ($query, $keyword) {
+                    $keyword = trim($keyword);
+                    $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
                 })
                 ->addColumn('created_at', function ($applicant) {
                     if (!empty($applicant->cv_notes) && count($applicant->cv_notes) > 0) {
@@ -416,7 +429,7 @@ class RegionController extends Controller
                             </ul>
                         </div>';
                 })
-                ->rawColumns(['applicant_notes', 'created_at', 'applicant_postcode', 'applicant_experience', 'applicant_email', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'created_at', 'applicant_postcode', 'applicant_experience', 'applicantEmail', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }
