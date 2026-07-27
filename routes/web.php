@@ -94,6 +94,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getAvailableJobs', [ApplicantController::class, 'getAvailableJobs'])->name('getAvailableJobs');
     Route::get('getAvailableNoJobs', [ApplicantController::class, 'getAvailableNoJobs'])->name('getAvailableNoJobs');
     Route::get('applicantsExport', [ApplicantController::class, 'export'])->name('applicantsExport');
+    Route::get('regionApplicantsExport', [ApplicantController::class, 'regionalApplicatsExport'])->name('regionApplicantsExport');
     Route::post('changeStatus', [ApplicantController::class, 'changeStatus'])->name('changeStatus');
     Route::post('getApplicantsAjaxRequest', [ApplicantController::class, 'getApplicantsAjaxRequest'])->name('getApplicantsAjaxRequest');
     Route::get('getJobTitlesByCategory', [ApplicantController::class, 'getJobTitlesByCategory'])->name('getJobTitlesByCategory');
