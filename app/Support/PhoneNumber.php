@@ -64,12 +64,20 @@ class PhoneNumber
     public static function mask(?string $number): string
     {
         $digits = self::digits($number);
+
         if ($digits === '') {
             return '';
         }
+
+        if (strlen($digits) <= 3) {
+            return $digits;
+        }
+
         // if (strlen($digits) <= 3) {
         //     return str_repeat('•', strlen($digits));
         // }
-        return str_repeat('•', strlen($digits) - 3) . substr($digits, -3);
+
+        return str_repeat('•', strlen($digits) - 3)
+            . substr($digits, -3);
     }
 }
