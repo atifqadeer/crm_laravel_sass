@@ -4508,7 +4508,7 @@ class SaleController extends Controller
                     }
 
                     $html .= '</ul></div>';
-                    return $status_value;
+                    return $html;
                 })
                 ->rawColumns([
                     'checkbox',
