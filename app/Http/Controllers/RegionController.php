@@ -9,6 +9,7 @@ use Horsefly\Unit;
 use Horsefly\Applicant;
 use Horsefly\Region;
 use Horsefly\JobTitle;
+use Horsefly\JobSource;
 use Horsefly\JobCategory;
 use Horsefly\Setting;
 
@@ -30,35 +31,44 @@ class RegionController extends Controller
     }
     public function resourcesIndex()
     {
-        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-        $regions = Region::orderBy('name','asc')->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $regions = Region::orderBy('name', 'asc')->get();
 
         return view('regions.resources', compact('jobCategories', 'jobTitles', 'regions'));
     }
     public function salesIndex()
     {
-        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name','asc')->get();
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name','asc')->get();
-        $offices = Office::where('status', 1)->orderBy('office_name','asc')->get();
-        $regions = Region::orderBy('name','asc')->get();
+        $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
+        $regions = Region::orderBy('name', 'asc')->get();
 
         return view('regions.sales', compact('jobCategories', 'jobTitles', 'offices', 'regions'));
     }
     public function getApplicantsByRegions(Request $request)
     {
-        $regionFilter = $request->input('region_filter', ''); 
+        $regionFilter = $request->input('region_filter', []);
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
-        
-        if($regionFilter){
-            $reg = Region::where('id', $regionFilter)->first();
-        }else{
-            $reg = Region::first();
+
+        if (!empty($regionFilter)) {
+
+            $districtCodes = Region::whereIn('id', $regionFilter)
+                ->pluck('districts_code')
+                ->filter()
+                ->toArray();
+        } else {
+
+            $firstRegion = Region::first();
+
+            $districtCodes = $firstRegion && $firstRegion->districts_code
+                ? [$firstRegion->districts_code]
+                : [];
         }
 
-        $district = $reg['districts_code'] ?? null;
+        $districtRegex = implode('|', $districtCodes);
 
         $model = Applicant::query()
             ->select([
@@ -74,8 +84,13 @@ class RegionController extends Controller
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->whereRaw("UPPER(TRIM(applicants.applicant_postcode)) REGEXP '^($district)[0-9]'");
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id');
+
+        if (!empty($districtRegex)) {
+            $model->whereRaw(
+                "UPPER(TRIM(applicants.applicant_postcode)) REGEXP '^($districtRegex)[0-9]'"
+            );
+        }
 
         // Sorting logic
         if ($request->has('order')) {
@@ -155,10 +170,18 @@ class RegionController extends Controller
                 ->addColumn('job_title', function ($applicant) {
                     return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
-                ->addColumn('job_category', function ($sale) {
-                    $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
+                ->addColumn('job_category', function ($applicant) {
+                    $type = $applicant->job_type;
+
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$applicant->jobCategory) {
+                        return '-';
+                    }
+
+                    return e($applicant->jobCategory->name) . $stype;
                 })
                 ->addColumn('job_source', function ($applicant) {
                     if (!$applicant->jobSource)
@@ -171,30 +194,24 @@ class RegionController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
-                ->addColumn('applicant_postcode', function ($applicant) {
-                    $status_value = 'open';
-                    $postcode = '';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                    } else {
-                        foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 1) {
-                                $status_value = 'sent';
-                                break;
-                            } elseif ($value->status == 0) {
-                                $status_value = 'reject';
-                            }
-                        }
-                    }
-                    if ($status_value == 'open' || $status_value == 'reject') {
-                        $postcode .= '<a href="/available-jobs/' . $applicant->id . '" style="color:blue" target="_blank">';
-                        $postcode .= $applicant->formatted_postcode;
-                        $postcode .= '</a>';
-                    } else {
-                        $postcode .= $applicant->formatted_postcode;
-                    }
+                ->editColumn('applicant_postcode', function ($applicant) {
+                    $rawPostcode = trim($applicant->applicant_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
 
-                    return $postcode;
+                    $postcode = $applicant->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+                    } else {
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
+                    }
                 })
                 ->addColumn('applicant_experience', function ($applicant) {
                     $short = Str::limit(strip_tags($applicant->applicant_experience), 80);
@@ -357,27 +374,41 @@ class RegionController extends Controller
                             </button>';
                 })
                 ->addColumn('customStatus', function ($applicant) {
-                    $status_value = 'open';
-                    $color_class = 'bg-dark';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                        $color_class = 'bg-primary';
-                    } else {
-                        foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
-                                $status_value = 'sent';
-                                $color_class = 'bg-success';
-                                break;
-                            } elseif ($value->status == 'disable') {
-                                $status_value = 'reject';
-                                $color_class = 'bg-danger';
-                            }
-                        }
-                    }
                     $status = '';
-                    $status .= '<span class="badge '.$color_class.'">';
-                    $status .= strtoupper($status_value);
-                    $status .= '</span>';
+                    if ($applicant->is_blocked == 1) {
+                        $status = '<span class="badge bg-dark">Blocked</span>';
+                    } elseif ($applicant->is_no_response == 1) {
+                        $status = '<span class="badge bg-warning">No Response</span>';
+                    } elseif ($applicant->is_circuit_busy == 1) {
+                        $status = '<span class="badge bg-warning">Circuit Busy</span>';
+                    } elseif ($applicant->is_no_job == 1) {
+                        $status = '<span class="badge bg-warning">No Job</span>';
+                    } elseif ($applicant->is_temp_not_interested == 1) {
+                        $status = '<span class="badge bg-danger">Not<br>Interested</span>';
+                    } elseif ($applicant->paid_status == 'open' && $applicant->is_in_crm_paid == 0) {
+                        $status = '<span class="badge bg-primary">Open</span>';
+                    } elseif ($applicant->paid_status == 'close' && $applicant->is_in_crm_paid == 1) {
+                        $status = '<span class="badge bg-dark">CRM Paid</span>';
+                    } elseif (
+                        (($applicant->crm_history_count ?? 0) > 0) &&
+                        (
+                            $applicant->is_cv_in_quality_clear == 1 ||
+                            $applicant->is_interview_confirm == 1 ||
+                            $applicant->is_interview_attend == 1 ||
+                            $applicant->is_in_crm_request == 1 ||
+                            $applicant->is_crm_request_confirm == 1 ||
+                            $applicant->is_crm_interview_attended != 0 ||
+                            $applicant->is_in_crm_start_date == 1 ||
+                            $applicant->is_in_crm_invoice == 1 ||
+                            $applicant->is_in_crm_invoice_sent == 1 ||
+                            $applicant->is_in_crm_start_date_hold == 1 ||
+                            $applicant->is_in_crm_paid == 0
+                        )
+                    ) {
+                        $status = '<span class="badge bg-primary">CRM Active</span>';
+                    } else {
+                        $status = '-';
+                    }
 
                     return $status;
                 })
@@ -443,22 +474,22 @@ class RegionController extends Controller
         $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
-        if($regionFilter){
+        if ($regionFilter) {
             $reg = Region::where('id', $regionFilter)->first();
-        }else{
+        } else {
             $reg = Region::first();
         }
-        
+
         $district = $reg['districts_code'] ?? null;
 
         $model = Sale::query()
             ->select([
-            'sales.*',
-            'job_titles.name as job_title_name',
-            'job_categories.name as job_category_name',
-            'offices.office_name as office_name',
-            'units.unit_name as unit_name',
-            'users.name as user_name',
+                'sales.*',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'offices.office_name as office_name',
+                'units.unit_name as unit_name',
+                'users.name as user_name',
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
@@ -471,13 +502,27 @@ class RegionController extends Controller
             ->whereNull('sales.deleted_at');
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $model->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
                     ->orWhereNull('sales.job_source_id');
             });
         }
@@ -532,46 +577,48 @@ class RegionController extends Controller
             case 'active':
                 $model->where('sales.status', 1);
                 break;
-                
+
             case 'closed':
                 $model->where('sales.status', 0)
                     ->where('sales.is_on_hold', 0);
                 break;
-                
+
             case 'pending':
                 $model->where('sales.status', 2);
                 break;
-                
+
             case 'rejected':
                 $model->where('sales.status', 3);
                 break;
-                
+
             case 'on hold':
                 $model->where('sales.is_on_hold', true);
                 break;
-                
+
             default:
                 $model->where('sales.status', 1);
                 break;
         }
-       
+
         // Filter by category if it's not empty
         if ($officeFilter) {
             $model->whereIn('sales.office_id', $officeFilter);
         }
-        
+
         // Filter by category if it's not empty
         if ($limitCountFilter) {
             if ($limitCountFilter == 'zero') {
                 $model->where('sales.cv_limit', '=', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1'
                     ));
                 });
             } elseif ($limitCountFilter == 'not max') {
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count > 0 
                         AND sent_cv_count <> sales.cv_limit'
@@ -579,19 +626,20 @@ class RegionController extends Controller
                 });
             } elseif ($limitCountFilter == 'max') {
                 $model->where('sales.cv_limit', '>', function ($query) {
-                    $query->select(DB::raw('count(cv_notes.sale_id) AS sent_cv_count 
+                    $query->select(DB::raw(
+                        'count(cv_notes.sale_id) AS sent_cv_count 
                         FROM cv_notes WHERE cv_notes.sale_id=sales.id 
                         AND cv_notes.status = 1 HAVING sent_cv_count = 0'
                     ));
                 });
             }
         }
-       
+
         // Filter by category if it's not empty
         if ($categoryFilter) {
             $model->whereIn('sales.job_category_id', $categoryFilter);
         }
-       
+
         // Filter by category if it's not empty
         if ($titleFilter) {
             $model->whereIn('sales.job_title_id', $titleFilter);
@@ -639,7 +687,7 @@ class RegionController extends Controller
                 ->addColumn('job_title', function ($sale) {
                     return $sale->jobTitle ? $sale->jobTitle->name : '-';
                 })
-                 ->addColumn('open_date', function ($sale) {
+                ->addColumn('open_date', function ($sale) {
                     return $sale->open_date ? Carbon::parse($sale->open_date)->format('d M Y, h:i A') : '-'; // Using accessor
                 })
                 ->addColumn('job_category', function ($sale) {
@@ -648,10 +696,10 @@ class RegionController extends Controller
                     return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
-                    if($sale->lat != null && $sale->lng != null){
-                        $url = url('/sales/fetch-applicants-by-radius/'. $sale->id . '/15');
-                        $button = '<a target="_blank" href="'. $url .'" style="color:blue;">'. $sale->formatted_postcode .'</a>'; // Using accessor
-                    }else{
+                    if ($sale->lat != null && $sale->lng != null) {
+                        $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
+                        $button = '<a target="_blank" href="' . $url . '" style="color:blue;">' . $sale->formatted_postcode . '</a>'; // Using accessor
+                    } else {
                         $button = $sale->formatted_postcode;
                     }
                     return $button;
@@ -925,8 +973,8 @@ class RegionController extends Controller
                         $status = '<span class="badge bg-danger">Rejected</span>';
                     }
 
-                    $position_type = strtoupper(str_replace('-',' ',$sale->position_type));
-                    $position = '<span class="badge bg-primary">'. $position_type .'</span>';
+                    $position_type = strtoupper(str_replace('-', ' ', $sale->position_type));
+                    $position = '<span class="badge bg-primary">' . $position_type . '</span>';
 
                     $action = '';
                     $action = '<div class="btn-group dropstart">

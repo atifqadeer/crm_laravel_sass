@@ -20,6 +20,7 @@ use Horsefly\Message;
 use Horsefly\User;
 use Horsefly\Interview;
 use Horsefly\JobCategory;
+use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
@@ -2235,13 +2236,27 @@ class CrmController extends Controller
         }
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $model->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
                     ->orWhereNull('sales.job_source_id');
             });
         }

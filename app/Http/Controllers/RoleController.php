@@ -5,16 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 
 class RoleController extends Controller
 {
@@ -92,16 +89,23 @@ class RoleController extends Controller
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors(),
-                'message' => 'Please fix the errors in the form'
+                'message' => $validator->errors()->first(),
             ], 422);
         }
 
         try {
             // Create the role
-            $permission = \Spatie\Permission\Models\Permission::create([
+            $permission = Permission::create([
                 'name' => strtolower(str_replace(' ', '-', $request->input('name'))),
                 'guard_name' => 'web',
             ]);
+
+            if (!$permission) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Something went wrong, Please try again.'
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -109,11 +113,11 @@ class RoleController extends Controller
                 'redirect' => route('permissions.list')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating permission: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating the permission. Please try again.'
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ], 500);
         }
     }

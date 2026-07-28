@@ -231,7 +231,7 @@ class SettingController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating the job source. Please try again.'
+                'message' => 'Something went wrong, Please try again.'
             ], 500);
         }
     }
@@ -424,18 +424,29 @@ class SettingController extends Controller
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
 
-        $query = JobSource::query();
-
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $query->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('id', $hidePrivateData)
-                    ->orWhereNull('id');
-            });
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::query();
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
         }
 
         // Search filter

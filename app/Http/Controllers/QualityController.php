@@ -16,7 +16,8 @@ use Horsefly\CrmNote;
 use Horsefly\Applicant;
 use Horsefly\RevertStage;
 use Horsefly\SmsTemplate;
-use Horsefly\JobCategory;
+use Horsefly\JobSource; 
+use Horsefly\JobCategory; 
 use Horsefly\JobTitle;
 use Horsefly\ModuleNote;
 use Horsefly\User;
@@ -1547,9 +1548,9 @@ class QualityController extends Controller
                 $type = $applicant->sale_job_type;
 
                 $stype = $type === 'specialist'
-                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
-                        : '';
-                        
+                    ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                    : '';
+
                 return $applicant->job_category_name ? ucwords($applicant->job_category_name) . $stype : '-';
             })
             ->addColumn('job_source', fn($applicant) => $applicant->job_source_name ? ucwords($applicant->job_source_name) : '-')
@@ -2157,13 +2158,27 @@ class QualityController extends Controller
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"));
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $model->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
                     ->orWhereNull('sales.job_source_id');
             });
         }

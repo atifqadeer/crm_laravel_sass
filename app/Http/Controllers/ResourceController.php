@@ -11,6 +11,7 @@ use Horsefly\ApplicantPivotSale;
 use Horsefly\NotesForRangeApplicant;
 use Horsefly\Applicant;
 use Horsefly\JobCategory;
+use Horsefly\JobSource;
 use Horsefly\Setting;
 use Horsefly\CrmNote;
 use Horsefly\JobTitle;
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str; 
+use Illuminate\Support\Str;
 
 use Exception;
 
@@ -125,13 +126,27 @@ class ResourceController extends Controller
             ->where('sales.is_on_hold', 0);
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $model->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
                     ->orWhereNull('sales.job_source_id');
             });
         }
@@ -575,9 +590,22 @@ class ResourceController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $salesQuery->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $salesQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
                     ->orWhereNull('sales.job_source_id');
             });
         }
@@ -1529,7 +1557,7 @@ class ResourceController extends Controller
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
                 })
-                 ->addColumn('applicantEmail', function ($applicant) {
+                ->addColumn('applicantEmail', function ($applicant) {
                     // Blocked applicant + no permission
                     if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";

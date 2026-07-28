@@ -11,6 +11,7 @@ use Horsefly\Setting;
 use Horsefly\Unit;
 use Carbon\Carbon;
 use Horsefly\JobCategory;
+use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Geocode;
@@ -202,14 +203,28 @@ class PostcodeController extends Controller implements HasMiddleware
             ->where("is_on_hold", 0);
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $location_distance->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('id', $hidePrivateData)
-                    ->orWhereNull('id');
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $location_distance->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
+                    ->orWhereNull('job_source_id');
             });
         }
 

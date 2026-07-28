@@ -1,13 +1,14 @@
 @extends('layouts.vertical', ['title' => 'Permission List', 'subTitle' => 'Home'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
     <div class="row">
@@ -68,7 +69,8 @@
     </div>
 
     <!-- Create ip address Modal -->
-    <div class="modal fade" id="createPermissionModal" tabindex="-1" aria-labelledby="createPermissionModalLabel" aria-hidden="true">
+    <div class="modal fade" id="createPermissionModal" tabindex="-1" aria-labelledby="createPermissionModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
                 <div class="modal-header">
@@ -80,7 +82,8 @@
                         @csrf
                         <div class="mb-3">
                             <label for="permission_name" class="form-label">Permission Name</label>
-                            <input type="text" class="form-control" id="permission_name" name="name" placeholder="Enter Permission Name" required>
+                            <input type="text" class="form-control" id="permission_name" name="name"
+                                placeholder="Enter Permission Name" required>
                         </div>
                     </form>
                 </div>
@@ -93,7 +96,8 @@
     </div>
 
     <!-- edit ip address Modal -->
-    <div class="modal fade" id="editPermissionModal" tabindex="-1" aria-labelledby="editPermissionModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editPermissionModal" tabindex="-1" aria-labelledby="editPermissionModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
                 <div class="modal-header">
@@ -106,7 +110,8 @@
                         <input type="hidden" id="permission_id" name="id">
                         <div class="mb-3">
                             <label for="edit_permission_name" class="form-label">Permission Name</label>
-                            <input type="text" class="form-control" id="edit_permission_name" name="name" placeholder="Enter Permission Name" required>
+                            <input type="text" class="form-control" id="edit_permission_name" name="name"
+                                placeholder="Enter Permission Name" required>
                         </div>
                     </form>
                 </div>
@@ -123,28 +128,28 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
-    
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -165,35 +170,57 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#permission_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getPermissions')),  // Fetch data from the backend
+                    url: @json(route('getPermissions')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.status_filter = currentFilter;  // Send the current filter value as a parameter
+                        d.status_filter = currentFilter; // Send the current filter value as a parameter
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#permission_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#permission_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'permissions.created_at' },
-                    { data: 'name', name: 'permissions.name' },
-                    { data: 'slug', name: 'permissions.name', orderable: false, searchable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'permissions.created_at'
+                    },
+                    {
+                        data: 'name',
+                        name: 'permissions.name'
+                    },
+                    {
+                        data: 'slug',
+                        name: 'permissions.name',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -203,7 +230,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#permission_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#permission_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -217,39 +245,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -272,7 +302,7 @@
 
             // Handle filter button clicks and send filter parameters to the DataTable
             $('.dropdown-item').on('click', function() {
-                  currentFilter = $(this).text().toLowerCase();
+                currentFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
                 const formattedText = currentFilter
@@ -305,21 +335,21 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const editModal = $('#editPermissionModal');
             const editForm = $('#editPermissionForm');
             const saveEditBtn = $('#saveEditPermissionButton');
 
             // Show modal and populate fields
-            window.showEditModal = function (id, name, status) {
+            window.showEditModal = function(id, name, status) {
                 $('#permission_id').val(id);
                 $('#edit_permission_name').val(name);
                 if (typeof status !== 'undefined') {
@@ -330,8 +360,8 @@
             };
 
             // Save user changes
-            saveEditBtn.on('click', function () {
-                const url = '{{ route("permissions.update") }}';
+            saveEditBtn.on('click', function() {
+                const url = '{{ route('permissions.update') }}';
                 const method = 'PUT';
                 const form = $('#editPermissionForm');
                 const formData = form.serialize();
@@ -344,19 +374,19 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 $.ajax({
                     url: url,
                     type: method,
                     data: formData,
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success(response.message);
                         editModal.modal('hide');
                         editForm[0].reset();
                         $('#permission_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
                             const errors = xhr.responseJSON.errors;
 
@@ -365,7 +395,9 @@
                                 input.addClass('is-invalid');
 
                                 if (input.next('.invalid-feedback').length === 0) {
-                                    input.after(`<div class="invalid-feedback">${errors[field][0]}</div>`);
+                                    input.after(
+                                        `<div class="invalid-feedback">${errors[field][0]}</div>`
+                                        );
                                 }
                             }
                         } else {
@@ -383,26 +415,26 @@
             // Set the notes content in the modal as a table
             $('#showDetailsModal .modal-body').html(
                 '<table class="table table-bordered">' +
-                    '<tr>' +
-                        '<th>Unit ID</th>' +
-                        '<td>' + unitId + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Head Office Name</th>' +
-                        '<td>' + officeName + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Unit Name</th>' +
-                        '<td>' + name + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Postcode</th>' +
-                        '<td>' + postcode + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<th>Status</th>' +
-                        '<td>' + status + '</td>' +
-                    '</tr>' +
+                '<tr>' +
+                '<th>Unit ID</th>' +
+                '<td>' + unitId + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<th>Head Office Name</th>' +
+                '<td>' + officeName + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<th>Unit Name</th>' +
+                '<td>' + name + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<th>Postcode</th>' +
+                '<td>' + postcode + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<th>Status</th>' +
+                '<td>' + status + '</td>' +
+                '</tr>' +
                 '</table>'
             );
 
@@ -413,20 +445,20 @@
             if ($('#showDetailsModal').length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="showDetailsModal" tabindex="-1" aria-labelledby="showDetailsModalLabel" >' +
-                        '<div class="modal-dialog modal-lg modal-dialog-top">' +
-                            '<div class="modal-content">' +
-                                '<div class="modal-header">' +
-                                    '<h5 class="modal-title" id="showDetailsModalLabel">Unit Details</h5>' +
-                                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                                '</div>' +
-                                '<div class="modal-body">' +
-                                    '<!-- Notes content will be dynamically inserted here -->' +
-                                '</div>' +
-                                '<div class="modal-footer">' +
-                                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
+                    '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                    '<div class="modal-content">' +
+                    '<div class="modal-header">' +
+                    '<h5 class="modal-title" id="showDetailsModalLabel">Unit Details</h5>' +
+                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                    '</div>' +
+                    '<div class="modal-body">' +
+                    '<!-- Notes content will be dynamically inserted here -->' +
+                    '</div>' +
+                    '<div class="modal-footer">' +
+                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
                     '</div>'
                 );
             }
@@ -447,7 +479,7 @@
         function createPermission() {
             $('#createPermissionModal').modal('show');
 
-            $('#savecreatePermissionButton').off('click').on('click', function () {
+            $('#savecreatePermissionButton').off('click').on('click', function() {
                 let form = $('#createPermissionForm');
                 let formData = form.serialize();
 
@@ -459,29 +491,48 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 $.ajax({
-                    url: '{{ route("permissions.store") }}',
+                    url: '{{ route('permissions.store') }}',
                     type: 'POST',
                     data: formData,
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Permission created successfully!');
+
                         $('#createPermissionModal').modal('hide');
                         form[0].reset();
 
                         $('#permission_table').DataTable().ajax.reload(); // Reload the DataTable
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
+
                         if (xhr.status === 422) {
+
                             let errors = xhr.responseJSON.errors;
+
                             for (let key in errors) {
                                 let input = form.find('[name="' + key + '"]');
                                 input.addClass('is-invalid');
-                                input.after('<div class="invalid-feedback">' + errors[key][0] + '</div>');
+                                input.after(
+                                    '<div class="invalid-feedback">' +
+                                    errors[key][0] +
+                                    '</div>'
+                                );
                             }
+
                         } else {
-                            alert('An error occurred.');
+
+                            let message = 'An error occurred.';
+
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                message = xhr.responseJSON.message;
+                            }
+
+                            toastr.error(message);
+
+                            // Optional: log the complete response for debugging
+                            console.log(xhr.responseJSON);
                         }
                     },
                     complete: function() {
@@ -493,37 +544,36 @@
 
         function deleteIpAddress(id) {
             Swal.fire({
-            title: 'Are you sure?',
-            text: 'This IP address will be permanently deleted. Are you sure you want to continue?',
-            icon: 'warning',
-            showCancelButton: true,
-            customClass: {
-                confirmButton: 'btn bg-danger text-white me-2 mt-2',
-                cancelButton: 'btn btn-secondary mt-2'
-            },
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
+                title: 'Are you sure?',
+                text: 'This IP address will be permanently deleted. Are you sure you want to continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                customClass: {
+                    confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                    cancelButton: 'btn btn-secondary mt-2'
+                },
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                url: '{{ route("ip-address.destroy") }}',
-                type: 'post',
-                data: {
-                    id: id,
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    toastr.success(response.message || 'IP Address deleted successfully!');
-                    $('#permission_table').DataTable().ajax.reload();
-                },
-                error: function(xhr) {
-                    toastr.error('An error occurred while deleting the IP address.');
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route('ip-address.destroy') }}',
+                        type: 'post',
+                        data: {
+                            id: id,
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            toastr.success(response.message || 'IP Address deleted successfully!');
+                            $('#permission_table').DataTable().ajax.reload();
+                        },
+                        error: function(xhr) {
+                            toastr.error('An error occurred while deleting the IP address.');
+                        }
+                    });
                 }
-                });
-            }
             });
         }
     </script>
-    
 @endsection
-@endsection                        
+@endsection

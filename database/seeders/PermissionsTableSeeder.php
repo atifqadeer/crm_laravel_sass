@@ -306,6 +306,9 @@ class PermissionsTableSeeder extends Seeder
             'region-resource-view-notes-history',
             'region-resource-view',
             'region-resource-download-resume',
+            'region-export',
+            'region-resource-export-all',
+            'region-resource-export-emails',
 
             // Region Sub Modules Sales Permissions
             'region-sale-index',
@@ -395,7 +398,6 @@ class PermissionsTableSeeder extends Seeder
             'report-user-login',
 
             //Administrator Permissions
-            // Administrator Sub Modules User Permissions
             'administrator-user-index',
             'administrator-user-create',
             'administrator-user-edit',

@@ -82,16 +82,33 @@ class ApplicantController extends Controller
     }
     public function create()
     {
-        if (Gate::allows('show-private-data')) {
-            $jobSources = JobSource::where('is_active', 1)
-                ->orderBy('name', 'asc')
-                ->get();
-        } else {
-            $jobSources = JobSource::where('is_active', 1)
-                ->whereNotIn('id', [10, 11, 12])
-                ->orderBy('name', 'asc')
-                ->get();
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
         }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
@@ -1238,16 +1255,33 @@ class ApplicantController extends Controller
 
         $applicant = Applicant::find($id);
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
-        if (Gate::allows('show-private-data')) {
-            $jobSources = JobSource::where('is_active', 1)
-                ->orderBy('name', 'asc')
-                ->get();
-        } else {
-            $jobSources = JobSource::where('is_active', 1)
-                ->whereNotIn('id', [10, 11, 12])
-                ->orderBy('name', 'asc')
-                ->get();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
         }
+
+        $query = JobSource::where('is_active', 1);
+
+        if(count($sourceIds) > 0){
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
 
         // Check if the applicant is found
         if (!$applicant) {
@@ -1706,8 +1740,8 @@ class ApplicantController extends Controller
     }
     public function regionalApplicatsExport(Request $request)
     {
-        $type = $request->query('type', 'all'); // Default to 'all' if not provided
-        $radius = $request->query('radius', null); // Default to 0 if not provided
+        $type = $request->query('type', 'all');
+        $radius = $request->query('radius', null);
         $model_type = $request->query('model_type', null);
         $model_id = $request->query('model_id', null);
         $region_filter = $request->query('region_filter', null);
@@ -1716,14 +1750,19 @@ class ApplicantController extends Controller
         $title_filter = $request->query('title_filter', null);
         $search = $request->query('search', null);
 
-        if ($radius != null) {
+        if ($radius !== null && $model_id !== null) {
             $sale = Sale::find($model_id);
-            $fileName = "applicants_within_{$radius}km_of_sale_{$sale->sale_postcode}.csv";
+            $fileName = $sale
+                ? "applicants_within_{$radius}km_of_sale_{$sale->sale_postcode}.csv"
+                : "applicants_within_{$radius}km.csv"; // FIX: was fatal if the sale no longer exists
         } else {
             $fileName = "applicants_{$type}.csv";
         }
 
-        return Excel::download(new RegionApplicantsExport($type, $radius, $model_type, $model_id, $region_filter, $type_filter, $category_filter, $title_filter, $search), $fileName);
+        return Excel::download(
+            new RegionApplicantsExport($type, $radius, $model_type, $model_id, $region_filter, $type_filter, $category_filter, $title_filter, $search),
+            $fileName
+        );
     }
     public function changeStatus(Request $request)
     {
@@ -2635,15 +2674,26 @@ class ApplicantController extends Controller
             ->orderBy("distance");
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $model->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('sales.job_source_id', $hidePrivateData)
-                    ->orWhereNull('sales.job_source_id');
-            });
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if(count($sourceIds) > 0){
+            $model->whereNotIn('sales.job_source_id', $sourceIds);
         }
 
         /** 🔹 Job Title Filtering */

@@ -1561,16 +1561,34 @@ class ScrapController extends Controller
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
-        if (Gate::allows('show-private-data')) {
-            $sources = JobSource::where('is_active', 1)
-                ->orderBy('name', 'asc')
-                ->get();
-        } else {
-            $sources = JobSource::where('is_active', 1)
-                ->whereNotIn('id', [10, 11, 12])
-                ->orderBy('name', 'asc')
-                ->get();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
         }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $sources = $query->orderBy('name', 'asc')->get();
+
         $offices = Office::where('status', 4)->orderBy('office_name', 'asc')->get();
         $users = User::where('is_active', 1)->orderBy('name', 'asc')->get();
 

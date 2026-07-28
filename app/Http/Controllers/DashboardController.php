@@ -18,6 +18,7 @@ use Horsefly\QualityNotes;
 use Horsefly\ApplicantNote;
 use Horsefly\History;
 use Horsefly\JobCategory;
+use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Horsefly\Notification;
 
@@ -78,9 +79,23 @@ class DashboardController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $query->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('job_source_id', $hidePrivateData)
+
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $query->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
                     ->orWhereNull('job_source_id');
             });
         }
@@ -1502,16 +1517,27 @@ class DashboardController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
-        $canHidePrivateData = !Gate::allows('show-private-data') && !empty($hidePrivateData);
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
 
         /*
-     * Weekly chart data
-     */
+        * Weekly chart data
+        */
         $dailyCountsQuery = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])->whereNotIn('status', [4, 5]); // Exclude closed and rejected sales
 
-        if ($canHidePrivateData) {
-            $dailyCountsQuery->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('job_source_id', $hidePrivateData)
+        if (count($sourceIds) > 0) {
+            $dailyCountsQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
                     ->orWhereNull('job_source_id');
             });
         }
@@ -1532,15 +1558,15 @@ class DashboardController extends Controller
         }
 
         /*
-     * Weekly sales details
-     */
+        * Weekly sales details
+        */
         $salesDetailsQuery = Sale::with(['office', 'unit'])
             ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
             ->whereNotIn('status', [4, 5]); // Exclude closed and rejected sales
 
-        if ($canHidePrivateData) {
-            $salesDetailsQuery->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('job_source_id', $hidePrivateData)
+        if (count($sourceIds) > 0) {
+            $salesDetailsQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
                     ->orWhereNull('job_source_id');
             });
         }
@@ -1597,9 +1623,23 @@ class DashboardController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
-        if (!Gate::allows('show-private-data') && !empty($hidePrivateData)) {
-            $query->where(function ($q) use ($hidePrivateData) {
-                $q->whereNotIn('job_source_id', $hidePrivateData)
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $query->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
                     ->orWhereNull('job_source_id');
             });
         }
