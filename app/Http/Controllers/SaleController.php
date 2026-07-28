@@ -4305,7 +4305,7 @@ class SaleController extends Controller
 
                     $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
 
-                    if ($status_value == 'open' || $status_value == 'reject_job') {
+                    if ($status_value == 'open') {
                         return '
                             <a href="javascript:void(0);" class="active_postcode" title="Add/Edit Note"
                             onclick="addShortNotesModal(' . (int) $applicant->id . ')">
