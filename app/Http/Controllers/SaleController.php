@@ -4211,7 +4211,7 @@ class SaleController extends Controller
                 });
             }
         }
-        
+
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
@@ -4307,7 +4307,7 @@ class SaleController extends Controller
                     if ($applicant->paid_status == 'close') {
                         $status_value = 'paid';
                     } else {
-                        foreach ($applicant->cv_notes as $key => $value) {
+                        foreach ($applicant->cv_notes as $value) {
                             if ($value['sale_id'] == $sale_id) {
                                 if ($value->status == 1) {
                                     $status_value = 'sent';
