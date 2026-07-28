@@ -4211,7 +4211,7 @@ class SaleController extends Controller
                 });
             }
         }
-        return $model->get();
+        return $model->where('sales.id', 86398)->get();
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
