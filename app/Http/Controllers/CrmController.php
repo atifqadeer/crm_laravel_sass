@@ -2332,8 +2332,16 @@ class CrmController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? ucwords($sale->jobCategory) . $stype : '-';
+
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$sale->jobCategory) {
+                        return '-';
+                    }
+
+                    return e($sale->jobCategory) . $stype;
                 })
                 ->addColumn('job_source', function ($applicant) {
                     return $applicant->jobSource ? ucwords($applicant->jobSource) : '-';

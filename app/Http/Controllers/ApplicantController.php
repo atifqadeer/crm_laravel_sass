@@ -36,6 +36,8 @@ use App\Support\DialLink;
 
 // Import necessary classes
 use App\Exports\ApplicantsExport;
+use App\Exports\RegionApplicantsExport;
+
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
@@ -691,10 +693,16 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('job_category', function ($applicant) {
                     $type = $applicant->job_type;
-                    $stype = $type && $type == 'specialist' ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size: 10px;">' . ucwords('Specialist') . '</span>' : '';
-                    if (!$applicant->jobCategory)
+
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$applicant->jobCategory) {
                         return '-';
-                    return e($applicant->jobCategory->name);
+                    }
+
+                    return e($applicant->jobCategory->name) . $stype;
                 })
                 ->addColumn('job_source', function ($applicant) {
                     if (!$applicant->jobSource)
@@ -1696,6 +1704,27 @@ class ApplicantController extends Controller
 
         return Excel::download(new ApplicantsExport($type, $radius, $model_type, $model_id), $fileName);
     }
+    public function regionalApplicatsExport(Request $request)
+    {
+        $type = $request->query('type', 'all'); // Default to 'all' if not provided
+        $radius = $request->query('radius', null); // Default to 0 if not provided
+        $model_type = $request->query('model_type', null);
+        $model_id = $request->query('model_id', null);
+        $region_filter = $request->query('region_filter', null);
+        $type_filter = $request->query('type_filter', null);
+        $category_filter = $request->query('category_filter', null);
+        $title_filter = $request->query('title_filter', null);
+        $search = $request->query('search', null);
+
+        if ($radius != null) {
+            $sale = Sale::find($model_id);
+            $fileName = "applicants_within_{$radius}km_of_sale_{$sale->sale_postcode}.csv";
+        } else {
+            $fileName = "applicants_{$type}.csv";
+        }
+
+        return Excel::download(new RegionApplicantsExport($type, $radius, $model_type, $model_id, $region_filter, $type_filter, $category_filter, $title_filter, $search), $fileName);
+    }
     public function changeStatus(Request $request)
     {
         $user = Auth::user();
@@ -1914,7 +1943,11 @@ class ApplicantController extends Controller
                             </a>';
                 })
                 ->addColumn('job_category', function ($row) {
-                    $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
+                    $type = $row->sale_job_type;
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
                 })
                 ->addColumn('action', function ($row) {
@@ -2717,8 +2750,16 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$sale->jobCategory) {
+                        return '-';
+                    }
+
+                    return e($sale->jobCategory->name) . $stype;
                 })
                 ->addColumn('experience', function ($sale) {
                     $short = Str::limit(strip_tags($sale->experience), 80);
@@ -3211,8 +3252,16 @@ class ApplicantController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $sale->jobCategory ? $sale->jobCategory->name . $stype : '-';
+
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$sale->jobCategory) {
+                        return '-';
+                    }
+
+                    return e($sale->jobCategory->name) . $stype;
                 })
                 ->addColumn('sale_postcode', function ($sale) {
                     return $sale->formatted_postcode; // Using accessor

@@ -2748,8 +2748,15 @@ class DashboardController extends Controller
                 })
                 ->addColumn('job_category', function ($applicant) {
                     $type = $applicant->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
-                    return $applicant->jobCategory ? $applicant->jobCategory->name . $stype : '-';
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+
+                    if (!$applicant->jobCategory) {
+                        return '-';
+                    }
+
+                    return e($applicant->jobCategory->name) . $stype;
                 })
                 ->addColumn('job_source', function ($applicant) {
                     return $applicant->jobSource ? $applicant->jobSource->name : '-';

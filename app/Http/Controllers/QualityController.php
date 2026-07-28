@@ -452,7 +452,9 @@ class QualityController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
@@ -1542,9 +1544,12 @@ class QualityController extends Controller
             // FIX: use the already-selected/aliased column instead of the lazy relation — eliminates N+1
             ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
             ->addColumn('job_category', function ($applicant) {
-                $stype = $applicant->sale_job_type === 'specialist'
-                    ? '<br>(' . ucwords('Specialist') . ')'
-                    : '';
+                $type = $applicant->sale_job_type;
+
+                $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
+                        
                 return $applicant->job_category_name ? ucwords($applicant->job_category_name) . $stype : '-';
             })
             ->addColumn('job_source', fn($applicant) => $applicant->job_source_name ? ucwords($applicant->job_source_name) : '-')

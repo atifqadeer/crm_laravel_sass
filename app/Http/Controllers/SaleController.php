@@ -2686,7 +2686,7 @@ class SaleController extends Controller
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $model->where(function ($q) use ($hidePrivateData) {
                 $q->whereNotIn('sales.job_source_id', $hidePrivateData)
-                        ->orWhereNull('sales.job_source_id');
+                    ->orWhereNull('sales.job_source_id');
             });
         }
 
@@ -2977,7 +2977,7 @@ class SaleController extends Controller
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $model->where(function ($q) use ($hidePrivateData) {
                 $q->whereNotIn('sales.job_source_id', $hidePrivateData)
-                        ->orWhereNull('sales.job_source_id');
+                    ->orWhereNull('sales.job_source_id');
             });
         }
 
@@ -3361,7 +3361,7 @@ class SaleController extends Controller
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $model->where(function ($q) use ($hidePrivateData) {
                 $q->whereNotIn('sales.job_source_id', $hidePrivateData)
-                        ->orWhereNull('sales.job_source_id');
+                    ->orWhereNull('sales.job_source_id');
             });
         }
 
@@ -3696,7 +3696,7 @@ class SaleController extends Controller
             ])
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
-            ->where('applicants.is_in_nurse_home', false)
+            ->where('applicants.is_in_nurse_home', 0)
             ->having('distance', '<', $radius)
             ->leftJoin('job_titles',      'applicants.job_title_id',    '=', 'job_titles.id')
             ->leftJoin('job_categories',  'applicants.job_category_id', '=', 'job_categories.id')
@@ -3879,7 +3879,9 @@ class SaleController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type  = $sale->job_type;
-                    $stype = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
@@ -3981,6 +3983,7 @@ class SaleController extends Controller
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
 
+                    // Blocked + no permission -> always show blocked badge, nothing else matters
                     if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
