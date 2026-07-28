@@ -4313,6 +4313,7 @@ class SaleController extends Controller
                                 break;
                             } elseif ($value->status == 0) {
                                 $status_value = 'reject';
+                                break;
                             }
                         }
                     }
@@ -4459,13 +4460,13 @@ class SaleController extends Controller
                     } else {
                         foreach ($applicant->cv_notes as $value) {
                             if ($value['sale_id'] == $sale_id) {
-                                if ($value->status == 'active') {
+                                if ($value->status == 1) {
                                     $status_value = 'sent';
                                     break;
-                                } elseif ($value->status == 'disable') {
+                                } elseif ($value->status == 0) {
                                     $status_value = 'reject_job';
                                     break;
-                                } elseif ($value->status == 'paid') {
+                                } elseif ($value->status == 2) {
                                     $status_value = 'paid';
                                     break;
                                 }
