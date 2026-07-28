@@ -4298,32 +4298,14 @@ class SaleController extends Controller
                         return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
                 })
-                ->addColumn('applicantNotes', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
+                ->addColumn('applicantNotes', function ($applicant) use ($sale_id) {
                     // ✅ Just use notes_details, fall back to applicant_notes field
                     $notesDetails = $applicant->notes_details ?? $applicant->applicant_notes;
                     $notes = nl2br(htmlspecialchars($notesDetails ?? '', ENT_QUOTES, 'UTF-8'));
 
-                    $status_value = 'open';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                    } else {
-                        foreach ($applicant->cv_notes as $value) {
-                            if ($value['sale_id'] == $sale_id) {
-                                if ($value->status == 1) {
-                                    $status_value = 'sent';
-                                    break;
-                                } elseif ($value->status == 0) {
-                                    $status_value = 'reject';
-                                    break;
-                                } elseif ($value->status == 2) {
-                                    $status_value = 'paid';
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
 
-                    if ($status_value == 'open' || $status_value == 'reject') {
+                    if ($status_value == 'open' || $status_value == 'reject_job') {
                         return '
                             <a href="javascript:void(0);" class="active_postcode" title="Add/Edit Note"
                             onclick="addShortNotesModal(' . (int) $applicant->id . ')">
@@ -4459,26 +4441,8 @@ class SaleController extends Controller
                 })
                 ->orderColumn('paid_status', 'paid_status_order $1')
                 ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
-                    $status_value = 'open';
-                    if ($applicant->paid_status == 'close') {
-                        $status_value = 'paid';
-                    } else {
-                        foreach ($applicant->cv_notes as $value) {
-                            if ($value['sale_id'] == $sale_id) {
-                                if ($value->status == 1) {
-                                    $status_value = 'sent';
-                                    break;
-                                } elseif ($value->status == 0) {
-                                    $status_value = 'reject_job';
-                                    break;
-                                } elseif ($value->status == 2) {
-                                    $status_value = 'paid';
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
+                    $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
+                    
                     $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
@@ -4535,6 +4499,25 @@ class SaleController extends Controller
                 ->with(['sale_id' => $sale_id])
                 ->make(true);
         }
+    }
+    private function getApplicantStatusForSale($applicant, $sale_id): string
+    {
+        if ($applicant->paid_status == 'close') {
+            return 'paid';
+        }
+
+        foreach ($applicant->cv_notes as $note) {
+            if ($note['sale_id'] == $sale_id) {
+                return match ((int) $note->status) {
+                    1 => 'sent',
+                    0 => 'reject_job',
+                    2 => 'paid',
+                    default => 'open',
+                };
+            }
+        }
+
+        return 'open';
     }
     public function storeSaleNotes(Request $request)
     {
