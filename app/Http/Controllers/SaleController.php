@@ -4474,10 +4474,10 @@ class SaleController extends Controller
                     }
 
                     $html = '<div class="btn-group dropstart">
-                    <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
-                    </button>
-                    <ul class="dropdown-menu">';
+                        <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
+                        </button>
+                        <ul class="dropdown-menu">';
 
                     if ($status_value == 'open') {
                         $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale_id . ')" class="dropdown-item">Mark Not Interested On Sale</a></li>
@@ -4489,26 +4489,26 @@ class SaleController extends Controller
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
                         } else {
                             $html .= '<li>
-                            <a href="javascript:void(0);" class="dropdown-item"
-                               onclick="sendCVModal('
+                                <a href="javascript:void(0);" class="dropdown-item"
+                                onclick="sendCVModal('
                                 . (int) $applicant->id . ','
                                 . (int) $sale_id . ','
                                 . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
                                 . (int) $applicant->have_nursing_home_experience . ')">
-                                <span>Send CV</span>
-                            </a>
-                        </li>';
+                                    <span>Send CV</span>
+                                </a>
+                            </li>';
                         }
 
                         $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale_id . ')">Mark Callback</a></li>';
                     } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
-                        $html .= '<button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
-                                  <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
-                              </button>';
+                        $html .= '<li><button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
+                                    <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
+                                </button></li>';
                     }
 
                     $html .= '</ul></div>';
-                    return $html;
+                    return $status_value;
                 })
                 ->rawColumns([
                     'checkbox',
