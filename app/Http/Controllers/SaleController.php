@@ -4211,7 +4211,7 @@ class SaleController extends Controller
                 });
             }
         }
-
+        return $model->get();
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
@@ -4298,7 +4298,7 @@ class SaleController extends Controller
                         return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
                 })
-                ->addColumn('applicantNotes', function ($applicant) {
+                ->addColumn('applicantNotes', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
                     // ✅ Just use notes_details, fall back to applicant_notes field
                     $notesDetails = $applicant->notes_details ?? $applicant->applicant_notes;
                     $notes = nl2br(htmlspecialchars($notesDetails ?? '', ENT_QUOTES, 'UTF-8'));
@@ -4308,15 +4308,17 @@ class SaleController extends Controller
                         $status_value = 'paid';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 1) {
-                                $status_value = 'sent';
-                                break;
-                            } elseif ($value->status == 0) {
-                                $status_value = 'reject';
-                                break;
-                            } elseif ($value->status == 2) {
-                                $status_value = 'paid';
-                                break;
+                            if ($value['sale_id'] == $sale_id) {
+                                if ($value->status == 1) {
+                                    $status_value = 'sent';
+                                    break;
+                                } elseif ($value->status == 0) {
+                                    $status_value = 'reject';
+                                    break;
+                                } elseif ($value->status == 2) {
+                                    $status_value = 'paid';
+                                    break;
+                                }
                             }
                         }
                     }
