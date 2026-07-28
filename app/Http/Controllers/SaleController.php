@@ -4314,6 +4314,9 @@ class SaleController extends Controller
                             } elseif ($value->status == 0) {
                                 $status_value = 'reject';
                                 break;
+                            } elseif ($value->status == 2) {
+                                $status_value = 'paid';
+                                break;
                             }
                         }
                     }
