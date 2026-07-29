@@ -237,25 +237,15 @@ class UnitController extends Controller
 
             $query->with([
                 'contacts' => function ($q) use ($hidePrivateData) {
-
                     if (!empty($hidePrivateData)) {
-
-                        $q->where(function ($contactQuery) use ($hidePrivateData) {
-
-                            foreach ($hidePrivateData as $value) {
-
-                                $contactQuery
-                                    ->where('contact_email', 'NOT LIKE', "%{$value}%")
-                                    ->where('contact_name', 'NOT LIKE', "%{$value}%")
-                                    ->where('contact_note', 'NOT LIKE', "%{$value}%");
-                            }
-                        });
+                        foreach ($hidePrivateData as $value) {
+                            $q->whereRaw("COALESCE(contact_email, '') NOT LIKE ?", ["%{$value}%"])
+                                ->whereRaw("COALESCE(contact_name, '') NOT LIKE ?", ["%{$value}%"])
+                                ->whereRaw("COALESCE(contact_note, '') NOT LIKE ?", ["%{$value}%"]);
+                        }
                     }
                 }
             ]);
-        } else {
-
-            $query->with('contacts');
         }
 
         if ($statusFilter === 'active') {
