@@ -58,22 +58,22 @@ class Unit extends Model
     }
     public function contacts()
     {
-        return $this->morphMany(Contact::class , 'contactable');
+        return $this->morphOne(Contact::class, 'contactable');
     }
     public function sales()
     {
-        return $this->hasMany(Sale::class , 'unit_id');
+        return $this->hasMany(Sale::class, 'unit_id');
     }
     public function office()
     {
-        return $this->belongsTo(Office::class , 'office_id');
+        return $this->belongsTo(Office::class, 'office_id');
     }
     public function user()
     {
-        return $this->belongsTo(User::class , 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
     public function audits()
     {
-        return $this->morphMany(Audit::class , 'auditable');
+        return $this->morphMany(Audit::class, 'auditable');
     }
 }
