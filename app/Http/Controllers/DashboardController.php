@@ -65,13 +65,10 @@ class DashboardController extends Controller
         $cutoffDate       = $now->copy()->subDays(36)->endOfDay();
 
         // Preload counts that are quick
-        $applicantsCount = Applicant::where('status', 1)->whereNull('deleted_at')->count();
-        $officesCount    = Office::where('status', 1)->whereNull('deleted_at')->count();
-        $unitsCount      = Unit::where('status', 1)->whereNull('deleted_at')->count();
-
-        $query = Sale::where('status', 1)
-            ->whereNull('deleted_at')
-            ->where('is_on_hold', 0);
+        $applicantQuery = Applicant::where('status', 1)->whereNull('deleted_at');
+        $officeQuery    = Office::where('status', 1)->whereNull('deleted_at');
+        $unitQuery      = Unit::where('status', 1)->whereNull('deleted_at');
+        $saleQuery      = Sale::where('status', 1)->whereNull('deleted_at')->where('is_on_hold', 0);
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
 
@@ -94,13 +91,31 @@ class DashboardController extends Controller
         }
 
         if (count($sourceIds) > 0) {
-            $query->where(function ($q) use ($sourceIds) {
+            $applicantQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
+                    ->orWhereNull('job_source_id');
+            });
+
+            $officeQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
+                    ->orWhereNull('job_source_id');
+            });
+
+            $unitQuery->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('job_source_id', $sourceIds)
+                    ->orWhereNull('job_source_id');
+            });
+
+            $saleQuery->where(function ($q) use ($sourceIds) {
                 $q->whereNotIn('job_source_id', $sourceIds)
                     ->orWhereNull('job_source_id');
             });
         }
 
-        $salesCount = $query->count();
+        $applicantsCount = $applicantQuery->count();
+        $officesCount = $officeQuery->count();
+        $unitsCount = $unitQuery->count();
+        $salesCount = $saleQuery->count();
 
         // 🧠 Optimize by getting applicant IDs that exist in pivot table once
         $linkedApplicantIds = DB::table('applicants_pivot_sales')->distinct()->pluck('applicant_id');
