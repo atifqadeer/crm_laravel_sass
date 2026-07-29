@@ -226,23 +226,15 @@ class UnitController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
-        $sourceIds = [];
-
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+            $query->whereDoesntHave('contacts', function ($q) use ($hidePrivateData) {
+                $q->where(function ($sub) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $sourceName) {
+                        $sub->orWhere('contact_email', 'LIKE', "%{$sourceName}%")
+                            ->orWhere('contact_name', 'LIKE', "%{$sourceName}%")
+                            ->orWhere('contact_note', 'LIKE', "%{$sourceName}%");
                     }
-                })
-                ->pluck('id')
-                ->toArray();
-        }
-
-        if (count($sourceIds) > 0) {
-            $query->where(function ($q) use ($sourceIds) {
-                $q->whereNotIn('units.job_source_id', $sourceIds)
-                    ->orWhereNull('units.job_source_id');
+                });
             });
         }
 
@@ -450,7 +442,6 @@ class UnitController extends Controller
             ])
             ->make(true);
     }
-
     public function storeUnitShortNotes(Request $request)
     {
         $user = Auth::user();
@@ -542,7 +533,6 @@ class UnitController extends Controller
             ], 500);
         }
     }
-
     public function unitDetails($id)
     {
         $unit = Unit::findOrFail($id);
