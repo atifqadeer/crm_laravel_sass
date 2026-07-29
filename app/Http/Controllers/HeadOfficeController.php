@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use Horsefly\Office;
 use Horsefly\Contact;
 use Horsefly\ModuleNote;
+use Horsefly\JobSource;
+use Horsefly\Setting;
+
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
@@ -35,8 +38,35 @@ class HeadOfficeController extends Controller
      */
     public function index()
     {
-        return view('head-offices.list');
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('head-offices.list', compact('jobSources'));
     }
+
     public function create()
     {
         return view('head-offices.create');
@@ -339,9 +369,34 @@ class HeadOfficeController extends Controller
                     ->where('contacts.contactable_type', 'Horsefly\\Office');
             })
             ->select('offices.*')
-            ->whereNotIn('offices.status', [4])
+            ->whereNotIn('offices.status', [4,5])
             ->whereNull('offices.deleted_at')
             ->distinct();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('offices.job_source_id', $sourceIds)
+                    ->orWhereNull('offices.job_source_id');
+            });
+        }
 
         // Apply status filter
         if ($statusFilter === 'active') {
