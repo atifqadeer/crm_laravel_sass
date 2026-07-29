@@ -215,27 +215,47 @@ class UnitController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
-            ->select('units.*', 'offices.office_name as office_name')
-            ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-            ->whereNull('units.deleted_at')
-            ->with('office', 'contacts')
-            ->whereNotIn('units.status', [4, 5]);
+            ->select(
+                'units.*',
+                'offices.office_name as office_name'
+            )
+            ->leftJoin(
+                'offices',
+                'units.office_id',
+                '=',
+                'offices.id'
+            )
+            ->whereNull('units.deleted_at');
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
+        if (!Gate::allows('show-private-data')) {
 
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $query->whereDoesntHave('contacts', function ($q) use ($hidePrivateData) {
-                $q->where(function ($sub) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $sourceName) {
-                        $sub->orWhere('contact_email', 'LIKE', "%{$sourceName}%")
-                            ->orWhere('contact_name', 'LIKE', "%{$sourceName}%")
-                            ->orWhere('contact_note', 'LIKE', "%{$sourceName}%");
+            $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+            $hidePrivateData = array_filter(
+                array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+            );
+
+            $query->with([
+                'contacts' => function ($q) use ($hidePrivateData) {
+
+                    if (!empty($hidePrivateData)) {
+
+                        $q->where(function ($contactQuery) use ($hidePrivateData) {
+
+                            foreach ($hidePrivateData as $value) {
+
+                                $contactQuery
+                                    ->where('contact_email', 'NOT LIKE', "%{$value}%")
+                                    ->where('contact_name', 'NOT LIKE', "%{$value}%")
+                                    ->where('contact_note', 'NOT LIKE', "%{$value}%");
+                            }
+                        });
                     }
-                });
-            });
+                }
+            ]);
+        } else {
+
+            $query->with('contacts');
         }
 
         if ($statusFilter === 'active') {
