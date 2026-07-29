@@ -66,7 +66,7 @@ class UnitController extends Controller
         }
 
         $jobSources = $query->orderBy('name', 'asc')->get();
-        return view('units.list', compact('offices', 'jobSources'));
+        return view('units.list', compact('offices', 'jobSources' ));
     }
     public function create()
     {
@@ -215,38 +215,11 @@ class UnitController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
-            ->select(
-                'units.*',
-                'offices.office_name as office_name'
-            )
-            ->leftJoin(
-                'offices',
-                'units.office_id',
-                '=',
-                'offices.id'
-            )
-            ->whereNull('units.deleted_at');
-
-        if (!Gate::allows('show-private-data')) {
-
-            $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-
-            $hidePrivateData = array_filter(
-                array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-            );
-
-            $query->with([
-                'contacts' => function ($q) use ($hidePrivateData) {
-                    if (!empty($hidePrivateData)) {
-                        foreach ($hidePrivateData as $value) {
-                            $q->whereRaw("COALESCE(contact_email, '') NOT LIKE ?", ["%{$value}%"])
-                                ->whereRaw("COALESCE(contact_name, '') NOT LIKE ?", ["%{$value}%"])
-                                ->whereRaw("COALESCE(contact_note, '') NOT LIKE ?", ["%{$value}%"]);
-                        }
-                    }
-                }
-            ]);
-        }
+            ->select('units.*', 'offices.office_name as office_name')
+            ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
+            ->whereNull('units.deleted_at')
+            ->with('office', 'contacts')
+            ->whereNotIn('units.status', [4,5]);
 
         if ($statusFilter === 'active') {
             $query->where('units.status', 1);
@@ -452,6 +425,7 @@ class UnitController extends Controller
             ])
             ->make(true);
     }
+
     public function storeUnitShortNotes(Request $request)
     {
         $user = Auth::user();
@@ -543,6 +517,7 @@ class UnitController extends Controller
             ], 500);
         }
     }
+
     public function unitDetails($id)
     {
         $unit = Unit::findOrFail($id);
