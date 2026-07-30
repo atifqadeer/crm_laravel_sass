@@ -931,7 +931,8 @@
                     var contactHtml = '';
 
                     if (response.data.length === 0) {
-                        contactHtml = '<p>No record found.</p>';
+
+                        contactHtml = '<p>' + response.message + '</p>';
                     } else {
                         response.data.forEach(function(contact) {
                             var name = contact.contact_name;
@@ -954,9 +955,17 @@
                     $('#' + modalId + ' .modal-body').html(contactHtml);
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error fetching manager details: " + error);
+
+                    let message = 'Something went wrong.';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+
                     $('#' + modalId + ' .modal-body').html(
-                        '<p>There was an error retrieving the manager details. Please try again later.</p>');
+                        '<p class="text-danger">' + message + '</p>'
+                    );
+
                 }
             });
         }

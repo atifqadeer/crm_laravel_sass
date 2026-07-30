@@ -1182,7 +1182,8 @@
                     let contactHtml = '';
                     
                     if (response.data.length === 0) {
-                        contactHtml = '<p>No record found.</p>';
+
+                        contactHtml = '<p>' + response.message + '</p>';
                     } else {
                         response.data.forEach(function(contact) {
                             const name = contact.contact_name;
@@ -1205,10 +1206,17 @@
                     $('#' + modalID + ' .modal-body').html(contactHtml);
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error fetching notes history:", error);
-                    $('#' + modalID + ' .modal-body').html(
-                        '<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>'
+
+                    let message = 'Something went wrong.';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+
+                    $('#' + modalId + ' .modal-body').html(
+                        '<p class="text-danger">' + message + '</p>'
                     );
+
                 }
             });
         }

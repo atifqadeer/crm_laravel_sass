@@ -1083,7 +1083,8 @@
 
                     // Check if the response data is empty
                     if (response.data.length === 0) {
-                        contactHtml = '<p>No record found.</p>';
+
+                        contactHtml = '<p>' + response.message + '</p>';
                     } else {
                         // Loop through the response array (assuming it's an array of notes)
                         response.data.forEach(function(contact) {
@@ -1112,10 +1113,17 @@
                     $('#viewManagerDetailsModal').modal('show');
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error fetching notes history: " + error);
-                    // Optionally, you can display an error message in the modal
-                    $('#viewManagerDetailsModal .modal-body').html('<p>There was an error retrieving the manager details. Please try again later.</p>');
-                    $('#viewManagerDetailsModal').modal('show');
+
+                    let message = 'Something went wrong.';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+
+                    $('#' + modalId + ' .modal-body').html(
+                        '<p class="text-danger">' + message + '</p>'
+                    );
+
                 }
             });
 

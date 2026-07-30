@@ -369,7 +369,7 @@ class HeadOfficeController extends Controller
                     ->where('contacts.contactable_type', 'Horsefly\\Office');
             })
             ->select('offices.*')
-            ->whereNotIn('offices.status', [4,5])
+            ->whereNotIn('offices.status', [4, 5])
             ->whereNull('offices.deleted_at')
             ->distinct();
 
@@ -789,7 +789,11 @@ class HeadOfficeController extends Controller
 
             // Check if the module note was found
             if ($contacts->isEmpty()) {
-                return response()->json(['error' => 'Manager Details not found'], 404);
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'No manager details found.'
+                ]);
             }
 
             // Return the specific fields you need (e.g., applicant name, notes, etc.)
@@ -800,7 +804,6 @@ class HeadOfficeController extends Controller
         } catch (\Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
-                'error' => 'Something went wrong, Please try again later.',
                 'message' => $e->getMessage(),
                 'success' => false
             ], 500); // Internal server error

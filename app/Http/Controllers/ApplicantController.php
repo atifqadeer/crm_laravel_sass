@@ -917,7 +917,10 @@ class ApplicantController extends Controller
 
                         $fullPath = public_path($path);
 
-                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
+                        if (
+                            file_exists($fullPath) &&
+                            (!$applicant->is_blocked || Gate::allows('applicant-show-blocked-data'))
+                        ) {
 
                             $url = asset($path); // direct public URL
 
@@ -938,7 +941,10 @@ class ApplicantController extends Controller
 
                         $fullPath = public_path($path);
 
-                        if (!$applicant->is_blocked && file_exists($fullPath) || Gate::allows('applicant-show-blocked-data')) {
+                        if (
+                            file_exists($fullPath) &&
+                            (!$applicant->is_blocked || Gate::allows('applicant-show-blocked-data'))
+                        ) {
 
                             $url = asset($path);
 
@@ -1277,7 +1283,7 @@ class ApplicantController extends Controller
 
         $query = JobSource::where('is_active', 1);
 
-        if(count($sourceIds) > 0){
+        if (count($sourceIds) > 0) {
             $query->whereNotIn('id', $sourceIds);
         }
 
@@ -2692,7 +2698,7 @@ class ApplicantController extends Controller
                 ->toArray();
         }
 
-        if(count($sourceIds) > 0){
+        if (count($sourceIds) > 0) {
             $model->whereNotIn('sales.job_source_id', $sourceIds);
         }
 

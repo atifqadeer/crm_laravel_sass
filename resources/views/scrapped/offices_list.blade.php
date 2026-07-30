@@ -882,8 +882,9 @@
                 success: function(response) {
                     let contactHtml = '';
 
-                    if (!response.data || response.data.length === 0) {
-                        contactHtml = '<p>No record found.</p>';
+                    if (response.data.length === 0) {
+
+                        contactHtml = '<p>' + response.message + '</p>';
                     } else {
                         response.data.forEach(function(contact) {
                             const name = contact.contact_name || 'N/A';
@@ -893,24 +894,31 @@
                             const note = contact.contact_note || 'N/A';
 
                             contactHtml += `
-                                                                                                        <div class="note-entry mb-3">
-                                                                                                            <p><strong>Name:</strong> ${name}</p>
-                                                                                                            <p><strong>Email:</strong> ${email}</p>
-                                                                                                            <p><strong>Phone:</strong> ${phone}</p>
-                                                                                                            <p><strong>Landline:</strong> ${landline}</p>
-                                                                                                            <p><strong>Note:</strong><br>${note}</p>
-                                                                                                        </div>
-                                                                                                        <hr>`;
+                                <div class="note-entry mb-3">
+                                    <p><strong>Name:</strong> ${name}</p>
+                                    <p><strong>Email:</strong> ${email}</p>
+                                    <p><strong>Phone:</strong> ${phone}</p>
+                                    <p><strong>Landline:</strong> ${landline}</p>
+                                    <p><strong>Note:</strong><br>${note}</p>
+                                </div>
+                            <hr>`;
                         });
                     }
 
                     $(`#${modalId} .modal-body`).html(contactHtml);
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error fetching manager details:", error);
-                    $(`#${modalId} .modal-body`).html(
-                        '<p class="text-danger">There was an error retrieving the manager details. Please try again later.</p>'
+
+                    let message = 'Something went wrong.';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+
+                    $('#' + modalId + ' .modal-body').html(
+                        '<p class="text-danger">' + message + '</p>'
                     );
+
                 }
             });
         }
@@ -1354,7 +1362,7 @@
                             // ✅ Uncheck all checkboxes
                             $('.office-checkbox').prop('checked', false);
                             $('#select-all').prop('checked', false).prop('indeterminate',
-                            false);
+                                false);
 
                             $('.office-checkbox').trigger('change');
 
@@ -1478,8 +1486,8 @@
                         url: "{{ route('scrapped.office.restore') }}",
                         type: 'PUT',
                         data: {
-                            id: ids,                 // 👈 multiple IDs
-                            reason: result.value,    // 👈 send reason
+                            id: ids, // 👈 multiple IDs
+                            reason: result.value, // 👈 send reason
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
 

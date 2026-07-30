@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
+
 class Office extends Model
 {
     use HasFactory, SoftDeletes, Searchable;
@@ -64,27 +65,26 @@ class Office extends Model
     }
     public function user()
     {
-        return $this->belongsTo(User::class , 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
     public function sales()
     {
-        return $this->hasMany(Sale::class , 'office_id');
+        return $this->hasMany(Sale::class, 'office_id');
     }
     public function units()
     {
-        return $this->hasMany(Unit::class , 'office_id');
+        return $this->hasMany(Unit::class, 'office_id');
     }
     public function contact()
     {
-        return $this->morphMany(Contact::class , 'contactable');
+        return $this->morphMany(Contact::class, 'contactable');
     }
     public function audits()
     {
-        return $this->morphMany(Audit::class , 'auditable');
+        return $this->morphMany(Audit::class, 'auditable');
     }
     public function module_note()
     {
-        return $this->morphMany(ModuleNote::class , 'module_noteable');
+        return $this->morphMany(ModuleNote::class, 'module_noteable');
     }
-
 }

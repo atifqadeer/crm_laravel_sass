@@ -20,12 +20,16 @@
                             <div class="text-md-start mt-3 pt-1">
                                 <div class="input-group">
                                     <!-- Use padding-right to prevent text from overlapping the clear icon -->
-                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
+                                        style="padding-right: 30px;">
                                     <!-- Absolutely positioned over the input field -->
-                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
-                                        <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
                                     </span>
-                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
                                 </div>
                             </div>
                         </div>
@@ -39,28 +43,59 @@
                                         <i class="ri-filter-line me-1"></i>
 
                                         <span id="showFilterRegion">
-                                            @if ($regions->count())
-                                                {{ $regions->first()->name }}
-                                            @else
-                                                No Regions Found
-                                            @endif
+                                            {{ $regions->count() ? ucwords($regions->first()->name) : 'No Regions Found' }}
                                         </span>
                                     </button>
 
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton10">
-                                        @forelse($regions as $region)
-                                            <a class="dropdown-item region-filter" href="#"
-                                                data-region-id="{{ $region->id }}">
-                                                {{ $region->name }}
-                                            </a>
-                                        @empty
-                                            <a class="dropdown-item disabled" href="#">
-                                                No Regions Found
-                                            </a>
-                                        @endforelse
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="regionSearchInput"
+                                            placeholder="Search region...">
+
+                                        <!-- Select / Deselect All -->
+                                        @if ($regions->count())
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="regionToggleContainer">
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".region-filter">
+                                                    Select All
+                                                </a>
+
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".region-filter" style="display:none">
+                                                    Deselect All
+                                                </a>
+                                            </div>
+                                        @endif
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="regionList">
+
+                                            @forelse($regions as $index => $region)
+                                                <div class="form-check">
+
+                                                    <input class="form-check-input region-filter" type="checkbox"
+                                                        value="{{ $region->id }}" id="region_{{ $region->id }}"
+                                                        data-region-id="{{ $region->id }}"
+                                                        {{ $index === 0 ? 'checked' : '' }}>
+
+                                                    <label class="form-check-label" for="region_{{ $region->id }}">
+                                                        {{ ucwords($region->name) }}
+                                                    </label>
+
+                                                </div>
+
+                                            @empty
+
+                                                <div class="text-center py-2">
+                                                    No Regions Found
+                                                </div>
+                                            @endforelse
+
+                                        </div>
                                     </div>
                                 </div>
-
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -122,8 +157,8 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
                                             <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox" value=""
-                                                    id="all-titles" data-title-id="">
+                                                <input class="form-check-input title-filter" type="checkbox"
+                                                    value="" id="all-titles" data-title-id="">
                                                 <label class="form-check-label" for="all-titles">All Titles</label>
                                             </div>
                                             @foreach ($jobTitles as $title)
@@ -139,16 +174,28 @@
                                     </div>
                                 </div>
                                 <!-- Button Dropdown -->
-                                {{-- <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-download-line me-1"></i> Export
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'all']) }}">Export All Data</a>
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'emails']) }}">Export Emails</a>
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'noLatLong']) }}">Export no LAT & LONG</a>
+                                @canany(['region-export', 'region-resource-export-all', 'region-resource-export-emails'])
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
+                                            @canany(['region-resource-export-all'])
+                                                <a class="dropdown-item export-btn" data-type="all"
+                                                    href="javascript:void(0)">Export All Data</a>
+                                            @endcanany
+                                            @canany(['region-resource-export-emails'])
+                                                <a class="dropdown-item export-btn" data-type="emails"
+                                                    href="javascript:void(0)">Export Emails</a>
+                                            @endcanany
+                                            <a class="dropdown-item export-btn" data-type="noLatLong"
+                                                href="javascript:void(0)">Export no LAT
+                                                &
+                                                LONG</a>
+                                        </div>
                                     </div>
-                                </div> --}}
+                                @endcanany
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -229,17 +276,23 @@
         <script>
             $(document).ready(function() {
                 // Store the current filter in a variable
-                var regionFilter = '';
                 var currentTypeFilter = '';
                 var currentCategoryFilters = [];
                 var currentTitleFilters = [];
 
+                // ✅ FIX: declare this BEFORE the DataTable is initialized,
+                // since ajax.data() reads it during the initial DataTable() call.
+                var currentRegionFilters = [
+                    "{{ $regions->count() ? $regions->first()->id : '' }}"
+                ];
+
+
                 // Create loader row
                 const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td></tr>`;
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td></tr>`;
 
                 // Function to show loader
                 function showLoader() {
@@ -255,7 +308,7 @@
                         type: 'GET',
                         data: function(d) {
                             // Add the current filter to the request parameters
-                            d.region_filter = regionFilter; // Send the current filter value as a parameter
+                            d.region_filter = currentRegionFilters; // ✅ now safely defined
                             d.type_filter =
                                 currentTypeFilter; // Send the current filter value as a parameter
                             d.category_filter =
@@ -522,20 +575,78 @@
                     $('#showFilterStatus').html(formattedText);
                     table.ajax.reload(); // Reload with updated status filter
                 });
-                // Status filter dropdown handler
-                $('.region-filter').on('click', function() {
-                    const regionName = $(this).text().trim();
-                    regionFilter = $(this).data('region-id') ?? ''; // nullish fallback for "All Category"
-
-                    const formattedText = regionName
-                        .toLowerCase()
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-
-                    $('#showFilterRegion').html(formattedText); // Update displayed name
-                    table.ajax.reload();
+                /*** Region filter handler ***/
+                $(document).on('change', '.region-filter', function() {
+                    updateRegionFilter();
                 });
+
+                $('#regionSearchInput').on('keyup', function() {
+                    let value = $(this).val().toLowerCase();
+
+                    $('#regionList .form-check').each(function() {
+                        $(this).toggle(
+                            $(this).text().toLowerCase().includes(value)
+                        );
+                    });
+                });
+
+                $(document).on('click', '.filter-select-all', function(e) {
+                    e.preventDefault();
+
+                    // Select only visible items after search
+                    $('#regionList .form-check:visible .region-filter').prop('checked', true);
+
+                    updateRegionFilter();
+                });
+
+                $(document).on('click', '.filter-deselect-all', function(e) {
+                    e.preventDefault();
+
+                    // Uncheck only the visible checkboxes
+                    $('#regionList .form-check:visible .region-filter').prop('checked', false);
+
+                    // Always keep the first region selected (prevents empty state)
+                    $('.region-filter').first().prop('checked', true);
+
+                    updateRegionFilter();
+                });
+
+                function updateRegionFilter() {
+                    currentRegionFilters = [];
+
+                    $('.region-filter:checked').each(function() {
+                        let regionId = $(this).data('region-id');
+                        if (regionId) {
+                            currentRegionFilters.push(regionId);
+                        }
+                    });
+
+                    let selectedCount = currentRegionFilters.length;
+                    let totalCount = $('.region-filter').length;
+
+                    // Update button text
+                    if (selectedCount === 0) {
+                        $('#showFilterRegion').text('No Region Selected');
+                    } else if (selectedCount === 1) {
+                        $('#showFilterRegion').text(
+                            $('.region-filter:checked').first().next('label').text()
+                        );
+                    } else {
+                        $('#showFilterRegion').text(selectedCount + ' Regions Selected');
+                    }
+
+                    // ✅ FIX: toggle based on whether ALL are selected, not just >1
+                    if (selectedCount > 1 && totalCount > 0) {
+                        $('.filter-select-all[data-target=".region-filter"]').hide();
+                        $('.filter-deselect-all[data-target=".region-filter"]').show();
+                    } else {
+                        $('.filter-select-all[data-target=".region-filter"]').show();
+                        $('.filter-deselect-all[data-target=".region-filter"]').hide();
+                    }
+
+                    table.ajax.reload();
+                }
+
                 /*** Category filter handler ***/
                 $('.category-filter').on('click', function() {
                     const id = $(this).data('category-id');
@@ -600,6 +711,28 @@
                     table.ajax.reload();
                 });
 
+                $('.export-btn').on('click', function() {
+                    let type = $(this).data('type');
+
+                    let url = new URL(
+                        "{{ route('regionApplicantsExport') }}",
+                        window.location.origin
+                    );
+
+                    url.searchParams.append('type', type);
+                    url.searchParams.append('type_filter', currentTypeFilter);
+                    url.searchParams.append('search', $('#customSearchInput').val());
+                    // REMOVED: url.searchParams.append('region_filter', currentRegionFilters);
+                    // This stringified the whole array under the plain key 'region_filter',
+                    // clashing with the properly-formed 'region_filter[]' entries below.
+
+                    currentCategoryFilters.forEach(id => url.searchParams.append('category_filter[]', id));
+                    currentTitleFilters.forEach(id => url.searchParams.append('title_filter[]', id));
+                    currentRegionFilters.forEach(id => url.searchParams.append('region_filter[]', id));
+
+                    window.location.href = url.toString();
+                });
+
             });
 
             document.getElementById('categorySearchInput').addEventListener('keyup', function() {
@@ -659,7 +792,7 @@
                     // Create and append the modal
                     $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-top">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalId}Label">Applicant Notes</h5>
@@ -697,7 +830,7 @@
                 if ($(`#${modalId}`).length === 0) {
                     $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalLabelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${modalLabelId}">Applicant Notes History</h5>
