@@ -373,6 +373,36 @@ class HeadOfficeController extends Controller
             ->whereNull('offices.deleted_at')
             ->distinct();
 
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $model->with(['contact' => function ($q) use ($hidePrivateData) {
+                $q->where(function ($sub) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideValue) {
+                        $sub->where(function ($fieldGroup) use ($hideValue) {
+                            $fieldGroup->where(function ($nameCheck) use ($hideValue) {
+                                $nameCheck->whereNull('contact_name')
+                                    ->orWhere('contact_name', 'NOT LIKE', '%' . $hideValue . '%');
+                            })
+                                ->where(function ($emailCheck) use ($hideValue) {
+                                    $emailCheck->whereNull('contact_email')
+                                        ->orWhere('contact_email', 'NOT LIKE', '%' . $hideValue . '%');
+                                })
+                                ->where(function ($noteCheck) use ($hideValue) {
+                                    $noteCheck->whereNull('contact_note')
+                                        ->orWhere('contact_note', 'NOT LIKE', '%' . $hideValue . '%');
+                                });
+                        });
+                    }
+                });
+            }]);
+        } else {
+            $model->with('contact');
+        }
+
         // Apply status filter
         if ($statusFilter === 'active') {
             $model->where('offices.status', 1);
@@ -760,7 +790,6 @@ class HeadOfficeController extends Controller
             $hidePrivateData = array_filter(
                 array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
             );
-
 
             // Fetch the module notes by the given ID
             $contactQuery = Contact::where('contactable_id', $request->id)
