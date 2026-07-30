@@ -66,7 +66,7 @@ class UnitController extends Controller
         }
 
         $jobSources = $query->orderBy('name', 'asc')->get();
-        return view('units.list', compact('offices', 'jobSources' ));
+        return view('units.list', compact('offices', 'jobSources'));
     }
     public function create()
     {
@@ -218,8 +218,38 @@ class UnitController extends Controller
             ->select('units.*', 'offices.office_name as office_name')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
             ->whereNull('units.deleted_at')
-            ->with('office', 'contacts')
-            ->whereNotIn('units.status', [4,5]);
+            ->with('office')
+            ->whereNotIn('units.status', [4, 5]);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $query->with(['contacts' => function ($q) use ($hidePrivateData) {
+                $q->where(function ($sub) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideValue) {
+                        $sub->where(function ($fieldGroup) use ($hideValue) {
+                            $fieldGroup->where(function ($nameCheck) use ($hideValue) {
+                                $nameCheck->whereNull('contact_name')
+                                    ->orWhere('contact_name', 'NOT LIKE', '%' . $hideValue . '%');
+                            })
+                                ->where(function ($emailCheck) use ($hideValue) {
+                                    $emailCheck->whereNull('contact_email')
+                                        ->orWhere('contact_email', 'NOT LIKE', '%' . $hideValue . '%');
+                                })
+                                ->where(function ($noteCheck) use ($hideValue) {
+                                    $noteCheck->whereNull('contact_note')
+                                        ->orWhere('contact_note', 'NOT LIKE', '%' . $hideValue . '%');
+                                });
+                        });
+                    }
+                });
+            }]);
+        } else {
+            $query->with('contacts');
+        }
 
         if ($statusFilter === 'active') {
             $query->where('units.status', 1);

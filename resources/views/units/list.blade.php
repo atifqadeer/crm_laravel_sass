@@ -259,15 +259,19 @@
                 },
                 {
                     data: 'contact_email',
-                    name: 'contacts.contact_email'
+                    name: 'contact_email',
+                    orderable: false,
+
                 },
                 {
                     data: 'contact_phone',
-                    name: 'contacts.contact_phone'
+                    name: 'contact_phone',
+                    orderable: false,
                 },
                 {
                     data: 'contact_landline',
-                    name: 'contacts.contact_landline'
+                    name: 'contact_landline',
+                    orderable: false,
                 },
             ];
 
@@ -331,7 +335,7 @@
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter; // Send the current filter value as a parameter
                         d.office_filter =
-                        currentOfficeFilters; // Send the current filter value as a parameter
+                            currentOfficeFilters; // Send the current filter value as a parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -343,14 +347,14 @@
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#applicants_table tbody').empty().html(
                             '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
-                            );
+                        );
                     }
                 },
                 columns: columns,
                 columnDefs: columnDefs,
                 rowId: function(data) {
                     return 'row_' + data
-                    .id; // Assign a unique ID to each row using the 'id' field from the data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
                 dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function(settings) {
@@ -691,7 +695,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // Send via AJAX
                 $.ajax({
@@ -787,7 +791,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
-                    );
+                );
 
                 $.ajax({
                     url: url,
