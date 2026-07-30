@@ -373,31 +373,6 @@ class HeadOfficeController extends Controller
             ->whereNull('offices.deleted_at')
             ->distinct();
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
-
-        $sourceIds = [];
-
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
-        }
-
-        if (count($sourceIds) > 0) {
-            $model->where(function ($q) use ($sourceIds) {
-                $q->whereNotIn('offices.job_source_id', $sourceIds)
-                    ->orWhereNull('offices.job_source_id');
-            });
-        }
-
         // Apply status filter
         if ($statusFilter === 'active') {
             $model->where('offices.status', 1);
@@ -547,7 +522,6 @@ class HeadOfficeController extends Controller
                 ->toJson();
         }
     }
-
     public function storeHeadOfficeShortNotes(Request $request)
     {
         $user = Auth::user();
@@ -782,12 +756,40 @@ class HeadOfficeController extends Controller
 
             $module = 'Horsefly\\' . $request->input('module');
 
+            $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+            $hidePrivateData = array_filter(
+                array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+            );
+
+
             // Fetch the module notes by the given ID
-            $contacts = Contact::where('contactable_id', $request->id)->where('contactable_type', $module)->latest()->get();
+            $contactQuery = Contact::where('contactable_id', $request->id)
+                ->where('contactable_type', $module);
+
+            if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+                $contactQuery->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideValue) {
+                        $q->where(function ($sub) use ($hideValue) {
+                            $sub->where(function ($w) use ($hideValue) {
+                                $w->whereNull('contact_email')
+                                    ->orWhere('contact_email', 'NOT LIKE', "%{$hideValue}%");
+                            })->where(function ($w) use ($hideValue) {
+                                $w->whereNull('contact_name')
+                                    ->orWhere('contact_name', 'NOT LIKE', "%{$hideValue}%");
+                            })->where(function ($w) use ($hideValue) {
+                                $w->whereNull('contact_note')
+                                    ->orWhere('contact_note', 'NOT LIKE', "%{$hideValue}%");
+                            });
+                        });
+                    }
+                });
+            }
+
+            $contacts = $contactQuery->latest()->get();
 
             // Check if the module note was found
-            if (!$contacts) {
-                return response()->json(['error' => 'Manager Details not found'], 404); // Return 404 if not found
+            if ($contacts->isEmpty()) {
+                return response()->json(['error' => 'Manager Details not found'], 404);
             }
 
             // Return the specific fields you need (e.g., applicant name, notes, etc.)
@@ -798,7 +800,7 @@ class HeadOfficeController extends Controller
         } catch (\Exception $e) {
             // If an error occurs, catch it and return a meaningful error message
             return response()->json([
-                'error' => 'An unexpected error occurred. Please try again later.',
+                'error' => 'Something went wrong, Please try again later.',
                 'message' => $e->getMessage(),
                 'success' => false
             ], 500); // Internal server error
