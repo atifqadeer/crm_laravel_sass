@@ -758,7 +758,7 @@
                 table.ajax.reload(); // Reload with updated status filter
             });
             /*** Category filter handler ***/
-            $('.category-filter').on('click', function() {
+            $('.category-filter').on('change', function() {
                 const id = $(this).data('category-id');
                 // Handle "All Titles"
                 if (id === '' || id === undefined) {
@@ -790,7 +790,7 @@
                 table.ajax.reload();
             });
             /*** Source filter handler ***/
-            $('.source-filter').on('click', function() {
+            $('.source-filter').on('change', function() {
                 const id = $(this).data('source-id');
                 // Handle "All Titles"
                 if (id === '' || id === undefined) {
