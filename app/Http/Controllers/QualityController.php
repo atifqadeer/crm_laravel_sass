@@ -1523,7 +1523,7 @@ class QualityController extends Controller
 
         $this->applyStatusFilterJoins($model, $statusFilter, $commonSaleSelect);
 
-        $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'status')]);
+        $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'status')]);
 
         $model
             ->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
@@ -1542,7 +1542,6 @@ class QualityController extends Controller
             ->skipTotalRecords()
             ->addIndexColumn()
             ->addColumn('user_name', fn($applicant) => ucwords($applicant->user_name ?? '') ?: '-')
-            // FIX: use the already-selected/aliased column instead of the lazy relation — eliminates N+1
             ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
             ->addColumn('job_category', function ($applicant) {
                 $type = $applicant->sale_job_type;
@@ -1698,6 +1697,7 @@ class QualityController extends Controller
                     'lrs.notes as notes_detail',
                     'lrs.stage as revert_stage',
                     'lrs.updated_at as notes_created_at',
+                    'lcn.sale_id as cvnote_sale_id'
                 ])),
 
             'no job cvs' => $model
@@ -1712,6 +1712,7 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lcn.details as notes_detail',
                     'lcn.created_at as notes_created_at',
+                    'lcn.sale_id as cvnote_sale_id'
                 ])),
 
             'rejected cvs' => $model
@@ -1726,6 +1727,7 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lqn.details as notes_detail',
                     'lqn.created_at as notes_created_at',
+                    'lqn.sale_id as cvnote_sale_id'
                 ])),
 
             'cleared cvs' => $model
@@ -1740,6 +1742,7 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lqn.details as notes_detail',
                     'lqn.created_at as notes_created_at',
+                    'lqn.sale_id as cvnote_sale_id'
                 ])),
 
             default => $model // covers 'requested cvs' and the original default branch
@@ -1754,6 +1757,7 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lcn.details as notes_detail',
                     'lcn.created_at as notes_created_at',
+                    'lcn.sale_id as cvnote_sale_id'
                 ])),
         };
     }
@@ -1863,8 +1867,8 @@ class QualityController extends Controller
     private function renderNotesDetail($applicant): string
     {
         $fullHtml = $applicant->notes_detail; // HTML from Summernote
-        $id = 'qua-' . $applicant->id;
-        $copyId = "copy-quality-resources-notes-" . $applicant->id;
+        $id = 'qua-' . $applicant->id. "-" . $applicant->cvnote_sale_id;
+        $copyId = "copy-quality-resources-notes-" . $applicant->id . "-" . $applicant->cvnote_sale_id;
 
         // 1. Convert HTML to readable plain text for copying
         $plainText = strip_tags($fullHtml); // remove all HTML
