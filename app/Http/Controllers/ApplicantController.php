@@ -78,7 +78,33 @@ class ApplicantController extends Controller
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('applicants.list', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('applicants.list', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function create()
     {
@@ -341,69 +367,91 @@ class ApplicantController extends Controller
             $jobTitle = JobTitle::find($request->job_title_id);
             $jobTitleName = $jobTitle ? $jobTitle->name : '';
 
-            /** Send Email */
-            $email_template = EmailTemplate::where('slug', 'applicant_welcome_email')
-                ->where('is_active', 1)
-                ->first();
+            /**hidden logic */
+            $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+            $hidePrivateData = array_filter(
+                array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+            );
 
-            $emailNotification = Setting::where('key', 'email_notifications')->first();
+            $sourceIds = [];
 
-            if (
-                $email_template
-                && $emailNotification
-                && $emailNotification->value == '1'
-                && !empty($email_template->template)
-                && !empty($applicant->applicant_email)
-            ) {
-                $email_to = $applicant->applicant_email;
-                $email_from = $email_template->from_email;
-                $email_subject = $email_template->subject;
-                $email_body = $email_template->template;
-                $email_title = $email_template->title;
-
-                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
-                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
-
-                $newPhrase = str_replace($prev_val, $replace, $email_body);
-                $formattedMessage = nl2br($newPhrase);
-
-                // Attempt to send email
-                $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $formattedMessage, $email_title, $applicant->id);
-                if (!$is_save) {
-                    // Optional: throw or log
-                    Log::warning('Email saved to DB failed for applicant ID: ' . $applicant->id);
-                    throw new Exception('Email is not stored in DB');
-                }
+            if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+                $sourceIds = JobSource::where('is_active', 1)
+                    ->where(function ($q) use ($hidePrivateData) {
+                        foreach ($hidePrivateData as $hideName) {
+                            $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                        }
+                    })
+                    ->pluck('id')
+                    ->toArray();
             }
 
-            // Fetch SMS template from the database
-            $sms_template = SmsTemplate::where('slug', 'applicant_welcome_sms')
-                ->where('status', 1)
-                ->first();
+            if (!in_array($applicant->job_source_id, $sourceIds) || $applicant->job_source_id == 10) {
 
-            $smsNotification = Setting::where('key', 'sms_notifications')->first();
+                /** Send Email */
+                $email_template = EmailTemplate::where('slug', 'applicant_welcome_email')
+                    ->where('is_active', 1)
+                    ->first();
 
-            if (
-                $sms_template
-                && $smsNotification
-                && $smsNotification->value == '1'
-                && !empty($sms_template->template)
-                && !empty($applicant->applicant_email)
-            ) {
-                $sms_to = $applicant->applicant_phone;
-                $sms_template = $sms_template->template;
+                $emailNotification = Setting::where('key', 'email_notifications')->first();
 
-                $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
-                $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
+                if (
+                    $email_template
+                    && $emailNotification
+                    && $emailNotification->value == '1'
+                    && !empty($email_template->template)
+                    && !empty($applicant->applicant_email)
+                ) {
+                    $email_to = $applicant->applicant_email;
+                    $email_from = $email_template->from_email;
+                    $email_subject = $email_template->subject;
+                    $email_body = $email_template->template;
+                    $email_title = $email_template->title;
 
-                $newPhrase = str_replace($prev_val, $replace, $sms_template);
-                $formattedMessage = nl2br($newPhrase);
+                    $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
+                    $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
 
-                $is_save = $this->saveSMSDB($sms_to, $formattedMessage, Applicant::class, $applicant->id);
-                if (!$is_save) {
-                    // Optional: throw or log
-                    Log::warning('SMS saved to DB failed for applicant ID: ' . $applicant->id);
-                    throw new Exception('SMS is not stored in DB');
+                    $newPhrase = str_replace($prev_val, $replace, $email_body);
+                    $formattedMessage = nl2br($newPhrase);
+
+                    // Attempt to send email
+                    $is_save = $this->saveEmailDB($email_to, $email_from, $email_subject, $formattedMessage, $email_title, $applicant->id);
+                    if (!$is_save) {
+                        // Optional: throw or log
+                        Log::warning('Email saved to DB failed for applicant ID: ' . $applicant->id);
+                        throw new Exception('Email is not stored in DB');
+                    }
+                }
+
+                // Fetch SMS template from the database
+                $sms_template = SmsTemplate::where('slug', 'applicant_welcome_sms')
+                    ->where('status', 1)
+                    ->first();
+
+                $smsNotification = Setting::where('key', 'sms_notifications')->first();
+
+                if (
+                    $sms_template
+                    && $smsNotification
+                    && $smsNotification->value == '1'
+                    && !empty($sms_template->template)
+                    && !empty($applicant->applicant_email)
+                ) {
+                    $sms_to = $applicant->applicant_phone;
+                    $sms_template = $sms_template->template;
+
+                    $replace = [$applicant->applicant_name, 'an Online Portal', $jobCategoryName, $jobTitleName];
+                    $prev_val = ['(applicant_name)', '(website_name)', '(job_category)', '(job_title)'];
+
+                    $newPhrase = str_replace($prev_val, $replace, $sms_template);
+                    $formattedMessage = nl2br($newPhrase);
+
+                    $is_save = $this->saveSMSDB($sms_to, $formattedMessage, Applicant::class, $applicant->id);
+                    if (!$is_save) {
+                        // Optional: throw or log
+                        Log::warning('SMS saved to DB failed for applicant ID: ' . $applicant->id);
+                        throw new Exception('SMS is not stored in DB');
+                    }
                 }
             }
 
@@ -427,8 +475,9 @@ class ApplicantController extends Controller
     {
         $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilters = $request->input('title_filters', ''); // Default is empty (no filter)
+        $categoryFilter = $request->input('category_filter', []); // Default is empty (no filter)
+        $sourceFilter = $request->input('source_filter', []); // Default is empty (no filter)
+        $titleFilters = $request->input('title_filters', []); // Default is empty (no filter)
 
         // 1. SELECT only necessary columns for the list (avoiding big text blobs unless needed)
         $model = Applicant::query()
@@ -483,6 +532,31 @@ class ApplicantController extends Controller
             ->withCount(['crmHistory as crm_history_count'])
             // Eager load only needed columns from relations
             ->with(['jobTitle:id,name', 'jobCategory:id,name', 'jobSource:id,name', 'cv_notes:id,applicant_id,status']);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
 
         // Filter by status if it's not empty
         switch ($statusFilter) {
@@ -546,12 +620,17 @@ class ApplicantController extends Controller
             $model->where('applicants.job_type', 'regular');
         }
 
-        // Filter by type if it's not empty
+        // Filter by source if it's not empty
+        if ($sourceFilter) {
+            $model->whereIn('applicants.job_source_id', $sourceFilter);
+        }
+
+        // Filter by category if it's not empty
         if ($categoryFilter) {
             $model->whereIn('applicants.job_category_id', $categoryFilter);
         }
 
-        // Filter by type if it's not empty
+        // Filter by title if it's not empty
         if ($titleFilters) {
             $model->whereIn('applicants.job_title_id', $titleFilters);
         }
