@@ -1375,26 +1375,6 @@ class ApplicantController extends Controller
 
         return view('applicants.edit', compact('applicant', 'jobCategories', 'jobSources'));
     }
-    public function history(int $id)
-    {
-        // Debug the incoming id
-        Log::info('Trying to edit applicant with ID: ' . $id);
-
-        $applicant = Applicant::find($id);
-        $jobCategory = JobCategory::where('id', $applicant->job_category_id)->select('name')->first();
-        $jobTitle = JobTitle::where('id', $applicant->job_title_id)->select('name')->first();
-        $jobSource = JobSource::where('id', $applicant->job_source_id)->select('name')->first();
-        $jobTypeStr = ucwords(str_replace('-', ' ', $applicant->job_type));
-        $jobType = $jobTypeStr == 'Specialist' ? ' (' . $jobTypeStr . ')' : '';
-        $postcode = ucwords($applicant->applicant_postcode);
-
-        // Check if the applicant is found
-        if (!$applicant) {
-            Log::info('Applicant not found with ID: ' . $id);
-        }
-
-        return view('applicants.history', compact('applicant', 'jobCategory', 'jobTitle', 'jobSource', 'jobType', 'postcode'));
-    }
     public function update(Request $request)
     {
         // Validate the incoming request
@@ -1676,6 +1656,26 @@ class ApplicantController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+    public function history(int $id)
+    {
+        // Debug the incoming id
+        Log::info('Trying to edit applicant with ID: ' . $id);
+
+        $applicant = Applicant::find($id);
+        $jobCategory = JobCategory::where('id', $applicant->job_category_id)->select('name')->first();
+        $jobTitle = JobTitle::where('id', $applicant->job_title_id)->select('name')->first();
+        $jobSource = JobSource::where('id', $applicant->job_source_id)->select('name')->first();
+        $jobTypeStr = ucwords(str_replace('-', ' ', $applicant->job_type));
+        $jobType = $jobTypeStr == 'Specialist' ? ' (' . $jobTypeStr . ')' : '';
+        $postcode = ucwords($applicant->applicant_postcode);
+
+        // Check if the applicant is found
+        if (!$applicant) {
+            Log::info('Applicant not found with ID: ' . $id);
+        }
+
+        return view('applicants.history', compact('applicant', 'jobCategory', 'jobTitle', 'jobSource', 'jobType', 'postcode'));
     }
     public function destroy(int $id)
     {
@@ -2335,27 +2335,27 @@ class ApplicantController extends Controller
     //             ->make(true);
     //     }
     // }
-    private function generateJobDetailsModal($data)
-    {
-        $modalId = 'jobDetailsModal_' . $data->sale_id;  // Unique modal ID for each applicant's job details
+    // private function generateJobDetailsModal($data)
+    // {
+    //     $modalId = 'jobDetailsModal_' . $data->sale_id;  // Unique modal ID for each applicant's job details
 
-        return '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="' . $modalId . 'Label">Job Details</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body modal-body-text-left">
-                                <!-- Job details content will be dynamically inserted here -->
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>';
-    }
+    //     return '<div class="modal fade" id="' . $modalId . '" tabindex="-1" aria-labelledby="' . $modalId . 'Label" aria-hidden="true">
+    //                 <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
+    //                     <div class="modal-content">
+    //                         <div class="modal-header">
+    //                             <h5 class="modal-title" id="' . $modalId . 'Label">Job Details</h5>
+    //                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    //                         </div>
+    //                         <div class="modal-body modal-body-text-left">
+    //                             <!-- Job details content will be dynamically inserted here -->
+    //                         </div>
+    //                         <div class="modal-footer">
+    //                             <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //             </div>';
+    // }
     public function sendCVtoQuality(Request $request)
     {
         try {
