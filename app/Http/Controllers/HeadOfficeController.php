@@ -596,12 +596,37 @@ class HeadOfficeController extends Controller
     }
     public function edit($id, Request $request)
     {
-        // Debug the incoming id
-        Log::info('Trying to edit head office with ID: ' . $id);
-
         $office = Office::find($id);
-        $contacts = Contact::where('contactable_id', $office->id)
-            ->where('contactable_type', 'Horsefly\Office')->get();
+        $contactsQuery = Contact::where('contactable_id', $office->id)
+            ->where('contactable_type', 'Horsefly\Office');
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $contactsQuery->where(function ($sub) use ($hidePrivateData) {
+                foreach ($hidePrivateData as $hideValue) {
+                    $sub->where(function ($fieldGroup) use ($hideValue) {
+                        $fieldGroup->where(function ($nameCheck) use ($hideValue) {
+                            $nameCheck->whereNull('contact_name')
+                                ->orWhere('contact_name', 'NOT LIKE', '%' . $hideValue . '%');
+                        })
+                            ->where(function ($emailCheck) use ($hideValue) {
+                                $emailCheck->whereNull('contact_email')
+                                    ->orWhere('contact_email', 'NOT LIKE', '%' . $hideValue . '%');
+                            })
+                            ->where(function ($noteCheck) use ($hideValue) {
+                                $noteCheck->whereNull('contact_note')
+                                    ->orWhere('contact_note', 'NOT LIKE', '%' . $hideValue . '%');
+                            });
+                    });
+                }
+            });
+        }
+
+        $contacts = $contactsQuery->get();
 
         // Check if the applicant is found
         if (!$office) {
