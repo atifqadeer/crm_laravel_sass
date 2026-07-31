@@ -8,8 +8,6 @@
         table.dataTable.no-footer {
             border-bottom: none !important;
         }
-
-        
     </style>
 @endsection
 @section('content')
@@ -22,12 +20,16 @@
                             <div class="text-md-start mt-3 pt-1">
                                 <div class="input-group">
                                     <!-- Use padding-right to prevent text from overlapping the clear icon -->
-                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
+                                        style="padding-right: 30px;">
                                     <!-- Absolutely positioned over the input field -->
-                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
-                                        <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
                                     </span>
-                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
                                 </div>
                             </div>
                         </div>
@@ -37,8 +39,10 @@
                                 @canany(['applicant-filters'])
                                     <!-- Category Filter Dropdown -->
                                     <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                                Category</span>
                                         </button>
 
                                         <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -47,13 +51,17 @@
                                                 placeholder="Search category...">
                                             <!-- Select/Deselect All -->
                                             <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".category-filter" data-exclude="[data-category-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".category-filter" data-exclude="[data-category-id='']" style="display:none">Deselect All</a>
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".category-filter" data-exclude="[data-category-id='']">Select
+                                                    All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".category-filter" data-exclude="[data-category-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="categoryList">
 
-                                                @foreach($jobCategories as $category)
+                                                @foreach ($jobCategories as $category)
                                                     <div class="form-check">
                                                         <input class="form-check-input category-filter" type="checkbox"
                                                             value="{{ $category->id }}" id="category_{{ $category->id }}"
@@ -79,7 +87,7 @@
                                         </div>
                                     </div>
 
-                                     <!-- Title Filter Dropdown -->
+                                    <!-- Title Filter Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -93,8 +101,11 @@
                                                 placeholder="Search titles...">
                                             <!-- Select/Deselect All -->
                                             <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".title-filter" data-exclude="[data-title-id='']" style="display:none">Deselect All</a>
+                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".title-filter" data-exclude="[data-title-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="titleList">
@@ -105,6 +116,49 @@
                                                             data-title-id="{{ $title->id }}">
                                                         <label class="form-check-label"
                                                             for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sources Filter Dropdown -->
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                        </button>
+
+                                        <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                            <!-- Search input -->
+                                            <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                                placeholder="Search Source...">
+                                            <!-- Select/Deselect All -->
+                                            <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
+                                                <a href="#" id="sourceSelectAll"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".source-filter" data-exclude="[data-source-id='']">Select
+                                                    All</a>
+                                                <a href="#" id="sourceDeselectAll"
+                                                    class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".source-filter" data-exclude="[data-source-id='']"
+                                                    style="display:none">Deselect All</a>
+                                            </div>
+                                            <!-- Scrollable checkbox list -->
+                                            <div id="sourceList">
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="" id="all-sources" data-source-id="">
+                                                    <label class="form-check-label" for="all-sources">All Sources</label>
+                                                </div>
+
+                                                @foreach ($jobSources as $source)
+                                                    <div class="form-check">
+                                                        <input class="form-check-input source-filter" type="checkbox"
+                                                            value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                            data-source-id="{{ $source->id }}">
+                                                        <label class="form-check-label"
+                                                            for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
                                                     </div>
                                                 @endforeach
                                             </div>
@@ -146,7 +200,8 @@
                                                     href="{{ route('applicantsExport', ['type' => 'emails']) }}">Export Emails</a>
                                             @endcanany
                                             <a class="dropdown-item export-btn"
-                                                href="{{ route('applicantsExport', ['type' => 'noLatLong']) }}">Export no LAT &
+                                                href="{{ route('applicantsExport', ['type' => 'noLatLong']) }}">Export no LAT
+                                                &
                                                 LONG</a>
                                         </div>
                                     </div>
@@ -229,8 +284,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="process_file" class="form-label">Choose CSV File</label>
-                            <input type="file" class="form-control" id="process_file" name="process_file" accept=".pdf,.doc,.docx"
-                                required>
+                            <input type="file" class="form-control" id="process_file" name="process_file"
+                                accept=".pdf,.doc,.docx" required>
                         </div>
                         <div class="progress" style="height: 20px;">
                             <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
@@ -244,7 +299,7 @@
             </form>
         </div>
     </div>
-    
+
     <!-- Import CSV Modal -->
     <div class="modal fade" id="csvImportModal" tabindex="-1" aria-labelledby="csvImportLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-top">
@@ -278,28 +333,28 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
- 
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
+
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
         const hasResumePermission = @json(auth()->user()->can('applicant-download-resume'));
@@ -310,6 +365,7 @@
             let currentFilter = '';
             let currentTypeFilter = '';
             let currentCategoryFilters = [];
+            let currentSourceFilters = [];
             let currentTitleFilters = [];
 
             // Create loader row
@@ -358,7 +414,7 @@
                 },
                 {
                     data: 'applicantPhone',
-                    name: 'applicantPhone',               // ← Use the same as data key
+                    name: 'applicantPhone', // ← Use the same as data key
                     orderable: false,
                     searchable: true,
                 },
@@ -429,13 +485,15 @@
                 processing: false,
                 serverSide: true,
                 ajax: {
-                    url: '{{ route("getApplicantsAjaxRequest") }}',
+                    url: '{{ route('getApplicantsAjaxRequest') }}',
                     type: 'POST', // <-- change GET → POST
-                    data: function (d) {
+                    data: function(d) {
                         d._token = '{{ csrf_token() }}';
                         d.status_filter = currentFilter;
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilters;
+                        d.source_filter =
+                            currentSourceFilters; // Send the current filter value as a parameter
                         d.title_filters = currentTitleFilters;
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
@@ -446,7 +504,9 @@
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseText);
-                        $('#applicants_table tbody').html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#applicants_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
                 },
                 columns: columns,
@@ -618,10 +678,43 @@
                 // Update dropdown display text and toggle visibility
                 const total = $('.category-filter').not('[data-category-id=""]').length;
                 const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
-                
-                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` : 'All Category');
-                
+
+                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` :
+                    'All Category');
+
                 const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+
+            /*** Source filter handler ***/
+            $('.source-filter').on('change', function() {
+                const id = $(this).data('source-id');
+                // Handle "All Titles"
+                if (id === '' || id === undefined) {
+                    currentSourceFilters = [];
+                    $('.source-filter').not(this).prop('checked', false);
+                } else {
+                    // Remove or add to array
+                    if (this.checked) {
+                        currentSourceFilters.push(id);
+                        // Uncheck "All Titles"
+                        $('.source-filter[data-source-id=""]').prop('checked', false);
+                    } else {
+                        currentSourceFilters = currentSourceFilters.filter(x => x !== id);
+                    }
+                }
+
+                // Update dropdown display text and toggle visibility
+                const total = $('.source-filter').not('[data-source-id=""]').length;
+                const checked = $('.source-filter:checked').not('[data-source-id=""]').length;
+
+                $('#showFilterSource').text(checked > 0 ? `Selected Source (${checked})` : 'All Sources');
+
+                const container = $('#sourceToggleContainer');
                 container.find('.filter-select-all').toggle(checked < total);
                 container.find('.filter-deselect-all').toggle(checked > 0);
 
@@ -668,7 +761,7 @@
                 e.stopPropagation();
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
-                
+
                 $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
                 $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
             });
@@ -679,7 +772,7 @@
                 e.stopPropagation();
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
-                
+
                 $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
             });
 
@@ -966,7 +1059,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // Send data via AJAX
                 $.ajax({
@@ -1372,7 +1465,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // AJAX request
                 $.ajax({
@@ -1476,44 +1569,44 @@
             formData.append('applicant_id', applicantId);
 
             fetch('{{ route('applicants.uploadCv') }}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin' // ✅ important for session
-            })
-            .then(async response => {
-                // 🚨 Handle redirects / session issues
-                if (response.status === 302 || response.status === 401) {
-                    throw new Error('Session expired. Please refresh the page.');
-                }
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin' // ✅ important for session
+                })
+                .then(async response => {
+                    // 🚨 Handle redirects / session issues
+                    if (response.status === 302 || response.status === 401) {
+                        throw new Error('Session expired. Please refresh the page.');
+                    }
 
-                if (response.status === 419) {
-                    throw new Error('CSRF token mismatch. Refresh the page.');
-                }
+                    if (response.status === 419) {
+                        throw new Error('CSRF token mismatch. Refresh the page.');
+                    }
 
-                if (response.status === 422) {
-                    const err = await response.json();
-                    throw new Error(err.message || 'Validation failed');
-                }
+                    if (response.status === 422) {
+                        const err = await response.json();
+                        throw new Error(err.message || 'Validation failed');
+                    }
 
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    toastr.success(data.message || 'File uploaded successfully');
-                    $('#applicants_table').DataTable().ajax.reload(null, false);
-                    fileInput.value = '';
-                } else {
-                    toastr.error(data.message || 'Upload failed');
-                }
-            })
-            .catch(error => {
-                toastr.error(error.message || 'Error uploading file');
-                console.error(error);
-            });
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        toastr.success(data.message || 'File uploaded successfully');
+                        $('#applicants_table').DataTable().ajax.reload(null, false);
+                        fileInput.value = '';
+                    } else {
+                        toastr.error(data.message || 'Upload failed');
+                    }
+                })
+                .catch(error => {
+                    toastr.error(error.message || 'Error uploading file');
+                    console.error(error);
+                });
         }
 
 
@@ -1586,7 +1679,7 @@
 
                 xhr.send(formData);
             });
-            
+
             $('#csvImportForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -1657,7 +1750,7 @@
             });
         });
 
-        $(document).on('click', '.export-btn', function (e) {
+        $(document).on('click', '.export-btn', function(e) {
             e.preventDefault();
 
             const $link = $(this);
@@ -1675,8 +1768,10 @@
             $.ajax({
                 url: url,
                 type: 'GET',
-                xhrFields: { responseType: 'blob' }, // for binary file
-                success: function (data, status, xhr) {
+                xhrFields: {
+                    responseType: 'blob'
+                }, // for binary file
+                success: function(data, status, xhr) {
                     const blob = new Blob([data]);
                     const link = document.createElement('a');
                     const fileName = xhr.getResponseHeader('Content-Disposition')
@@ -1687,10 +1782,10 @@
                     link.click();
                     document.body.removeChild(link);
                 },
-                error: function () {
+                error: function() {
                     alert('Export failed. Please try again.');
                 },
-                complete: function () {
+                complete: function() {
                     // Re-enable button + reset text
                     $btn.prop('disabled', false);
                     $icon.removeClass().addClass('ri-download-line me-1');
