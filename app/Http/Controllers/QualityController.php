@@ -16,8 +16,8 @@ use Horsefly\CrmNote;
 use Horsefly\Applicant;
 use Horsefly\RevertStage;
 use Horsefly\SmsTemplate;
-use Horsefly\JobSource; 
-use Horsefly\JobCategory; 
+use Horsefly\JobSource;
+use Horsefly\JobCategory;
 use Horsefly\JobTitle;
 use Horsefly\ModuleNote;
 use Horsefly\User;
@@ -1511,6 +1511,7 @@ class QualityController extends Controller
                 'applicants.job_category_id',
                 'applicants.job_title_id',
                 'applicants.job_type',
+
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
@@ -1522,6 +1523,31 @@ class QualityController extends Controller
             ->leftJoin('job_sources',    'applicants.job_source_id',   '=', 'job_sources.id');
 
         $this->applyStatusFilterJoins($model, $statusFilter, $commonSaleSelect);
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
 
         $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'status')]);
 
@@ -1697,7 +1723,9 @@ class QualityController extends Controller
                     'lrs.notes as notes_detail',
                     'lrs.stage as revert_stage',
                     'lrs.updated_at as notes_created_at',
-                    'lcn.sale_id as cvnote_sale_id'
+                    'lcn.sale_id as cvnote_sale_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.job_category_id as sale_category_id',
                 ])),
 
             'no job cvs' => $model
@@ -1712,7 +1740,9 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lcn.details as notes_detail',
                     'lcn.created_at as notes_created_at',
-                    'lcn.sale_id as cvnote_sale_id'
+                    'lcn.sale_id as cvnote_sale_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.job_category_id as sale_category_id',
                 ])),
 
             'rejected cvs' => $model
@@ -1727,7 +1757,9 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lqn.details as notes_detail',
                     'lqn.created_at as notes_created_at',
-                    'lqn.sale_id as cvnote_sale_id'
+                    'lqn.sale_id as cvnote_sale_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.job_category_id as sale_category_id',
                 ])),
 
             'cleared cvs' => $model
@@ -1742,7 +1774,9 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lqn.details as notes_detail',
                     'lqn.created_at as notes_created_at',
-                    'lqn.sale_id as cvnote_sale_id'
+                    'lqn.sale_id as cvnote_sale_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.job_category_id as sale_category_id',
                 ])),
 
             default => $model // covers 'requested cvs' and the original default branch
@@ -1757,7 +1791,9 @@ class QualityController extends Controller
                 ->addSelect(array_merge($commonSaleSelect, [
                     'lcn.details as notes_detail',
                     'lcn.created_at as notes_created_at',
-                    'lcn.sale_id as cvnote_sale_id'
+                    'lcn.sale_id as cvnote_sale_id',
+                    'sales.job_title_id as sale_title_id',
+                    'sales.job_category_id as sale_category_id',
                 ])),
         };
     }
@@ -1867,7 +1903,7 @@ class QualityController extends Controller
     private function renderNotesDetail($applicant): string
     {
         $fullHtml = $applicant->notes_detail; // HTML from Summernote
-        $id = 'qua-' . $applicant->id. "-" . $applicant->cvnote_sale_id;
+        $id = 'qua-' . $applicant->id . "-" . $applicant->cvnote_sale_id;
         $copyId = "copy-quality-resources-notes-" . $applicant->id . "-" . $applicant->cvnote_sale_id;
 
         // 1. Convert HTML to readable plain text for copying
@@ -2011,6 +2047,7 @@ class QualityController extends Controller
         $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
         $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
 
+        // sale status
         if ($applicant->sale_status == 1) {
             $status = '<span class="badge bg-success">Active</span>';
         } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
@@ -2023,13 +2060,16 @@ class QualityController extends Controller
             $status = '<span class="badge bg-secondary">Unknown</span>';
         }
 
+        $saleJobTitle = JobTitle::where('id', $applicant->sale_title_id)->first('name');
+        $saleJobCategory = JobCategory::where('id', $applicant->sale_category_id)->first('name');
+
         $jobData = [
             'sale_id'       => (int) $applicant->sale_id,
             'office_name'   => ucwords($applicant->office_name ?? ''),
             'unit_name'     => ucwords($applicant->unit_name ?? ''),
             'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
-            'job_category'  => ucwords($applicant->job_category_name ?? ''),
-            'job_title'     => strtoupper($applicant->job_title_name ?? ''),
+            'job_category'  => ucwords($saleJobCategory->name ?? ''),
+            'job_title'     => strtoupper($saleJobTitle->name ?? ''),
             'status'        => $status,       // RAW HTML
             'timing'        => $applicant->timing ?? '',
             'experience'    => $applicant->sale_experience ?? '',
