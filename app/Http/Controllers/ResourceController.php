@@ -1773,8 +1773,14 @@ class ResourceController extends Controller
                     $job_title = $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                     $job_category = $applicant->jobCategory ? ucwords($applicant->jobCategory->name) : '-';
                     $job_source = $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
-                    $experience = $applicant->applicant_experience ? ($applicant->applicant_experience == 'NULL' ? '-' : $applicant->applicant_experience) : '-';
                     $have_nursing_home_experience = $applicant->have_nursing_home_experience ? ($applicant->have_nursing_home_experience == true ? 'Yes' : 'No') : '-';
+                    $experience = trim((string) $applicant->applicant_experience);
+
+                    if ($experience === '' || strtoupper($experience) === 'NULL') {
+                        $experience = '-';
+                    }
+
+                    $experience = str_replace(["\r", "\n"], ' ', $experience);
 
 
                     $status = '';
