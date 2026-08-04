@@ -1618,17 +1618,39 @@ class ResourceController extends Controller
                     }
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
-                    $notes = e(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
-                    $name = htmlspecialchars($applicant->applicant_name, ENT_QUOTES, 'UTF-8');
-                    $postcode = htmlspecialchars($applicant->applicant_postcode, ENT_QUOTES, 'UTF-8');
+                    if (empty($applicant->applicant_notes) || $applicant->applicant_notes === 'NULL') {
+                        return '-';
+                    }
 
-                    // Tooltip content with additional data-bs-placement and title
-                    return '<a href="javascript:void(0);" title="View Note" onclick="showNotesModal(\'' . (int)$applicant->id . '\', \'' . $notes . '\', \'' . ucwords($name) . '\', \'' . strtoupper($postcode) . '\')">
-                            <iconify-icon icon="solar:eye-scan-bold" class="text-primary fs-24"></iconify-icon>
+                    $short = Str::limit(strip_tags($applicant->applicant_notes), 80);
+                    $full = e($applicant->applicant_notes);
+                    $id = 'notes-' . $applicant->id;
+
+                    return '
+                        <a href="javascript:void(0);" class="text-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#' . $id . '">
+                            ' . $short . '
                         </a>
-                        <a href="javascript:void(0);" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
-                            <iconify-icon icon="solar:clipboard-add-linear" class="text-warning fs-24"></iconify-icon>
-                        </a>';
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="' . $id . '-label">Applicant Notes</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ' . nl2br($full) . '
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ';
                 })
                 ->addColumn('applicantPhone', function ($applicant) {
 
@@ -1776,6 +1798,11 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                                        Add Notes
+                                    </a>
+                                </li>
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
