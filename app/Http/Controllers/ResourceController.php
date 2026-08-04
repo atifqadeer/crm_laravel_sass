@@ -1798,11 +1798,7 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
                             <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="javascript:void(0);" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
-                                        Add Notes
-                                    </a>
-                                </li>
+                               
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
@@ -1820,6 +1816,11 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($experience)) . '\',
                                     \'' . addslashes(htmlspecialchars($have_nursing_home_experience)) . '\'
                                 )">View</a></li>
+                                 <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" title="Add Short Note" onclick="addShortNotesModal(\'' . (int)$applicant->id . '\')">
+                                        Add Notes
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
