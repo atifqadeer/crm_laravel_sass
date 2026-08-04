@@ -5,11 +5,15 @@ namespace App\Exports;
 use Horsefly\Applicant;
 use Horsefly\JobTitle;
 use Horsefly\Sale;
+use Horsefly\Setting;
+use Horsefly\JobSource;
+
 use App\Traits\HasDistanceCalculation;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 
 class ApplicantsExport implements FromCollection, WithHeadings
@@ -35,38 +39,64 @@ class ApplicantsExport implements FromCollection, WithHeadings
 
     public function collection()
     {
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
         switch ($this->type) {
             case 'emails':
-                return Applicant::select(
+                $query = Applicant::select(
                     'applicants.id',
                     'applicants.applicant_name',
                     'applicants.applicant_email',
                     'applicants.applicant_email_secondary',
-                    'job_categories.name as job_category',
                     'applicants.job_type',
+                    'applicants.created_at',
+
+                    'job_categories.name as job_category',
                     'job_titles.name as job_title',
-                    'applicants.created_at'
                 )
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->where('applicants.status', 1)
                     ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email,
-                            'applicant_email_secondary' => $item->applicant_email_secondary,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                        ];
+                    ->whereNull('applicants.deleted_at');
+
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
                     });
+                }
+
+                return $query->get()->map(function ($item) {
+                    return [
+                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email,
+                        'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'job_category' => strtoupper($item->job_category),
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title),
+                    ];
+                });
 
             case 'noLatLong':
-                return Applicant::select(
+                $query = Applicant::select(
                     'applicants.id',
                     'applicants.applicant_name',
                     'applicants.applicant_postcode',
@@ -83,23 +113,29 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->where('applicants.status', 1)
                     ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_postcode' => strtoupper($item->applicant_postcode),
-                            'lat' => $item->lat,
-                            'lng' => $item->lng,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                        ];
-                    });
+                    ->whereNull('applicants.deleted_at');
 
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
+                    });
+                }
+
+                return $query->get()->map(function ($item) {
+                    return [
+                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_postcode' => strtoupper($item->applicant_postcode),
+                        'lat' => $item->lat,
+                        'lng' => $item->lng,
+                        'job_category' => strtoupper($item->job_category),
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title),
+                    ];
+                });
             case 'all':
-                return Applicant::select(
+                $query = Applicant::select(
                     'applicants.id',
                     'applicants.applicant_name',
                     'applicants.applicant_email',
@@ -108,32 +144,46 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     'applicants.applicant_phone',
                     'applicants.applicant_phone_secondary',
                     'applicants.applicant_landline',
+                    'applicants.applicant_experience',
+                    'applicants.applicant_notes',
+                    'applicant_notes.details as note_details',
+                    'applicants.created_at',
+
                     'job_categories.name as job_category',
                     'applicants.job_type',
                     'job_titles.name as job_title',
-                    'applicants.created_at'
                 )
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->leftJoin('applicant_notes', 'applicants.id', '=', 'applicant_notes.applicant_id')
                     ->where('applicants.status', 1)
                     ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email,
-                            'applicant_email_secondary' => $item->applicant_email_secondary,
-                            'applicant_postcode' => strtoupper($item->applicant_postcode),
-                            'applicant_phone' => $item->applicant_phone,
-                            'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                            'applicant_landline' => $item->applicant_landline,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                        ];
+                    ->whereNull('applicants.deleted_at');
+
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
                     });
+                }
+
+                return $query->get()->map(function ($item) {
+                    return [
+                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email,
+                        'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'applicant_postcode' => strtoupper($item->applicant_postcode),
+                        'applicant_phone' => $item->applicant_phone,
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
+                        'applicant_landline' => $item->applicant_landline,
+                        'job_category' => strtoupper($item->job_category),
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title),
+                        'experience' => $item->applicant_experience,
+                        'note' => $item->note_details ?? $item->applicant_notes,
+                    ];
+                });
 
             case 'withinRadius':
                 $sale = $this->model_type::find($this->model_id);
@@ -153,6 +203,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         DB::raw("(ACOS(SIN($lat * PI() / 180) * SIN(lat * PI() / 180) + 
                                     COS($lat * PI() / 180) * COS(lat * PI() / 180) * 
                                     COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance"),
+
                         // ✅ Single variable: picks module_notes first, falls back to applicant_notes
                         DB::raw("
                             COALESCE(
@@ -183,7 +234,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->where('applicants.status', 1)
                     ->where('applicants.is_blocked', 0)
                     ->whereNull('applicants.deleted_at')
-                    ->where('is_in_nurse_home', false)
+                    ->where('is_in_nurse_home', 0)
                     ->having('distance', '<', $radius) // Filter by distance
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
@@ -199,6 +250,13 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             ELSE 6
                         END AS paid_status_order
                     ", [$sale_id, $sale_id]);
+
+                if (count($sourceIds) > 0) {
+                    $model->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
+                    });
+                }
 
                 // Fetch the job title based on the sale's job title ID
                 $jobTitle = JobTitle::find($sale->job_title_id);
@@ -292,12 +350,20 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 $radius = 15; // Default radius of 10 km if not provided
 
                 // Get all active sales locations
-                $salesLocations = Sale::select('id', 'job_title_id', 'lat', 'lng', 'sale_postcode')
+                $salesLocationsQuery = Sale::select('id', 'job_title_id', 'lat', 'lng', 'sale_postcode', 'job_source_id')
                     ->where('status', 1)
                     ->where('is_on_hold', 0)
                     ->whereNotNull('lat')
-                    ->whereNotNull('lng')
-                    ->get();
+                    ->whereNotNull('lng');
+
+                if (count($sourceIds) > 0) {
+                    $salesLocationsQuery->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('job_source_id', $sourceIds)
+                            ->orWhereNull('job_source_id');
+                    });
+                }
+
+                $salesLocations = $salesLocationsQuery->get();
 
                 // Build the main query
                 $latestNotes = DB::table('crm_notes as cn1')
@@ -309,6 +375,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->join(DB::raw('(SELECT MAX(id) as id FROM history GROUP BY applicant_id, sale_id) as h2'), 'h1.id', '=', 'h2.id');
 
                 $query = Applicant::query()
+                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
                     ->select([
                         'applicants.id',
                         'crm_notes.created_at as crm_notes_created',
@@ -369,9 +436,14 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.is_callback_enable' => 0,
                         'applicants.is_no_job' => 0
                     ])
-                    ->whereNull('applicants.deleted_at')
-                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
-                    ->get();
+                    ->whereNull('applicants.deleted_at');
+
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
+                    });
+                }
 
                 if ($salesLocations->isNotEmpty()) {
                     $query->where(function ($query) use ($salesLocations, $radius) {
@@ -393,7 +465,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         }
                     });
                 }
-                $query->map(function ($item) {
+
+                return $query->get()->map(function ($item) {
                     return [
                         'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
                         'applicant_name' => ucwords(strtolower($item->applicant_name)),
@@ -413,8 +486,6 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ];
                 });
 
-                return $query;
-
             case 'allBlocked':
                 // Build the main query
                 $query = Applicant::query()
@@ -433,6 +504,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'job_titles.name as job_title',
                         'job_sources.name as job_source',
                         'applicants.applicant_experience',
+                        'applicants.applicant_notes',
                     ])
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
@@ -449,26 +521,34 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         'applicants.status' => 1,
                         'applicants.is_blocked' => 1,
                     ])
-                    ->whereNull('applicants.deleted_at')
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'date' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email,
-                            'applicant_email_secondary' => $item->applicant_email_secondary,
-                            'applicant_postcode' => strtoupper($item->applicant_postcode),
-                            'applicant_phone' => $item->applicant_phone,
-                            'applicant_phone_secondary' => $item->applicant_phone,
-                            'applicant_landline' => $item->applicant_landline,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                            'job_source' => strtoupper($item->job_source),
-                            'status' => 'Blocked',
-                            'experience' => $item->applicant_experience
-                        ];
+                    ->whereNull('applicants.deleted_at');
+
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
                     });
+                }
+
+                $query->get()->map(function ($item) {
+                    return [
+                        'date' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email,
+                        'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'applicant_postcode' => strtoupper($item->applicant_postcode),
+                        'applicant_phone' => $item->applicant_phone,
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
+                        'applicant_landline' => $item->applicant_landline,
+                        'job_category' => strtoupper($item->job_category),
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title),
+                        'job_source' => strtoupper($item->job_source),
+                        'status' => 'Blocked',
+                        'experience' => $item->applicant_experience,
+                        'notes' => $item->applicant_notes ?? 'N/A',
+                    ];
+                });
 
                 return $query;
             case 'allPaid':
@@ -512,27 +592,32 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         $query->select(DB::raw('MAX(id) FROM crm_notes'))
                             ->whereIn('moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'])
                             ->where('applicants.id', '=', DB::raw('applicant_id'));
-                    })
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email,
-                            'applicant_email_secondary' => $item->applicant_email_secondary,
-                            'applicant_postcode' => strtoupper($item->applicant_postcode),
-                            'applicant_phone' => $item->applicant_phone,
-                            'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                            'applicant_landline' => $item->applicant_landline,
-                            'job_category' => strtoupper($item->job_category),
-                            'job_type' => strtoupper($item->job_type),
-                            'job_title' => strtoupper($item->job_title),
-                            'job_source' => strtoupper($item->job_source),
-                            'status' => strtoupper($item->moved_tab_to),
-                            'experience' => $item->applicant_experience,
-                            'notes' => $item->details
-                        ];
                     });
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
+                    });
+                }
+                $query->get()->map(function ($item) {
+                    return [
+                        'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email,
+                        'applicant_email_secondary' => $item->applicant_email_secondary,
+                        'applicant_postcode' => strtoupper($item->applicant_postcode),
+                        'applicant_phone' => $item->applicant_phone,
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
+                        'applicant_landline' => $item->applicant_landline,
+                        'job_category' => strtoupper($item->job_category),
+                        'job_type' => strtoupper($item->job_type),
+                        'job_title' => strtoupper($item->job_title),
+                        'job_source' => strtoupper($item->job_source),
+                        'status' => strtoupper($item->moved_tab_to),
+                        'experience' => $item->applicant_experience,
+                        'notes' => $item->details
+                    ];
+                });
 
                 return $query;
 
@@ -590,29 +675,36 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
                     ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                     ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->distinct()
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'date' => $item->note_created_at
-                                ? Carbon::parse($item->note_created_at)->format('d M Y, h:i A')
-                                : 'N/A',
-                            'user' => $item->user_name ?? '-',
-                            'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                            'applicant_email' => $item->applicant_email ?: '-',
-                            'applicant_email_secondary' => $item->applicant_email_secondary ?: '-',
-                            'applicant_postcode' => strtoupper($item->applicant_postcode ?? '-'),
-                            'applicant_phone' => $item->applicant_phone ?: '-',
-                            'applicant_phone_secondary' => $item->applicant_phone_secondary ?: '-',
-                            'applicant_landline' => $item->applicant_landline ?: '-',
-                            'job_category' => strtoupper($item->job_category_name ?? '-'),
-                            'job_type' => strtoupper($item->job_type ?? '-'),
-                            'job_title' => strtoupper($item->job_title_name ?? '-'),
-                            'job_source' => strtoupper($item->job_source_name ?? '-'),
-                            'experience' => $item->applicant_experience ?: '-',
-                            'notes' => $item->module_notes_details ?: '-',
-                        ];
+                    ->distinct();
+
+                if (count($sourceIds) > 0) {
+                    $query->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                            ->orWhereNull('applicants.job_source_id');
                     });
+                }
+
+                $query->get()->map(function ($item) {
+                    return [
+                        'date' => $item->note_created_at
+                            ? Carbon::parse($item->note_created_at)->format('d M Y, h:i A')
+                            : 'N/A',
+                        'user' => $item->user_name ?? '-',
+                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
+                        'applicant_email' => $item->applicant_email ?: '-',
+                        'applicant_email_secondary' => $item->applicant_email_secondary ?: '-',
+                        'applicant_postcode' => strtoupper($item->applicant_postcode ?? '-'),
+                        'applicant_phone' => $item->applicant_phone ?: '-',
+                        'applicant_phone_secondary' => $item->applicant_phone_secondary ?: '-',
+                        'applicant_landline' => $item->applicant_landline ?: '-',
+                        'job_category' => strtoupper($item->job_category_name ?? '-'),
+                        'job_type' => strtoupper($item->job_type ?? '-'),
+                        'job_title' => strtoupper($item->job_title_name ?? '-'),
+                        'job_source' => strtoupper($item->job_source_name ?? '-'),
+                        'experience' => $item->applicant_experience ?: '-',
+                        'notes' => $item->module_notes_details ?: '-',
+                    ];
+                });
 
                 return $query;
 
@@ -629,13 +721,13 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'noLatLong':
                 return ['Created At', 'Applicant Name', 'Postcode', 'Latitude', 'Longitude', 'Job Category', 'Job Type', 'Job Title'];
             case 'all':
-                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title'];
+                return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Experience', 'Notes'];
             case 'withinRadius':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
-                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience', 'Notes'];
             case 'allPaid':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Status', 'Experience', 'Notes'];
             case 'allNoJob':

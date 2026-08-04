@@ -268,6 +268,10 @@ class Applicant extends Model
     {
         return $this->applicant_phone;
     }
+    public function getFormattedPhoneSecondaryAttribute()
+    {
+        return $this->applicant_phone_secondary;
+    }
     public function getFormattedLandlineAttribute()
     {
         return $this->applicant_landline;

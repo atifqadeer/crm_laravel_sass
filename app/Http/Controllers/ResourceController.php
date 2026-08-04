@@ -1458,7 +1458,7 @@ class ResourceController extends Controller
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
             ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-            ->with(['jobTitle', 'jobCategory', 'jobSource'])
+            // ->with(['jobTitle', 'jobCategory', 'jobSource'])
             ->with(['cv_notes' => function ($query) {
                 $query->select('status', 'applicant_id', 'sale_id', 'user_id')
                     ->with(['user:id,name'])->latest();
@@ -1548,11 +1548,15 @@ class ResourceController extends Controller
                 })
                 ->addColumn('job_category', function ($sale) {
                     $type = $sale->job_type;
-                    $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                    if (!$applicant->jobSource)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
@@ -1586,22 +1590,32 @@ class ResourceController extends Controller
                         $status_value = 'paid';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
+                            if ($value->status == 1) {
                                 $status_value = 'sent';
                                 break;
-                            } elseif ($value->status == 'disable') {
+                            } elseif ($value->status == 0) {
                                 $status_value = 'reject';
                             }
                         }
                     }
 
-                    if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject') {
+                    $rawPostcode = trim($applicant->applicant_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $applicant->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked && $status_value == 'open' || $status_value == 'reject') {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="' . $url . '" style="color:blue;">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
                     } else {
-                        $button = $applicant->formatted_postcode;
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
-                    return $button;
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
                     $notes = e(htmlspecialchars($applicant->applicant_notes, ENT_QUOTES, 'UTF-8'));
@@ -1706,11 +1720,11 @@ class ResourceController extends Controller
                         $color_class = 'bg-success';
                     } else {
                         foreach ($applicant->cv_notes as $key => $value) {
-                            if ($value->status == 'active') {
+                            if ($value->status == 1) {
                                 $status_value = 'sent';
                                 $color_class = 'bg-success';
                                 break;
-                            } elseif ($value->status == 'disable') {
+                            } elseif ($value->status == 0) {
                                 $status_value = 'reject';
                                 $color_class = 'bg-danger';
                             }
@@ -1726,14 +1740,18 @@ class ResourceController extends Controller
                 ->addColumn('action', function ($applicant) {
                     $landline = $applicant->formatted_landline;
                     $phone = $applicant->formatted_phone;
+                    $phone_secondary = $applicant->formatted_phone_secondary;
                     $postcode = $applicant->formatted_postcode;
                     $posted_date = $applicant->formatted_created_at;
                     $job_title = $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                     $job_category = $applicant->jobCategory ? ucwords($applicant->jobCategory->name) : '-';
                     $job_source = $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+
+                    $is_blocked = $applicant->is_blocked;
+
                     $status = '';
 
-                    if ($applicant->is_blocked) {
+                    if ($is_blocked) {
                         $status = '<span class="badge bg-dark">Blocked</span>';
                     } elseif ($applicant->status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
@@ -1758,13 +1776,14 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary)) . '\',
                                     \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                    \'' . addslashes(htmlspecialchars($landline)) . '\',
-                                    \'' . addslashes(htmlspecialchars($phone)) . '\',
+                                    \'' . addslashes(htmlspecialchars($is_blocked ? $landline : $status)) . '\',
+                                    \'' . addslashes(htmlspecialchars($is_blocked ? $phone : $status)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_title)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_category)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_source)) . '\',
                                     \'' . addslashes(htmlspecialchars($posted_date)) . '\',
-                                    \'' . addslashes(htmlspecialchars($status)) . '\'
+                                    \'' . addslashes(htmlspecialchars($status)) . '\',
+                                    \'' . addslashes(htmlspecialchars($is_blocked ? $phone_secondary : $status)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>

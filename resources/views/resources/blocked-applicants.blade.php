@@ -16,7 +16,24 @@
             <div class="card">
                 <div class="card-header border-0">
                     <div class="row justify-content-between">
-                        <div class="col-lg-12">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
+                                        style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
@@ -215,11 +232,11 @@
                     data: function(d) {
                         // Add the current filter to the request parameters
                         d.type_filter =
-                        currentTypeFilter; // Send the current filter value as a parameter
+                            currentTypeFilter; // Send the current filter value as a parameter
                         d.category_filter =
-                        currentCategoryFilters; // Send the current filter value as a parameter
+                            currentCategoryFilters; // Send the current filter value as a parameter
                         d.title_filter =
-                        currentTitleFilters; // Send the current filter value as a parameter
+                            currentTitleFilters; // Send the current filter value as a parameter
 
                         // Clean up search parameter
                         if (d.search && d.search.value) {
@@ -233,7 +250,7 @@
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#applicants_table tbody').empty().html(
                             '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
-                            );
+                        );
                     }
                 },
                 columns: [{
@@ -297,13 +314,13 @@
                     }
                 ],
                 columnDefs: [{
-                        targets: 12, // Column index for 'job_details'
+                        targets: 11, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 13, // Column index for 'job_details'
+                        targets: 12, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
@@ -311,9 +328,9 @@
                 ],
                 rowId: function(data) {
                     return 'row_' + data
-                    .id; // Assign a unique ID to each row using the 'id' field from the data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -392,6 +409,41 @@
 
                     pagination.html(paginationHtml);
                 },
+            });
+
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
             });
 
             // Type filter dropdown handler
@@ -650,7 +702,7 @@
                     $(`#${loaderId}`).hide();
                     $(`#${contentId}`).removeClass('d-none').html(
                         '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
-                        );
+                    );
                 }
             });
         }
@@ -729,7 +781,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // Submit AJAX
                 $.ajax({
@@ -775,7 +827,7 @@
         }
 
         function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
-            jobCategory, jobSource, createdAt, status) {
+            jobCategory, jobSource, createdAt, status, phoneSecondary) {
             const modalId = 'showDetailsModal-' + applicantId;
 
             // Remove existing modal with same ID (if any)
@@ -817,11 +869,12 @@
                         <tr><th>Applicant ID</th><td>${applicantId}</td></tr>
                         <tr><th>Created At</th><td>${createdAt}</td></tr>
                         <tr><th>Name</th><td>${name}</td></tr>
-                        <tr><th>Phone</th><td>${phone}</td></tr>
-                        <tr><th>Landline</th><td>${landline}</td></tr>
-                        <tr><th>Postcode</th><td>${postcode}</td></tr>
                         <tr><th>Email (Primary)</th><td>${email}</td></tr>
                         <tr><th>Email (Secondary)</th><td>${secondaryEmail}</td></tr>
+                        <tr><th>Phone</th><td>${phone}</td></tr>
+                        <tr><th>Phone (Secondary)</th><td>${phoneSecondary}</td></tr>
+                        <tr><th>Landline</th><td>${landline}</td></tr>
+                        <tr><th>Postcode</th><td>${postcode}</td></tr>
                         <tr><th>Job Category</th><td>${jobCategory}</td></tr>
                         <tr><th>Job Title</th><td>${jobTitle}</td></tr>
                         <tr><th>Job Source</th><td>${jobSource}</td></tr>
