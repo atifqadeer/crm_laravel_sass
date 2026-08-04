@@ -827,7 +827,7 @@
         }
 
         function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
-            jobCategory, jobSource, createdAt, status, phoneSecondary) {
+            jobCategory, jobSource, createdAt, status, phoneSecondary, experience, haveNursingHomeExperience) {
             const modalId = 'showDetailsModal-' + applicantId;
 
             // Remove existing modal with same ID (if any)
@@ -836,7 +836,7 @@
             // Modal HTML with loader and placeholder body
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-top">
+                    <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Applicant Details</h5>
@@ -878,6 +878,8 @@
                         <tr><th>Job Category</th><td>${jobCategory}</td></tr>
                         <tr><th>Job Title</th><td>${jobTitle}</td></tr>
                         <tr><th>Job Source</th><td>${jobSource}</td></tr>
+                        <tr><th>Have Nursing Home Experience</th><td>${haveNursingHomeExperience}</td></tr>
+                        <tr><th>Experience</th><td>${experience}</td></tr>
                         <tr><th>Status</th><td>${status}</td></tr>
                     </table>
                 `);

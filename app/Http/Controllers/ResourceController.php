@@ -1738,16 +1738,22 @@ class ResourceController extends Controller
                     return $status;
                 })
                 ->addColumn('action', function ($applicant) {
-                    $landline = $applicant->formatted_landline;
-                    $phone = $applicant->formatted_phone;
-                    $phone_secondary = $applicant->formatted_phone_secondary;
+                    $is_blocked = $applicant->is_blocked;
+                    $showBlock = '<span class="badge bg-dark">Blocked</span>';
+
+                    $landline = $is_blocked ? $showBlock : $applicant->formatted_landline;
+                    $phone = $is_blocked ? $showBlock : $applicant->formatted_phone;
+                    $phone_secondary = $is_blocked ? $showBlock : $applicant->formatted_phone_secondary;
+                    $applicant_email_secondary = $is_blocked ? $showBlock : $applicant->applicant_email_secondary;
+                    $email = $is_blocked ? $showBlock : $applicant->applicant_email;
                     $postcode = $applicant->formatted_postcode;
                     $posted_date = $applicant->formatted_created_at;
                     $job_title = $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                     $job_category = $applicant->jobCategory ? ucwords($applicant->jobCategory->name) : '-';
                     $job_source = $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                    $experience = $applicant->applicant_experience ? ($applicant->applicant_experience == 'NULL' ? '-' : $applicant->applicant_experience) : '-';
+                    $have_nursing_home_experience = $applicant->have_nursing_home_experience ? ($applicant->have_nursing_home_experience == true ? 'Yes' : 'No') : '-';
 
-                    $is_blocked = $applicant->is_blocked;
 
                     $status = '';
 
@@ -1773,17 +1779,19 @@ class ResourceController extends Controller
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(
                                     ' . (int)$applicant->id . ',
                                     \'' . addslashes(htmlspecialchars($applicant->applicant_name)) . '\',
-                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email)) . '\',
-                                    \'' . addslashes(htmlspecialchars($applicant->applicant_email_secondary)) . '\',
+                                    \'' . addslashes(htmlspecialchars($email)) . '\',
+                                    \'' . addslashes(htmlspecialchars($applicant_email_secondary)) . '\',
                                     \'' . addslashes(htmlspecialchars($postcode)) . '\',
-                                    \'' . addslashes(htmlspecialchars($is_blocked ? $landline : $status)) . '\',
-                                    \'' . addslashes(htmlspecialchars($is_blocked ? $phone : $status)) . '\',
+                                    \'' . addslashes(htmlspecialchars($landline)) . '\',
+                                    \'' . addslashes(htmlspecialchars($phone)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_title)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_category)) . '\',
                                     \'' . addslashes(htmlspecialchars($job_source)) . '\',
                                     \'' . addslashes(htmlspecialchars($posted_date)) . '\',
                                     \'' . addslashes(htmlspecialchars($status)) . '\',
-                                    \'' . addslashes(htmlspecialchars($is_blocked ? $phone_secondary : $status)) . '\'
+                                    \'' . addslashes(htmlspecialchars($phone_secondary)) . '\',
+                                    \'' . addslashes(htmlspecialchars($experience)) . '\',
+                                    \'' . addslashes(htmlspecialchars($have_nursing_home_experience)) . '\'
                                 )">View</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
