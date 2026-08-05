@@ -4001,7 +4001,11 @@ class SaleController extends Controller
             ->count();
 
         $model = Applicant::query()
-            ->with('cv_notes', 'pivotSales', 'history_request_nojob')
+            ->with([
+                'cv_notes' => fn($q) => $q->latest(),
+                'pivotSales',
+                'history_request_nojob',
+            ])
             ->select([
                 'applicants.*',
                 'job_titles.name as job_title_name',
@@ -4433,6 +4437,11 @@ class SaleController extends Controller
                                     $color_class  = 'bg-primary';
                                     break;
                                 }
+                            } elseif ($value['sale_id'] != $sale_id) {
+                                if ($value['status'] == 1) {
+                                    $status_value = 'CRM Active';
+                                    $color_class  = 'bg-primary';
+                                }
                             }
                         }
                     }
@@ -4442,7 +4451,7 @@ class SaleController extends Controller
                 ->orderColumn('paid_status', 'paid_status_order $1')
                 ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
                     $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
-                    
+
                     $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
