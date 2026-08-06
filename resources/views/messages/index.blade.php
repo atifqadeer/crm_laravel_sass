@@ -238,6 +238,31 @@
         };
     }
 
+    // These lists are wrapped by SimpleBar (data-simplebar), which restructures the
+    // container's DOM: real content lives inside an internal `.simplebar-content`
+    // node, and scrolling happens on an internal `.simplebar-content-wrapper` node.
+    // Mutating the outer container directly via .html()/.append() (as this file did
+    // previously) destroys that wrapper markup on every refresh, permanently
+    // detaching any scroll listener bound to the internal scroll element - which is
+    // why "load more on scroll" would stop working after the first periodic refresh.
+    // These helpers always resolve to the correct current node, whether or not
+    // SimpleBar has actually initialized the container yet.
+    function getSimpleBarInstance(containerId) {
+        const el = document.getElementById(containerId);
+        if (!el || typeof SimpleBar === 'undefined') return null;
+        return SimpleBar.instances.get(el) || new SimpleBar(el);
+    }
+
+    function getListContentEl(containerId) {
+        const instance = getSimpleBarInstance(containerId);
+        return (instance && instance.getContentElement) ? instance.getContentElement() : document.getElementById(containerId);
+    }
+
+    function getListScrollEl(containerId) {
+        const instance = getSimpleBarInstance(containerId);
+        return (instance && instance.getScrollElement) ? instance.getScrollElement() : document.getElementById(containerId);
+    }
+
     let isLoadingApplicants = false;
     let isLoadingUnknown = false;
     let isLoadingUsers = false;
@@ -245,9 +270,16 @@
     let currentRecipientId = null;
     let currentRecipientType = null; // applicant | user
     let currentListRef = null;       // all-chat | user-chat
+    let currentRecipientData = null; // recipient object returned by getChatBoxMessages, used when rendering paginated (older) messages
+
+    let loading = false;
+    let hasMore = true;
+    let oldestMessageId = null;
 
     let activeTab = 'all-chat'; // default
 
+    let hasMoreApplicants = true;
+    let hasMoreUnknown = true;
     let hasMoreUsers = true;
 
     let applicantLimit = 10;
@@ -263,8 +295,10 @@
 
     function loadApplicants(search = '', start = null, limit = null, refresh = false) {
         if (isLoadingApplicants) return;
+        if (!refresh && !hasMoreApplicants) return;
 
         isLoadingApplicants = true;
+        if (refresh) hasMoreApplicants = true;
         applicantAction = 'active';
 
         const s = start !== null ? start : applicantStart; // page start
@@ -272,7 +306,7 @@
 
         const loaderId = 'chatListScrollLoader';
         if ($('#' + loaderId).length === 0) {
-            $('#chatList').append(`
+            $(getListContentEl('chatList')).append(`
                 <div class="text-center py-2" id="${loaderId}">
                     <div class="spinner-border text-primary spinner-border-sm" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -331,7 +365,7 @@
 
                 // ✅ Clear the list only for refresh, otherwise append
                 if (refresh) {
-                    $('#chatList').html(chatListHtml);
+                    $(getListContentEl('chatList')).html(chatListHtml);
                 } else {
                     $('#chatListScrollLoader').before(chatListHtml);
                 }
@@ -339,12 +373,24 @@
                 $('#unreadAllChatCount').text(unreadCount);
 
                 // Handle end of list
-                if (!refresh && response.data.length > 0) {
-                    applicantStart += applicantLimit; // increment only for scroll
+                if (response.data.length > 0) {
+                    if (!refresh) {
+                        applicantStart += applicantLimit; // increment only for scroll
+                    }
+                } else {
+                    hasMoreApplicants = false;
                 }
 
-                if (response.data.length === 0 && refresh) {
-                    $('#' + loaderId).html('<p class="text-center fw-bold">No messages</p>');
+                if (response.data.length === 0) {
+                    $('#' + loaderId).html(refresh
+                        ? '<p class="text-center fw-bold">No messages</p>'
+                        : '<p class="text-center text-muted small">End of list</p>');
+                } else {
+                    $('#' + loaderId).html(`
+                        <div class="spinner-border text-primary spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    `);
                 }
 
                 applicantAction = 'inactive';
@@ -358,8 +404,10 @@
 
     function loadUnknownMessages(search = '', start = null, limit = null, refresh = false) {
         if (isLoadingUnknown) return;
+        if (!refresh && !hasMoreUnknown) return;
 
         isLoadingUnknown = true;
+        if (refresh) hasMoreUnknown = true;
         unknownAction = 'active';
 
         const s = start !== null ? start : unknownStart;
@@ -367,7 +415,7 @@
 
         const loaderId = 'unknownListScrollLoader';
         if ($('#' + loaderId).length === 0) {
-            $('#unknownList').append(`
+            $(getListContentEl('unknownList')).append(`
                 <div class="text-center py-2" id="${loaderId}">
                     <div class="spinner-border text-primary spinner-border-sm" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -427,17 +475,24 @@
 
                 // ✅ Clear the list only for refresh, otherwise append
                 if (refresh) {
-                    $('#unknownList').html(unknownListHtml);
+                    $(getListContentEl('unknownList')).html(unknownListHtml);
                 } else {
                     $('#unknownListScrollLoader').before(unknownListHtml);
                 }
                 $('#unreadUnknownCount').text(unreadCount);
 
                 if (response.data.length === 0) {
-                    $('#' + loaderId).html('<p class="text-center fw-bold">End</p>');
-                    unknownAction = 'inactive';
-                } else if (start === null) {
-                    unknownStart += unknownLimit; // only increment for scroll
+                    hasMoreUnknown = false;
+                    $('#' + loaderId).html('<p class="text-center text-muted small">End of list</p>');
+                } else {
+                    if (!refresh) {
+                        unknownStart += unknownLimit; // only increment for scroll
+                    }
+                    $('#' + loaderId).html(`
+                        <div class="spinner-border text-primary spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    `);
                 }
 
                 unknownAction = 'inactive';
@@ -450,16 +505,18 @@
     }
 
     function loadUsers(search = '', start = null, limit = null, refresh = false) {
-        if (isLoadingUsers || !hasMoreUsers) return;
+        if (isLoadingUsers) return;
+        if (!refresh && !hasMoreUsers) return;
 
         isLoadingUsers = true;
+        if (refresh) hasMoreUsers = true;
 
         const s = start !== null ? start : userStart;
         const l = limit !== null ? limit : userLimit;
 
         const loaderId = 'userListScrollLoader';
         if ($('#' + loaderId).length === 0) {
-            $('#userList').append(`
+            $(getListContentEl('userList')).append(`
                 <div class="text-center py-2" id="${loaderId}">
                     <div class="spinner-border text-primary spinner-border-sm" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -473,11 +530,9 @@
             method: 'GET',
             data: { limit: l, start: s, search: search },
             success: function(response) {
-                hasMoreUsers = true; // reset flag for first page
-
                 if (!response.data || response.data.length === 0) {
                     hasMoreUsers = false;
-                    $('#userList').append('<p class="text-center fw-bold">End of users</p>');
+                    $('#' + loaderId).html('<p class="text-center text-muted small">End of list</p>');
                     return;
                 }
 
@@ -512,14 +567,20 @@
                 });
 
                 if (refresh) {
-                    $('#userList').html(userListHtml);
+                    $(getListContentEl('userList')).html(userListHtml);
                 } else {
                     $('#userListScrollLoader').before(userListHtml);
                 }
                 $('#unreadUserChatCount').text(unreadCount);
 
-                if (start === null) userStart += userLimit;
+                if (!refresh) userStart += userLimit;
                 hasMoreUsers = response.has_more === true;
+
+                if ($('#' + loaderId).length) {
+                    $('#' + loaderId).html(hasMoreUsers
+                        ? `<div class="spinner-border text-primary spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>`
+                        : '<p class="text-center text-muted small">End of list</p>');
+                }
             },
             complete: function() {
                 isLoadingUsers = false;
@@ -529,10 +590,6 @@
     }
 
     $(document).ready(function() {
-        // Initialize SimpleBar
-        const chatList = $('#chatList');
-        const unknownList = $('#unknownList');
-        const userList = $('#userList');
         const scrollBtn = $('#scrollBottomBtn');
 
         // Load initial lists
@@ -545,30 +602,48 @@
         let isUserScrollingUsers = false;
         let isUserSearching = false;
 
-        // Scroll detection with 1-minute timeout
-        function setupScrollStopDetection(listSelector, flagVar) {
-            $(listSelector).on('scroll', function () {
+        const chatListScroll = $(getListScrollEl('chatList'));
+        const unknownListScroll = $(getListScrollEl('unknownList'));
+        const userListScroll = $(getListScrollEl('userList'));
+
+        // Scroll-stop detection (1-minute timeout) + infinite-scroll pagination trigger
+        function setupInfiniteScroll($scrollEl, flagVar, loadNextPage) {
+            $scrollEl.on('scroll', function () {
                 window[flagVar] = true;
                 clearTimeout(this.scrollTimeout);
                 this.scrollTimeout = setTimeout(() => {
                     window[flagVar] = false; // user stopped scrolling after 1 minute
                 }, 60000); // 1 minute
+
+                const nearBottom = this.scrollTop + this.clientHeight >= this.scrollHeight - 100;
+                if (nearBottom) {
+                    loadNextPage();
+                }
             });
         }
 
-        setupScrollStopDetection('#chatList', 'isUserScrollingApplicants');
-        setupScrollStopDetection('#unknownList', 'isUserScrollingUnknown');
-        setupScrollStopDetection('#userList', 'isUserScrollingUsers');
+        setupInfiniteScroll(chatListScroll, 'isUserScrollingApplicants', () => loadApplicants(currentSearchKeyword));
+        setupInfiniteScroll(unknownListScroll, 'isUserScrollingUnknown', () => loadUnknownMessages(currentSearchKeyword));
+        setupInfiniteScroll(userListScroll, 'isUserScrollingUsers', () => loadUsers(currentSearchKeyword));
+
+        // Re-fetches everything currently on screen (not just the first page) so the
+        // periodic refresh re-syncs unread counts/last messages without throwing away
+        // any extra pages the user had already scrolled in to load. Previously this
+        // always requested `limit = <page size>`, so once the user stopped scrolling
+        // for a minute (isUserScrollingX flips back to false) the very next 20-second
+        // refresh tick would replace the whole list with just the first 10 records -
+        // silently discarding everything loaded via scrolling.
+        const MAX_AUTO_REFRESH_SIZE = 200; // avoid re-fetching huge lists every 20s if the user has scrolled very deep
 
         function reloadAllFirstPage() {
-            if (!isUserScrollingApplicants && !isUserSearching) {
-                loadApplicants('', 0, applicantLimit, true); // refresh = true
+            if (!isUserScrollingApplicants && !isUserSearching && applicantStart <= MAX_AUTO_REFRESH_SIZE) {
+                loadApplicants('', 0, Math.max(applicantStart, applicantLimit), true); // refresh = true
             }
-            if (!isUserScrollingUnknown && !isUserSearching) {
-                loadUnknownMessages('', 0, unknownLimit, true);
+            if (!isUserScrollingUnknown && !isUserSearching && unknownStart <= MAX_AUTO_REFRESH_SIZE) {
+                loadUnknownMessages('', 0, Math.max(unknownStart, unknownLimit), true);
             }
-            if (!isUserScrollingUsers && !isUserSearching) {
-                loadUsers('', 0, userLimit, true);
+            if (!isUserScrollingUsers && !isUserSearching && userStart <= MAX_AUTO_REFRESH_SIZE) {
+                loadUsers('', 0, Math.max(userStart, userLimit), true);
             }
         }
 
@@ -580,7 +655,7 @@
 
         // Scroll to bottom when button is clicked
         scrollBtn.on('click', function() {
-            chatList.animate({ scrollTop: chatList.prop('scrollHeight') }, 500);
+            chatListScroll.animate({ scrollTop: chatListScroll.prop('scrollHeight') }, 500);
             scrollBtn.hide();
         });
 
@@ -660,10 +735,12 @@
                     $('#chatConversation').scrollTop($('#chatConversation')[0].scrollHeight);
                     $('#messageInput').val('');
                     // Refresh relevant list based on recipient type
+                    // NOTE: previously called as loadApplicants(1)/loadUsers(1), which passed 1
+                    // as the `search` argument (wrong param position) instead of refreshing page 1.
                     if (currentRecipientType === 'applicant') {
-                        loadApplicants(1); // Reload page 1 to update last_message
+                        loadApplicants(currentSearchKeyword, 0, applicantLimit, true);
                     } else if (currentRecipientType === 'user') {
-                        loadUsers(1); // Reload page 1 to update last_message
+                        loadUsers(currentSearchKeyword, 0, userLimit, true);
                     }
                 },
                 error: function(xhr) {
@@ -685,24 +762,22 @@
             currentSearchKeyword = ''; // reset search
             $('#searchApplicants').val('');
 
+            // NOTE: pass refresh=true rather than manually clearing the list container
+            // via .html('') beforehand - clearing the outer container directly would
+            // destroy SimpleBar's internal wrapper markup; the load functions clear
+            // the correct inner content element themselves when refresh is true.
             if (currentRecipientType === 'chat') {
                 activeTab = 'all-chat';
                 applicantStart = 0;       // reset pagination
-                $('#chatList').html('');  // clear old list
-                hasMoreApplicants = true; // reset flag
-                loadApplicants('');        // ✅ pass empty string
+                loadApplicants('', 0, applicantLimit, true);
             }else if (currentRecipientType === 'unknown') {
                 activeTab = 'unknown-chat';
                 unknownStart = 0;       // reset pagination
-                $('#unknownList').html('');  // clear old list
-                hasMoreUnknown = true; // reset flag
-                loadUnknownMessages('');        // ✅ pass empty string
+                loadUnknownMessages('', 0, unknownLimit, true);
             } else if (currentRecipientType === 'contact') {
                 activeTab = 'user-chat';
                 userStart = 0;             // reset pagination
-                $('#userList').html('');   // clear old list
-                hasMoreUsers = true;       // reset flag
-                loadUsers('');             // ✅ pass empty string
+                loadUsers('', 0, userLimit, true);
             }
         });
 
@@ -718,17 +793,13 @@
                 applicantStart = 0;
                 unknownStart = 0;
                 userStart = 0;
-                hasMoreUsers = true;
 
-                // Clear existing lists
-                $('#chatList').html('');
-                $('#unknownList').html('');
-                $('#userList').html('');
-
-                // Reload first page with search
-                loadApplicants(currentSearchKeyword, 0, applicantLimit);
-                loadUnknownMessages(currentSearchKeyword, 0, unknownLimit);
-                loadUsers(currentSearchKeyword, 0, userLimit);
+                // Reload first page with search (refresh=true clears + replaces the
+                // list's actual content element - see note above about not touching
+                // the outer SimpleBar container directly).
+                loadApplicants(currentSearchKeyword, 0, applicantLimit, true);
+                loadUnknownMessages(currentSearchKeyword, 0, unknownLimit, true);
+                loadUsers(currentSearchKeyword, 0, userLimit, true);
 
                 isUserSearching = false;
             }, 500); // debounce search by 500ms
@@ -764,6 +835,7 @@
             }, function(response) {
                 const messages = response.messages || [];
                 const recipient = response.recipient;
+                currentRecipientData = recipient; // keep for scroll-triggered pagination rendering
 
                 // ✅ Always render header
                 $('#recipientPhonePrimary').val(recipient.phone_primary);
@@ -794,6 +866,7 @@
                     return;
                 }
                 oldestMessageId = messages[0].id;
+                hasMore = response.has_more === true;
                 let html = '';
                 messages.forEach(msg => {
                     html += renderMessage(msg, recipient);
@@ -833,7 +906,7 @@
     }
 
     $('#chatConversation').on('scroll', function () {
-        if ($(this).scrollTop() !== 0 || loading || !hasMore || !oldestMessageId) return;
+        if ($(this).scrollTop() > 5 || loading || !hasMore || !oldestMessageId) return;
 
         loading = true;
 
@@ -860,8 +933,9 @@
                 _token: '{{ csrf_token() }}'
             }, function (response) {
                 const messages = response.messages || [];
+                hasMore = response.has_more === true;
+
                 if (!messages.length) {
-                    hasMore = false;
                     return;
                 }
 
@@ -869,7 +943,7 @@
 
                 let html = '';
                 messages.forEach(msg => {
-                    html += renderMessage(msg, activeRecipient);
+                    html += renderMessage(msg, currentRecipientData);
                 });
 
                 const prevHeight = container[0].scrollHeight;

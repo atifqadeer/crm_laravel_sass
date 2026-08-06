@@ -572,17 +572,28 @@ class CommunicationController extends Controller
 
             // Handle the 'unknown-chat' case differently
             if ($list_ref === 'unknown-chat') {
-                Message::where('phone_number', 'like', '%' . $recipientId . '%')
+                // `recipientId` here is always an exact phone number (from data-recipient-id
+                // in the sidebar list), so a `LIKE '%...%'` match was both unnecessarily slow
+                // (forces a full table scan - can't use an index with leading/trailing
+                // wildcards) and risked matching unrelated numbers containing the same digits.
+                Message::where('phone_number', $recipientId)
                     ->where('module_type', $moduleType)
                     ->where('status', 'incoming')
                     ->update(['is_read' => 1]);  // Ensure it's an integer value (0 or 1)
 
                 // Special handling for unknown-chat (i.e., by phone number)
-                $messages = Message::where('phone_number', 'like', '%' . $recipientId . '%')
+                $unknownQuery = Message::where('phone_number', $recipientId)
                     ->where('module_type', $moduleType)
                     ->orderByDesc('id')
-                    ->limit(10) // chunk size
-                    ->get(); // Fetch messages
+                    ->limit(10); // chunk size
+
+                // Load older messages (before a specific message ID) - previously missing
+                // for unknown-chat, so scrolling up never loaded older messages here.
+                if ($beforeId) {
+                    $unknownQuery->where('id', '<', $beforeId);
+                }
+
+                $messages = $unknownQuery->get(); // Fetch messages
 
                 // Assign recipient data in the case of 'unknown-chat'
                 $recipient = [
@@ -661,44 +672,69 @@ class CommunicationController extends Controller
     {
         $limit = (int) $request->input('limit', 10);
         $start = (int) $request->input('start', 0);
+        $search = trim((string) $request->input('search', ''));
 
-        $raw_query = Applicant::with([
-            'messages' => function ($query) {
-                $query->latest()->limit(1);
-            }
-        ])
-            ->withMax('messages', 'created_at')          // <- adds messages_max_created_at
-            ->withCount([
-                'messages as messages_count',
-                'messages as unread_count' => function ($query) {
-                    $query->where('module_type', 'Horsefly\\Applicant')
-                        ->where('status', 'incoming')
-                        ->where('is_read', 0);
-                }
+        // Aggregate message stats once (grouped by applicant) instead of the previous
+        // withCount()/withMax() approach, which ran a correlated COUNT/MAX subquery for
+        // *every* row of the (large, ~230k-row) applicants table before it could even
+        // apply LIMIT/OFFSET. A single GROUP BY over `messages` (a much smaller, indexed
+        // table) computed once and left-joined back is dramatically cheaper.
+        $stats = DB::table('messages')
+            ->where('module_type', 'Horsefly\\Applicant')
+            ->groupBy('module_id')
+            ->select([
+                'module_id',
+                DB::raw('MAX(id) as last_message_id'),
+                DB::raw('COUNT(*) as messages_count'),
+                DB::raw("SUM(CASE WHEN status = 'incoming' AND is_read = 0 THEN 1 ELSE 0 END) as unread_count"),
             ]);
 
+        $query = Applicant::query()
+            ->leftJoinSub($stats, 'msg_stats', function ($join) {
+                $join->on('applicants.id', '=', 'msg_stats.module_id');
+            })
+            ->select([
+                'applicants.id',
+                'applicants.applicant_name',
+                'msg_stats.last_message_id',
+                'msg_stats.messages_count',
+                DB::raw('COALESCE(msg_stats.unread_count, 0) as unread_count'),
+            ]);
 
-        if (!empty($request->search)) {
-            $search = trim($request->search);
-            $raw_query->where('applicant_name', 'like', '%' . $search . '%')
-                ->orWhere('applicant_phone', 'like', '%' . $search . '%');
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('applicants.applicant_name', 'like', '%' . $search . '%')
+                    ->orWhere('applicants.applicant_phone', 'like', '%' . $search . '%');
+            });
         }
 
-        $applicants = $raw_query
+        $applicants = $query
             ->orderByDesc(DB::raw('unread_count > 0'))  // unread first
             ->orderByDesc('unread_count')
-            ->orderByDesc('messages_max_created_at')     // latest message first
-            ->orderByDesc('messages_count')
-            ->orderBy('applicant_name')
+            ->orderByDesc('msg_stats.last_message_id')   // latest message first
+            ->orderByDesc('msg_stats.messages_count')
+            ->orderBy('applicants.applicant_name')
             ->offset($start)
             ->limit($limit)
             ->get();
 
+        // Fetch the actual last-message body/status only for the small page of
+        // applicants being displayed here (not the buggy `->limit(1)` eager load,
+        // which - being applied to the batched IN() query of a hasMany relation -
+        // only ever returned one message total across the whole page, not one per
+        // applicant).
+        $lastMessageIds = $applicants->pluck('last_message_id')->filter()->values()->all();
+        $lastMessagesById = collect();
 
+        if (!empty($lastMessageIds)) {
+            $lastMessagesById = DB::table('messages')
+                ->whereIn('id', $lastMessageIds)
+                ->get(['id', 'message', 'created_at', 'is_sent', 'is_read'])
+                ->keyBy('id');
+        }
 
-        $data = $applicants->map(function ($applicant) {
-
-            $lastMessage = $applicant->messages->first();
+        $data = $applicants->map(function ($applicant) use ($lastMessagesById) {
+            $lastMessage = $applicant->last_message_id ? $lastMessagesById->get($applicant->last_message_id) : null;
 
             return [
                 'id'   => $applicant->id,
@@ -706,14 +742,14 @@ class CommunicationController extends Controller
                 'last_message' => $lastMessage ? [
                     'message'       => Str::limit($lastMessage->message, 50),
                     'time'          => $lastMessage->created_at
-                        ? $lastMessage->created_at->format('h:i A')
+                        ? Carbon::parse($lastMessage->created_at)->format('h:i A')
                         : '',
                     'is_sent'       => (int) ($lastMessage->is_sent ?? 0),
                     'is_read'       => (int) ($lastMessage->is_read ?? 0),
                     'unread_count'  => (int) $applicant->unread_count,
                 ] : null,
             ];
-        });
+        })->values();
 
         return response()->json([
             'data'     => $data,
@@ -760,11 +796,27 @@ class CommunicationController extends Controller
             ->limit($limit)
             ->get();
 
+        // Batch-fetch the latest message per phone number for this page in a single
+        // query instead of issuing one extra query per row (N+1).
+        $phoneNumbers = $messages->pluck('phone_number')->all();
+        $lastMessagesByPhone = collect();
 
-        $data = $messages->map(function ($message) {
-            $lastMessage = Message::where('phone_number', $message->phone_number)
-                ->orderByDesc('created_at')
-                ->first();
+        if (!empty($phoneNumbers)) {
+            $latestIdsPerPhone = DB::table('messages')
+                ->select(DB::raw('MAX(id) as id'))
+                ->whereIn('phone_number', $phoneNumbers)
+                ->groupBy('phone_number');
+
+            $lastMessagesByPhone = DB::table('messages')
+                ->joinSub($latestIdsPerPhone, 'latest', function ($join) {
+                    $join->on('messages.id', '=', 'latest.id');
+                })
+                ->get(['messages.phone_number', 'messages.message', 'messages.created_at', 'messages.is_sent', 'messages.is_read'])
+                ->keyBy('phone_number');
+        }
+
+        $data = $messages->map(function ($message) use ($lastMessagesByPhone) {
+            $lastMessage = $lastMessagesByPhone->get($message->phone_number);
 
             return [
                 'phone_number' => $message->phone_number,
@@ -774,7 +826,7 @@ class CommunicationController extends Controller
                 'last_message' => $lastMessage ? [
                     'message' => Str::limit($lastMessage->message, 50),
                     'time' => $lastMessage->created_at
-                        ? $lastMessage->created_at->format('h:i A')
+                        ? Carbon::parse($lastMessage->created_at)->format('h:i A')
                         : '',
                     'is_sent' => (int) ($lastMessage->is_sent ?? 0),
                     'is_read' => (int) ($lastMessage->is_read ?? 0),
@@ -803,22 +855,22 @@ class CommunicationController extends Controller
                 ->groupBy('module_id');
 
             // Step 2: Join to get full message and applicant
+            $unreadCounts = DB::table('messages')
+                ->select('module_id', DB::raw('COUNT(*) as unread_count'))
+                ->where('is_read', 0)
+                ->where('status', 'incoming')
+                ->where('module_type', 'Horsefly\\Applicant')
+                ->where('user_id', $currentUserId)
+                ->groupBy('module_id');
+
             $raw_query = DB::table('messages')
                 ->joinSub($latestMessageIds, 'latest_messages', function ($join) {
                     $join->on('messages.id', '=', 'latest_messages.id');
                 })
                 ->join('applicants', 'messages.module_id', '=', 'applicants.id')
-                ->leftJoin(
-                    DB::raw('(SELECT module_id, COUNT(*) as unread_count 
-                            FROM messages 
-                            WHERE is_read = 0 AND status = "incoming"
-                            AND module_type = "Horsefly\\\\Applicant" 
-                            AND user_id = ' . $currentUserId . '
-                            GROUP BY module_id) as unread_msgs'),
-                    'messages.module_id',
-                    '=',
-                    'unread_msgs.module_id'
-                )
+                ->leftJoinSub($unreadCounts, 'unread_msgs', function ($join) {
+                    $join->on('messages.module_id', '=', 'unread_msgs.module_id');
+                })
                 ->select(
                     'applicants.id',
                     'applicants.applicant_name as name',
