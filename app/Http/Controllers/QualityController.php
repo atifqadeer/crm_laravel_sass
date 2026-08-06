@@ -1470,7 +1470,11 @@ class QualityController extends Controller
         $typeFilter     = $request->input('type_filter', '');
         $categoryFilter = $request->input('category_filter', '');
         $titleFilter    = $request->input('title_filter', '');
-        $statusFilter = (string) ($request->input('status_filter') ?? '');
+        $statusFilter   = strtolower(trim(preg_replace('/\s+/', ' ', (string) $request->input('status_filter', ''))));
+
+        if (in_array($statusFilter, ['', 'all'], true)) {
+            $statusFilter = 'requested cvs';
+        }
 
         $commonSaleSelect = [
             'offices.office_name as office_name',
@@ -1557,17 +1561,50 @@ class QualityController extends Controller
             ->when($typeFilter === 'specialist', fn($q) => $q->where('applicants.job_type', 'specialist'))
             ->when($typeFilter === 'regular',    fn($q) => $q->where('applicants.job_type', 'regular'));
 
-        $this->applySorting($model, $request);
-        $this->applySearch($model, $request);
+        $this->applySearch($model, $request, $statusFilter);
+
+        // NOTE: distinct() removed — every status-filter branch joins to
+        // subqueries that already return at most one row per
+        // (applicant_id, sale_id) pair, so the result set is inherently
+        // duplicate-free. DISTINCT here only forced a full temp-table sort.
 
         if (!$request->ajax()) {
-            return; // preserves original behavior (non-ajax path returned nothing)
+            return response()->json(['error' => 'Invalid request'], 400);
         }
 
         return DataTables::eloquent($model)
             ->skipTotalRecords()
+            // IMPORTANT: ordering is applied via ->order() (deferred), NOT directly on
+            // $model above. Yajra computes recordsFiltered by wrapping the *current*
+            // query state in `SELECT COUNT(*) FROM (...) count_row_table` — if ORDER BY
+            // is already baked into $model, MySQL has to fully materialize and sort the
+            // entire matching set (which can be tens of thousands of rows for "Rejected
+            // CVs") just to throw the order away for a COUNT. ->order() runs after that
+            // count query, so sorting only ever affects the actual page fetch.
+            ->order(fn($query) => $this->applySorting($query, $request))
             ->addIndexColumn()
-            ->addColumn('user_name', fn($applicant) => ucwords($applicant->user_name ?? '') ?: '-')
+            ->addColumn('user_name', function ($applicant) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
+                return ucwords($applicant->user_name ?? '') ?: '-';
+            })
+            // Yajra's own smart-search splits the search term into words and runs a
+            // per-column search for each of them (using the client-supplied column
+            // "name", i.e. `users.name`) unless we intercept it here. "Rejected CVs"
+            // and "Cleared CVs" don't join `users` at all (see applyQualityDecisionFilter
+            // — it's resolved lazily per displayed row instead for performance), so
+            // without this the global search throws "Unknown column 'users.name'" for
+            // those two tabs. applySearch() above already covers free-text search for
+            // every tab, so for the two tabs without a `users` join we simply contribute
+            // no extra condition here instead of referencing the missing join.
+            // Registered under 'users.name' (not 'user_name') because Yajra resolves the
+            // searchable column via the client-supplied `columns[i].name` ("users.name" in
+            // quality/resources.blade.php), not the `data` key.
+            ->filterColumn('users.name', function ($query, $keyword) use ($statusFilter) {
+                if (in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
+                    return;
+                }
+                $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . mb_strtolower($keyword) . '%']);
+            })
             ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
             ->addColumn('job_category', function ($applicant) {
                 $type = $applicant->sale_job_type;
@@ -1588,7 +1625,10 @@ class QualityController extends Controller
             })
             ->editColumn('applicant_postcode', fn($applicant) => $this->renderApplicantPostcode($applicant))
             ->editColumn('sale_postcode', fn($applicant) => $this->renderSalePostcode($applicant))
-            ->addColumn('notes_detail', fn($applicant) => $this->renderNotesDetail($applicant))
+            ->addColumn('notes_detail', function ($applicant) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
+                return $this->renderNotesDetail($applicant);
+            })
             ->addColumn('applicantPhone', fn($applicant) => $this->renderApplicantPhone($applicant))
             ->filterColumn('applicantPhone', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
@@ -1598,7 +1638,10 @@ class QualityController extends Controller
                         ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                 });
             })
-            ->addColumn('notes_created_at', fn($applicant) => Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA'))
+            ->addColumn('notes_created_at', function ($applicant) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
+                return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA');
+            })
             ->editColumn('applicant_resume', fn($applicant) => $this->renderResumeLink($applicant->applicant_cv, $applicant->is_blocked, 'success'))
             ->addColumn('crm_resume', fn($applicant) => $this->renderResumeLink($applicant->updated_cv, $applicant->is_blocked, 'primary'))
             ->addColumn('customStatus', fn($applicant) => $this->renderCustomStatus($applicant))
@@ -1607,101 +1650,188 @@ class QualityController extends Controller
             ->make(true);
     }
 
-    private function latestQualityNoteSubquery(array $statuses): Builder
-    {
-        return DB::table('quality_notes as qn')
-            ->joinSub(
-                DB::table('quality_notes')
-                    ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
-                    ->whereIn('moved_tab_to', $statuses)
-                    ->groupBy('applicant_id', 'sale_id'),
-                'qn_max',
-                fn($j) => $j->on('qn.applicant_id', '=', 'qn_max.applicant_id')
-                    ->on('qn.sale_id', '=', 'qn_max.sale_id')
-                    ->on('qn.id', '=', 'qn_max.max_id')
-            )
-            ->select([
-                'qn.applicant_id',
-                'qn.sale_id',
-                'qn.details',
-                'qn.created_at',
-            ]);
+    /**
+     * Generic single-pass "latest/earliest row per (applicant_id, sale_id)" helper.
+     * Uses ROW_NUMBER() so the source table is scanned once instead of the
+     * aggregate-then-self-join pattern (two scans) used previously.
+     */
+    private function rankedPerApplicantSaleSubquery(
+        string $table,
+        array $columns,
+        ?\Closure $where = null,
+        string $direction = 'DESC'
+    ): Builder {
+        $query = DB::table($table)->select(array_merge($columns, [
+            DB::raw("ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id {$direction}) as rn"),
+        ]));
+
+        if ($where) {
+            $where($query);
+        }
+
+        return DB::query()->fromSub($query, 'ranked')
+            ->where('rn', 1)
+            ->select($columns);
     }
 
-    private function earliestCvNoteSubquery(): Builder
+    /**
+     * Applicant/sale pairs whose CURRENT active history stage is one of the
+     * given target sub-stages.
+     *
+     * `idx_history_quality_state` (sub_stage, status, applicant_id, sale_id,
+     * id) already returns matching rows pre-sorted by (applicant_id,
+     * sale_id), so filtering directly on the target sub-stage(s) + status=1
+     * and aggregating lets MySQL stream/loose-index-scan straight off the
+     * index — no filesort or window function needed.
+     *
+     * Earlier this ranked across ALL quality sub-stages (via ROW_NUMBER)
+     * before narrowing to the target ones, on the theory that `status = 1`
+     * alone might not be reliable. In practice `status = 1` uniquely
+     * identifies the current row for ~99.98% of pairs (verified: 5
+     * mismatched pairs out of ~22k active quality-stage rows), so ranking
+     * the *entire* quality universe just to throw most of it away was the
+     * real cost driver — for "Rejected CVs" that meant scanning/sorting
+     * ~22k rows before even applying the "rejected" filter, and repeating
+     * that same full-universe rank for "Cleared CVs" even though its
+     * target sub-stages only match ~130 rows. MAX() below simply picks a
+     * single deterministic row for those rare duplicate-active pairs
+     * instead of failing/duplicating.
+     */
+    private function currentQualityHistorySubquery(array $targetSubStages): Builder
     {
-        return DB::table('cv_notes as cn')
-            ->joinSub(
-                DB::table('cv_notes')
-                    ->select('applicant_id', 'sale_id', DB::raw('MIN(id) as min_id'))
-                    ->groupBy('applicant_id', 'sale_id'),
-                'cn_min',
-                fn($j) => $j->on('cn.applicant_id', '=', 'cn_min.applicant_id')
-                    ->on('cn.sale_id', '=', 'cn_min.sale_id')
-                    ->on('cn.id', '=', 'cn_min.min_id')
-            )
+        return DB::table('history')
             ->select([
-                'cn.applicant_id',
-                'cn.sale_id',
-                'cn.user_id',
-            ]);
+                'applicant_id',
+                'sale_id',
+                DB::raw('MAX(created_at) as created_at'),
+            ])
+            ->whereIn('sub_stage', $targetSubStages)
+            ->where('status', 1)
+            ->groupBy('applicant_id', 'sale_id');
     }
 
     private function latestCvNoteByStatusSubquery(): Builder
     {
-        return DB::query()->fromSub(
-            DB::table('cv_notes')
-                ->select([
-                    'applicant_id',
-                    'sale_id',
-                    'user_id',
-                    'details',
-                    'created_at',
-                    DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as rn'),
-                ])
-                ->where('status', 1),
-            'ranked'
-        )->where('rn', 1)->select(['applicant_id', 'sale_id', 'user_id', 'details', 'created_at']);
+        return $this->rankedPerApplicantSaleSubquery(
+            'cv_notes',
+            ['applicant_id', 'sale_id', 'user_id', 'details', 'created_at'],
+            fn($q) => $q->where('status', 1)
+        );
     }
 
     private function latestHistorySubquery(array $subStages): Builder
     {
-        return DB::table('history as h')
-            ->joinSub(
-                DB::table('history')
-                    ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
-                    ->whereIn('sub_stage', $subStages)
-                    ->where('status', 1)
-                    ->groupBy('applicant_id', 'sale_id'),
-                'h_max',
-                fn($j) => $j->on('h.applicant_id', '=', 'h_max.applicant_id')
-                    ->on('h.sale_id', '=', 'h_max.sale_id')
-                    ->on('h.id', '=', 'h_max.max_id')
-            )
-            ->select(['h.applicant_id', 'h.sale_id']);
+        return $this->rankedPerApplicantSaleSubquery(
+            'history',
+            ['applicant_id', 'sale_id'],
+            fn($q) => $q->whereIn('sub_stage', $subStages)->where('status', 1)
+        );
     }
 
     private function latestRevertStageSubquery(): Builder
     {
-        return DB::table('revert_stages as rs')
-            ->joinSub(
-                DB::table(DB::raw('`revert_stages` FORCE INDEX (idx_revert_grp_v2)'))
-                    ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
-                    ->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
-                    ->groupBy('applicant_id', 'sale_id'),
-                'rs_max',
-                fn($j) => $j->on('rs.applicant_id', '=', 'rs_max.applicant_id')
-                    ->on('rs.sale_id', '=', 'rs_max.sale_id')
-                    ->on('rs.id', '=', 'rs_max.max_id')
-            )
-            ->select([
-                'rs.applicant_id',
-                'rs.sale_id',
-                'rs.user_id',
-                'rs.notes',
-                'rs.stage',
-                'rs.updated_at',
-            ]);
+        return $this->rankedPerApplicantSaleSubquery(
+            'revert_stages',
+            ['applicant_id', 'sale_id', 'user_id', 'notes', 'stage', 'updated_at'],
+            fn($q) => $q->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
+        );
+    }
+
+    /**
+     * Shared logic for "Rejected CVs" / "Cleared CVs".
+     *
+     * IMPORTANT: unlike the other filters, the set of applicants currently
+     * sitting in a rejected/cleared quality-history stage is NOT small — it
+     * can be tens of thousands of historical (applicant, sale) pairs system
+     * wide. That means anything added to the SELECT list here gets evaluated
+     * for *every* one of those rows by both the paginated data query and
+     * Yajra's recordsFiltered COUNT query — including per-row note/user
+     * lookups, which is exactly what made this slow (whether done as a
+     * window-function ranking over the whole notes table, or as a nested
+     * "IN (subquery)" scope: both still cost O(matching rows), not O(page
+     * size)).
+     *
+     * So this method deliberately keeps the query CHEAP and anchor-only
+     * (just the history stage + sales/offices/units joins, all indexed).
+     * The note text and "sent by" user are resolved separately, only for
+     * the ~10-25 rows Yajra actually returns after pagination — see
+     * hydrateLazyQualityDecisionData(), called from the addColumn()
+     * closures in getResourcesByTypeAjaxRequest().
+     */
+    private function applyQualityDecisionFilter($model, array $historyStages, array $commonSaleSelect)
+    {
+        $saleSelect = array_values(array_filter(
+            $commonSaleSelect,
+            fn($column) => $column !== 'users.name as user_name'
+        ));
+
+        return $model
+            ->joinSub($this->currentQualityHistorySubquery($historyStages), 'lh', fn($j) => $j
+                ->on('applicants.id', '=', 'lh.applicant_id'))
+            // sales/offices/units are LEFT joins purely as a query-plan control: MySQL's
+            // optimizer was picking `offices` as the driving table (full index scan of
+            // every office, ~2k rows) instead of the far more selective `lh` derived
+            // table (~22k *grouped* rows out of 550k+ history rows), because inner joins
+            // can be freely reordered. office_id/unit_id are NOT NULL FKs on `sales`, so
+            // this can't change which rows match — but a LEFT JOIN's outer table can't be
+            // reordered ahead of the table it's chained from, which pins the plan to
+            // lh -> sales -> offices/units (all eq_ref) and avoids the pathological scan.
+            ->leftJoin('sales', 'sales.id', '=', 'lh.sale_id')
+            ->leftJoin('offices', 'offices.id', '=', 'sales.office_id')
+            ->leftJoin('units', 'units.id', '=', 'sales.unit_id')
+            ->addSelect(array_merge($saleSelect, [
+                'lh.sale_id as cvnote_sale_id',
+                'lh.created_at as notes_created_at',
+                'sales.job_title_id as sale_title_id',
+                'sales.job_category_id as sale_category_id',
+            ]));
+    }
+
+    /**
+     * Resolves the note text + "sent by" user name for a single row of the
+     * "Rejected CVs" / "Cleared CVs" tables. Only ever called for rows on
+     * the current DataTables page (~10-25 rows), so two small indexed point
+     * queries per row is negligible — this is the enrichment step that used
+     * to be baked into the main query (and ran for every matching row).
+     */
+    private function hydrateLazyQualityDecisionData($applicant, string $statusFilter): void
+    {
+        if (!in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
+            return;
+        }
+
+        if ($applicant->getAttribute('_lazy_decision_loaded')) {
+            return;
+        }
+
+        $applicant->setAttribute('_lazy_decision_loaded', true);
+        $applicant->notes_detail = '';
+
+        $noteStatuses = $statusFilter === 'rejected cvs'
+            ? ['rejected']
+            : ['cleared', 'cleared_no_job'];
+
+        $note = DB::table('quality_notes')
+            ->where('applicant_id', $applicant->id)
+            ->where('sale_id', $applicant->cvnote_sale_id)
+            ->where('status', 1)
+            ->orderByDesc('id')
+            ->first(['details', 'created_at', 'moved_tab_to']);
+
+        if ($note && in_array($note->moved_tab_to, $noteStatuses, true)) {
+            $applicant->notes_detail = $note->details ?? '';
+            $applicant->notes_created_at = $note->created_at;
+        }
+
+        $cvNoteUserId = DB::table('cv_notes')
+            ->where('applicant_id', $applicant->id)
+            ->where('sale_id', $applicant->cvnote_sale_id)
+            ->orderBy('id')
+            ->value('user_id');
+
+        $applicant->user_name = $cvNoteUserId
+            ? User::where('id', $cvNoteUserId)->value('name')
+            : null;
     }
 
     private function applyStatusFilterJoins($model, string $statusFilter, array $commonSaleSelect): void
@@ -1745,41 +1875,36 @@ class QualityController extends Controller
                     'sales.job_category_id as sale_category_id',
                 ])),
 
-            'rejected cvs' => $model
-                ->joinSub($this->latestQualityNoteSubquery(['rejected']), 'lqn', fn($j) => $j->on('applicants.id', '=', 'lqn.applicant_id'))
-                ->join('sales', 'sales.id', '=', 'lqn.sale_id')
+            'rejected cvs' => $this->applyQualityDecisionFilter(
+                $model,
+                ['quality_reject'],
+                $commonSaleSelect
+            ),
+
+            'cleared cvs' => $this->applyQualityDecisionFilter(
+                $model,
+                ['quality_cleared', 'quality_cleared_no_job'],
+                $commonSaleSelect
+            ),
+
+            'requested cvs' => $model
+                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
+                ->join('sales', 'sales.id', '=', 'lcn.sale_id')
                 ->join('offices', 'offices.id', '=', 'sales.office_id')
                 ->join('units', 'units.id', '=', 'sales.unit_id')
-                ->joinSub($this->earliestCvNoteSubquery(), 'ecn', fn($j) => $j
-                    ->on('lqn.applicant_id', '=', 'ecn.applicant_id')
-                    ->on('lqn.sale_id', '=', 'ecn.sale_id'))
-                ->join('users', 'users.id', '=', 'ecn.user_id')
+                ->joinSub($this->latestHistorySubquery(['quality_cvs']), 'lh', fn($j) => $j
+                    ->on('lcn.applicant_id', '=', 'lh.applicant_id')
+                    ->on('lcn.sale_id', '=', 'lh.sale_id'))
+                ->join('users', 'users.id', '=', 'lcn.user_id')
                 ->addSelect(array_merge($commonSaleSelect, [
-                    'lqn.details as notes_detail',
-                    'lqn.created_at as notes_created_at',
-                    'lqn.sale_id as cvnote_sale_id',
+                    'lcn.details as notes_detail',
+                    'lcn.created_at as notes_created_at',
+                    'lcn.sale_id as cvnote_sale_id',
                     'sales.job_title_id as sale_title_id',
                     'sales.job_category_id as sale_category_id',
                 ])),
 
-            'cleared cvs' => $model
-                ->joinSub($this->latestQualityNoteSubquery(['cleared', 'cleared_no_job']), 'lqn', fn($j) => $j->on('applicants.id', '=', 'lqn.applicant_id'))
-                ->join('sales', 'sales.id', '=', 'lqn.sale_id')
-                ->join('offices', 'offices.id', '=', 'sales.office_id')
-                ->join('units', 'units.id', '=', 'sales.unit_id')
-                ->joinSub($this->earliestCvNoteSubquery(), 'ecn', fn($j) => $j
-                    ->on('lqn.applicant_id', '=', 'ecn.applicant_id')
-                    ->on('lqn.sale_id', '=', 'ecn.sale_id'))
-                ->join('users', 'users.id', '=', 'ecn.user_id')
-                ->addSelect(array_merge($commonSaleSelect, [
-                    'lqn.details as notes_detail',
-                    'lqn.created_at as notes_created_at',
-                    'lqn.sale_id as cvnote_sale_id',
-                    'sales.job_title_id as sale_title_id',
-                    'sales.job_category_id as sale_category_id',
-                ])),
-
-            default => $model // covers 'requested cvs' and the original default branch
+            default => $model
                 ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
                 ->join('sales', 'sales.id', '=', 'lcn.sale_id')
                 ->join('offices', 'offices.id', '=', 'sales.office_id')
@@ -1817,7 +1942,7 @@ class QualityController extends Controller
         };
     }
 
-    private function applySearch($model, Request $request): void
+    private function applySearch($model, Request $request, string $statusFilter = ''): void
     {
         $searchTerm = trim((string) $request->input('search.value', ''));
 
@@ -1825,11 +1950,17 @@ class QualityController extends Controller
             return;
         }
 
+        // "Rejected CVs" / "Cleared CVs" don't join `users` in SQL anymore
+        // (see applyQualityDecisionFilter's doc comment) — the "sent by"
+        // user is resolved lazily per displayed row instead, so it can't be
+        // searched at the SQL level for these two filters.
+        $hasUsersJoin = !in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true);
+
         // NOTE: all four whereHas() calls removed. job_titles, job_categories,
         // job_sources, and users are already LEFT/INNER JOINed into the base
         // query — filtering their already-aliased columns directly avoids four
         // redundant correlated EXISTS subqueries per search request.
-        $model->where(function ($query) use ($searchTerm) {
+        $model->where(function ($query) use ($searchTerm, $hasUsersJoin) {
             $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
                 ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
                 ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
@@ -1841,10 +1972,14 @@ class QualityController extends Controller
                 ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$searchTerm}%"])
                 ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
                 ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
+                ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%");
+
+            if ($hasUsersJoin) {
+                $query->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
+            }
         });
     }
+
 
     private function renderApplicantEmail($applicant): string
     {
