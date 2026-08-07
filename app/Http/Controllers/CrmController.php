@@ -24,6 +24,7 @@ use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
+use Horsefly\ModuleNote;
 
 use App\Support\DialLink;
 
@@ -5176,7 +5177,6 @@ class CrmController extends Controller
                 );
             }
 
-
             return response()->json(['success' => true, 'message' => 'CRM Notes Upated Successfully!']);
         } catch (ValidationException $e) {
             return response()->json([
@@ -9334,6 +9334,24 @@ class CrmController extends Controller
                 //update uid
                 $sale_note->sales_notes_uid = md5((string) $sale_note->id);
                 $sale_note->save();
+
+                // Disable previous module note
+                ModuleNote::where([
+                    'module_noteable_id' => $sale_id,
+                    'module_noteable_type' => 'Horsefly\Sale'
+                ])
+                    ->where('status', 1)
+                    ->update(['status' => 0]);
+
+                // Create new module note
+                $moduleNote = ModuleNote::create([
+                    'details' => $details,
+                    'module_noteable_id' => $sale_id,
+                    'module_noteable_type' => 'Horsefly\Sale',
+                    'user_id' => $user_id,
+                ]);
+
+                $moduleNote->update(['module_note_uid' => md5($moduleNote->id)]);
             }
 
             return true; // Indicate success
