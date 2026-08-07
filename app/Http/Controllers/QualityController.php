@@ -1465,7 +1465,7 @@ class QualityController extends Controller
     // }
 
 
-   public function getResourcesByTypeAjaxRequest(Request $request)
+    public function getResourcesByTypeAjaxRequest(Request $request)
     {
         $typeFilter     = $request->input('type_filter', '');
         $categoryFilter = $request->input('category_filter', '');
@@ -1581,7 +1581,7 @@ class QualityController extends Controller
             // entire matching set (which can be tens of thousands of rows for "Rejected
             // CVs") just to throw the order away for a COUNT. ->order() runs after that
             // count query, so sorting only ever affects the actual page fetch.
-            ->order(fn ($query) => $this->applySorting($query, $request))
+            ->order(fn($query) => $this->applySorting($query, $request))
             ->addIndexColumn()
             ->addColumn('user_name', function ($applicant) use ($statusFilter) {
                 $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
@@ -1720,7 +1720,7 @@ class QualityController extends Controller
         return $this->rankedPerApplicantSaleSubquery(
             'history',
             ['applicant_id', 'sale_id', 'sub_stage', 'created_at'],
-            fn ($q) => $q->whereIn('sub_stage', $decisionSubStages)
+            fn($q) => $q->whereIn('sub_stage', $decisionSubStages)
         )->whereIn('sub_stage', $targetSubStages);
     }
 
@@ -1729,7 +1729,7 @@ class QualityController extends Controller
         return $this->rankedPerApplicantSaleSubquery(
             'cv_notes',
             ['applicant_id', 'sale_id', 'user_id', 'details', 'created_at'],
-            fn ($q) => $q->where('status', 1)
+            fn($q) => $q->where('status', 1)
         );
     }
 
@@ -1738,7 +1738,7 @@ class QualityController extends Controller
         return $this->rankedPerApplicantSaleSubquery(
             'history',
             ['applicant_id', 'sale_id'],
-            fn ($q) => $q->whereIn('sub_stage', $subStages)->where('status', 1)
+            fn($q) => $q->whereIn('sub_stage', $subStages)->where('status', 1)
         );
     }
 
@@ -1747,7 +1747,7 @@ class QualityController extends Controller
         return $this->rankedPerApplicantSaleSubquery(
             'revert_stages',
             ['applicant_id', 'sale_id', 'user_id', 'notes', 'stage', 'updated_at'],
-            fn ($q) => $q->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
+            fn($q) => $q->whereIn('stage', ['quality_note', 'cv_hold', 'no_job_quality_cvs'])
         );
     }
 
@@ -1776,11 +1776,11 @@ class QualityController extends Controller
     {
         $saleSelect = array_values(array_filter(
             $commonSaleSelect,
-            fn ($column) => $column !== 'users.name as user_name'
+            fn($column) => $column !== 'users.name as user_name'
         ));
 
         return $model
-            ->joinSub($this->currentQualityHistorySubquery($historyStages), 'lh', fn ($j) => $j
+            ->joinSub($this->currentQualityHistorySubquery($historyStages), 'lh', fn($j) => $j
                 ->on('applicants.id', '=', 'lh.applicant_id'))
             // sales/offices/units are LEFT joins purely as a query-plan control: MySQL's
             // optimizer was picking `offices` as the driving table (full index scan of
@@ -1825,14 +1825,27 @@ class QualityController extends Controller
             ? ['rejected']
             : ['cleared', 'cleared_no_job'];
 
+        // `quality_notes.status` is the same kind of flag as `history.status` —
+        // it only marks the single most-recent quality_notes row for this
+        // (applicant_id, sale_id) pair *across any action* (reject/clear/hold/
+        // revert/etc.), not "the most recent row of this specific decision
+        // type". Once a rejected/cleared applicant gets any further quality
+        // action (e.g. put on hold, reverted), their reject/clear note's
+        // status flips to 0 and a same-pair-but-different-`moved_tab_to` row
+        // becomes status=1 instead — so filtering on status=1 here picked up
+        // the wrong row (or one that failed the moved_tab_to check below) and
+        // silently left notes_detail blank, even though the pair is still
+        // correctly listed under this tab via currentQualityHistorySubquery()
+        // (which ranks by decision type, not by status). Filtering directly
+        // on `moved_tab_to` fixes this the same way that fix did.
         $note = DB::table('quality_notes')
             ->where('applicant_id', $applicant->id)
             ->where('sale_id', $applicant->cvnote_sale_id)
-            ->where('status', 1)
+            ->whereIn('moved_tab_to', $noteStatuses)
             ->orderByDesc('id')
-            ->first(['details', 'created_at', 'moved_tab_to']);
+            ->first(['details', 'created_at']);
 
-        if ($note && in_array($note->moved_tab_to, $noteStatuses, true)) {
+        if ($note) {
             $applicant->notes_detail = $note->details ?? '';
             $applicant->notes_created_at = $note->created_at;
         }
@@ -1890,19 +1903,23 @@ class QualityController extends Controller
                 ])),
 
             'rejected cvs' => $this->applyQualityDecisionFilter(
-                $model, ['quality_reject'], $commonSaleSelect
+                $model,
+                ['quality_reject'],
+                $commonSaleSelect
             ),
 
             'cleared cvs' => $this->applyQualityDecisionFilter(
-                $model, ['quality_cleared', 'quality_cleared_no_job'], $commonSaleSelect
+                $model,
+                ['quality_cleared', 'quality_cleared_no_job'],
+                $commonSaleSelect
             ),
 
             'requested cvs' => $model
-                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn ($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
+                ->joinSub($this->latestCvNoteByStatusSubquery(), 'lcn', fn($j) => $j->on('applicants.id', '=', 'lcn.applicant_id'))
                 ->join('sales', 'sales.id', '=', 'lcn.sale_id')
                 ->join('offices', 'offices.id', '=', 'sales.office_id')
                 ->join('units', 'units.id', '=', 'sales.unit_id')
-                ->joinSub($this->latestHistorySubquery(['quality_cvs']), 'lh', fn ($j) => $j
+                ->joinSub($this->latestHistorySubquery(['quality_cvs']), 'lh', fn($j) => $j
                     ->on('lcn.applicant_id', '=', 'lh.applicant_id')
                     ->on('lcn.sale_id', '=', 'lh.sale_id'))
                 ->join('users', 'users.id', '=', 'lcn.user_id')
