@@ -140,7 +140,7 @@
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -148,19 +148,33 @@
                                         <input type="text" class="form-control mb-2" id="categorySearchInput"
                                             placeholder="Search category...">
 
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
+                                            <a href="#" id="categorySelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".category-filter"
+                                                data-exclude="[data-category-id='']">Select All</a>
+                                            <a href="#" id="categoryDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".category-filter"
+                                                data-exclude="[data-category-id='']"
+                                                style="display:none">Deselect All</a>
+                                        </div>
+
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
                                             <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox" value=""
-                                                    id="all-categories" data-title-id="">
-                                                <label class="form-check-label" for="all-categories">All Category</label>
+                                                <input id="all-categories" class="form-check-input category-filter" type="checkbox" value=""
+                                                    data-category-id="" data-category-name="All Categories">
+                                                <label class="form-check-label" for="all-categories">All Categories</label>
                                             </div>
 
                                             @foreach($jobCategories as $category)
                                                 <div class="form-check">
-                                                    <input class="form-check-input category-filter" type="checkbox"
-                                                        value="{{ $category->id }}" id="category_{{ $category->id }}"
-                                                        data-category-id="{{ $category->id }}">
+                                                    <input id="category_{{ $category->id }}" class="form-check-input category-filter" type="checkbox"
+                                                        value="{{ $category->id }}"
+                                                        data-category-id="{{ $category->id }}"
+                                                        data-category-name="{{ ucwords($category->name) }}">
                                                     <label class="form-check-label"
                                                         for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
                                                 </div>
@@ -180,6 +194,19 @@
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="titleSearchInput"
                                             placeholder="Search titles...">
+
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
+                                            <a href="#" id="titleSelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".title-filter"
+                                                data-exclude="[data-title-id='']">Select All</a>
+                                            <a href="#" id="titleDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".title-filter"
+                                                data-exclude="[data-title-id='']"
+                                                style="display:none">Deselect All</a>
+                                        </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
@@ -212,6 +239,52 @@
                                         <a class="dropdown-item type-filter" href="#">Regular</a>
                                     </div>
                                 </div>
+
+                                 <!-- Sources Filter Dropdown -->
+                                 <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                            placeholder="Search Source...">
+
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
+                                            <a href="#" id="sourceSelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".source-filter"
+                                                data-exclude="[data-source-id='']">Select All</a>
+                                            <a href="#" id="sourceDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".source-filter"
+                                                data-exclude="[data-source-id='']"
+                                                style="display:none">Deselect All</a>
+                                        </div>
+
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="sourceList">
+                                            <div class="form-check">
+                                                <input class="form-check-input source-filter" type="checkbox"
+                                                    value="" id="all-sources" data-source-id="">
+                                                <label class="form-check-label" for="all-sources">All Sources</label>
+                                            </div>
+
+                                            @foreach (($jobSources ?? []) as $source)
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                        data-source-id="{{ $source->id }}">
+                                                    <label class="form-check-label"
+                                                        for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -242,6 +315,7 @@
                                     <th>Head Office</th>
                                     <th>Unit</th>
                                     <th>PostCode</th>
+                                    <th>Job Source</th>
                                     <th width="20%">Notes</th>
                                     <th id="paid_status" style="display:none;">Paid Status</th>
                                     <th>Action</th>
@@ -286,6 +360,7 @@
             </div>
         </div>
     </div>
+    
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -402,6 +477,7 @@
             var currentTypeFilter = '';
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
+            var currentSourceFilters = [];
             var currentDateRangeFilter = '';
 
             // Create loader row
@@ -427,6 +503,7 @@
                         d.tab_filter = tabFilter;
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilters;
+                        d.source_filter = currentSourceFilters;
                         d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
                         d.title_filter = currentTitleFilters;
                         if (d.search && d.search.value) {
@@ -470,6 +547,7 @@
                     { data: 'office_name', name: 'offices.office_name' },
                     { data: 'unit_name', name: 'units.unit_name' },
                     { data: 'sale_postcode', name: 'sales.sale_postcode' },
+                    { data: 'sale_source_name', name: 'sale_job_sources.name' },
                     { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
                     { 
                         data: 'paid_status', 
@@ -497,7 +575,7 @@
                 ],
                 columnDefs: [
                     {
-                        targets: [8, 9, 12, 15], // job_details, office_name, sale_postcode, notes_detail
+                        targets: [8, 9, 12, 15, 16], // job_details, office_name, sale_postcode, notes_detail, sale_source_name
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');
                         }
@@ -655,34 +733,59 @@
                 table.ajax.reload();
             });
 
+            function syncCheckboxFilterUI(options) {
+                const {
+                    filterClass,
+                    excludeAttr,
+                    labelSelector,
+                    emptyLabel,
+                    selectedLabel,
+                    toggleContainer,
+                    getSelectedIds
+                } = options;
+
+                const $items = $(filterClass).not(excludeAttr);
+                const total = $items.length;
+                const checked = $items.filter(':checked').length;
+
+                $(labelSelector).text(checked > 0 ? `${selectedLabel} (${checked})` : emptyLabel);
+
+                const $container = $(toggleContainer);
+                $container.find('.filter-select-all').toggle(checked < total);
+                $container.find('.filter-deselect-all').toggle(checked > 0);
+
+                return getSelectedIds();
+            }
+
             // Category filter handler
-            $('.category-filter').on('click', function() {
+            $('.category-filter').on('change', function() {
                 const id = $(this).data('category-id');
-                // Handle "All Titles"
+
                 if (id === '' || id === undefined) {
                     currentCategoryFilters = [];
                     $('.category-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
-                    if (this.checked) {
+                } else if (this.checked) {
+                    if (!currentCategoryFilters.includes(id)) {
                         currentCategoryFilters.push(id);
-                        // Uncheck "All Titles"
-                        $('.category-filter[data-category-id=""]').prop('checked', false);
-                    } else {
-                        currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
                     }
+                    $('.category-filter[data-category-id=""]').prop('checked', false);
+                } else {
+                    currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.category-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                currentCategoryFilters = syncCheckboxFilterUI({
+                    filterClass: '.category-filter',
+                    excludeAttr: '[data-category-id=""]',
+                    labelSelector: '#showFilterCategory',
+                    emptyLabel: 'All Categories',
+                    selectedLabel: 'Selected Categories',
+                    toggleContainer: '#categoryToggleContainer',
+                    getSelectedIds: () => $('.category-filter:checked')
+                        .not('[data-category-id=""]')
+                        .map(function() { return $(this).data('category-id'); })
+                        .get()
+                });
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' + selectedLabels.length +
-                    ')' : 'All Categories');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
 
@@ -690,32 +793,168 @@
             $('.title-filter').on('change', function() {
                 const id = $(this).data('title-id');
 
-                // Handle "All Titles"
                 if (id === '' || id === undefined) {
                     currentTitleFilters = [];
                     $('.title-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
-                    if (this.checked) {
+                } else if (this.checked) {
+                    if (!currentTitleFilters.includes(id)) {
                         currentTitleFilters.push(id);
-                        // Uncheck "All Titles"
-                        $('.title-filter[data-title-id=""]').prop('checked', false);
-                    } else {
-                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
                     }
+                    $('.title-filter[data-title-id=""]').prop('checked', false);
+                } else {
+                    currentTitleFilters = currentTitleFilters.filter(x => x !== id);
                 }
 
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                currentTitleFilters = syncCheckboxFilterUI({
+                    filterClass: '.title-filter',
+                    excludeAttr: '[data-title-id=""]',
+                    labelSelector: '#showFilterTitle',
+                    emptyLabel: 'All Titles',
+                    selectedLabel: 'Selected Titles',
+                    toggleContainer: '#titleToggleContainer',
+                    getSelectedIds: () => $('.title-filter:checked')
+                        .not('[data-title-id=""]')
+                        .map(function() { return $(this).data('title-id'); })
+                        .get()
+                });
 
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels.length +
-                    ')' : 'All Titles');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
+            });
+
+            // Source filter handler
+            $('.source-filter').on('change', function() {
+                const id = $(this).data('source-id');
+
+                if (id === '' || id === undefined) {
+                    currentSourceFilters = [];
+                    $('.source-filter').not(this).prop('checked', false);
+                } else if (this.checked) {
+                    if (!currentSourceFilters.includes(id)) {
+                        currentSourceFilters.push(id);
+                    }
+                    $('.source-filter[data-source-id=""]').prop('checked', false);
+                } else {
+                    currentSourceFilters = currentSourceFilters.filter(x => x !== id);
+                }
+
+                currentSourceFilters = syncCheckboxFilterUI({
+                    filterClass: '.source-filter',
+                    excludeAttr: '[data-source-id=""]',
+                    labelSelector: '#showFilterSource',
+                    emptyLabel: 'All Sources',
+                    selectedLabel: 'Selected Sources',
+                    toggleContainer: '#sourceToggleContainer',
+                    getSelectedIds: () => $('.source-filter:checked')
+                        .not('[data-source-id=""]')
+                        .map(function() { return $(this).data('source-id'); })
+                        .get()
+                });
+
+                table.ajax.reload();
+            });
+
+            /*** Dropdown Select All Action ***/
+            $(document).on('click', '.filter-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+                const $items = $(filterClass).not(excludeAttr);
+
+                $(filterClass + excludeAttr).prop('checked', false);
+                $items.prop('checked', true);
+
+                if (filterClass === '.category-filter') {
+                    currentCategoryFilters = $items.map(function() { return $(this).data('category-id'); }).get();
+                    syncCheckboxFilterUI({
+                        filterClass: '.category-filter',
+                        excludeAttr: '[data-category-id=""]',
+                        labelSelector: '#showFilterCategory',
+                        emptyLabel: 'All Categories',
+                        selectedLabel: 'Selected Categories',
+                        toggleContainer: '#categoryToggleContainer',
+                        getSelectedIds: () => currentCategoryFilters
+                    });
+                } else if (filterClass === '.title-filter') {
+                    currentTitleFilters = $items.map(function() { return $(this).data('title-id'); }).get();
+                    syncCheckboxFilterUI({
+                        filterClass: '.title-filter',
+                        excludeAttr: '[data-title-id=""]',
+                        labelSelector: '#showFilterTitle',
+                        emptyLabel: 'All Titles',
+                        selectedLabel: 'Selected Titles',
+                        toggleContainer: '#titleToggleContainer',
+                        getSelectedIds: () => currentTitleFilters
+                    });
+                } else if (filterClass === '.source-filter') {
+                    currentSourceFilters = $items.map(function() { return $(this).data('source-id'); }).get();
+                    syncCheckboxFilterUI({
+                        filterClass: '.source-filter',
+                        excludeAttr: '[data-source-id=""]',
+                        labelSelector: '#showFilterSource',
+                        emptyLabel: 'All Sources',
+                        selectedLabel: 'Selected Sources',
+                        toggleContainer: '#sourceToggleContainer',
+                        getSelectedIds: () => currentSourceFilters
+                    });
+                }
+
+                table.ajax.reload();
+            });
+
+            /*** Dropdown Deselect All Action ***/
+            $(document).on('click', '.filter-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const filterClass = $(this).data('target');
+                const excludeAttr = $(this).data('exclude');
+
+                $(filterClass).not(excludeAttr).prop('checked', false);
+                $(filterClass + excludeAttr).prop('checked', false);
+
+                if (filterClass === '.category-filter') {
+                    currentCategoryFilters = [];
+                    syncCheckboxFilterUI({
+                        filterClass: '.category-filter',
+                        excludeAttr: '[data-category-id=""]',
+                        labelSelector: '#showFilterCategory',
+                        emptyLabel: 'All Categories',
+                        selectedLabel: 'Selected Categories',
+                        toggleContainer: '#categoryToggleContainer',
+                        getSelectedIds: () => currentCategoryFilters
+                    });
+                } else if (filterClass === '.title-filter') {
+                    currentTitleFilters = [];
+                    syncCheckboxFilterUI({
+                        filterClass: '.title-filter',
+                        excludeAttr: '[data-title-id=""]',
+                        labelSelector: '#showFilterTitle',
+                        emptyLabel: 'All Titles',
+                        selectedLabel: 'Selected Titles',
+                        toggleContainer: '#titleToggleContainer',
+                        getSelectedIds: () => currentTitleFilters
+                    });
+                } else if (filterClass === '.source-filter') {
+                    currentSourceFilters = [];
+                    syncCheckboxFilterUI({
+                        filterClass: '.source-filter',
+                        excludeAttr: '[data-source-id=""]',
+                        labelSelector: '#showFilterSource',
+                        emptyLabel: 'All Sources',
+                        selectedLabel: 'Selected Sources',
+                        toggleContainer: '#sourceToggleContainer',
+                        getSelectedIds: () => currentSourceFilters
+                    });
+                }
+
+                table.ajax.reload();
+            });
+
+            // Keep dropdown open when clicking inside its content area
+            $(document).on('click', '.filter-dropdowns', function(e) {
+                e.stopPropagation();
             });
         });
 
@@ -728,10 +967,20 @@
                 item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
-       
+
         document.getElementById('titleSearchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('sourceSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#sourceList .form-check');
 
             checkboxes.forEach(function(item) {
                 const label = item.querySelector('label').innerText.toLowerCase();
@@ -964,104 +1213,7 @@
             });
         }
 
-        /** Sent CV To Request Modal */
-        // function crmSentCvToRequestModal(applicantID, saleID, tab, smsMessage) {
-        //     const formId = `#crmSendRequestForm${applicantID}-${saleID}`;
-        //     const modalId = `#crmSentCvToRequestModal${applicantID}-${saleID}`;
-        //     const detailsId = `#sendRequestDetails${applicantID}-${saleID}`;
-        //     const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-        //     const saveButton = $(`${formId} .saveCrmSendRequestButton`);
-
-        //     // Capture data from trigger <a> element
-        //     if(smsMessage !== ''){
-        //         const triggerEl = document.querySelector(`[data-applicant-id="${applicantID}"][data-sale-id="${saleID}"]`);
-        //         const applicantName = triggerEl?.getAttribute('data-applicant-name') || '';
-        //         const applicantPhone = triggerEl?.getAttribute('data-applicant-phone') || '';
-        //         const applicantUnit = triggerEl?.getAttribute('data-applicant-unit') || '';
-        //         const smsTriggerId = modalId; // for reference back
-
-        //         // ✅ Show SMS Modal with pre-filled data
-        //         $('#smsName').text(applicantName);
-        //         $('#applicant_phone_number').val(applicantPhone);
-        //         $('#applicant_id').val(applicantID);
-        //         $('#smsBodyDetails').val(smsMessage);
-
-        //         $('#send_sms_to_requested_applicant').modal('show');
-        //     }
-
-        //     // Reset modal when it is about to be shown
-        //     $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-        //         // Reset form fields
-        //         $(formId)[0].reset();
-
-        //         // Remove validation styles and messages
-        //         $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-
-        //         // Hide any previous alerts
-        //         $(notificationAlert).html('').hide();
-        //     });
-
-        //     // Handle save button click
-        //     saveButton.off('click').on('click', function() {
-        //         // Reset validation
-        //         $(detailsId).removeClass('is-invalid is-valid')
-        //                 .next('.invalid-feedback').remove();
-                
-        //         // Validate inputs
-        //         const notes = $(detailsId).val();
-
-        //         if (!notes) {
-        //             $(detailsId).addClass('is-invalid');
-        //             $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
-        //             return;
-        //         }
-
-        //         // Show loading state
-        //         const btn = $(this);
-        //         const originalText = btn.html();
-        //         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-        //         // Get form properly
-        //         const form = $(formId)[0];
-
-        //         // Send data via AJAX
-        //         $.ajax({
-        //             url: form.action,
-        //             method: form.method,
-        //             data: {
-        //                 applicant_id: applicantID,
-        //                 sale_id: saleID,
-        //                 details: notes,
-        //                 tab : tab,
-        //                 _token: '{{ csrf_token() }}'
-        //             },
-        //             success: function(response) {
-        //                 $(notificationAlert).html(`
-        //                     <div class="notification-alert success">
-        //                         ${response.message}
-        //                     </div>
-        //                 `).show();
-
-        //                 setTimeout(() => {
-        //                     $(modalId).modal('hide');
-        //                     $(formId)[0].reset();
-        //                     $('#applicants_table').DataTable().ajax.reload();
-        //                 }, 2000);
-        //             },
-        //             error: function(xhr) {
-        //                 $(notificationAlert).html(`
-        //                     <div class="notification-alert error">
-        //                         ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
-        //                     </div>
-        //                 `).show();
-        //             },
-        //             complete: function() {
-        //                 btn.prop('disabled', false).html(originalText);
-        //             }
-        //         });
-        //     });
-        // }
+        /** Sent CV to Request */
         function crmSentCvToRequestModal(el, applicantID, saleID, tab) {
 
             const formId = `#crmSendRequestForm${applicantID}-${saleID}`;
@@ -2474,301 +2626,124 @@
             });
         }
 
-        /** Revert Rebook to Confirmation */
-        // function crmRevertRebookToConfirmationModal(applicantID, saleID) {
-        //     const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
-        //     const modalId = `#crmRevertRebookToConfirmationModal${applicantID}-${saleID}`;
-        //     const detailsId = `#crmRevertRebookToConfirmationDetails${applicantID}-${saleID}`;
-        //     const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-        //     const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
+       
+        function crmRevertRebookToConfirmationModal(applicantID, saleID) {
 
-        //     // Reset modal when it is about to be shown
-        //     $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-        //         // Reset form fields
-        //         $(formId)[0].reset();
+            const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
+            const modalId = `#crmRevertRebookToConfirmationModal${applicantID}-${saleID}`;
+            const detailsId = `#crmRevertRebookToConfirmationDetails${applicantID}-${saleID}`;
 
-        //         // Remove validation styles and messages
-        //         $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+            const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
 
-        //         // Hide any previous alerts
-        //         $(notificationAlert).html('').hide();
-        //     });
-        //     // Handle save button click
-        //     saveButton.off('click').on('click', function() {
-        //         // Reset validation
-        //         $(detailsId).removeClass('is-invalid is-valid')
-        //                 .next('.invalid-feedback').remove();
-                
-        //         // Validate inputs
-        //         const notes = $(detailsId).val();
+            saveButton.off('click').on('click', function () {
 
-        //         if (!notes) {
-        //             $(detailsId).addClass('is-invalid');
-        //             $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
-        //             return;
-        //         }
+                $(detailsId).removeClass('is-invalid').next('.invalid-feedback').remove();
 
-        //         const btn = $(this);
-        //         const originalText = btn.html();
-        //         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                if (!$(detailsId).val()) {
+                    $(detailsId).addClass('is-invalid')
+                        .after('<div class="invalid-feedback">Please provide details.</div>');
+                    return;
+                }
 
-        //         // Get form properly
-        //         const form = $(formId)[0];
+                // Close first modal → open second
+                $(modalId).modal('hide');
 
-        //         // Send data via AJAX
-        //         $.ajax({
-        //             url: form.action,
-        //             method: form.method,
-        //             data: {
-        //                 applicant_id: applicantID,
-        //                 sale_id: saleID,
-        //                 details: notes,
-        //                 _token: '{{ csrf_token() }}'
-        //             },
-        //             success: function(response) {
-        //                 const alertClass = response.success ? 'success' : 'error';
-        //                 $(notificationAlert).html(`
-        //                     <div class="notification-alert ${alertClass}">
-        //                         ${response.message}
-        //                     </div>
-        //                 `).show();
-
-        //                 if (response.success) {
-        //                     setTimeout(() => {
-        //                         $(modalId).modal('hide');
-        //                         $(formId)[0].reset();
-        //                         $('#applicants_table').DataTable().ajax.reload();
-        //                     }, 2000);
-        //                 }
-        //             },
-        //             error: function(xhr) {
-        //                 $(notificationAlert).html(`
-        //                     <div class="notification-alert error">
-        //                         ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
-        //                     </div>
-        //                 `).show();
-        //             },
-        //             complete: function () {
-        //                 btn.prop('disabled', false).html(originalText);
-        //             }
-        //         });
-        //     });
-        // }
-
-        // function crmReScheduleInterviewModal(applicantID, saleID) {
-        //     const formId = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
-        //     const modalId = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
-        //     const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-        //     const schedule_date = `#reschedule_date${applicantID}-${saleID}`;
-        //     const schedule_time = `#reschedule_time${applicantID}-${saleID}`;
-        //     const saveButton = $(`${formId} .saveCrmReScheduleInterviewButton`);
-
-        //     // Reset modal when it is about to be shown
-        //     $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-        //         // Reset form fields
-        //         $(formId)[0].reset();
-
-        //         // Remove validation styles and messages
-        //         $(schedule_date).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-        //         $(schedule_time).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-
-        //         // Hide any previous alerts
-        //         $(notificationAlert).html('').hide();
-        //     });
-
-        //     // Handle save button click
-        //     saveButton.off('click').on('click', function() {
-        //         // Reset validation
-        //         $(schedule_date).removeClass('is-invalid is-valid')
-        //                 .next('.invalid-feedback').remove();
-                        
-        //         $(schedule_time).removeClass('is-invalid is-valid')
-        //                 .next('.invalid-feedback').remove();
-                
-        //         // Validate inputs
-        //         const sdate = $(schedule_date).val();
-        //         const stime = $(schedule_time).val();
-
-        //         // Add date validation
-        //         if (sdate && new Date(sdate) < new Date()) {
-        //             $(schedule_date).addClass('is-invalid');
-        //             $(schedule_date).after('<div class="invalid-feedback">Date must be in the future.</div>');
-        //             return;
-        //         }
-        //         if (!stime) {
-        //             $(schedule_time).addClass('is-invalid');
-        //             $(schedule_time).after('<div class="invalid-feedback">Please provide details.</div>');
-        //             return;
-        //         }
-
-        //         // Show loading state
-        //         const btn = $(this);
-        //         const originalText = btn.html();
-        //         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-        //         // Get form properly
-        //         const form = $(formId)[0];
-
-        //         // Send data via AJAX
-        //         $.ajax({
-        //             url: form.action,
-        //             method: form.method,
-        //             data: {
-        //                 applicant_id: applicantID,
-        //                 sale_id: saleID,
-        //                 schedule_date: sdate,
-        //                 schedule_time: stime,
-        //                 _token: '{{ csrf_token() }}'
-        //             },
-        //             success: function(response) {
-        //                 $(notificationAlert).html(`
-        //                     <div class="notification-alert success">
-        //                         ${response.message}
-        //                     </div>
-        //                 `).show();
-
-        //                 setTimeout(() => {
-        //                     $(modalId).modal('hide');
-        //                     $(formId)[0].reset();
-        //                     // $('#applicants_table').DataTable().ajax.reload();
-        //                 }, 2000);
-        //             },
-        //             error: function(xhr) {
-        //                 let errorMessage = 'An error occurred while scheduling the interview.';
-        //                 if (xhr.responseJSON) {
-        //                     if (xhr.responseJSON.message) {
-        //                         errorMessage = xhr.responseJSON.message;
-        //                     } else if (xhr.responseJSON.errors) {
-        //                         // Handle validation errors
-        //                         errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
-        //                     }
-        //                 }
-        //                 $(notificationAlert).html(`<div class="notification-alert error">${errorMessage}</div>`).show();
-        //             },
-        //             complete: function() {
-        //                 btn.prop('disabled', false).html(originalText);
-        //             }
-        //         });
-        //     });
-        // }
-      function crmRevertRebookToConfirmationModal(applicantID, saleID) {
-
-    const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
-    const modalId = `#crmRevertRebookToConfirmationModal${applicantID}-${saleID}`;
-    const detailsId = `#crmRevertRebookToConfirmationDetails${applicantID}-${saleID}`;
-
-    const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
-
-    saveButton.off('click').on('click', function () {
-
-        $(detailsId).removeClass('is-invalid').next('.invalid-feedback').remove();
-
-        if (!$(detailsId).val()) {
-            $(detailsId).addClass('is-invalid')
-                .after('<div class="invalid-feedback">Please provide details.</div>');
-            return;
+                setTimeout(() => {
+                    $(`#crmReScheduleInterviewModal${applicantID}-${saleID}`)
+                        .data('applicant-id', applicantID)
+                        .data('sale-id', saleID)
+                        .modal('show');
+                }, 300);
+            });
         }
 
-        // Close first modal → open second
-        $(modalId).modal('hide');
+        $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
 
-        setTimeout(() => {
-            $(`#crmReScheduleInterviewModal${applicantID}-${saleID}`)
-                .data('applicant-id', applicantID)
-                .data('sale-id', saleID)
-                .modal('show');
-        }, 300);
-    });
-}
-$(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
+            const btn = $(this);
+            const applicantID = btn.data('applicant-id');
+            const saleID = btn.data('sale-id');
 
-    const btn = $(this);
-    const applicantID = btn.data('applicant-id');
-    const saleID = btn.data('sale-id');
+            const revertForm = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
+            const scheduleForm = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
+            const modalId = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
+            const alertBox = `.notificationAlert${applicantID}-${saleID}`;
 
-    const revertForm = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
-    const scheduleForm = `#crmReScheduleInterviewForm${applicantID}-${saleID}`;
-    const modalId = `#crmReScheduleInterviewModal${applicantID}-${saleID}`;
-    const alertBox = `.notificationAlert${applicantID}-${saleID}`;
+            const sdate = $(`#reschedule_date${applicantID}-${saleID}`).val();
+            const stime = $(`#reschedule_time${applicantID}-${saleID}`).val();
 
-    const sdate = $(`#reschedule_date${applicantID}-${saleID}`).val();
-    const stime = $(`#reschedule_time${applicantID}-${saleID}`).val();
+            // Reset validation
+            $('.invalid-feedback').remove();
+            $('.is-invalid').removeClass('is-invalid');
 
-    // Reset validation
-    $('.invalid-feedback').remove();
-    $('.is-invalid').removeClass('is-invalid');
+            if (!sdate || !stime) {
+                if (!sdate) $(`#reschedule_date${applicantID}-${saleID}`).addClass('is-invalid');
+                if (!stime) $(`#reschedule_time${applicantID}-${saleID}`).addClass('is-invalid');
+                return;
+            }
 
-    if (!sdate || !stime) {
-        if (!sdate) $(`#reschedule_date${applicantID}-${saleID}`).addClass('is-invalid');
-        if (!stime) $(`#reschedule_time${applicantID}-${saleID}`).addClass('is-invalid');
-        return;
-    }
-
-    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
-
-    // =======================
-    // AJAX #1 → REVERT STATUS
-    // =======================
-    $.ajax({
-        url: $(revertForm).attr('action'),
-        type: 'POST',
-        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-        data: {
-            applicant_id: $(revertForm + ' input[name="applicant_id"]').val(),
-            sale_id: $(revertForm + ' input[name="sale_id"]').val(),
-            details: $(revertForm + ' textarea[name="details"]').val()
-        },
-        success: function () {
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
 
             // =======================
-            // AJAX #2 → RESCHEDULE
+            // AJAX #1 → REVERT STATUS
             // =======================
             $.ajax({
-                url: $(scheduleForm).attr('action'),
+                url: $(revertForm).attr('action'),
                 type: 'POST',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 data: {
-                    applicant_id: applicantID,
-                    sale_id: saleID,
-                    schedule_date: sdate,
-                    schedule_time: stime
+                    applicant_id: $(revertForm + ' input[name="applicant_id"]').val(),
+                    sale_id: $(revertForm + ' input[name="sale_id"]').val(),
+                    details: $(revertForm + ' textarea[name="details"]').val()
                 },
-                success: function (response) {
-                    $(alertBox).html(
-                        `<div class="notification-alert success">${response.message}</div>`
-                    ).show();
+                success: function () {
 
-                    setTimeout(() => {
-                        $(modalId).modal('hide');
-                        $(revertForm)[0].reset();
-                        $(scheduleForm)[0].reset();
-                        $('#applicants_table').DataTable().ajax.reload();
-                    }, 1500);
+                    // =======================
+                    // AJAX #2 → RESCHEDULE
+                    // =======================
+                    $.ajax({
+                        url: $(scheduleForm).attr('action'),
+                        type: 'POST',
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                        data: {
+                            applicant_id: applicantID,
+                            sale_id: saleID,
+                            schedule_date: sdate,
+                            schedule_time: stime
+                        },
+                        success: function (response) {
+                            $(alertBox).html(
+                                `<div class="notification-alert success">${response.message}</div>`
+                            ).show();
+
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(revertForm)[0].reset();
+                                $(scheduleForm)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 1500);
+                        },
+                        error: function (xhr) {
+                            showError(xhr);
+                        }
+                    });
                 },
                 error: function (xhr) {
                     showError(xhr);
+                },
+                complete: function () {
+                    btn.prop('disabled', false).html('Schedule');
                 }
             });
-        },
-        error: function (xhr) {
-            showError(xhr);
-        },
-        complete: function () {
-            btn.prop('disabled', false).html('Schedule');
-        }
-    });
 
-    function showError(xhr) {
-        $(alertBox).html(
-            `<div class="notification-alert error">
-                ${xhr.responseJSON?.message || 'Something went wrong'}
-            </div>`
-        ).show();
-    }
-});
+            function showError(xhr) {
+                $(alertBox).html(
+                    `<div class="notification-alert error">
+                        ${xhr.responseJSON?.message || 'Something went wrong'}
+                    </div>`
+                ).show();
+            }
+        });
 
-        
         /** Schedule Interview Modal */
         function crmScheduleInterviewModal(applicantID, saleID) {
             const formId = `#crmScheduleInterviewForm${applicantID}-${saleID}`;
@@ -5470,80 +5445,6 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
             });
         }
 
-        // /** Function to show the job details modal */
-        // function showDetailsModal(saleId, sale_posted_date, officeName, name, postcode, 
-        //     jobCategory, jobTitle, status, timing, experience, salary, 
-        //     position, qualification, benefits) 
-        // {
-        //     // Find the modal for this particular saleId
-        //     var modalId = 'jobDetailsModal_' + saleId;
-
-        //     // Populate the modal body dynamically with job details
-        //     $('#' + modalId + ' .modal-body').html(
-        //         '<table class="table table-bordered">' +
-        //             '<tr>' +
-        //                 '<th>Sale ID</th>' +
-        //                 '<td>' + saleId + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Posted Date</th>' +
-        //                 '<td>' + sale_posted_date + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Head Office Name</th>' +
-        //                 '<td>' + officeName + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Unit Name</th>' +
-        //                 '<td>' + name + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Postcode</th>' +
-        //                 '<td>' + postcode + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Job Category</th>' +
-        //                 '<td>' + jobCategory + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Job Title</th>' +
-        //                 '<td>' + jobTitle + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Status</th>' +
-        //                 '<td>' + status + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Timing</th>' +
-        //                 '<td>' + timing + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Qualification</th>' +
-        //                 '<td>' + qualification + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Salary</th>' +
-        //                 '<td>' + salary + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Position</th>' +
-        //                 '<td>' + position + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Experience</th>' +
-        //                 '<td>' + experience + '</td>' +
-        //             '</tr>' +
-        //             '<tr>' +
-        //                 '<th>Benefits</th>' +
-        //                 '<td>' + benefits + '</td>' +
-        //             '</tr>' +
-        //         '</table>'
-        //     );
-
-        //     // Show the modal
-        //     $('#' + modalId).modal('show');
-        // }
-
         /** Function to show the manager details modal */
         function viewManagerDetails(id) {
             const modalID = 'viewManagerDetailsModal-' + id;
@@ -5586,31 +5487,9 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
                     module: 'Unit'
                 },
                 success: function(response) {
-                    let contactHtml = '';
-                    
-                     if (response.data.length === 0) {
+                    window.managerContacts = response.data;
 
-                        contactHtml = '<p>' + response.message + '</p>';
-                    } else {
-                        response.data.forEach(function(contact) {
-                            const name = contact.contact_name;
-                            const email = contact.contact_email;
-                            const phone = contact.contact_phone;
-                            const landline = contact.contact_landline || '-';
-                            const note = contact.contact_note || 'N/A';
-                            
-                            contactHtml += `
-                                <div class="note-entry">
-                                    <p><strong>Name:</strong> ${name}</p>
-                                    <p><strong>Email:</strong> ${email}</p>
-                                    <p><strong>Phone:</strong> ${phone}</p>
-                                    <p><strong>Landline:</strong> ${landline}</p>
-                                    <p><strong>Notes:</strong> ${note}</p>
-                                </div><hr>`;
-                        });
-                    }
-                    
-                    $('#' + modalID + ' .modal-body').html(contactHtml);
+                    renderContacts('all');
                 },
                 error: function(xhr, status, error) {
 
@@ -5626,6 +5505,87 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
 
                 }
             });
+        }
+
+        $(document).on('change', 'input[name="contact_filter"]', function() {
+
+            renderContacts($(this).val());
+
+        });
+
+        function renderContacts(filterType) {
+
+            var contacts = window.managerContacts || [];
+            var contactHtml = '';
+
+            // Filter buttons
+            contactHtml += `
+                    <div class="mb-3">
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="all" ${filterType === 'all' ? 'checked' : ''}>
+                            All
+                        </label>
+
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
+                            Kingsburry
+                        </label>
+
+                        <label>
+                            <input type="radio" name="contact_filter" value="others" ${filterType === 'others' ? 'checked' : ''}>
+                            Others
+                        </label>
+                    </div>
+                    <hr>
+                `;
+
+            if (contacts.length === 0) {
+
+                contactHtml += '<p>No records found.</p>';
+
+            } else {
+
+                contacts.forEach(function(contact) {
+
+                    var name = contact.contact_name || '';
+                    var email = contact.contact_email || '';
+                    var phone = contact.contact_phone || 'N/A';
+                    var landline = contact.contact_landline || 'N/A';
+                    var note = contact.contact_note || '';
+
+                    // Make everything lowercase for comparison.
+                    var searchString = (
+                        name + ' ' +
+                        email + ' ' +
+                        note
+                    ).toLowerCase();
+
+                    var containsHayaibu = searchString.includes('hayaibu');
+
+                    // Filtering logic
+                    if (filterType === 'kingsburry' && containsHayaibu) {
+                        return;
+                    }
+
+                    if (filterType === 'others' && !containsHayaibu) {
+                        return;
+                    }
+
+                    contactHtml += `
+                <div class="note-entry">
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
+                    <p><strong>Landline:</strong> ${landline}</p>
+                    <p><strong>Note:</strong> ${note || 'N/A'}</p>
+                </div>
+                <hr>
+            `;
+                });
+
+            }
+
+            $('#viewManagerDetailsModal .modal-body').html(contactHtml);
         }
 
         /** Function for make open to all applicants */
@@ -5755,10 +5715,7 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
                 }
             });
         }
-        
-    </script>
 
-    <script>
         document.addEventListener('click', function (e) {
             const link = e.target.closest('.job-details');
             if (!link) return;
@@ -5797,6 +5754,7 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
                                     <tr><th>Postcode</th><td>${job.postcode}</td></tr>
                                     <tr><th>Job Category</th><td>${job.job_category}</td></tr>
                                     <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Job Source</th><td>${job.sale_source_name}</td></tr>
                                     <tr><th>Status</th><td>${job.status}</td></tr>
                                     <tr><th>Timing</th><td>${job.timing}</td></tr>
                                     <tr><th>Experience</th><td>${job.experience}</td></tr>
@@ -5816,6 +5774,7 @@ $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
 
             new bootstrap.Modal(document.getElementById(modalId)).show();
         }
+
         $(document).on('click', '.export-btn', function (e) {
             e.preventDefault();
 
