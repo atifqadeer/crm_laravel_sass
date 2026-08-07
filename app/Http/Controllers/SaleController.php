@@ -1419,6 +1419,7 @@ class SaleController extends Controller
                 'sales.benefits',
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
                 'offices.office_name as office_name',
                 'units.unit_name as unit_name',
                 'users.name as user_name',
@@ -1428,11 +1429,16 @@ class SaleController extends Controller
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'sales.job_source_id', '=', 'job_sources.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            // Latest ACTIVE note only (`status = 1`). Without that filter MAX(id)
+            // often lands on a deactivated history row (status=0) written after a
+            // later status/hold change that didn't create a status=1 note — ~11k
+            // sales were showing those stale notes instead of the current one.
             ->leftJoin(
-                DB::raw('(SELECT sale_id, MAX(id) AS latest_id FROM sale_notes GROUP BY sale_id) AS latest_notes'),
+                DB::raw('(SELECT sale_id, MAX(id) AS latest_id FROM sale_notes WHERE status = 1 GROUP BY sale_id) AS latest_notes'),
                 'sales.id',
                 '=',
                 'latest_notes.sale_id'
@@ -1480,6 +1486,7 @@ class SaleController extends Controller
                     ->orWhere('units.unit_name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
             });
         }
@@ -1582,6 +1589,7 @@ class SaleController extends Controller
             'unit_name'       => 'units.unit_name',
             'job_title'       => 'job_titles.name',
             'job_category'    => 'job_categories.name',
+            'job_source'      => 'job_sources.name',
             'user_name'       => 'users.name',
             'sale_postcode'   => 'sales.sale_postcode',
             'position_type'   => 'sales.position_type',
@@ -1592,18 +1600,28 @@ class SaleController extends Controller
             'no_of_sent_cv'   => DB::raw('COALESCE(cv_counts.cv_count, 0)'),
         ];
 
-        if ($request->has('order')) {
-            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc';
+        // Deferred via DataTables' ->order() below (NOT applied to $model here) —
+        // Yajra computes recordsFiltered by wrapping the *current* query state in
+        // `SELECT COUNT(*) FROM (...) count_row_table`. With ~8 joined tables/subqueries
+        // per row, baking ORDER BY into $model forced MySQL to fully materialize and
+        // filesort the entire matching set just to throw the order away for a COUNT —
+        // measured at 20+ seconds for the "open" tab's count query alone (vs. ~500ms for
+        // the actual paginated fetch). ->order() runs after that count query, so sorting
+        // only ever affects the actual page fetch.
+        $applySorting = function ($query) use ($request, $sortMap) {
+            if ($request->has('order')) {
+                $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
+                $orderDirection = $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc';
 
-            if (isset($sortMap[$orderColumn])) {
-                $model->orderBy($sortMap[$orderColumn], $orderDirection);
+                if (isset($sortMap[$orderColumn])) {
+                    $query->orderBy($sortMap[$orderColumn], $orderDirection);
+                } else {
+                    $query->orderBy('sales.updated_at', 'desc');
+                }
             } else {
-                $model->orderBy('sales.updated_at', 'desc');
+                $query->orderBy('sales.updated_at', 'desc');
             }
-        } else {
-            $model->orderBy('sales.updated_at', 'desc');
-        }
+        };
 
         if ($request->ajax()) {
             // ✅ Resolve permissions ONCE per request instead of once per row.
@@ -1619,6 +1637,7 @@ class SaleController extends Controller
 
             return DataTables::eloquent($model)
                 ->skipTotalRecords()
+                ->order(fn ($query) => $applySorting($query))
                 ->addIndexColumn()
                 ->addColumn('office_name', function ($sale) {
                     return $sale->office_name ? ucwords($sale->office_name) : '-';
@@ -1633,8 +1652,16 @@ class SaleController extends Controller
                     return $sale->open_date ? Carbon::parse($sale->open_date)->format('d M Y, h:i A') : '-';
                 })
                 ->addColumn('job_category', function ($sale) {
-                    $stype = $sale->job_type == 'specialist' ? '<br>(Specialist)' : '';
+                    $type = $sale->job_type;
+                    $stype = $type === 'specialist'
+                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+                        : '';
                     return $sale->job_category_name ? ucwords($sale->job_category_name) . $stype : '-';
+                })
+                ->addColumn('job_source', function ($sale) {
+                    return $sale->job_source_name
+                        ? '<span class="badge bg-light text-dark">' . e(ucwords($sale->job_source_name)) . '</span>'
+                        : '-';
                 })
                 ->addColumn('sale_postcode', function ($sale) {
                     $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
@@ -1680,7 +1707,12 @@ class SaleController extends Controller
                     return $status;
                 })
                 ->addColumn('sale_notes', function ($sale) {
-                    $notesIndex = !empty($sale->sale_notes) ? $sale->sale_notes : ($sale->latest_note ?? '-');
+                    // Prefer the joined latest active sale_notes row over the denormalized
+                    // sales.sale_notes column — that column is empty for ~16k of ~17k sales
+                    // and is only updated by some flows (Add Note), not all note writers.
+                    $notesIndex = !empty($sale->latest_note)
+                        ? $sale->latest_note
+                        : (!empty($sale->sale_notes) ? $sale->sale_notes : '-');
 
                     preg_match('/https?:\/\/[^\s]+/', $notesIndex, $matches);
                     $url = $matches[0] ?? null;
@@ -1830,7 +1862,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
-                ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action'])
+                ->rawColumns(['sale_notes', 'experience', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'job_source', 'cv_limit', 'open_date', 'job_category', 'office_name', 'salary', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
     }
