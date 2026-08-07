@@ -483,12 +483,12 @@
             // the "Columns" dropdown (row index + action menu).
             const columnConfig = [
                 { title: '#', toggleable: false },
-                { title: 'Created Date', default: true },
-                { title: 'Updated Date', default: false },
-                { title: 'Open Date', default: false },
+                { title: 'Created Date', default: false },
+                { title: 'Updated Date', default: true },
+                { title: 'Open Date', default: true },
                 { title: 'Agent', default: true },
                 { title: 'Head Office', default: true },
-                { title: 'Unit Name', default: false },
+                { title: 'Unit Name', default: true },
                 { title: 'PostCode', default: true },
                 { title: 'Position Type', default: false },
                 { title: 'Title', default: true },
