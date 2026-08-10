@@ -647,7 +647,14 @@
                         orderable: false
                     }
                 ],
-                columnDefs: [{
+                columnDefs: [
+                    {
+                        targets: 10, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
+                        }
+                    },
+                    {
                         targets: 12, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
@@ -666,7 +673,13 @@
                         }
                     },
                     {
-                        targets: 15, // Column index for 'job_details'
+                        targets: 16, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 17, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }

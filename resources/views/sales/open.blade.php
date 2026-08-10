@@ -750,8 +750,15 @@
                             orderable: false
                         }
                     ],
-                    columnDefs: [{
+                    columnDefs: [
+                        {
                             targets: 7, // Column index for 'postcode'
+                            createdCell: function(td, cellData, rowData, row, col) {
+                                $(td).css('text-align', 'center'); // Center the text in this column
+                            }
+                        },
+                        {
+                            targets: 11, // Column index for 'postcode'
                             createdCell: function(td, cellData, rowData, row, col) {
                                 $(td).css('text-align', 'center'); // Center the text in this column
                             }
@@ -763,13 +770,13 @@
                             }
                         },
                         {
-                            targets: 16, // Column index for 'status'
+                            targets: 17, // Column index for 'action'
                             createdCell: function(td, cellData, rowData, row, col) {
                                 $(td).css('text-align', 'center'); // Center the text in this column
                             }
                         },
                         {
-                            targets: 17, // Column index for 'action'
+                            targets: 18, // Column index for 'action'
                             createdCell: function(td, cellData, rowData, row, col) {
                                 $(td).css('text-align', 'center'); // Center the text in this column
                             }
