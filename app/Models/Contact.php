@@ -16,7 +16,8 @@ class Contact extends Model
         'contact_landline',
         'contact_note',
         'contactable_id',
-        'contactable_type'
+        'contactable_type',
+        'job_source_id'
     ];
     // public function office()
     // {

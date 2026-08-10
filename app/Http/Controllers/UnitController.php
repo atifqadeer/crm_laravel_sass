@@ -105,7 +105,6 @@ class UnitController extends Controller
         // Validation
         $validator = Validator::make($request->all(), [
             'office_id' => 'required|exists:offices,id',
-            'job_source_id' => 'required|exists:job_sources,id',
             'unit_name' => 'required|string|max:255',
             'unit_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'unit_notes' => 'required|string|max:255',
@@ -125,6 +124,9 @@ class UnitController extends Controller
 
             'contact_note' => 'nullable|array',
             'contact_note.*' => 'nullable|string',
+
+            'contact_job_source_id' => 'required|array',
+            'contact_job_source_id.*' => 'required|exists:job_sources,id',
         ]);
 
         if ($validator->fails()) {
@@ -193,6 +195,7 @@ class UnitController extends Controller
             // Iterate through each contact provided in the request
             foreach ($request->input('contact_name') as $index => $contactName) {
                 // Create contact data for each contact in the array
+                $contactJobSourceId = $request->input("contact_job_source_id.{$index}");
                 $contactData = [
                     'contact_name' => $contactName,
                     'contact_email' => $request->input('contact_email')[$index],
@@ -201,6 +204,9 @@ class UnitController extends Controller
                         ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
                         : null,
                     'contact_note' => $request->input('contact_note')[$index] ?? null,
+                    'job_source_id' => $contactJobSourceId !== null && $contactJobSourceId !== ''
+                        ? (int) $contactJobSourceId
+                        : null,
                 ];
 
                 // Create each contact and associate it with the office
@@ -510,7 +516,6 @@ class UnitController extends Controller
             ])
             ->make(true);
     }
-
     public function storeUnitShortNotes(Request $request)
     {
         $user = Auth::user();
@@ -602,7 +607,6 @@ class UnitController extends Controller
             ], 500);
         }
     }
-
     public function unitDetails($id)
     {
         $unit = Unit::findOrFail($id);
@@ -679,7 +683,6 @@ class UnitController extends Controller
             'unit_name' => 'required|string|max:255',
             'unit_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'unit_notes' => 'required|string|max:255',
-            'job_source_id' => 'required|exists:job_sources,id',
 
             // Contact person's details (Array validation)
             'contact_name' => 'required|array',
@@ -696,6 +699,9 @@ class UnitController extends Controller
 
             'contact_note' => 'nullable|array',
             'contact_note.*' => 'nullable|string',
+
+            'contact_job_source_id' => 'required|array',
+            'contact_job_source_id.*' => 'required|exists:job_sources,id',
         ]);
 
         if ($validator->fails()) {
@@ -796,6 +802,7 @@ class UnitController extends Controller
             // Iterate through each contact provided in the request
             foreach ($request->input('contact_name') as $index => $contactName) {
                 // Create contact data for each contact in the array
+                $contactJobSourceId = $request->input("contact_job_source_id.{$index}");
                 $contactData = [
                     'contact_name' => $contactName,
                     'contact_email' => $request->input('contact_email')[$index],
@@ -804,6 +811,9 @@ class UnitController extends Controller
                         ? preg_replace('/[^0-9]/', '', $request->input('contact_landline')[$index])
                         : null,
                     'contact_note' => $request->input('contact_note')[$index] ?? null,
+                    'job_source_id' => $contactJobSourceId !== null && $contactJobSourceId !== ''
+                        ? (int) $contactJobSourceId
+                        : null,
                 ];
 
                 // Create each contact and associate it with the office

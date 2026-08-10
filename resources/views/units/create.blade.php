@@ -101,6 +101,7 @@
                                                         <option value="{{ $source->id }}">{{ $source->name }}</option>
                                                     @endforeach
                                                 </select>
+                                                <div class="invalid-feedback">Please select a source</div>
                                             </div>
                                             <div class="col-lg-12">
                                                 <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
@@ -142,6 +143,7 @@
                                             <option value="">Choose a Source</option>
                                             ${contactJobSourceOptions}
                                         </select>
+                                        <div class="invalid-feedback">Please select a source</div>
                                     </div>
                                     <div class="col-lg-11">
                                         <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
@@ -249,8 +251,80 @@
         })()
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle form submission
             const form = document.getElementById('createUnitForm');
+
+            function clearFormValidationErrors(formEl) {
+                formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                formEl.querySelectorAll('.invalid-feedback').forEach(el => {
+                    el.classList.remove('d-block');
+                    if (el.dataset.defaultMessage) {
+                        el.textContent = el.dataset.defaultMessage;
+                    }
+                });
+            }
+
+            function resolveFormInput(formEl, field) {
+                // Laravel array rules come back as contact_name.0, contact_email.1, etc.
+                const arrayMatch = field.match(/^(.+)\.(\d+)$/);
+                if (arrayMatch) {
+                    const inputs = formEl.querySelectorAll(`[name="${arrayMatch[1]}[]"]`);
+                    return inputs[parseInt(arrayMatch[2], 10)] || null;
+                }
+                return formEl.querySelector(`[name="${field}"]`)
+                    || formEl.querySelector(`[name="${field}[]"]`);
+            }
+
+            function showFormValidationErrors(formEl, errors) {
+                clearFormValidationErrors(formEl);
+                formEl.classList.add('was-validated');
+
+                const unmatched = [];
+
+                Object.entries(errors).forEach(([field, messages]) => {
+                    const message = Array.isArray(messages) ? messages.join(' ') : String(messages);
+                    const input = resolveFormInput(formEl, field);
+
+                    if (!input) {
+                        unmatched.push(message);
+                        return;
+                    }
+
+                    input.classList.add('is-invalid');
+
+                    let feedback = input.parentElement
+                        ? input.parentElement.querySelector(':scope > .invalid-feedback')
+                        : null;
+
+                    if (!feedback) {
+                        feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        input.insertAdjacentElement('afterend', feedback);
+                    }
+
+                    if (!feedback.dataset.defaultMessage) {
+                        feedback.dataset.defaultMessage = feedback.textContent || message;
+                    }
+
+                    feedback.textContent = message;
+                    feedback.classList.add('d-block');
+                });
+
+                if (unmatched.length) {
+                    toastr.error(unmatched.join('<br>'));
+                }
+
+                const firstInvalid = formEl.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus({ preventScroll: true });
+                }
+            }
+
+            // Preserve default invalid-feedback copy so clears can restore it.
+            form.querySelectorAll('.invalid-feedback').forEach(el => {
+                el.dataset.defaultMessage = el.textContent.trim();
+            });
+
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
@@ -259,7 +333,6 @@
                 submitBtn.innerHTML =
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
 
-                // Collect form data
                 const formData = new FormData(form);
 
                 fetch(form.action, {
@@ -270,7 +343,13 @@
                         },
                         body: formData
                     })
-                    .then(response => response.json())
+                    .then(async response => {
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok && !data.errors && !data.message) {
+                            data.message = 'Validation failed. Please check the form.';
+                        }
+                        return data;
+                    })
                     .then(data => {
                         if (data.success) {
                             toastr.success(data.message);
@@ -278,37 +357,14 @@
                             form.classList.remove('was-validated');
                             window.location.reload();
                         } else {
-                            // Handle validation errors
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = 'Save';
 
                             if (data.errors) {
-                                // Clear previous errors
-                                form.querySelectorAll('.is-invalid').forEach(el => {
-                                    el.classList.remove('is-invalid');
-                                });
-                                form.querySelectorAll('.invalid-feedback').forEach(el => {
-                                    el.textContent = '';
-                                });
-
-                                // Display new errors
-                                Object.entries(data.errors).forEach(([field, messages]) => {
-                                    const input = form.querySelector(`[name="${field}"]`);
-                                    const feedback = input?.closest('.mb-3')?.querySelector(
-                                        '.invalid-feedback');
-
-                                    if (input && feedback) {
-                                        input.classList.add('is-invalid');
-                                        feedback.textContent = messages.join(' ');
-                                    }
-                                });
+                                showFormValidationErrors(form, data.errors);
+                                toastr.error(data.message || 'Please fix the errors in the form');
                             } else {
-                                if (data.errors) {
-                                    let errorMessages = Object.values(data.errors).flat().join('\n');
-                                    alert('Validation Errors:\n' + errorMessages);
-                                } else {
-                                    alert(data.message);
-                                }
+                                alert(data.message || 'Unable to save unit.');
                             }
                         }
                     })
