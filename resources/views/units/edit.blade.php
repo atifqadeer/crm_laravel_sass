@@ -19,12 +19,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            @if ($unit->status == 4 || $unit->status == 5)
-                                @php $colClass = 'col-lg-4 col-md-6 col-sm-12'; @endphp
-                            @else
-                                @php $colClass = 'col-lg-3 col-md-6 col-sm-12'; @endphp
-                            @endif
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="office_id" class="form-label">Head Office</label>
                                     @cannot('unit-edit-head-office')
@@ -45,7 +40,7 @@
                                 </div>
 
                             </div>
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_name" class="form-label">Name</label>
                                     <input type="text" id="unit_name" class="form-control"
@@ -54,7 +49,21 @@
                                     <div class="invalid-feedback">Please provide a name</div>
                                 </div>
                             </div>
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="mb-3">
+                                    <label for="job_source" class="form-label">Job Source</label>
+                                    <select class="form-select" id="job_source" name="job_source_id" required>
+                                        <option value="">Choose a Job Source</option>
+                                        @foreach ($jobSources as $source)
+                                            <option value="{{ $source->id }}"
+                                                {{ old('job_source_id', $unit->job_source_id == $source->id ? 'selected' : '') }}>
+                                                {{ $source->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="invalid-feedback">Please select a job source</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_postcode" class="form-label">PostCode</label>
                                     <input type="text" id="unit_postcode" class="form-control"
@@ -64,7 +73,7 @@
                                     <div class="invalid-feedback">Please provide a postcode</div>
                                 </div>
                             </div>
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-4 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_website" class="form-label">Website</label>
                                     <input type="url" id="unit_website" class="form-control" name="unit_website"

@@ -70,13 +70,42 @@ class UnitController extends Controller
     }
     public function create()
     {
-        return view('units.create');
+        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('units.create', compact('jobSources', 'offices'));
     }
     public function store(Request $request)
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'office_id' => 'required',
+            'office_id' => 'required|exists:offices,id',
+            'job_source_id' => 'required|exists:job_sources,id',
             'unit_name' => 'required|string|max:255',
             'unit_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'unit_notes' => 'required|string|max:255',
@@ -112,6 +141,7 @@ class UnitController extends Controller
             // Get office data
             $unitData = $request->only([
                 'office_id',
+                'job_source_id',
                 'unit_name',
                 'unit_postcode',
                 'unit_website',
@@ -570,6 +600,8 @@ class UnitController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
+
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $contactsQuery->where(function ($sub) use ($hidePrivateData) {
                 foreach ($hidePrivateData as $hideValue) {
@@ -589,22 +621,40 @@ class UnitController extends Controller
                     });
                 }
             });
+
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
         }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
 
         $contacts = $contactsQuery->get();
 
         $redirect_url = $request->input('redirect_url', 'units.list');
 
-        return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url'));
+        return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url', 'jobSources'));
     }
     public function update(Request $request)
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'office_id' => 'required',
+            'office_id' => 'required|exists:offices,id',
             'unit_name' => 'required|string|max:255',
             'unit_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'unit_notes' => 'required|string|max:255',
+            'job_source_id' => 'required|exists:job_sources,id',
 
             // Contact person's details (Array validation)
             'contact_name' => 'required|array',
@@ -636,6 +686,7 @@ class UnitController extends Controller
             // Get office data
             $unitData = $request->only([
                 'office_id',
+                'job_source_id',
                 'unit_name',
                 'unit_postcode',
                 'unit_website',
