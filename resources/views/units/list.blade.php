@@ -1072,8 +1072,8 @@
                         </label>
 
                         <label class="me-3">
-                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
-                            Kingsburry
+                            <input type="radio" name="contact_filter" value="kingsbury" ${filterType === 'kingsbury' ? 'checked' : ''}>
+                            Kingsbury
                         </label>
 
                         <label>
@@ -1104,7 +1104,7 @@
 
                         var containsHayaibu = searchString.includes('hayaibu');
 
-                        if (filterType === 'kingsburry' && containsHayaibu) {
+                        if (filterType === 'kingsbury' && containsHayaibu) {
                             return;
                         }
 
