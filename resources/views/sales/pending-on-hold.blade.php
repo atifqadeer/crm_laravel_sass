@@ -1,14 +1,14 @@
 @extends('layouts.vertical', ['title' => 'Pending On Hold Sales List', 'subTitle' => 'Sales'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
 
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
     <div class="row">
@@ -20,10 +20,13 @@
                             <div class="text-md-start mt-3 pt-1">
                                 <div class="input-group">
                                     <div class="position-relative flex-grow-1" style="display: flex;">
-                                        <input type="text" id="customSearchInput" class="form-control w-100" placeholder="Search ...">
-                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i class="ri-close-line"></i></button>
+                                        <input type="text" id="customSearchInput" class="form-control w-100"
+                                            placeholder="Search ...">
+                                        <button class="d-none" id="customClearBtn" type="button" title="Clear"><i
+                                                class="ri-close-line"></i></button>
                                     </div>
-                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                    <button class="btn btn-primary" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
                                 </div>
                             </div>
                         </div>
@@ -31,7 +34,8 @@
                             <div class="text-md-end mt-3">
                                 <!-- user Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
                                     </button>
 
@@ -43,16 +47,21 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="usersList">
                                             <div class="d-flex justify-content-end px-1 mb-1" id="userToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".user-filter" data-exclude="[data-user-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".user-filter" data-exclude="[data-user-id='']" style="display:none">Deselect All</a>
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".user-filter" data-exclude="[data-user-id='']">Select
+                                                    All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".user-filter" data-exclude="[data-user-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- <div class="form-check">
-                                                <input class="form-check-input user-filter" type="checkbox" value=""
-                                                    id="all-Users" data-title-id="">
-                                                <label class="form-check-label" for="all-Users">All Users</label>
-                                            </div> -->
+                                                    <input class="form-check-input user-filter" type="checkbox" value=""
+                                                        id="all-Users" data-title-id="">
+                                                    <label class="form-check-label" for="all-Users">All Users</label>
+                                                </div> -->
 
-                                            @foreach($users as $user)
+                                            @foreach ($users as $user)
                                                 <div class="form-check">
                                                     <input class="form-check-input user-filter" type="checkbox"
                                                         value="{{ $user->id }}" id="user_{{ $user->id }}"
@@ -66,8 +75,10 @@
                                 </div>
                                 <!-- head office Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head
+                                            Office</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton6">
@@ -78,16 +89,21 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="officesList">
                                             <div class="d-flex justify-content-end px-1 mb-1" id="officeToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".office-filter" data-exclude="[data-office-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".office-filter" data-exclude="[data-office-id='']" style="display:none">Deselect All</a>
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".office-filter" data-exclude="[data-office-id='']">Select
+                                                    All</a>
+                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".office-filter" data-exclude="[data-office-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- <div class="form-check">
-                                                <input class="form-check-input office-filter" type="checkbox" value=""
-                                                    id="all-offices" data-title-id="">
-                                                <label class="form-check-label" for="all-offices">All Head Office</label>
-                                            </div> -->
+                                                    <input class="form-check-input office-filter" type="checkbox" value=""
+                                                        id="all-offices" data-title-id="">
+                                                    <label class="form-check-label" for="all-offices">All Head Office</label>
+                                                </div> -->
 
-                                            @foreach($offices as $office)
+                                            @foreach ($offices as $office)
                                                 <div class="form-check">
                                                     <input class="form-check-input office-filter" type="checkbox"
                                                         value="{{ $office->id }}" id="office_{{ $office->id }}"
@@ -101,8 +117,10 @@
                                 </div>
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                            Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -112,17 +130,24 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
-                                            <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".category-filter" data-exclude="[data-category-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".category-filter" data-exclude="[data-category-id='']" style="display:none">Deselect All</a>
+                                            <div class="d-flex justify-content-end px-1 mb-1"
+                                                id="categoryToggleContainer">
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".category-filter"
+                                                    data-exclude="[data-category-id='']">Select All</a>
+                                                <a href="#"
+                                                    class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".category-filter" data-exclude="[data-category-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox" value=""
-                                                    id="all-categories" data-title-id="">
-                                                <label class="form-check-label" for="all-categories">All Category</label>
-                                            </div> -->
+                                                    <input class="form-check-input category-filter" type="checkbox" value=""
+                                                        id="all-categories" data-title-id="">
+                                                    <label class="form-check-label" for="all-categories">All Category</label>
+                                                </div> -->
 
-                                            @foreach($jobCategories as $category)
+                                            @foreach ($jobCategories as $category)
                                                 <div class="form-check">
                                                     <input class="form-check-input category-filter" type="checkbox"
                                                         value="{{ $category->id }}" id="category_{{ $category->id }}"
@@ -136,7 +161,8 @@
                                 </div>
                                 <!-- Type Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
@@ -161,14 +187,20 @@
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
                                             <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2" data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold" data-target=".title-filter" data-exclude="[data-title-id='']" style="display:none">Deselect All</a>
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".title-filter" data-exclude="[data-title-id='']">Select
+                                                    All</a>
+                                                <a href="#"
+                                                    class="filter-deselect-all text-danger small fw-semibold"
+                                                    data-target=".title-filter" data-exclude="[data-title-id='']"
+                                                    style="display:none">Deselect All</a>
                                             </div>
                                             <!-- <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox" value=""
-                                                    id="all-titles" data-title-id="">
-                                                <label class="form-check-label" for="all-titles">All Titles</label>
-                                            </div> -->
+                                                    <input class="form-check-input title-filter" type="checkbox" value=""
+                                                        id="all-titles" data-title-id="">
+                                                    <label class="form-check-label" for="all-titles">All Titles</label>
+                                                </div> -->
                                             @foreach ($jobTitles as $title)
                                                 <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox"
@@ -181,9 +213,52 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Sources Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                            placeholder="Search Source...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
+                                            <a href="#" id="sourceSelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".source-filter" data-exclude="[data-source-id='']">Select
+                                                All</a>
+                                            <a href="#" id="sourceDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".source-filter" data-exclude="[data-source-id='']"
+                                                style="display:none">Deselect All</a>
+                                        </div>
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="sourceList">
+                                            <div class="form-check">
+                                                <input class="form-check-input source-filter" type="checkbox"
+                                                    value="" id="all-sources" data-source-id="">
+                                                <label class="form-check-label" for="all-sources">All Sources</label>
+                                            </div>
+
+                                            @foreach ($jobSources as $source)
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                        data-source-id="{{ $source->id }}">
+                                                    <label class="form-check-label"
+                                                        for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
                                 <!-- cv limit Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterCvLimit">All Count</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton7">
@@ -219,6 +294,7 @@
                                     <th>Position Type</th>
                                     <th>Title</th>
                                     <th>Category</th>
+                                    <th>Source</th>
                                     <th>Experience</th>
                                     <th>Qualification</th>
                                     <th>Salary</th>
@@ -241,16 +317,17 @@
     </div>
 
     <!-- Experience Modal -->
-    <div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
+    <div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="experienceModalBody">
-                <!-- Experience will be injected here -->
-            </div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="experienceModalBody">
+                    <!-- Experience will be injected here -->
+                </div>
             </div>
         </div>
     </div>
@@ -260,33 +337,33 @@
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Summernote CSS -->
-    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/summernote-lite.min.css') }}">
 
     <!-- Summernote JS -->
-    <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
+    <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
-    
+
     <script>
         $(document).ready(function() {
             // Store the current filter in a variable
@@ -296,6 +373,7 @@
             var currentTitleFilters = [];
             var currentOfficeFilters = [];
             var currentCVLimitFilter = '';
+            var currentSourceFilters = [];
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -309,80 +387,306 @@
                 $('#sales_table tbody').empty().append(loadingRow);
             }
 
+            // ---------------------------------------------------------------
+            // Column visibility (show/hide columns) — same pattern as sales/list
+            // ---------------------------------------------------------------
+            // Index here MUST line up with both the <thead> markup above and
+            // the `columns:` array passed to DataTable() below. `toggleable:
+        // false` marks columns that are always shown and excluded from
+            // the "Columns" dropdown (row index + action menu).
+            const columnConfig = [{
+                    title: '#',
+                    toggleable: false
+                },
+                {
+                    title: 'Created Date',
+                    default: true
+                },
+                {
+                    title: 'Updated Date',
+                    default: false
+                },
+                {
+                    title: 'Open Date',
+                    default: false
+                },
+                {
+                    title: 'Agent',
+                    default: true
+                },
+                {
+                    title: 'Head Office',
+                    default: true
+                },
+                {
+                    title: 'Unit Name',
+                    default: false
+                },
+                {
+                    title: 'PostCode',
+                    default: true
+                },
+                {
+                    title: 'Position Type',
+                    default: false
+                },
+                {
+                    title: 'Title',
+                    default: true
+                },
+                {
+                    title: 'Category',
+                    default: true
+                },
+                {
+                    title: 'Source',
+                    default: true
+                },
+                {
+                    title: 'Experience',
+                    default: false
+                },
+                {
+                    title: 'Qualification',
+                    default: false
+                },
+                {
+                    title: 'Salary',
+                    default: false
+                },
+                {
+                    title: 'CV Limit',
+                    default: true
+                },
+                {
+                    title: 'Notes',
+                    default: true
+                },
+                {
+                    title: 'Status',
+                    default: true
+                },
+                {
+                    title: 'Action',
+                    toggleable: false
+                },
+            ];
+
+            const COLUMN_VISIBILITY_STORAGE_KEY = 'open_sales_table_column_visibility_v1';
+
+            function loadColumnVisibility() {
+                let stored = {};
+                try {
+                    stored = JSON.parse(localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY)) || {};
+                } catch (e) {
+                    stored = {};
+                }
+
+                return columnConfig.map(function(col, index) {
+                    if (col.toggleable === false) {
+                        return true;
+                    }
+                    return stored.hasOwnProperty(index) ? !!stored[index] : !!col.default;
+                });
+            }
+
+            function saveColumnVisibility(visibilityByIndex) {
+                const toStore = {};
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        toStore[index] = !!visibilityByIndex[index];
+                    }
+                });
+                localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(toStore));
+            }
+
+            let columnVisibility = loadColumnVisibility();
+
+            function renderColumnsDropdown() {
+                const $list = $('#columnsList');
+                $list.empty();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable === false) {
+                        return;
+                    }
+
+                    const checked = columnVisibility[index] ? 'checked' : '';
+                    $list.append(`
+                        <div class="form-check">
+                            <input class="form-check-input column-toggle" type="checkbox"
+                                id="column_${index}" data-column-index="${index}" ${checked}>
+                            <label class="form-check-label" for="column_${index}">${col.title}</label>
+                        </div>
+                    `);
+                });
+            }
+
+            renderColumnsDropdown();
+
+            function getHiddenColumnIndices() {
+                return columnVisibility
+                    .map(function(visible, index) {
+                        return visible ? null : index;
+                    })
+                    .filter(function(index) {
+                        return index !== null;
+                    });
+            }
+
             // Initialize DataTable with server-side processing
             var table = $('#sales_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('pendingOnHoldSales')),  // Fetch data from the backend
+                    url: @json(route('pendingOnHoldSales')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilters;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilters;  // Send the current filter value as a parameter
-                        d.office_filter = currentOfficeFilters;  // Send the current filter value as a parameter
-                        d.user_filter = currentUserFilters;  // Send the current filter value as a parameter
-                        d.cv_limit_filter = currentCVLimitFilter;  // Send the current filter value as a parameter
+                        d.type_filter =
+                        currentTypeFilter; // Send the current filter value as a parameter
+                        d.category_filter =
+                        currentCategoryFilters; // Send the current filter value as a parameter
+                        d.title_filter =
+                        currentTitleFilters; // Send the current filter value as a parameter
+                        d.office_filter =
+                        currentOfficeFilters; // Send the current filter value as a parameter
+                        d.user_filter =
+                        currentUserFilters; // Send the current filter value as a parameter
+                        d.cv_limit_filter =
+                        currentCVLimitFilter; // Send the current filter value as a parameter
+                        d.source_filter =
+                        currentSourceFilters; // Send the current filter value as a parameter
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#sales_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#sales_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'sales.created_at' },
-                    { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'user_name', name: 'users.name'},
-                    { data: 'office_name', name: 'offices.office_name'},
-                    { data: 'unit_name', name: 'units.unit_name'  },
-                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
-                    { data: 'position_type', name: 'sales.position_type', searchable: false },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'experience', name: 'sales.experience' },
-                    { data: 'qualification', name: 'sales.qualification' },
-                    { data: 'salary', name: 'sales.salary' },
-                    { data: 'cv_limit', name: 'sales.cv_limit' },
-                    { data: 'sale_notes', name: 'sales.sale_notes', orderable: false },
-                    { data: 'status', name: 'sales.status', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'sales.created_at'
+                    },
+                    {
+                        data: 'updated_at',
+                        name: 'sales.updated_at'
+                    },
+                    {
+                        data: 'user_name',
+                        name: 'users.name'
+                    },
+                    {
+                        data: 'office_name',
+                        name: 'offices.office_name'
+                    },
+                    {
+                        data: 'unit_name',
+                        name: 'units.unit_name'
+                    },
+                    {
+                        data: 'sale_postcode',
+                        name: 'sales.sale_postcode'
+                    },
+                    {
+                        data: 'position_type',
+                        name: 'sales.position_type',
+                        searchable: false
+                    },
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'job_source',
+                        name: 'job_sources.name'
+                    },
+                    {
+                        data: 'experience',
+                        name: 'sales.experience'
+                    },
+                    {
+                        data: 'qualification',
+                        name: 'sales.qualification'
+                    },
+                    {
+                        data: 'salary',
+                        name: 'sales.salary'
+                    },
+                    {
+                        data: 'cv_limit',
+                        name: 'sales.cv_limit'
+                    },
+                    {
+                        data: 'sale_notes',
+                        name: 'sales.sale_notes',
+                        orderable: false
+                    },
+                    {
+                        data: 'status',
+                        name: 'sales.status',
+                        orderable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
-                columnDefs: [
-                    {
-                        targets: 12,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                columnDefs: [{
+                        targets: 12, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 13,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 13, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 14,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 14, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 15,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 15, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'lrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                // 'l' (length control) wrapped in its own flex row so the "Columns" button
+                // (moved here in initComplete below) lines up beside it instead of stacking
+                // on its own line.
+                dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rtip',
+                initComplete: function() {
+                    const api = this.api();
+                    $(api.table().container())
+                        .find('.dataTables_length')
+                        .after($('#columnsToolbar'));
+                },
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -392,7 +696,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#sales_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#sales_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -406,39 +711,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -458,6 +765,59 @@
                     pagination.html(paginationHtml);
                 },
             });
+            // ---------------------------------------------------------------
+            // Column visibility dropdown handlers
+            // ---------------------------------------------------------------
+
+            $(document).on('change', '.column-toggle', function() {
+                const index = parseInt($(this).data('column-index'), 10);
+                const visible = $(this).is(':checked');
+
+                columnVisibility[index] = visible;
+                table.column(index).visible(visible);
+                saveColumnVisibility(columnVisibility);
+            });
+
+            $('#columnsSelectAll').on('click', function(e) {
+                e.preventDefault();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        columnVisibility[index] = true;
+                    }
+                });
+
+                table.columns().every(function() {
+                    const index = this.index();
+                    if (columnConfig[index].toggleable !== false) {
+                        this.visible(true);
+                    }
+                });
+
+                saveColumnVisibility(columnVisibility);
+                renderColumnsDropdown();
+            });
+
+            $('#columnsResetDefault').on('click', function(e) {
+                e.preventDefault();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        columnVisibility[index] = !!col.default;
+                    }
+                });
+
+                table.columns().every(function() {
+                    const index = this.index();
+                    if (columnConfig[index].toggleable !== false) {
+                        this.visible(columnVisibility[index]);
+                    }
+                });
+
+                saveColumnVisibility(columnVisibility);
+                renderColumnsDropdown();
+            });
+
             // Search logic helper
             function handleCustomSearch() {
                 let searchValue = $('#customSearchInput').val().trim();
@@ -492,7 +852,7 @@
                 table.search('').draw();
             });
             // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
+            $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -505,7 +865,7 @@
                 table.ajax.reload(); // Reload with updated type filter
             });
             // cv limit filter dropdown handler
-            $('.cv-limit-filter').on('click', function () {
+            $('.cv-limit-filter').on('click', function() {
                 currentCVLimitFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -548,6 +908,35 @@
                     ')' : 'All Category');
 
                 const container = $('#categoryToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                // Trigger DataTable reload with the selected filters
+                table.ajax.reload();
+            });
+            /*** Source Filter Handler ***/
+            $('.source-filter').on('change', function() {
+                const id = $(this).data('source-id');
+                // Handle "All Sources"
+                if (id === '' || id === undefined) {
+                    currentSourceFilters = [];
+                    $('.source-filter').not(this).prop('checked', false);
+                } else {
+                    if (this.checked) {
+                        currentSourceFilters.push(id);
+                        $('.source-filter[data-source-id=""]').prop('checked', false);
+                    } else {
+                        currentSourceFilters = currentSourceFilters.filter(x => x !== id);
+                    }
+                }
+                // Update dropdown display text and toggle visibility
+                const total = $('.source-filter').not('[data-source-id=""]').length;
+                const checked = $('.source-filter:checked').not('[data-source-id=""]').length;
+
+                $('#showFilterSource').text(checked > 0 ? 'Selected Sources (' + checked +
+                    ')' : 'All Sources');
+
+                const container = $('#sourceToggleContainer');
                 container.find('.filter-select-all').toggle(checked < total);
                 container.find('.filter-deselect-all').toggle(checked > 0);
 
@@ -660,7 +1049,7 @@
                 e.stopPropagation();
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
-                
+
                 $(filterClass + excludeAttr).prop('checked', false); // uncheck "All X"
                 $(filterClass).not(excludeAttr).prop('checked', true).trigger('change');
             });
@@ -671,12 +1060,12 @@
                 e.stopPropagation();
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
-                
+
                 $(filterClass).not(excludeAttr).prop('checked', false).trigger('change');
             });
         });
 
-         document.getElementById('categorySearchInput').addEventListener('keyup', function() {
+        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const checkboxes = document.querySelectorAll('#categoryList .form-check');
 
@@ -705,7 +1094,7 @@
                 item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
-        
+
         document.getElementById('officeSearchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const checkboxes = document.querySelectorAll('#officesList .form-check');
@@ -736,14 +1125,14 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-        
+
         // Function to show the notes modal
         function showNotesModal(saleId, notes, officeName, unitName, unitPostcode) {
             const modalId = `showNotesModal_${saleId}`;
@@ -796,8 +1185,8 @@
         }
 
         function showDetailsModal(
-            saleId, postedOn, officeName, name, postcode, 
-            jobCategory, jobTitle, status, timing, 
+            saleId, postedOn, officeName, name, postcode,
+            jobCategory, jobTitle, status, timing,
             experience, salary, position, qualification, benefits
         ) {
             const modalId = `showDetailsModal_${saleId}`;
@@ -902,7 +1291,7 @@
 
             // AJAX request to fetch notes
             $.ajax({
-                url: '{{ route("getModuleNotesHistory") }}',
+                url: '{{ route('getModuleNotesHistory') }}',
                 type: 'GET',
                 data: {
                     id: id,
@@ -934,15 +1323,17 @@
                     $(`#${modalId} .modal-body`).html(notesHtml);
                 },
                 error: function(xhr) {
-                    $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>');
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
+                        );
                 }
             });
         }
-       
+
         // Function to show the notes modal
         function viewManagerDetails(id) {
             const modalID = 'viewManagerDetailsModal-' + id;
-            
+
             // Create modal if it doesn't exist
             if ($('#' + modalID).length === 0) {
                 $('body').append(`
@@ -968,21 +1359,21 @@
                     </div>
                 `);
             }
-            
+
             // Show modal immediately with loading state
             $('#' + modalID).modal('show');
-            
+
             // Make AJAX call
             $.ajax({
-                url: '{{ route("getModuleContacts") }}',
+                url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
-                data: { 
+                data: {
                     id: id,
                     module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';
-                    
+
                     if (response.data.length === 0) {
 
                         contactHtml = '<p>' + response.message + '</p>';
@@ -993,7 +1384,7 @@
                             const phone = contact.contact_phone;
                             const landline = contact.contact_landline || '-';
                             const note = contact.contact_note || 'N/A';
-                            
+
                             contactHtml += `
                                 <div class="note-entry">
                                     <p><strong>Name:</strong> ${name}</p>
@@ -1004,7 +1395,7 @@
                                 </div><hr>`;
                         });
                     }
-                    
+
                     $('#' + modalID + ' .modal-body').html(contactHtml);
                 },
                 error: function(xhr, status, error) {
@@ -1043,7 +1434,8 @@
                     const confirmBtn = Swal.getConfirmButton();
                     confirmBtn.addEventListener('click', () => {
                         confirmBtn.disabled = true;
-                        confirmBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Processing...`;
+                        confirmBtn.innerHTML =
+                            `<span class="spinner-border spinner-border-sm me-2"></span>Processing...`;
                     });
                 }
             }).then((result) => {
@@ -1058,7 +1450,8 @@
                         },
                         success: function(response) {
                             Swal.close();
-                            toastr.success(response.message || `Sale marked as ${statusLabel} successfully!`);
+                            toastr.success(response.message ||
+                                `Sale marked as ${statusLabel} successfully!`);
                             $('#sales_table').DataTable().ajax.reload();
                         },
                         error: function(xhr) {
@@ -1109,14 +1502,14 @@
             $(`#${modalId}`).modal('show');
 
             // Reset form fields on open
-            $(`#${modalId}`).on('shown.bs.modal', function () {
+            $(`#${modalId}`).on('shown.bs.modal', function() {
                 $(`#${formId}`)[0].reset();
                 $(`#${textareaId}`).removeClass('is-invalid is-valid');
                 $(`#${textareaId}`).next('.invalid-feedback').remove();
             });
 
             // Save button logic
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
@@ -1125,7 +1518,7 @@
                         $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
 
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -1140,17 +1533,19 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
 
                 $.ajax({
-                    url: '{{ route("storeSaleNotes") }}',
+                    url: '{{ route('storeSaleNotes') }}',
                     type: 'POST',
                     data: {
                         sale_id: saleID,
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Notes saved successfully!');
 
                         $(`#${modalId}`).modal('hide');
@@ -1159,10 +1554,10 @@
 
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         alert('An error occurred while saving notes.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1210,9 +1605,11 @@
 
             // Make AJAX request
             $.ajax({
-                url: '{{ route("getSaleDocuments") }}',
+                url: '{{ route('getSaleDocuments') }}',
                 type: 'GET',
-                data: { id: saleId },
+                data: {
+                    id: saleId
+                },
                 success: function(response) {
                     let contentHtml = '';
 
@@ -1246,13 +1643,15 @@
                     $(`#${modalId} .modal-body`).html(contentHtml);
                 },
                 error: function(xhr) {
-                    $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the documents. Please try again later.</p>');
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the documents. Please try again later.</p>'
+                        );
                 }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            document.body.addEventListener('click', function (e) {
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.addEventListener('click', function(e) {
                 if (e.target.classList.contains('view-experience')) {
                     e.preventDefault();
                     const experience = e.target.getAttribute('data-experience');
@@ -1262,7 +1661,7 @@
         });
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Event delegation for dynamically added buttons
             document.addEventListener('click', function(e) {
                 const target = e.target;
@@ -1284,8 +1683,8 @@
             function confirmSale(saleId, actionType) {
                 const isApprove = actionType === 'approve';
                 const title = 'Are you sure?';
-                const text = isApprove ? 
-                    'You want to mark this sale as Approved.' : 
+                const text = isApprove ?
+                    'You want to mark this sale as Approved.' :
                     'You want to mark this sale as Disapproved.';
                 const confirmBtnText = isApprove ? 'Yes, Approve' : 'Yes, Disapprove';
                 const confirmBtnColor = isApprove ? '#28a745' : '#d33';
@@ -1342,7 +1741,5 @@
             }
         });
     </script>
-
-
 @endsection
-@endsection                        
+@endsection
