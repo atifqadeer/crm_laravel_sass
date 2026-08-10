@@ -15,16 +15,18 @@ class Contact extends Model
         'contact_phone',
         'contact_landline',
         'contact_note',
+        'job_source_id',
         'contactable_id',
-        'contactable_type',
-        'job_source_id'
+        'contactable_type'
     ];
-    // public function office()
-    // {
-    //     return $this->belongsTo(Office::class);
-    // }
+
     public function contactable()
     {
         return $this->morphTo();
+    }
+
+    public function jobSource()
+    {
+        return $this->belongsTo(JobSource::class, 'job_source_id');
     }
 }
