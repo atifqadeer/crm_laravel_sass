@@ -1072,8 +1072,8 @@
                         </label>
 
                         <label class="me-3">
-                            <input type="radio" name="contact_filter" value="kingsbury" ${filterType === 'kingsbury' ? 'checked' : ''}>
-                            Kingsbury
+                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
+                            Kingsburry
                         </label>
 
                         <label>
@@ -1096,19 +1096,21 @@
                     var note = contact.contact_note || '';
 
                     if (canShowPrivateData) {
-                        var searchString = (
-                            name + ' ' +
-                            email + ' ' +
-                            note
-                        ).toLowerCase();
+                        // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
+                        // Do NOT use === '%hayaibu%' — % is SQL syntax, not a JS string match.
+                        var sourceName = (contact.job_source_name ||
+                            (contact.job_source && contact.job_source.name) ||
+                            '').toString().toLowerCase().trim();
+                        var isHayaibuSource = contact.is_hayaibu_source === true ||
+                            contact.is_hayaibu_source === 1 ||
+                            sourceName.indexOf('hayaibu') !== -1;
 
-                        var containsHayaibu = searchString.includes('hayaibu');
-
-                        if (filterType === 'kingsbury' && containsHayaibu) {
+                        // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
+                        if (filterType === 'kingsburry' && isHayaibuSource) {
                             return;
                         }
 
-                        if (filterType === 'others' && !containsHayaibu) {
+                        if (filterType === 'others' && !isHayaibuSource) {
                             return;
                         }
                     }
