@@ -575,7 +575,7 @@
                 ],
                 columnDefs: [
                     {
-                        targets: [8, 9, 12, 15, 16], // job_details, office_name, sale_postcode, notes_detail, sale_source_name
+                        targets: [8, 9, 12, 13, 14], // job_details, office_name, sale_postcode, notes_detail, sale_source_name
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');
                         }
@@ -716,7 +716,7 @@
 
                 // Toggle column visibility
                 table.column(3).visible(formattedText === 'Confirmation');
-                table.column(14).visible(formattedText === 'Paid');
+                table.column(15).visible(formattedText === 'Paid');
 
                 // Toggle UI elements
                 $('#openToPaid').toggle(formattedText === 'Paid');
