@@ -245,8 +245,13 @@ class UnitController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
-            ->select('units.*', 'offices.office_name as office_name')
+            ->select(
+                'units.*',
+                'offices.office_name as office_name',
+                'job_sources.name as job_source_name'
+            )
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
+            ->leftJoin('job_sources', 'units.job_source_id', '=', 'job_sources.id')
             ->whereNull('units.deleted_at')
             ->with('office')
             ->whereNotIn('units.status', [4, 5]);
@@ -256,6 +261,7 @@ class UnitController extends Controller
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
         );
 
+        $sourceIds = [];
         if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
             $query->with(['contacts' => function ($q) use ($hidePrivateData) {
                 $q->where(function ($sub) use ($hidePrivateData) {
@@ -277,8 +283,22 @@ class UnitController extends Controller
                     }
                 });
             }]);
+
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
         } else {
             $query->with('contacts');
+        }
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('units.job_source_id', $sourceIds)
+                ->orWhere('units.job_source_id', null);
         }
 
         if ($statusFilter === 'active') {
@@ -340,7 +360,6 @@ class UnitController extends Controller
         -------------------------------------------------*/
         return DataTables::eloquent($query)
             ->addIndexColumn()
-
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
                 $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
@@ -361,6 +380,11 @@ class UnitController extends Controller
                             </button>';
 
                 return '<div class="d-flex align-items-center justify-content-between">' . $postcode . $copyBtn . '</div>';
+            })
+            ->addColumn('job_source', function ($u) {
+                if (!$u->job_sources)
+                    return '-';
+                return '<span class="badge bg-light text-dark">' . e($u->job_source_name) . '</span>';
             })
             ->addColumn(
                 'contact_email',
@@ -481,7 +505,8 @@ class UnitController extends Controller
                 'office_name',
                 'unit_name',
                 'action',
-                'unit_postcode'
+                'unit_postcode',
+                'job_source',
             ])
             ->make(true);
     }

@@ -955,16 +955,34 @@
             });
         }
 
-        // Function to show the notes modal
+        // Contact filter radios only for users with show-private-data permission.
+        const canShowPrivateData = @json(auth()->user()?->can('show-private-data') ?? false);
+
+        // Function to show the manager details modal
         function viewManagerDetails(id) {
-            const modalId = 'viewUnitManagerDetailsModal';
+            const unitId = parseInt(id, 10) || 0;
+            if (unitId <= 0) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No unit selected',
+                        text: 'Manager details are unavailable for this row.',
+                    });
+                } else {
+                    alert('Manager details are unavailable for this row.');
+                }
+                return;
+            }
+
+            const modalId = 'viewUnitManagerDetailsModal_' + unitId;
+            window.managerDetailsModalID = modalId;
 
             // Add modal to DOM only once
             if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label">' +
-                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Manager Details</h5>' +
@@ -1003,45 +1021,14 @@
                 url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
                 data: {
-                    id: id,
+                    id: unitId,
                     module: 'Unit'
                 },
                 success: function(response) {
-
-                    var contactHtml = '';
-
-                    if (response.data.length === 0) {
-
-                        contactHtml = '<p>' + response.message + '</p>';
-
-                    } else {
-
-                        response.data.forEach(function(contact) {
-
-                            var name = contact.contact_name;
-                            var email = contact.contact_email;
-                            var phone = contact.contact_phone || 'N/A';
-                            var landline = contact.contact_landline || 'N/A';
-                            var note = contact.contact_note || 'N/A';
-
-                            contactHtml +=
-                                '<div class="note-entry">' +
-                                '<p><strong>Name:</strong> ' + name + '</p>' +
-                                '<p><strong>Email:</strong> ' + email + '</p>' +
-                                '<p><strong>Phone:</strong> ' + phone + '</p>' +
-                                '<p><strong>Landline:</strong> ' + landline + '</p>' +
-                                '<p><strong>Note:</strong> ' + note + '</p>' +
-                                '</div><hr>';
-
-                        });
-
-                    }
-
-                    $('#' + modalId + ' .modal-body').html(contactHtml);
-
+                    window.managerContacts = response.data || [];
+                    renderContacts('all');
                 },
-                error: function(xhr, status, error) {
-
+                error: function(xhr) {
                     let message = 'Something went wrong.';
 
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1051,9 +1038,95 @@
                     $('#' + modalId + ' .modal-body').html(
                         '<p class="text-danger">' + message + '</p>'
                     );
-
                 }
             });
+        }
+
+        $(document).on('change', 'input[name="contact_filter"]', function() {
+            if (!canShowPrivateData) {
+                return;
+            }
+            renderContacts($(this).val());
+        });
+
+        function renderContacts(filterType) {
+            var contacts = window.managerContacts || [];
+            var modalId = window.managerDetailsModalID;
+            if (!modalId) {
+                return;
+            }
+
+            // Without show-private-data, always show the full (server-filtered) list.
+            if (!canShowPrivateData) {
+                filterType = 'all';
+            }
+
+            var contactHtml = '';
+
+            if (canShowPrivateData) {
+                contactHtml += `
+                    <div class="mb-3">
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="all" ${filterType === 'all' ? 'checked' : ''}>
+                            All
+                        </label>
+
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
+                            Kingsburry
+                        </label>
+
+                        <label>
+                            <input type="radio" name="contact_filter" value="others" ${filterType === 'others' ? 'checked' : ''}>
+                            Others
+                        </label>
+                    </div>
+                    <hr>
+                `;
+            }
+
+            if (contacts.length === 0) {
+                contactHtml += '<p>No records found.</p>';
+            } else {
+                contacts.forEach(function(contact) {
+                    var name = contact.contact_name || '';
+                    var email = contact.contact_email || '';
+                    var phone = contact.contact_phone || 'N/A';
+                    var landline = contact.contact_landline || 'N/A';
+                    var note = contact.contact_note || '';
+
+                    if (canShowPrivateData) {
+                        var searchString = (
+                            name + ' ' +
+                            email + ' ' +
+                            note
+                        ).toLowerCase();
+
+                        var containsHayaibu = searchString.includes('hayaibu');
+
+                        if (filterType === 'kingsburry' && containsHayaibu) {
+                            return;
+                        }
+
+                        if (filterType === 'others' && !containsHayaibu) {
+                            return;
+                        }
+                    }
+
+                    contactHtml += `
+                <div class="note-entry">
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
+                    <p><strong>Landline:</strong> ${landline}</p>
+                    <p><strong>Note:</strong> ${note || 'N/A'}</p>
+                </div>
+                <hr>
+            `;
+                });
+            }
+
+            $('#' + modalId + ' .modal-body').html(contactHtml);
         }
 
         $(document).ready(function() {
