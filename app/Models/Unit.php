@@ -17,6 +17,7 @@ class Unit extends Model
         'unit_uid',
         'user_id',
         'office_id',
+        'job_source_id',
         'unit_name',
         'unit_postcode',
         'unit_website',

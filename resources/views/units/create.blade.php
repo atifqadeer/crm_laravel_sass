@@ -41,9 +41,9 @@
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="job_source" class="form-label">Job Source</label>
+                                    <label for="job_source" class="form-label">Source</label>
                                     <select class="form-select" id="job_source" name="job_source_id" required>
-                                        <option value="">Choose a Job Source</option>
+                                        <option value="">Choose a Source</option>
                                         @foreach ($jobSources as $source)
                                             <option value="{{ $source->id }}"
                                                 {{ old('job_source_id' == $source->id ? 'selected' : '') }}>
