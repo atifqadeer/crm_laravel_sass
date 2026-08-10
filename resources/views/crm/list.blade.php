@@ -575,7 +575,7 @@
                 ],
                 columnDefs: [
                     {
-                        targets: [8, 9, 12, 13, 14], // job_details, office_name, sale_postcode, notes_detail, sale_source_name
+                        targets: [8, 9, 12, 13], // job_details, office_name, sale_postcode, notes_detail, sale_source_name
                         createdCell: function (td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center');
                         }
@@ -714,9 +714,12 @@
                 $('#showFilterTab').html(formattedText);
                 showLoader();
 
-                // Toggle column visibility
-                table.column(3).visible(formattedText === 'Confirmation');
-                table.column(15).visible(formattedText === 'Paid');
+                // Toggle column visibility by name (indexes shifted after Job Source was added).
+                // 3 = schedule_date, 14 = notes_detail, 15 = paid_status
+                table.column('interviews.schedule_date:name').visible(formattedText === 'Confirmation');
+                table.column('applicants.paid_status:name').visible(formattedText === 'Paid');
+                // Notes must stay visible on every tab
+                table.column('notes_detail:name').visible(true);
 
                 // Toggle UI elements
                 $('#openToPaid').toggle(formattedText === 'Paid');
