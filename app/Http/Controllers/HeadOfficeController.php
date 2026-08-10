@@ -839,7 +839,18 @@ class HeadOfficeController extends Controller
                 });
             }
 
-            $contacts = $contactQuery->latest()->get();
+            $contacts = $contactQuery
+                ->with('jobSource:id,name')
+                ->latest()
+                ->get()
+                ->map(function ($contact) {
+                    $sourceName = optional($contact->jobSource)->name;
+                    $contact->job_source_name = $sourceName;
+                    // Precompute for the Kingsburry/Others filter (name LIKE %hayaibu%).
+                    $contact->is_hayaibu_source = $sourceName !== null
+                        && stripos($sourceName, 'hayaibu') !== false;
+                    return $contact;
+                });
 
             // Check if the module note was found
             if ($contacts->isEmpty()) {
