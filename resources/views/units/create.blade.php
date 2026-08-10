@@ -39,7 +39,7 @@
                                     <div class="invalid-feedback">Please provide a name</div>
                                 </div>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-12">
+                            <!-- <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_source" class="form-label">Source</label>
                                     <select class="form-select" id="job_source" name="job_source_id" required>
@@ -52,7 +52,7 @@
                                     </select>
                                     <div class="invalid-feedback">Please select a job source</div>
                                 </div>
-                            </div>
+                            </div> -->
                             <div class="col-lg-3 col-md-3 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_postcode" class="form-label">PostCode</label>
@@ -84,15 +84,23 @@
                                                     placeholder="Contact Email" required>
                                                 <div class="invalid-feedback">Please provide a valid email</div>
                                             </div>
-                                            <div class="col-lg-3">
+                                            <div class="col-lg-2">
                                                 <input type="text" class="form-control" name="contact_phone[]"
                                                     placeholder="Contact Phone" maxlength="20">
                                                 <div class="invalid-feedback">Please provide a phone number</div>
                                             </div>
-                                            <div class="col-lg-3">
+                                            <div class="col-lg-2">
                                                 <input type="text" class="form-control" name="contact_landline[]"
                                                     placeholder="Contact Landline" maxlength="20">
                                                 <div class="invalid-feedback">Please provide a landline number</div>
+                                            </div>
+                                            <div class="col-lg-2">
+                                                <select class="form-select" name="contact_job_source_id[]">
+                                                    <option value="">Choose a Source</option>
+                                                    @foreach ($jobSources as $source)
+                                                        <option value="{{ $source->id }}">{{ $source->name }}</option>
+                                                    @endforeach
+                                                </select>
                                             </div>
                                             <div class="col-lg-12">
                                                 <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
@@ -106,6 +114,8 @@
                             </div>
 
                             <script>
+                                const contactJobSourceOptions = `@foreach ($jobSources as $source)<option value="{{ $source->id }}">{{ e($source->name) }}</option>@endforeach`;
+
                                 document.getElementById('addContactPersonButton').addEventListener('click', function() {
                                     const container = document.getElementById('contactPersonsContainer');
                                     const newForm = document.createElement('div');
@@ -119,13 +129,19 @@
                                         <input type="email" class="form-control" name="contact_email[]" placeholder="Contact Email" required>
                                         <div class="invalid-feedback">Please provide a valid email</div>
                                     </div>
-                                    <div class="col-lg-3">
-                                        <input type="text" class="form-control" name="contact_phone[]" placeholder="Contact Phone" required>
+                                    <div class="col-lg-2">
+                                        <input type="text" class="form-control" name="contact_phone[]" placeholder="Contact Phone" maxlength="20">
                                         <div class="invalid-feedback">Please provide a phone number</div>
                                     </div>
-                                    <div class="col-lg-3">
-                                        <input type="text" class="form-control" name="contact_landline[]" placeholder="Contact Landline" required>
+                                    <div class="col-lg-2">
+                                        <input type="text" class="form-control" name="contact_landline[]" placeholder="Contact Landline" maxlength="20">
                                         <div class="invalid-feedback">Please provide a landline number</div>
+                                    </div>
+                                    <div class="col-lg-2">
+                                        <select class="form-select" name="contact_job_source_id[]">
+                                            <option value="">Choose a Source</option>
+                                            ${contactJobSourceOptions}
+                                        </select>
                                     </div>
                                     <div class="col-lg-11">
                                         <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>

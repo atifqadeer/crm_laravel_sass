@@ -49,7 +49,7 @@
                                     <div class="invalid-feedback">Please provide a name</div>
                                 </div>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-12">
+                            <!-- <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="job_source" class="form-label">Source</label>
                                     <select class="form-select" id="job_source" name="job_source_id" required>
@@ -62,7 +62,7 @@
                                     </select>
                                     <div class="invalid-feedback">Please select a job source</div>
                                 </div>
-                            </div>
+                            </div> -->
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_postcode" class="form-label">PostCode</label>
@@ -73,7 +73,7 @@
                                     <div class="invalid-feedback">Please provide a postcode</div>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="unit_website" class="form-label">Website</label>
                                     <input type="url" id="unit_website" class="form-control" name="unit_website"
@@ -114,61 +114,82 @@
                                                         value="{{ $row->contact_email }}">
                                                     <div class="invalid-feedback">Please provide a valid email</div>
                                                 </div>
-                                                <div class="col-lg-3">
+                                                <div class="col-lg-2">
                                                     <input type="text" class="form-control" name="contact_phone[]"
                                                         placeholder="Contact Phone" maxlength="20"
                                                         value="{{ $row->contact_phone }}">
                                                     <div class="invalid-feedback">Please provide a phone number</div>
                                                 </div>
-                                                <div class="col-lg-3">
+                                                <div class="col-lg-2">
                                                     <input type="text" class="form-control" name="contact_landline[]"
                                                         placeholder="Contact Landline" maxlength="20"
                                                         value="{{ $row->contact_landline }}">
                                                     <div class="invalid-feedback">Please provide a landline number</div>
                                                 </div>
-                                                @if (!$loop->first)
-                                                <div class="col-lg-11">@else<div class="col-lg-12">
-                                                @endif
-                                                <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note">{{ $row->contact_note }}</textarea>
-                                                <div class="invalid-feedback">Please provide a contact note</div>
-                                            </div>
-                                            @if (!$loop->first)
-                                                <div class="col-lg-1 d-flex align-items-center">
-                                                    <button type="button"
-                                                        class="btn btn-transparent btn-sm removeContactPersonButton">
-                                                        <iconify-icon icon="solar:trash-bin-minimalistic-bold"
-                                                            class="text-danger fs-24"></iconify-icon></button>
+                                                <div class="col-lg-2">
+                                                    <select class="form-select" name="contact_job_source_id[]">
+                                                        <option value="">Choose a Source</option>
+                                                        @foreach ($jobSources as $source)
+                                                            <option value="{{ $source->id }}"
+                                                                {{ (string) old('contact_job_source_id.' . $loop->parent->index, $row->job_source_id) === (string) $source->id ? 'selected' : '' }}>
+                                                                {{ $source->name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
                                                 </div>
-                                            @endif
-                                    </div>
-                                @empty
-                                    <div class="contact-person-form row g-3 mb-3">
-                                        <div class="col-lg-3">
-                                            <input type="text" class="form-control" name="contact_name[]"
-                                                placeholder="Contact Name" required>
-                                            <div class="invalid-feedback">Please provide a contact name</div>
-                                        </div>
-                                        <div class="col-lg-3">
-                                            <input type="email" class="form-control" name="contact_email[]"
-                                                placeholder="Contact Email" required>
-                                            <div class="invalid-feedback">Please provide a valid email</div>
-                                        </div>
-                                        <div class="col-lg-3">
-                                            <input type="text" class="form-control" name="contact_phone[]"
-                                                placeholder="Contact Phone" maxlength="20">
-                                            <div class="invalid-feedback">Please provide a phone number</div>
-                                        </div>
-                                        <div class="col-lg-3">
-                                            <input type="text" class="form-control" name="contact_landline[]"
-                                                placeholder="Contact Landline" maxlength="20">
-                                            <div class="invalid-feedback">Please provide a landline number</div>
-                                        </div>
-                                        <div class="col-lg-12">
-                                            <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
-                                            <div class="invalid-feedback">Please provide a contact note</div>
-                                        </div>
-                                    </div>
-                                    @endforelse
+                                                @if (!$loop->first)
+                                                    <div class="col-lg-11">
+                                                @else
+                                                    <div class="col-lg-12">
+                                                @endif
+                                                    <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note">{{ $row->contact_note }}</textarea>
+                                                    <div class="invalid-feedback">Please provide a contact note</div>
+                                                </div>
+                                                @if (!$loop->first)
+                                                    <div class="col-lg-1 d-flex align-items-center">
+                                                        <button type="button"
+                                                            class="btn btn-transparent btn-sm removeContactPersonButton">
+                                                            <iconify-icon icon="solar:trash-bin-minimalistic-bold"
+                                                                class="text-danger fs-24"></iconify-icon></button>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <div class="contact-person-form row g-3 mb-3">
+                                                <div class="col-lg-3">
+                                                    <input type="text" class="form-control" name="contact_name[]"
+                                                        placeholder="Contact Name" required>
+                                                    <div class="invalid-feedback">Please provide a contact name</div>
+                                                </div>
+                                                <div class="col-lg-3">
+                                                    <input type="email" class="form-control" name="contact_email[]"
+                                                        placeholder="Contact Email" required>
+                                                    <div class="invalid-feedback">Please provide a valid email</div>
+                                                </div>
+                                                <div class="col-lg-2">
+                                                    <input type="text" class="form-control" name="contact_phone[]"
+                                                        placeholder="Contact Phone" maxlength="20">
+                                                    <div class="invalid-feedback">Please provide a phone number</div>
+                                                </div>
+                                                <div class="col-lg-2">
+                                                    <input type="text" class="form-control" name="contact_landline[]"
+                                                        placeholder="Contact Landline" maxlength="20">
+                                                    <div class="invalid-feedback">Please provide a landline number</div>
+                                                </div>
+                                                <div class="col-lg-2">
+                                                    <select class="form-select" name="contact_job_source_id[]">
+                                                        <option value="">Choose a Source</option>
+                                                        @foreach ($jobSources as $source)
+                                                            <option value="{{ $source->id }}">{{ $source->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="col-lg-11">
+                                                    <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
+                                                    <div class="invalid-feedback">Please provide a contact note</div>
+                                                </div>
+                                            </div>
+                                        @endforelse
                                 </div>
                                 @canany('unit-add-more-contact-btn')
                                     <button type="button" class="btn btn-secondary float-end"
@@ -178,7 +199,10 @@
                         </div>
 
                         <script>
-                            document.getElementById('addContactPersonButton').addEventListener('click', function() {
+                            const contactJobSourceOptions = `@foreach ($jobSources as $source)<option value="{{ $source->id }}">{{ e($source->name) }}</option>@endforeach`;
+                            const addContactPersonButton = document.getElementById('addContactPersonButton');
+                            if (addContactPersonButton) {
+                            addContactPersonButton.addEventListener('click', function() {
                                 const container = document.getElementById('contactPersonsContainer');
                                 const newForm = document.createElement('div');
                                 newForm.classList.add('contact-person-form', 'row', 'g-3', 'mb-3');
@@ -191,13 +215,19 @@
                                         <input type="email" class="form-control" name="contact_email[]" placeholder="Contact Email" required>
                                         <div class="invalid-feedback">Please provide a valid email</div>
                                     </div>
-                                    <div class="col-lg-3">
-                                        <input type="text" class="form-control" name="contact_phone[]" placeholder="Contact Phone" required>
+                                    <div class="col-lg-2">
+                                        <input type="text" class="form-control" name="contact_phone[]" placeholder="Contact Phone" maxlength="20">
                                         <div class="invalid-feedback">Please provide a phone number</div>
                                     </div>
-                                    <div class="col-lg-3">
-                                        <input type="text" class="form-control" name="contact_landline[]" placeholder="Contact Landline" required>
+                                    <div class="col-lg-2">
+                                        <input type="text" class="form-control" name="contact_landline[]" placeholder="Contact Landline" maxlength="20">
                                         <div class="invalid-feedback">Please provide a landline number</div>
+                                    </div>
+                                    <div class="col-lg-2">
+                                        <select class="form-select" name="contact_job_source_id[]">
+                                            <option value="">Choose a Source</option>
+                                            ${contactJobSourceOptions}
+                                        </select>
                                     </div>
                                     <div class="col-lg-11">
                                         <textarea class="form-control" name="contact_note[]" placeholder="Enter Contact Note"></textarea>
@@ -209,6 +239,7 @@
                                 `;
                                 container.appendChild(newForm);
                             });
+                            }
 
                             document.getElementById('contactPersonsContainer').addEventListener('click', function(e) {
                                 const button = e.target.closest('.removeContactPersonButton');
