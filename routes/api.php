@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CallLogController;
+use App\Http\Controllers\SaleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
      return $request->user();
 });
+
+// ── External portal: open / active sales feed ─────────────────────────────
+// Auth: Authorization: Bearer <PORTAL_API_TOKEN>  (or X-API-Token / ?api_token=)
+// Same membership rules as SaleController::getOpenSales() (status=1, not on hold).
+Route::get('/sales/open', [SaleController::class, 'openSalesApi'])
+     ->name('api.sales.open');
 
 // ── xplosip softphone integration ─────────────────────────────────────────
 // These endpoints are consumed by the floating xplosip widget embedded in the

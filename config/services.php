@@ -34,5 +34,17 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    /*
+    | Shared secret for external portal integrations (e.g. open sales feed).
+    | Send as: Authorization: Bearer <PORTAL_API_TOKEN>
+    | or header X-API-Token / query ?api_token=
+    */
+    'portal' => [
+        'token' => 'v8Kq2mZ7xP4nR9tL6wY3cF1sD5hJ0uA8eG2bN7qX9mV4pT6z',
+    ],
+
+    'microsip' => [
+        'token' => env('MICROSIP_API_TOKEN'),
+    ],
 
 ];
