@@ -324,7 +324,6 @@ class ApiController extends Controller
                 'experience' => $this->cleanSaleText($sale->experience),
                 'qualification' => $this->cleanSaleText($sale->qualification),
                 'benefits' => $this->cleanSaleText($sale->benefits),
-                'notes' => $this->cleanSaleText($sale->sale_notes),
                 'status' => (int) $sale->status === 1 ? 'active' : 'closed',
                 'created' => $sale->open_date
                     ? Carbon::parse($sale->open_date)->format('Y-m-d')
