@@ -311,7 +311,7 @@ class ApiController extends Controller
             'data' => [
                 'sale_id' => (int) $sale->id,
                 'office' => $sale->office_name ? ucwords($sale->office_name) : null,
-                'location' => $sale->unit_name ? ucwords($sale->unit_name) : null,
+                'unit' => $sale->unit_name ? ucwords($sale->unit_name) : null,
                 'postcode' => $sale->sale_postcode,
                 'region' => $region['name'] ?? null,
                 'region_id' => $region['id'] ?? null,
