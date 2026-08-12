@@ -171,7 +171,7 @@ class QualityController extends Controller
                     ->join('history', function ($join) {
                         $join->on('cv_notes.applicant_id', '=', 'history.applicant_id');
                         $join->on('cv_notes.sale_id', '=', 'history.sale_id')
-                            ->whereIn("history.sub_stage", ["no_job_quality_cvs"])
+                            ->whereIn("history.sub_stage", ["no_job_quality_cvs", "quality_no_job_reject"])
                             ->where("history.status", 1);
                     })
                     ->join('users', 'users.id', '=', 'cv_notes.user_id')
