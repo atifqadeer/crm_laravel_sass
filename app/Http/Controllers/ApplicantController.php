@@ -1889,101 +1889,92 @@ class ApplicantController extends Controller
     }
     public function getApplicantHistoryAjaxRequest(Request $request)
     {
-        $id = $request->applicant_id;
+        $id = (int) $request->applicant_id;
 
-        $model = Applicant::query()->where('applicants.id', $id);
+        // Scoped-to-applicant aggregates for both note sources — same fix as
+        // before (filter before grouping), just done twice now, once per source.
+        $latestCrmNoteIds = DB::table('crm_notes')
+            ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
+            ->where('applicant_id', $id)
+            ->groupBy('applicant_id', 'sale_id');
 
-        // Subquery: get latest CRM note per applicant-sale (status = 1)
-        $latestCrmNotes = DB::table('crm_notes')
-            ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
-            ->whereIn('id', function ($query) {
-                $query->selectRaw('MAX(id)')
-                    ->from('crm_notes')
-                    ->groupBy('applicant_id', 'sale_id');
-            });
+        $latestQualityNoteIds = DB::table('quality_notes')
+            ->select('applicant_id', 'sale_id', DB::raw('MAX(id) as max_id'))
+            ->where('applicant_id', $id)
+            ->groupBy('applicant_id', 'sale_id');
 
-        // Join with the latest CRM notes using alias 'latest_crm'
-        $model->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
-            $join->on('latest_crm.applicant_id', '=', 'applicants.id');
-        })
-            ->join('sales', 'sales.id', '=', 'latest_crm.sale_id')
+        $model = History::query()
+            ->where('history.status', 1)
+            ->where('history.applicant_id', $id)
+            // left joins: a given applicant/sale pair may only have notes in
+            // one of the two tables, not both
+            ->leftJoinSub($latestCrmNoteIds, 'lcn_max', function ($join) {
+                $join->on('lcn_max.applicant_id', '=', 'history.applicant_id')
+                    ->on('lcn_max.sale_id', '=', 'history.sale_id');
+            })
+            ->leftJoin('crm_notes as latest_crm', 'latest_crm.id', '=', 'lcn_max.max_id')
+            ->leftJoinSub($latestQualityNoteIds, 'lqn_max', function ($join) {
+                $join->on('lqn_max.applicant_id', '=', 'history.applicant_id')
+                    ->on('lqn_max.sale_id', '=', 'history.sale_id');
+            })
+            ->leftJoin('quality_notes as latest_quality', 'latest_quality.id', '=', 'lqn_max.max_id')
+            ->join('applicants', 'applicants.id', '=', 'history.applicant_id')
+            ->join('sales', 'sales.id', '=', 'history.sale_id')
             ->join('offices', 'offices.id', '=', 'sales.office_id')
             ->join('units', 'units.id', '=', 'sales.unit_id')
-            ->join('history', function ($join) {
-                $join->on('latest_crm.applicant_id', '=', 'history.applicant_id')
-                    ->on('latest_crm.sale_id', '=', 'history.sale_id');
-            })
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
-            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
-            ->select([
-                'applicants.id as app_id',
-                'applicants.applicant_name',
+            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id');
 
-                'latest_crm.id as crm_notes_id',
-                'latest_crm.details as crm_note_details',
-                'latest_crm.created_at as crm_notes_created_at',
+        $model->select([
+            'applicants.id as app_id',
+            'applicants.applicant_name',
 
-                'sales.id as sale_id',
-                'sales.sale_postcode',
-                'sales.is_on_hold',
-                'sales.status as sale_status',
-                'sales.job_type as sale_job_type',
-                'sales.position_type',
-                'sales.experience as sale_experience',
-                'sales.qualification as sale_qualification',
-                'sales.salary',
-                'sales.timing',
-                'sales.created_at as sale_posted_date',
-                'sales.benefits',
+            // check history.stage (not sub_stage) to decide the note source
+            DB::raw("
+                CASE
+                    WHEN LOWER(history.stage) LIKE '%quality%' THEN latest_quality.id
+                    WHEN LOWER(history.stage) LIKE '%crm%'     THEN latest_crm.id
+                    ELSE NULL
+                END as crm_notes_id
+            "),
+            DB::raw("
+                CASE
+                    WHEN LOWER(history.stage) LIKE '%quality%' THEN latest_quality.details
+                    WHEN LOWER(history.stage) LIKE '%crm%'     THEN latest_crm.details
+                    ELSE NULL
+                END as crm_note_details
+            "),
+            DB::raw("
+                CASE
+                    WHEN LOWER(history.stage) LIKE '%quality%' THEN latest_quality.created_at
+                    WHEN LOWER(history.stage) LIKE '%crm%'     THEN latest_crm.created_at
+                    ELSE NULL
+                END as crm_notes_created_at
+            "),
 
-                'history.sub_stage as history_sub_stage',
-                'history.created_at as history_created_at',
+            'sales.id as sale_id',
+            'sales.sale_postcode',
+            'sales.is_on_hold',
+            'sales.status as sale_status',
+            'sales.job_type as sale_job_type',
+            'sales.position_type',
+            'sales.experience as sale_experience',
+            'sales.qualification as sale_qualification',
+            'sales.salary',
+            'sales.timing',
+            'sales.created_at as sale_posted_date',
+            'sales.benefits',
 
-                'offices.office_name',
-                'units.unit_name',
+            'history.sub_stage as history_sub_stage',
+            'history.stage as history_stage',
+            'history.created_at as history_created_at',
 
-                'job_titles.name as job_title_name',
-                'job_categories.name as job_category_name',
-            ])
-            ->where('history.status', 1);
+            'offices.office_name',
+            'units.unit_name',
 
-        /*** Sorting */
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $direction = $request->input('order.0.dir', 'asc');
-
-            switch ($orderColumn) {
-                case 'job_category':
-                    $model->orderBy('job_category_name', $direction);
-                    break;
-                case 'job_title':
-                    $model->orderBy('job_title_name', $direction);
-                    break;
-                case 'crm_note_details':
-                    $model->orderBy('crm_note_details', $direction);
-                    break;
-                case 'history_sub_stage':
-                    $model->orderBy('history_sub_stage', $direction);
-                    break;
-                case 'sale_postcode':
-                    $model->orderBy('sale_postcode', $direction);
-                    break;
-                case 'crm_notes_created_at':
-                    $model->orderBy('crm_notes_created_at', $direction);
-                    break;
-                case 'history_created_at':
-                    $model->orderBy('history_created_at', $direction);
-                    break;
-                default:
-                    if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
-                        $model->orderBy($orderColumn, $direction);
-                    } else {
-                        $model->orderBy('history_created_at', 'desc');
-                    }
-            }
-        } else {
-            $model->orderBy('history_created_at', 'desc');
-        }
+            'job_titles.name as job_title_name',
+            'job_categories.name as job_category_name',
+        ]);
 
         /*** Search */
         if ($request->has('search.value')) {
@@ -1992,49 +1983,55 @@ class ApplicantController extends Controller
             $model->where(function ($q) use ($search) {
                 $q->where('history.sub_stage', 'LIKE', "%{$search}%")
                     ->orWhere('history.created_at', 'LIKE', "%{$search}%")
-                    ->orWhere('latest_crm.details', 'LIKE', "%{$search}%") // use latest_crm alias
+                    ->orWhere('latest_crm.details', 'LIKE', "%{$search}%")
+                    ->orWhere('latest_quality.details', 'LIKE', "%{$search}%")
                     ->orWhere('sales.sale_postcode', 'LIKE', "%{$search}%")
                     ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
                     ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
                     ->orWhere('offices.office_name', 'LIKE', "%{$search}%")
-                    ->orWhere('units.unit_name', 'LIKE', "%{$search}%");
+                    ->orWhere('units.unit_name', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_name', 'LIKE', "%{$search}%");
             });
         }
 
+        $model->orderBy('history.created_at', 'desc');
+
         if ($request->ajax()) {
             return DataTables::eloquent($model)
+                ->skipTotalRecords()
                 ->addIndexColumn()
-                ->addColumn('history_created_at', function ($row) {
-                    return Carbon::parse($row->history_created_at)->format('d M Y, h:i A');
-                })
-                ->addColumn('job_title', function ($row) {
-                    return $row->job_title_name ? strtoupper($row->job_title_name) : '-';
-                })
-                ->addColumn('sub_stage', function ($row) {
-                    return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->history_sub_stage)) . '</span>';
-                })
+                ->addColumn('history_created_at', fn($row) => Carbon::parse($row->history_created_at)->format('d M Y, h:i A'))
+                ->addColumn('job_title', fn($row) => $row->job_title_name ? strtoupper($row->job_title_name) : '-')
+                ->addColumn('sub_stage', fn($row) => '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->history_sub_stage)) . '</span>')
                 ->addColumn('details', function ($row) {
+                    // crm_note_details/crm_notes_id now already resolved to the
+                    // correct source (quality_notes or crm_notes) via the CASE
+                    // expression above, so this rendering logic is unchanged.
+                    if (!$row->crm_note_details) {
+                        return '-';
+                    }
+
                     $short = Str::limit(strip_tags($row->crm_note_details), 100);
                     $full = e($row->crm_note_details);
                     $id = 'note-' . $row->crm_notes_id;
 
                     return '
-                        <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
-                        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Notes</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">' . nl2br($full) . '</div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                    </div>
+                    <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+                    <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Notes</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">' . nl2br($full) . '</div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
-                    ';
+                    </div>
+                ';
                 })
                 ->addColumn('job_details', function ($row) {
                     $status = match ((int) $row->sale_status) {
@@ -2063,26 +2060,217 @@ class ApplicantController extends Controller
                     ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
 
                     return '<a href="javascript:void(0);" class="show-job-details" data-info="' . $data . '">
-                                <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
-                            </a>';
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
                 })
                 ->addColumn('job_category', function ($row) {
-                    $type = $row->sale_job_type;
-                    $stype = $type === 'specialist'
-                        ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
-                        : '';
-
+                    $stype = ($row->sale_job_type && $row->sale_job_type === 'specialist') ? '<br>(Specialist)' : '';
                     return $row->job_category_name ? $row->job_category_name . $stype : '-';
                 })
-                ->addColumn('action', function ($row) {
-                    return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int) $row->app_id . ',' . (int) $row->sale_id . ')">
-                                <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
-                            </a>';
-                })
+
+                ->addColumn('action', fn($row) => '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int) $row->app_id . ',' . (int) $row->sale_id . ')">
+                            <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
+                        </a>')
                 ->rawColumns(['history_created_at', 'details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
                 ->make(true);
         }
     }
+    // public function getApplicantHistoryAjaxRequest(Request $request)
+    // {
+    //     $id = $request->applicant_id;
+
+    //     $model = Applicant::query()->where('applicants.id', $id);
+
+    //     // Subquery: get latest CRM note per applicant-sale (status = 1)
+    //     $latestCrmNotes = DB::table('crm_notes')
+    //         ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at')
+    //         ->whereIn('id', function ($query) {
+    //             $query->selectRaw('MAX(id)')
+    //                 ->from('crm_notes')
+    //                 ->groupBy('applicant_id', 'sale_id');
+    //         });
+
+    //     // Join with the latest CRM notes using alias 'latest_crm'
+    //     $model->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+    //         $join->on('latest_crm.applicant_id', '=', 'applicants.id');
+    //     })
+    //         ->join('sales', 'sales.id', '=', 'latest_crm.sale_id')
+    //         ->join('offices', 'offices.id', '=', 'sales.office_id')
+    //         ->join('units', 'units.id', '=', 'sales.unit_id')
+    //         ->join('history', function ($join) {
+    //             $join->on('latest_crm.applicant_id', '=', 'history.applicant_id')
+    //                 ->on('latest_crm.sale_id', '=', 'history.sale_id');
+    //         })
+    //         ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+    //         ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+    //         ->select([
+    //             'applicants.id as app_id',
+    //             'applicants.applicant_name',
+
+    //             'latest_crm.id as crm_notes_id',
+    //             'latest_crm.details as crm_note_details',
+    //             'latest_crm.created_at as crm_notes_created_at',
+
+    //             'sales.id as sale_id',
+    //             'sales.sale_postcode',
+    //             'sales.is_on_hold',
+    //             'sales.status as sale_status',
+    //             'sales.job_type as sale_job_type',
+    //             'sales.position_type',
+    //             'sales.experience as sale_experience',
+    //             'sales.qualification as sale_qualification',
+    //             'sales.salary',
+    //             'sales.timing',
+    //             'sales.created_at as sale_posted_date',
+    //             'sales.benefits',
+
+    //             'history.sub_stage as history_sub_stage',
+    //             'history.created_at as history_created_at',
+
+    //             'offices.office_name',
+    //             'units.unit_name',
+
+    //             'job_titles.name as job_title_name',
+    //             'job_categories.name as job_category_name',
+    //         ])
+    //         ->where('history.status', 1);
+
+    //     /*** Sorting */
+    //     if ($request->has('order')) {
+    //         $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+    //         $direction = $request->input('order.0.dir', 'asc');
+
+    //         switch ($orderColumn) {
+    //             case 'job_category':
+    //                 $model->orderBy('job_category_name', $direction);
+    //                 break;
+    //             case 'job_title':
+    //                 $model->orderBy('job_title_name', $direction);
+    //                 break;
+    //             case 'crm_note_details':
+    //                 $model->orderBy('crm_note_details', $direction);
+    //                 break;
+    //             case 'history_sub_stage':
+    //                 $model->orderBy('history_sub_stage', $direction);
+    //                 break;
+    //             case 'sale_postcode':
+    //                 $model->orderBy('sale_postcode', $direction);
+    //                 break;
+    //             case 'crm_notes_created_at':
+    //                 $model->orderBy('crm_notes_created_at', $direction);
+    //                 break;
+    //             case 'history_created_at':
+    //                 $model->orderBy('history_created_at', $direction);
+    //                 break;
+    //             default:
+    //                 if ($orderColumn && $orderColumn !== 'DT_RowIndex') {
+    //                     $model->orderBy($orderColumn, $direction);
+    //                 } else {
+    //                     $model->orderBy('history_created_at', 'desc');
+    //                 }
+    //         }
+    //     } else {
+    //         $model->orderBy('history_created_at', 'desc');
+    //     }
+
+    //     /*** Search */
+    //     if ($request->has('search.value')) {
+    //         $search = $request->input('search.value');
+
+    //         $model->where(function ($q) use ($search) {
+    //             $q->where('history.sub_stage', 'LIKE', "%{$search}%")
+    //                 ->orWhere('history.created_at', 'LIKE', "%{$search}%")
+    //                 ->orWhere('latest_crm.details', 'LIKE', "%{$search}%") // use latest_crm alias
+    //                 ->orWhere('sales.sale_postcode', 'LIKE', "%{$search}%")
+    //                 ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('job_categories.name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('offices.office_name', 'LIKE', "%{$search}%")
+    //                 ->orWhere('units.unit_name', 'LIKE', "%{$search}%");
+    //         });
+    //     }
+
+    //     if ($request->ajax()) {
+    //         return DataTables::eloquent($model)
+    //             ->addIndexColumn()
+    //             ->addColumn('history_created_at', function ($row) {
+    //                 return Carbon::parse($row->history_created_at)->format('d M Y, h:i A');
+    //             })
+    //             ->addColumn('job_title', function ($row) {
+    //                 return $row->job_title_name ? strtoupper($row->job_title_name) : '-';
+    //             })
+    //             ->addColumn('sub_stage', function ($row) {
+    //                 return '<span class="badge bg-primary">' . ucwords(str_replace('_', ' ', $row->history_sub_stage)) . '</span>';
+    //             })
+    //             ->addColumn('details', function ($row) {
+    //                 $short = Str::limit(strip_tags($row->crm_note_details), 100);
+    //                 $full = e($row->crm_note_details);
+    //                 $id = 'note-' . $row->crm_notes_id;
+
+    //                 return '
+    //                     <a href="javascript:void(0);" class="text-primary" data-bs-toggle="modal" data-bs-target="#' . $id . '">' . $short . '</a>
+    //                     <div class="modal fade" id="' . $id . '" tabindex="-1" aria-hidden="true">
+    //                         <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    //                             <div class="modal-content">
+    //                                 <div class="modal-header">
+    //                                     <h5 class="modal-title">Notes</h5>
+    //                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    //                                 </div>
+    //                                 <div class="modal-body">' . nl2br($full) . '</div>
+    //                                 <div class="modal-footer">
+    //                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+    //                                 </div>
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 ';
+    //             })
+    //             ->addColumn('job_details', function ($row) {
+    //                 $status = match ((int) $row->sale_status) {
+    //                     1 => 'Active|bg-success',
+    //                     0 => 'Closed|bg-danger',
+    //                     2 => 'Pending|bg-warning',
+    //                     3 => 'Rejected|bg-danger',
+    //                     default => 'Unknown|bg-secondary',
+    //                 };
+
+    //                 $data = htmlspecialchars(json_encode([
+    //                     'sale_id'       => $row->sale_id,
+    //                     'posted_date'   => Carbon::parse($row->sale_posted_date)->format('d M Y, h:i A'),
+    //                     'office'        => $row->office_name,
+    //                     'unit'          => $row->unit_name,
+    //                     'postcode'      => $row->sale_postcode,
+    //                     'category'      => $row->job_category_name,
+    //                     'title'         => $row->job_title_name,
+    //                     'status'        => $status,
+    //                     'timing'        => strip_tags($row->timing ?? ''),
+    //                     'experience'    => strip_tags($row->sale_experience ?? ''),
+    //                     'salary'        => strip_tags($row->salary ?? ''),
+    //                     'position'      => strtoupper(str_replace('-', ' ', $row->position_type ?? '')),
+    //                     'qualification' => strip_tags($row->sale_qualification ?? ''),
+    //                     'benefits'      => strip_tags($row->benefits ?? ''),
+    //                 ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
+
+    //                 return '<a href="javascript:void(0);" class="show-job-details" data-info="' . $data . '">
+    //                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+    //                         </a>';
+    //             })
+    //             ->addColumn('job_category', function ($row) {
+    //                 $type = $row->sale_job_type;
+    //                 $stype = $type === 'specialist'
+    //                     ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
+    //                     : '';
+
+    //                 return $row->job_category_name ? $row->job_category_name . $stype : '-';
+    //             })
+    //             ->addColumn('action', function ($row) {
+    //                 return '<a href="javascript:void(0);" title="View All Notes" onclick="viewNotesHistory(' . (int) $row->app_id . ',' . (int) $row->sale_id . ')">
+    //                             <iconify-icon icon="solar:clipboard-text-bold" class="text-info fs-24"></iconify-icon>
+    //                         </a>';
+    //             })
+    //             ->rawColumns(['history_created_at', 'details', 'job_category', 'job_title', 'job_details', 'action', 'sub_stage'])
+    //             ->make(true);
+    //     }
+    // }
     /*** working with history ***/
     // public function getApplicantHistoryAjaxRequest(Request $request)
     // {
