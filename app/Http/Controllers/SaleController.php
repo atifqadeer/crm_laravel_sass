@@ -589,6 +589,7 @@ class SaleController extends Controller
                         ->where('sale_postcode', $request->sale_postcode)
                         ->where('job_category_id', $request->job_category_id)
                         ->where('job_title_id', $request->job_title_id)
+                        ->where('job_source_id', $request->job_source_id)
                         ->where('status', 1);
                 }),
             ],
@@ -829,7 +830,9 @@ class SaleController extends Controller
                         ->where('unit_id', $request->unit_id)
                         ->where('sale_postcode', $request->sale_postcode)
                         ->where('job_category_id', $request->job_category_id)
-                        ->where('job_title_id', $request->job_title_id)->where('status', 1);
+                        ->where('job_title_id', $request->job_title_id)
+                        ->where('job_source_id', $request->job_source_id)
+                        ->where('status', 1);
                 })->ignore($request->sale_id),
             ],
             'job_category_id' => 'required',
