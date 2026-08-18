@@ -51,7 +51,7 @@
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                            Category</span>
+                                            Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -74,7 +74,7 @@
                                             <div class="form-check">
                                                 <input class="form-check-input category-filter" type="checkbox"
                                                     value="" id="all-categories" data-category-id="">
-                                                <label class="form-check-label" for="all-categories">All Category</label>
+                                                <label class="form-check-label" for="all-categories">All Categories</label>
                                             </div>
 
                                             @foreach ($jobCategories as $category)
@@ -144,6 +144,48 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Sources Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                            placeholder="Search Source...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
+                                            <a href="#" id="sourceSelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".source-filter" data-exclude="[data-source-id='']">Select
+                                                All</a>
+                                            <a href="#" id="sourceDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".source-filter" data-exclude="[data-source-id='']"
+                                                style="display:none">Deselect All</a>
+                                        </div>
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="sourceList">
+                                            <div class="form-check">
+                                                <input class="form-check-input source-filter" type="checkbox"
+                                                    value="" id="all-sources" data-source-id="">
+                                                <label class="form-check-label" for="all-sources">All Sources</label>
+                                            </div>
+
+                                            @foreach ($jobSources as $source)
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                        data-source-id="{{ $source->id }}">
+                                                    <label class="form-check-label"
+                                                        for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -156,6 +198,27 @@
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-body p-3">
+                    <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
+                                     flex row as DataTables' own "Show X entries" length control below. -->
+                    <div id="columnsToolbar" class="dropdown d-inline">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
+                            id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ri-layout-column-line me-1"></i> Columns
+                        </button>
+                        <div class="dropdown-menu filter-dropdowns p-2" aria-labelledby="dropdownMenuColumns"
+                            style="min-width: 230px;">
+                            <div class="d-flex justify-content-between align-items-center px-1 mb-2">
+                                <a href="#" id="columnsSelectAll" class="text-primary small fw-semibold">Show
+                                    All</a>
+                                <a href="#" id="columnsResetDefault" class="text-secondary small fw-semibold">Reset
+                                    Default</a>
+                            </div>
+                            <div id="columnsList" style="max-height: 280px; overflow-y: auto;">
+                                {{-- Checkbox per toggleable column is injected by JS from columnConfig,
+                                     kept in sync with the <thead> below by column index. --}}
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
@@ -163,16 +226,17 @@
                                     <th>#</th>
                                     <th>Date</th>
                                     <th>Sent By</th>
-                                    <th>Applicant Name</th>
+                                    <th>Name (Applicant)</th>
+                                    <th>PostCode (Applicant)</th>
                                     <th>Title</th>
                                     <th>Category</th>
-                                    <th>PostCode</th>
                                     <th width="10%">Phone / Landline</th>
                                     <th>Applicant Resume</th>
                                     <th>CRM Resume</th>
                                     <th>Head Office</th>
                                     <th>Unit</th>
-                                    <th>PostCode</th>
+                                    <th>PostCode (Sale)</th>
+                                    <th>Source (Sale)</th>
                                     <th width="10%">Notes</th>
                                     <th>Action</th>
                                 </tr>
@@ -245,14 +309,14 @@
                 }, 1500);
             }
         });
-    </script>
-    <script>
+
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentTypeFilter = '';
             var currentFilter = '';
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
+            var currentSourceFilters = [];
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -266,6 +330,149 @@
                 $('#applicants_table tbody').empty().append(loadingRow);
             }
 
+            // ---------------------------------------------------------------
+            // Column visibility (show/hide columns)
+            // ---------------------------------------------------------------
+            // Index here MUST line up with both the <thead> markup above and
+            // the `columns:` array passed to DataTable() below. `toggleable:
+        // false` marks columns that are always shown and excluded from
+            // the "Columns" dropdown (row index + action menu).
+            const columnConfig = [{
+                    title: '#',
+                    toggleable: false
+                },
+                {
+                    title: 'Date',
+                    default: true
+                },
+                {
+                    title: 'Sent By',
+                    default: true
+                },
+                {
+                    title: 'Name (Applicant)',
+                    default: true
+                },
+                {
+                    title: 'PostCode (Applicant)',
+                    default: true
+                },
+                {
+                    title: 'Title',
+                    default: true
+                },
+                {
+                    title: 'Category',
+                    default: true
+                },
+                {
+                    title: 'Phone / Landline',
+                    default: false
+                },
+                {
+                    title: 'Applicant Resume',
+                    default: true
+                },
+                {
+                    title: 'CRM Resume',
+                    default: false
+                },
+                {
+                    title: 'Head Office',
+                    default: false
+                },
+                {
+                    title: 'Unit',
+                    default: false
+                },
+                {
+                    title: 'PostCode (Sale)',
+                    default: false
+                },
+                {
+                    title: 'Source (Sale)',
+                    default: true
+                },
+                {
+                    title: 'Notes',
+                    default: true
+                },
+                {
+                    title: 'Action',
+                    toggleable: false
+                },
+            ];
+
+            const COLUMN_VISIBILITY_STORAGE_KEY = 'quality_resources_table_column_visibility_v1';
+
+            // Reads the saved per-column show/hide choices from localStorage
+            // (falling back to each column's `default`) so the layout the
+            // user picked survives page reloads/navigation.
+            function loadColumnVisibility() {
+                let stored = {};
+                try {
+                    stored = JSON.parse(localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY)) || {};
+                } catch (e) {
+                    stored = {};
+                }
+
+                return columnConfig.map(function(col, index) {
+                    if (col.toggleable === false) {
+                        return true;
+                    }
+                    return stored.hasOwnProperty(index) ? !!stored[index] : !!col.default;
+                });
+            }
+
+            function saveColumnVisibility(visibilityByIndex) {
+                const toStore = {};
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        toStore[index] = !!visibilityByIndex[index];
+                    }
+                });
+                localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(toStore));
+            }
+
+            let columnVisibility = loadColumnVisibility();
+
+            // Build the checkbox list inside the "Columns" dropdown from
+            // columnConfig, reflecting the currently active visibility state.
+            function renderColumnsDropdown() {
+                const $list = $('#columnsList');
+                $list.empty();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable === false) {
+                        return;
+                    }
+
+                    const checked = columnVisibility[index] ? 'checked' : '';
+                    $list.append(`
+                        <div class="form-check">
+                            <input class="form-check-input column-toggle" type="checkbox"
+                                id="column_${index}" data-column-index="${index}" ${checked}>
+                            <label class="form-check-label" for="column_${index}">${col.title}</label>
+                        </div>
+                    `);
+                });
+            }
+
+            renderColumnsDropdown();
+
+            // Column indices currently hidden, used as a `columnDefs` target
+            // so DataTable() renders with the right columns hidden from the
+            // very first draw (no flash of columns that then disappear).
+            function getHiddenColumnIndices() {
+                return columnVisibility
+                    .map(function(visible, index) {
+                        return visible ? null : index;
+                    })
+                    .filter(function(index) {
+                        return index !== null;
+                    });
+            }
+
             // Initialize DataTable with server-side processing
             var table = $('#applicants_table').DataTable({
                 processing: false, // Disable default processing state
@@ -276,11 +483,13 @@
                     data: function(d) {
                         d.status_filter = currentFilter; // Send the current filter value as a parameter
                         d.type_filter =
-                        currentTypeFilter; // Send the current filter value as a parameter
+                            currentTypeFilter; // Send the current filter value as a parameter
                         d.category_filter =
-                        currentCategoryFilters; // Send the current filter value as a parameter
+                            currentCategoryFilters; // Send the current filter value as a parameter
                         d.title_filter =
-                        currentTitleFilters; // Send the current filter value as a parameter
+                            currentTitleFilters; // Send the current filter value as a parameter
+                        d.source_filter =
+                            currentSourceFilters; // Send the current filter value as a parameter
 
                         // Clean up search parameter
                         if (d.search && d.search.value) {
@@ -294,7 +503,7 @@
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#applicants_table tbody').empty().html(
                             '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
-                            );
+                        );
                     }
                 },
                 columns: [{
@@ -316,16 +525,16 @@
                         name: 'applicants.applicant_name'
                     },
                     {
+                        data: 'applicant_postcode',
+                        name: 'applicants.applicant_postcode'
+                    },
+                    {
                         data: 'job_title',
                         name: 'job_titles.name'
                     },
                     {
                         data: 'job_category',
                         name: 'job_categories.name'
-                    },
-                    {
-                        data: 'applicant_postcode',
-                        name: 'applicants.applicant_postcode'
                     },
                     {
                         data: 'applicantPhone',
@@ -357,6 +566,10 @@
                         name: 'sales.sale_postcode'
                     },
                     {
+                        data: 'sale_job_source',
+                        name: 'sale_job_sources.name'
+                    },
+                    {
                         data: 'notes_detail',
                         name: 'notes_detail',
                         orderable: false,
@@ -382,17 +595,33 @@
                         }
                     },
                     {
-                        targets: 14, // Column index for 'job_details'
+                        targets: 13, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
+                    },
+                    {
+                        // Applies the saved/default column visibility (see columnConfig
+                        // above) on the very first draw, so nothing "flashes" visible
+                        // before being hidden.
+                        targets: getHiddenColumnIndices(),
+                        visible: false
                     }
                 ],
                 rowId: function(data) {
                     return 'row_' + data
-                    .id; // Assign a unique ID to each row using the 'id' field from the data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                // 'l' (length control) wrapped in its own flex row so the "Columns" button
+                // (moved here in initComplete below) lines up beside it instead of stacking
+                // on its own line.
+                dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rtip',
+                initComplete: function() {
+                    const api = this.api();
+                    $(api.table().container())
+                        .find('.dataTables_length')
+                        .after($('#columnsToolbar'));
+                },
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -471,6 +700,62 @@
 
                     pagination.html(paginationHtml);
                 },
+            });
+
+            // ---------------------------------------------------------------
+            // Column visibility dropdown handlers
+            // ---------------------------------------------------------------
+
+            // Individual column checkbox toggle
+            $(document).on('change', '.column-toggle', function() {
+                const index = parseInt($(this).data('column-index'), 10);
+                const visible = $(this).is(':checked');
+
+                columnVisibility[index] = visible;
+                table.column(index).visible(visible);
+                saveColumnVisibility(columnVisibility);
+            });
+
+            // "Show All" — makes every toggleable column visible
+            $('#columnsSelectAll').on('click', function(e) {
+                e.preventDefault();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        columnVisibility[index] = true;
+                    }
+                });
+
+                table.columns().every(function() {
+                    const index = this.index();
+                    if (columnConfig[index].toggleable !== false) {
+                        this.visible(true);
+                    }
+                });
+
+                saveColumnVisibility(columnVisibility);
+                renderColumnsDropdown();
+            });
+
+            // "Reset Default" — restores each column to its columnConfig default
+            $('#columnsResetDefault').on('click', function(e) {
+                e.preventDefault();
+
+                columnConfig.forEach(function(col, index) {
+                    if (col.toggleable !== false) {
+                        columnVisibility[index] = !!col.default;
+                    }
+                });
+
+                table.columns().every(function() {
+                    const index = this.index();
+                    if (columnConfig[index].toggleable !== false) {
+                        this.visible(columnVisibility[index]);
+                    }
+                });
+
+                saveColumnVisibility(columnVisibility);
+                renderColumnsDropdown();
             });
 
             // Search logic helper
@@ -601,6 +886,34 @@
                 table.ajax.reload();
             });
 
+            /*** Source Filter Handler ***/
+            $('.source-filter').on('change', function() {
+                const id = $(this).data('source-id');
+
+                if (id === '' || id === undefined) {
+                    currentSourceFilters = [];
+                    $('.source-filter').not(this).prop('checked', false);
+                } else {
+                    if (this.checked) {
+                        currentSourceFilters.push(id);
+                        $('.source-filter[data-source-id=""]').prop('checked', false);
+                    } else {
+                        currentSourceFilters = currentSourceFilters.filter(x => x !== id);
+                    }
+                }
+
+                const total = $('.source-filter').not('[data-source-id=""]').length;
+                const checked = $('.source-filter:checked').not('[data-source-id=""]').length;
+
+                $('#showFilterSource').text(checked > 0 ? `Selected Sources (${checked})` : 'All Sources');
+
+                const container = $('#sourceToggleContainer');
+                container.find('.filter-select-all').toggle(checked < total);
+                container.find('.filter-deselect-all').toggle(checked > 0);
+
+                table.ajax.reload();
+            });
+
             /*** Dropdown Select All Action ***/
             $(document).on('click', '.filter-select-all', function(e) {
                 e.preventDefault();
@@ -641,6 +954,16 @@
         document.getElementById('titleSearchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const checkboxes = document.querySelectorAll('#titleList .form-check');
+
+            checkboxes.forEach(function(item) {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('sourceSearchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const checkboxes = document.querySelectorAll('#sourceList .form-check');
 
             checkboxes.forEach(function(item) {
                 const label = item.querySelector('label').innerText.toLowerCase();
@@ -759,7 +1082,7 @@
                 .on('show.bs.modal', function() {
                     resetModal();
                     $('#clearCVModalLabel' + applicantID + '-' + saleID).text(
-                    modalName); // Update title in case it changed
+                        modalName); // Update title in case it changed
                 })
                 .off('hidden.bs.modal') // Remove previous handlers
                 .on('hidden.bs.modal', resetModal);
@@ -800,7 +1123,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // Send the data via AJAX
                 $.ajax({
@@ -818,7 +1141,7 @@
                         $('#' + modalID).modal('hide'); // Close the modal
                         $('#' + formID)[0].reset(); // Clear the form
                         $('#detailsTextarea' + applicantID + '-' + saleID).removeClass(
-                        'is-valid'); // Remove valid class
+                            'is-valid'); // Remove valid class
                         $('#detailsTextarea' + applicantID + '-' + saleID).next('.invalid-feedback')
                             .remove(); // Remove error message
 
@@ -920,25 +1243,37 @@
             });
         }
 
-        // Function to show the notes modal
+        // Function to show the manager details modal
         function viewManagerDetails(id) {
-            const modalId = 'viewManagerDetailsModal' + id;
+            const unitId = parseInt(id, 10) || 0;
+            if (unitId <= 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No unit linked',
+                    text: 'This sale does not have a unit, so manager details are unavailable.',
+                });
+                return;
+            }
+
+            const modalId = 'viewManagerDetailsModal' + unitId;
+            window.managerDetailsModalID = modalId;
 
             // Add modal only once
-            if ($(`#${modalId}`).length === 0) {
+            if ($('#' + modalId).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label">' +
-                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                    '<div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Manager Details</h5>' +
                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                     '</div>' +
-                    '<div class="modal-body text-center">' +
-                    '<!-- Loader shown by default -->' +
+                    '<div class="modal-body text-start">' +
+                    '<div class="text-center py-4">' +
                     '<div class="spinner-border text-primary" role="status">' +
                     '<span class="visually-hidden">Loading...</span>' +
+                    '</div>' +
                     '</div>' +
                     '</div>' +
                     '<div class="modal-footer">' +
@@ -965,39 +1300,14 @@
                 url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
                 data: {
-                    id: id,
+                    id: unitId,
                     module: 'Unit'
                 },
                 success: function(response) {
-                    let contactHtml = '';
-
-                    if (response.data.length === 0) {
-
-                        contactHtml = '<p>' + response.message + '</p>';
-                    } else {
-                        response.data.forEach(function(contact) {
-                            const name = contact.contact_name;
-                            const email = contact.contact_email;
-                            const phone = contact.contact_phone;
-                            const landline = contact.contact_landline || '-';
-                            const note = contact.contact_note || 'N/A';
-
-                            contactHtml +=
-                                '<div class="note-entry text-start">' +
-                                '<p><strong>Name:</strong> ' + name + '</p>' +
-                                '<p><strong>Email:</strong> ' + email + '</p>' +
-                                '<p><strong>Phone:</strong> ' + phone + '</p>' +
-                                '<p><strong>Landline:</strong> ' + landline + '</p>' +
-                                '<p><strong>Notes:</strong> ' + note + '</p>' +
-                                '</div><hr>';
-                        });
-                    }
-
-                    // Replace loader with content
-                    $('#' + modalId + ' .modal-body').html(contactHtml);
+                    window.managerContacts = response.data || [];
+                    renderContacts('all');
                 },
-                error: function(xhr, status, error) {
-
+                error: function(xhr) {
                     let message = 'Something went wrong.';
 
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1007,9 +1317,95 @@
                     $('#' + modalId + ' .modal-body').html(
                         '<p class="text-danger">' + message + '</p>'
                     );
-
                 }
             });
+        }
+
+        const canShowPrivateData = @json(auth()->user()?->can('show-private-data') ?? false);
+
+        $(document).on('change', 'input[name="contact_filter"]', function() {
+            if (!canShowPrivateData) {
+                return;
+            }
+            renderContacts($(this).val());
+        });
+
+        function renderContacts(filterType) {
+            var contacts = window.managerContacts || [];
+            var modalId = window.managerDetailsModalID;
+            if (!modalId) {
+                return;
+            }
+
+            if (!canShowPrivateData) {
+                filterType = 'all';
+            }
+
+            var contactHtml = '';
+
+            if (canShowPrivateData) {
+                contactHtml += `
+                    <div class="mb-3">
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="all" ${filterType === 'all' ? 'checked' : ''}>
+                            All
+                        </label>
+
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="kingsbury" ${filterType === 'kingsbury' ? 'checked' : ''}>
+                            Kingsburry
+                        </label>
+
+                        <label>
+                            <input type="radio" name="contact_filter" value="others" ${filterType === 'others' ? 'checked' : ''}>
+                            Others
+                        </label>
+                    </div>
+                    <hr>
+                `;
+            }
+
+            if (contacts.length === 0) {
+                contactHtml += '<p>No records found.</p>';
+            } else {
+                contacts.forEach(function(contact) {
+                    var name = contact.contact_name || '';
+                    var email = contact.contact_email || '';
+                    var phone = contact.contact_phone || 'N/A';
+                    var landline = contact.contact_landline || 'N/A';
+                    var note = contact.contact_note || '';
+
+                    if (canShowPrivateData) {
+                        var sourceName = (contact.job_source_name ||
+                            (contact.job_source && contact.job_source.name) ||
+                            '').toString().toLowerCase().trim();
+                        var isHayaibuSource = contact.is_hayaibu_source === true ||
+                            contact.is_hayaibu_source === 1 ||
+                            sourceName.indexOf('hayaibu') !== -1;
+
+                        if (filterType === 'kingsbury' && isHayaibuSource) {
+                            return;
+                        }
+
+                        if (filterType === 'others' && !isHayaibuSource) {
+                            return;
+                        }
+                    }
+
+                    contactHtml += `
+                <div class="note-entry">
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
+                    <p><strong>Landline:</strong> ${landline}</p>
+                    <p><strong>Note:</strong> ${note || 'N/A'}</p>
+                </div>
+                <hr>
+            `;
+                });
+            }
+
+            $('#' + modalId + ' .modal-body').html(contactHtml);
         }
 
         document.addEventListener('click', function(e) {
@@ -1043,12 +1439,13 @@
                             </div>
                             <div class="modal-body">
                                 <table class="table table-bordered">
-                                    <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Sale ID #</th><td>${job.sale_id}</td></tr>
                                     <tr><th>Head Office</th><td>${job.office_name}</td></tr>
                                     <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
                                     <tr><th>Postcode</th><td>${job.postcode}</td></tr>
                                     <tr><th>Job Category</th><td>${job.job_category}</td></tr>
                                     <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Job Source</th><td>${job.job_source}</td></tr>
                                     <tr><th>Status</th><td>${job.status}</td></tr>
                                     <tr><th>Timing</th><td>${job.timing}</td></tr>
                                     <tr><th>Experience</th><td>${job.experience}</td></tr>

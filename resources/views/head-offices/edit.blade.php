@@ -70,7 +70,7 @@
                                         placeholder="Enter URL">
                                 </div>
                             </div>
-                            @if ($office->status == 4)
+                            @if ($office->status == 4 || $office->status == 5)
                                 <div class="col-lg-3 col-md-6 col-sm-12">
                                     <div class="mb-3">
                                         <label for="status" class="form-label">Status</label>
