@@ -692,6 +692,37 @@
                         </div>
 
                     </div>
+
+                    <div id="rejectionReasonsSection" class="d-none">
+                        <hr class="my-4">
+                        <h6 class="text-left mb-3">Rejection Reasons</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-bordered mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Reason</th>
+                                        <th class="text-center">Nurses (Regular)</th>
+                                        <th class="text-center">Nurses (Specialist)</th>
+                                        <th class="text-center">Non Nurses (Regular)</th>
+                                        <th class="text-center">Non Nurses (Specialist)</th>
+                                        <th class="text-center">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rejectionReasonStats"></tbody>
+                                <tfoot id="rejectionReasonTotals" class="table-light fw-bold d-none">
+                                    <tr>
+                                        <td>Total</td>
+                                        <td class="text-center" id="reasonSumNursesRegular">0</td>
+                                        <td class="text-center" id="reasonSumNursesSpecialist">0</td>
+                                        <td class="text-center" id="reasonSumNonNursesRegular">0</td>
+                                        <td class="text-center" id="reasonSumNonNursesSpecialist">0</td>
+                                        <td class="text-center" id="reasonSumTotal">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
                     <hr class="my-4">
 
                     <h6 class="text-left mb-3">Job Sources</h6>
@@ -930,9 +961,18 @@
             });
         }
 
+        function todayYmd() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             // Default UI
             currentRange = 'daily';
+            currentDateRange = currentDateRange || todayYmd();
             rangeBtn.innerText = 'Daily';
 
             document.querySelectorAll('.stats-filter').forEach(el => el.classList.remove('active'));
@@ -1037,20 +1077,68 @@
             $.get('/statistics/status-details', {
                 status: statusKey,
                 range: currentRange,
-                date_range: currentDateRange
+                date_range: currentDateRange || todayYmd()
             }, function(resp) {
-
-                console.log(resp); // DEBUG
-
                 $('#statusDetailsLabel')
                     .text(resp.title)
                     .attr('data-crm-status', resp.crm_status);
-
 
                 $('#nursesRegularCount').text(resp.nurses_regular ?? 0);
                 $('#nursesSpecialistCount').text(resp.nurses_specialist ?? 0);
                 $('#nonNursesRegularCount').text(resp.non_nurses_regular ?? 0);
                 $('#nonNursesSpecialistCount').text(resp.non_nurses_specialist ?? 0);
+
+                const reasons = resp.rejection_reasons || [];
+                if (resp.crm_status === 'crm_rejected') {
+                    if (reasons.length) {
+                        const sums = {
+                            nurses_regular: 0,
+                            nurses_specialist: 0,
+                            non_nurses_regular: 0,
+                            non_nurses_specialist: 0,
+                            total: 0
+                        };
+                        const rows = reasons.map(function(src) {
+                            const nursesRegular = Number(src.nurses_regular ?? 0);
+                            const nursesSpecialist = Number(src.nurses_specialist ?? 0);
+                            const nonNursesRegular = Number(src.non_nurses_regular ?? 0);
+                            const nonNursesSpecialist = Number(src.non_nurses_specialist ?? 0);
+                            const rowTotal = Number(src.total ?? 0);
+                            sums.nurses_regular += nursesRegular;
+                            sums.nurses_specialist += nursesSpecialist;
+                            sums.non_nurses_regular += nonNursesRegular;
+                            sums.non_nurses_specialist += nonNursesSpecialist;
+                            sums.total += rowTotal;
+
+                            const label = $('<div>').text(src.label || src.reason || 'Unknown').html();
+                            return `<tr>
+                                <td>${label}</td>
+                                <td class="text-center">${nursesRegular}</td>
+                                <td class="text-center">${nursesSpecialist}</td>
+                                <td class="text-center">${nonNursesRegular}</td>
+                                <td class="text-center">${nonNursesSpecialist}</td>
+                                <td class="text-center fw-bold">${rowTotal}</td>
+                            </tr>`;
+                        }).join('');
+                        $('#rejectionReasonStats').html(rows);
+                        $('#reasonSumNursesRegular').text(sums.nurses_regular);
+                        $('#reasonSumNursesSpecialist').text(sums.nurses_specialist);
+                        $('#reasonSumNonNursesRegular').text(sums.non_nurses_regular);
+                        $('#reasonSumNonNursesSpecialist').text(sums.non_nurses_specialist);
+                        $('#reasonSumTotal').text(sums.total);
+                        $('#rejectionReasonTotals').removeClass('d-none');
+                    } else {
+                        $('#rejectionReasonStats').html(
+                            '<tr><td colspan="6" class="text-center text-muted">No rejection reason data</td></tr>'
+                        );
+                        $('#rejectionReasonTotals').addClass('d-none');
+                    }
+                    $('#rejectionReasonsSection').removeClass('d-none');
+                } else {
+                    $('#rejectionReasonStats').empty();
+                    $('#rejectionReasonTotals').addClass('d-none');
+                    $('#rejectionReasonsSection').addClass('d-none');
+                }
 
                 let jobSourceHtml = '';
 
@@ -1075,9 +1163,13 @@
 
                 $('#jobSourceStats').html(jobSourceHtml);
 
-                // Bootstrap 5 safe way
                 const modal = new bootstrap.Modal(document.getElementById('statusDetailsModal'));
                 modal.show();
+            }).fail(function(xhr) {
+                console.error('Error loading status details:', xhr.responseText);
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Unable to load CRM status details.');
+                }
             });
         }
 
@@ -1087,7 +1179,7 @@
             const type = $(this).data('type'); // regular / specialist
             const status = $('#statusDetailsLabel').attr('data-crm-status'); // current status
             const range = currentRange;
-            const date_range = currentDateRange;
+            const date_range = currentDateRange || todayYmd();
 
             // Create a form dynamically
             const form = $('<form>', {
