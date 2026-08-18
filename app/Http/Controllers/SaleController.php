@@ -574,25 +574,54 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         // Validation
+        // $validator = Validator::make($request->all(), [
+        //     'office_id' => 'required',
+        //     'unit_id' => 'required',
+        //     'sale_postcode' => [
+        //         'required',
+        //         'string',
+        //         'min:3',
+        //         'max:8',
+        //         'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
+        //         Rule::unique('sales')->where(function ($q) use ($request) {
+        //             $q->where('office_id', $request->office_id)
+        //                 ->where('unit_id', $request->unit_id)
+        //                 ->where('sale_postcode', $request->sale_postcode)
+        //                 ->where('job_category_id', $request->job_category_id)
+        //                 ->where('job_title_id', $request->job_title_id)
+        //                 ->where('status', 1);
+
+        //             if ($request->job_source_id == 10) {
+        //                 // Only conflict with other records that are ALSO job_source_id = 10
+        //                 $q->where('job_source_id', 10);
+        //             } else {
+        //                 // Conflict with any record that is NOT job_source_id = 10
+        //                 $q->where('job_source_id', '!=', 10);
+        //             }
+
+        //             return $q;
+        //         })->ignore($request->sale_id),
+        //     ],
+        //     'job_category_id' => 'required',
+        //     'job_title_id' => 'required',
+        //     'job_source_id' => 'required',
+        //     'job_type' => 'required',
+        //     'position_type' => 'required',
+        //     'cv_limit' => 'required',
+        //     'timing' => 'required',
+        //     'experience' => 'required',
+        //     'salary' => 'required',
+        //     'benefits' => 'required',
+        //     'qualification' => 'required',
+        //     'sale_notes' => 'required',
+        //     'job_description' => 'nullable|string',
+        //     'attachments.*' => 'nullable|file|extensions:pdf,doc,docx,txt|max:10000', // max 10MB
+        // ]);
+
         $validator = Validator::make($request->all(), [
             'office_id' => 'required',
             'unit_id' => 'required',
-            'sale_postcode' => [
-                'required',
-                'string',
-                'min:3',
-                'max:8',
-                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
-                Rule::unique('sales')->where(function ($q) use ($request) {
-                    return $q->where('office_id', $request->office_id)
-                        ->where('unit_id', $request->unit_id)
-                        ->where('sale_postcode', $request->sale_postcode)
-                        ->where('job_category_id', $request->job_category_id)
-                        ->where('job_title_id', $request->job_title_id)
-                        ->where('job_source_id', $request->job_source_id)
-                        ->where('status', 1);
-                }),
-            ],
+            'sale_postcode' => 'required|string',
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_source_id' => 'required',
@@ -608,6 +637,40 @@ class SaleController extends Controller
             'job_description' => 'nullable|string',
             'attachments.*' => 'nullable|file|extensions:pdf,doc,docx,txt|max:10000', // max 10MB
         ]);
+
+        // Overall duplicate check (runs after the rules above pass their basic checks)
+        $validator->after(function ($validator) use ($request) {
+
+            $query = Sale::where('sale_postcode', $request->sale_postcode)
+                ->where('office_id', $request->office_id)
+                ->where('unit_id', $request->unit_id)
+                ->where('sale_postcode', $request->sale_postcode)
+                ->where('job_category_id', $request->job_category_id)
+                ->where('job_title_id', $request->job_title_id)
+                ->whereIn('status', [1, 2]);
+
+            if ($request->job_source_id == 10) {
+                // Only conflict with other records that are ALSO job_source_id = 10
+                $query->where('job_source_id', 10);
+            } else {
+                // Conflict with any record that is NOT job_source_id = 10
+                $query->where('job_source_id', '!=', 10);
+            }
+
+            // Exclude current record when editing
+            if ($request->filled('sale_id')) {
+                $query->where('id', '!=', $request->sale_id);
+            }
+
+            if ($query->exists()) {
+                $validator->errors()->add('sale_postcode', 'This sale already exists (duplicate postcode).')
+                    ->add('unit_id', 'This sale already exists (duplicate unit).')
+                    ->add('office_id', 'This sale already exists (duplicate office).')
+                    ->add('job_category_id', 'This sale already exists (duplicate job category).')
+                    ->add('job_title_id', 'This sale already exists (duplicate job title).')
+                    ->add('job_source_id', 'This sale already exists (duplicate job source).');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -816,25 +879,55 @@ class SaleController extends Controller
     public function update(Request $request)
     {
         // Validation
+        // $validator = Validator::make($request->all(), [
+        //     'office_id' => ['required'],
+        //     'unit_id' => ['required'],
+        //     'sale_postcode' => [
+        //         'required',
+        //         'string',
+        //         'min:3',
+        //         'max:8',
+        //         'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
+        //         Rule::unique('sales')->where(function ($q) use ($request) {
+        //             $q->where('office_id', $request->office_id)
+        //                 ->where('unit_id', $request->unit_id)
+        //                 ->where('sale_postcode', $request->sale_postcode)
+        //                 ->where('job_category_id', $request->job_category_id)
+        //                 ->where('job_title_id', $request->job_title_id)
+        //                 ->where('status', 1);
+
+        //             if ($request->job_source_id == 10) {
+        //                 // Only conflict with other records that are ALSO job_source_id = 10
+        //                 $q->where('job_source_id', 10);
+        //             } else {
+        //                 // Conflict with any record that is NOT job_source_id = 10
+        //                 $q->where('job_source_id', '!=', 10);
+        //             }
+
+        //             return $q;
+        //         })->ignore($request->sale_id),
+        //     ],
+        //     'job_category_id' => 'required',
+        //     'job_title_id' => 'required',
+        //     'job_source_id' => 'required',
+        //     'job_type' => 'required',
+        //     'position_type' => 'required',
+        //     'cv_limit' => 'required',
+        //     'timing' => 'required',
+        //     'experience' => 'required',
+        //     'salary' => 'required',
+        //     'benefits' => 'required',
+        //     'qualification' => 'required',
+        //     'sale_notes' => 'required',
+        //     'job_description' => 'nullable',
+        //     'attachments.*' => 'file|mimes:pdf,doc,docx,txt|max:10000',
+        // ]);
+        // Validation
         $validator = Validator::make($request->all(), [
-            'office_id' => ['required'],
-            'unit_id' => ['required'],
-            'sale_postcode' => [
-                'required',
-                'string',
-                'min:3',
-                'max:8',
-                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/',
-                Rule::unique('sales')->where(function ($q) use ($request) {
-                    return $q->where('office_id', $request->office_id)
-                        ->where('unit_id', $request->unit_id)
-                        ->where('sale_postcode', $request->sale_postcode)
-                        ->where('job_category_id', $request->job_category_id)
-                        ->where('job_title_id', $request->job_title_id)
-                        ->where('job_source_id', $request->job_source_id)
-                        ->where('status', 1);
-                })->ignore($request->sale_id),
-            ],
+            'sale_id' => 'required|exists:sales,id',
+            'office_id' => 'required',
+            'unit_id' => 'required',
+            'sale_postcode' => 'required|string',
             'job_category_id' => 'required',
             'job_title_id' => 'required',
             'job_source_id' => 'required',
@@ -847,12 +940,43 @@ class SaleController extends Controller
             'benefits' => 'required',
             'qualification' => 'required',
             'sale_notes' => 'required',
-            'job_description' => 'nullable',
-            'attachments.*' => 'file|mimes:pdf,doc,docx,txt|max:10000',
+            'job_description' => 'nullable|string',
+            'attachments.*' => 'nullable|file|extensions:pdf,doc,docx,txt|max:10000', // max 10MB
         ]);
+
+        // Overall duplicate check (runs after the rules above pass their basic checks)
+        $validator->after(function ($validator) use ($request) {
+
+            $query = Sale::where('office_id', $request->office_id)
+                ->where('unit_id', $request->unit_id)
+                ->where('sale_postcode', $request->sale_postcode)
+                ->where('job_category_id', $request->job_category_id)
+                ->where('job_title_id', $request->job_title_id)
+                ->whereIn('status', [1, 2])
+                // Always exclude the record being edited
+                ->where('id', '!=', $request->sale_id);
+
+            if ($request->job_source_id == 10) {
+                // Only conflict with other records that are ALSO job_source_id = 10
+                $query->where('job_source_id', 10);
+            } else {
+                // Conflict with any record that is NOT job_source_id = 10
+                $query->where('job_source_id', '!=', 10);
+            }
+
+            if ($query->exists()) {
+                $validator->errors()->add('sale_postcode', 'This sale already exists (duplicate postcode).')
+                    ->add('unit_id', 'This sale already exists (duplicate unit).')
+                    ->add('office_id', 'This sale already exists (duplicate office).')
+                    ->add('job_category_id', 'This sale already exists (duplicate job category).')
+                    ->add('job_title_id', 'This sale already exists (duplicate job title).')
+                    ->add('job_source_id', 'This sale already exists (duplicate job source).');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
+                'success' => false,
                 'errors' => $validator->errors(),
                 'message' => 'Please fix the errors in the form'
             ], 422);
