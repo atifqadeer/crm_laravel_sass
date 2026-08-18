@@ -954,9 +954,9 @@ class QualityController extends Controller
             ->skipTotalRecords()
             ->order(fn($query) => $this->applySorting($query, $request))
             ->addIndexColumn()
-            ->addColumn('user_name', function ($applicant) use ($statusFilter) {
-                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
-                return ucwords($applicant->user_name ?? '') ?: '-';
+            ->addColumn('user_name', function ($row) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($row, $statusFilter);
+                return ucwords($row->user_name ?? '') ?: '-';
             })
             ->filterColumn('users.name', function ($query, $keyword) use ($statusFilter) {
                 if (in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
@@ -964,41 +964,41 @@ class QualityController extends Controller
                 }
                 $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . mb_strtolower($keyword) . '%']);
             })
-            ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
-            ->addColumn('job_category', function ($applicant) {
-                $type = $applicant->sale_job_type;
+            ->addColumn('job_title', fn($row) => $row->job_title_name ? strtoupper($row->job_title_name) : '-')
+            ->addColumn('job_category', function ($row) {
+                $type = $row->sale_job_type;
 
                 $stype = $type === 'specialist'
                     ? '<br><span class="badge bg-secondary-subtle text-muted text-uppercase mt-1" style="font-size:10px;">Specialist</span>'
                     : '';
 
-                return $applicant->job_category_name ? ucwords($applicant->job_category_name) . $stype : '-';
+                return $row->job_category_name ? ucwords($row->job_category_name) . $stype : '-';
             })
-            ->addColumn('sale_job_source', function ($applicant) {
-                return $applicant->sale_job_source_name
-                    ? '<span class="badge bg-light text-dark">' . e(ucwords($applicant->sale_job_source_name)) . '</span>'
+            ->addColumn('sale_job_source', function ($row) {
+                return $row->sale_job_source_name
+                    ? '<span class="badge bg-light text-dark">' . e(ucwords($row->sale_job_source_name)) . '</span>'
                     : '-';
             })
             ->filterColumn('sale_job_sources.name', function ($query, $keyword) {
                 $query->whereRaw('LOWER(sale_job_sources.name) LIKE ?', ['%' . mb_strtolower($keyword) . '%']);
             })
-            ->addColumn('applicant_name', function ($applicant) {
-                $name = ucwords($applicant->applicant_name);
-                return '<a class="dropdown-item" target="_blank" title="View Applicant History" href="' . route('applicants.history', ['id' => (int) $applicant->id]) . '">' . $name . '</a>';
+            ->addColumn('applicant_name', function ($row) {
+                $name = ucwords($row->applicant_name);
+                return '<a class="dropdown-item" target="_blank" title="View Applicant History" href="' . route('applicants.history', ['id' => (int) $row->id]) . '">' . $name . '</a>';
             })
-            ->addColumn('applicantEmail', fn($applicant) => $this->renderApplicantEmail($applicant))
+            ->addColumn('applicantEmail', fn($row) => $this->renderApplicantEmail($row))
             ->filterColumn('applicantEmail', function ($query, $keyword) {
                 $keyword = trim($keyword);
                 $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
                     ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
             })
-            ->editColumn('applicant_postcode', fn($applicant) => $this->renderApplicantPostcode($applicant))
-            ->editColumn('sale_postcode', fn($applicant) => $this->renderSalePostcode($applicant))
-            ->addColumn('notes_detail', function ($applicant) use ($statusFilter) {
-                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
-                return $this->renderNotesDetail($applicant);
+            ->editColumn('applicant_postcode', fn($row) => $this->renderApplicantPostcode($row))
+            ->editColumn('sale_postcode', fn($row) => $this->renderSalePostcode($row))
+            ->addColumn('notes_detail', function ($row) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($row, $statusFilter);
+                return $this->renderNotesDetail($row);
             })
-            ->addColumn('applicantPhone', fn($applicant) => $this->renderApplicantPhone($applicant))
+            ->addColumn('applicantPhone', fn($row) => $this->renderApplicantPhone($row))
             ->filterColumn('applicantPhone', function ($query, $keyword) {
                 $clean = preg_replace('/[^0-9]/', '', $keyword);
                 $query->where(function ($q) use ($clean) {
@@ -1007,23 +1007,18 @@ class QualityController extends Controller
                         ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                 });
             })
-            ->addColumn('notes_created_at', function ($applicant) use ($statusFilter) {
-                $this->hydrateLazyQualityDecisionData($applicant, $statusFilter);
-                return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:iA');
+            ->addColumn('notes_created_at', function ($row) use ($statusFilter) {
+                $this->hydrateLazyQualityDecisionData($row, $statusFilter);
+                return Carbon::parse($row->notes_created_at)->format('d M Y, h:iA');
             })
-            ->editColumn('applicant_resume', fn($applicant) => $this->renderResumeLink($applicant->applicant_cv, $applicant->is_blocked, 'success'))
-            ->addColumn('crm_resume', fn($applicant) => $this->renderResumeLink($applicant->updated_cv, $applicant->is_blocked, 'primary'))
-            ->addColumn('customStatus', fn($applicant) => $this->renderCustomStatus($applicant))
-            ->addColumn('action', fn($applicant) => $this->renderActionMenu($applicant, $statusFilter))
+            ->editColumn('applicant_resume', fn($row) => $this->renderResumeLink($row->applicant_cv, $row->is_blocked, 'success'))
+            ->addColumn('crm_resume', fn($row) => $this->renderResumeLink($row->updated_cv, $row->is_blocked, 'primary'))
+            ->addColumn('customStatus', fn($row) => $this->renderCustomStatus($row))
+            ->addColumn('action', fn($row) => $this->renderActionMenu($row, $statusFilter))
             ->rawColumns(['notes_detail', 'applicant_name', 'notes_created_at', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'sale_job_source', 'action'])
             ->make(true);
     }
 
-    /**
-     * Generic single-pass "latest/earliest row per (applicant_id, sale_id)" helper.
-     * Uses ROW_NUMBER() so the source table is scanned once instead of the
-     * aggregate-then-self-join pattern (two scans) used previously.
-     */
     private function rankedPerApplicantSaleSubquery(
         string $table,
         array $columns,
@@ -1043,47 +1038,8 @@ class QualityController extends Controller
             ->select($columns);
     }
 
-    /**
-     * Applicant/sale pairs whose CURRENT active history stage is one of the
-     * given target sub-stages.
-     *
-     * `idx_history_quality_state` (sub_stage, status, applicant_id, sale_id,
-     * id) already returns matching rows pre-sorted by (applicant_id,
-     * sale_id), so filtering directly on the target sub-stage(s) + status=1
-     * and aggregating lets MySQL stream/loose-index-scan straight off the
-     * index — no filesort or window function needed.
-     *
-     * Earlier this ranked across ALL quality sub-stages (via ROW_NUMBER)
-     * before narrowing to the target ones, on the theory that `status = 1`
-     * alone might not be reliable. In practice `status = 1` uniquely
-     * identifies the current row for ~99.98% of pairs (verified: 5
-     * mismatched pairs out of ~22k active quality-stage rows), so ranking
-     * the *entire* quality universe just to throw most of it away was the
-     * real cost driver — for "Rejected CVs" that meant scanning/sorting
-     * ~22k rows before even applying the "rejected" filter, and repeating
-     * that same full-universe rank for "Cleared CVs" even though its
-     * target sub-stages only match ~130 rows. MAX() below simply picks a
-     * single deterministic row for those rare duplicate-active pairs
-     * instead of failing/duplicating.
-     */
     private function currentQualityHistorySubquery(array $targetSubStages): Builder
     {
-        // `history.status` is NOT "is this the current quality stage" — it's "is this the
-        // single most-recent row for this (applicant_id, sale_id) pair across ANY stage,
-        // including later CRM/sales stages". So once a cleared/rejected applicant moves on
-        // to CRM, their quality_cleared/quality_reject row flips to status=0 even though
-        // being cleared/rejected by quality is a permanent historical fact that shouldn't
-        // disappear — that's why filtering on status=1 alone showed ~130 rows for "Cleared
-        // CVs" instead of the ~58k that actually exist.
-        //
-        // Pairs can also be rejected then later re-cleared (or vice versa, via the revert
-        // workflow), so we can't just take "any row with this sub_stage" either — that would
-        // put a pair in both "Rejected CVs" and "Cleared CVs" simultaneously. Instead we rank
-        // ONLY the quality decision rows (reject/cleared/cleared_no_job — NOT the in-progress
-        // quality_cvs/hold states) per pair and take the latest one, then filter to whichever
-        // decision(s) the caller asked for. This keeps the ranked set to ~104k rows instead of
-        // the full 550k+ history table or even the ~205k "all quality sub-stages" set an
-        // earlier version of this method ranked (which is what made it slow before).
         $decisionSubStages = ['quality_reject', 'quality_cleared', 'quality_cleared_no_job'];
 
         return $this->rankedPerApplicantSaleSubquery(
@@ -1120,27 +1076,6 @@ class QualityController extends Controller
         );
     }
 
-    /**
-     * Shared logic for "Rejected CVs" / "Cleared CVs".
-     *
-     * IMPORTANT: unlike the other filters, the set of applicants currently
-     * sitting in a rejected/cleared quality-history stage is NOT small — it
-     * can be tens of thousands of historical (applicant, sale) pairs system
-     * wide. That means anything added to the SELECT list here gets evaluated
-     * for *every* one of those rows by both the paginated data query and
-     * Yajra's recordsFiltered COUNT query — including per-row note/user
-     * lookups, which is exactly what made this slow (whether done as a
-     * window-function ranking over the whole notes table, or as a nested
-     * "IN (subquery)" scope: both still cost O(matching rows), not O(page
-     * size)).
-     *
-     * So this method deliberately keeps the query CHEAP and anchor-only
-     * (just the history stage + sales/offices/units joins, all indexed).
-     * The note text and "sent by" user are resolved separately, only for
-     * the ~10-25 rows Yajra actually returns after pagination — see
-     * hydrateLazyQualityDecisionData(), called from the addColumn()
-     * closures in getResourcesByTypeAjaxRequest().
-     */
     private function applyQualityDecisionFilter($model, array $historyStages, array $commonSaleSelect)
     {
         $saleSelect = array_values(array_filter(
@@ -1170,13 +1105,6 @@ class QualityController extends Controller
             ]));
     }
 
-    /**
-     * Resolves the note text + "sent by" user name for a single row of the
-     * "Rejected CVs" / "Cleared CVs" tables. Only ever called for rows on
-     * the current DataTables page (~10-25 rows), so two small indexed point
-     * queries per row is negligible — this is the enrichment step that used
-     * to be baked into the main query (and ran for every matching row).
-     */
     private function hydrateLazyQualityDecisionData($applicant, string $statusFilter): void
     {
         if (!in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
@@ -1330,9 +1258,10 @@ class QualityController extends Controller
         }
 
         match (true) {
-            $orderColumn === 'job_source'   => $model->orderBy('applicants.job_source_id', $orderDirection),
-            $orderColumn === 'job_category' => $model->orderBy('applicants.job_category_id', $orderDirection),
-            $orderColumn === 'job_title'    => $model->orderBy('applicants.job_title_id', $orderDirection),
+            $orderColumn === 'sale_job_source' => $model->orderBy('sales.job_source_id', $orderDirection),
+            $orderColumn === 'job_source'      => $model->orderBy('sales.job_source_id', $orderDirection),
+            $orderColumn === 'job_category'    => $model->orderBy('applicants.job_category_id', $orderDirection),
+            $orderColumn === 'job_title'       => $model->orderBy('applicants.job_title_id', $orderDirection),
             $orderColumn && $orderColumn !== 'DT_RowIndex' => $model->orderBy($orderColumn, $orderDirection),
             default => $model->orderBy('notes_created_at', 'desc'),
         };
@@ -1353,7 +1282,7 @@ class QualityController extends Controller
         $hasUsersJoin = !in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true);
 
         // NOTE: all four whereHas() calls removed. job_titles, job_categories,
-        // job_sources, and users are already LEFT/INNER JOINed into the base
+        // sale_job_sources, and users are already LEFT/INNER JOINed into the
         // query — filtering their already-aliased columns directly avoids four
         // redundant correlated EXISTS subqueries per search request.
         $model->where(function ($query) use ($searchTerm, $hasUsersJoin) {
@@ -1368,7 +1297,7 @@ class QualityController extends Controller
                 ->orWhereRaw('LOWER(units.unit_name) LIKE ?', ["%{$searchTerm}%"])
                 ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
                 ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%");
+                ->orWhere('sale_job_sources.name', 'LIKE', "%{$searchTerm}%");
 
             if ($hasUsersJoin) {
                 $query->orWhere('users.name', 'LIKE', "%{$searchTerm}%");
@@ -1567,46 +1496,47 @@ class QualityController extends Controller
         return $status;
     }
 
-    private function renderActionMenu($applicant, $statusFilter)
+    private function renderActionMenu($row, $statusFilter)
     {
         $html = '<div class="btn-group dropstart"> 
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> 
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon> </button> 
                                 <ul class="dropdown-menu">';
 
-        $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+        $position_type = strtoupper(str_replace('-', ' ', $row->position_type ?? ''));
         $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
 
         // sale status
-        if ($applicant->sale_status == 1) {
+        if ($row->sale_status == 1) {
             $status = '<span class="badge bg-success">Active</span>';
-        } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+        } elseif ($row->sale_status == 0 && $row->is_on_hold == 0) {
             $status = '<span class="badge bg-danger">Closed</span>';
-        } elseif ($applicant->sale_status == 2) {
+        } elseif ($row->sale_status == 2) {
             $status = '<span class="badge bg-warning">Pending</span>';
-        } elseif ($applicant->sale_status == 3) {
+        } elseif ($row->sale_status == 3) {
             $status = '<span class="badge bg-danger">Rejected</span>';
         } else {
             $status = '<span class="badge bg-secondary">Unknown</span>';
         }
 
-        $saleJobTitle = JobTitle::where('id', $applicant->sale_title_id)->first('name');
-        $saleJobCategory = JobCategory::where('id', $applicant->sale_category_id)->first('name');
+        $saleJobTitle = JobTitle::where('id', $row->sale_title_id)->first('name');
+        $saleJobCategory = JobCategory::where('id', $row->sale_category_id)->first('name');
 
         $jobData = [
-            'sale_id'       => (int) $applicant->sale_id,
-            'office_name'   => ucwords($applicant->office_name ?? ''),
-            'unit_name'     => ucwords($applicant->unit_name ?? ''),
-            'postcode'      => strtoupper($applicant->sale_postcode ?? ''),
+            'sale_id'       => (int) $row->sale_id,
+            'office_name'   => ucwords($row->office_name ?? ''),
+            'unit_name'     => ucwords($row->unit_name ?? ''),
+            'postcode'      => strtoupper($row->sale_postcode ?? ''),
             'job_category'  => ucwords($saleJobCategory->name ?? ''),
             'job_title'     => strtoupper($saleJobTitle->name ?? ''),
+            'job_source'    => ucwords($row->sale_job_source_name ?? ''),
             'status'        => $status,       // RAW HTML
-            'timing'        => $applicant->timing ?? '',
-            'experience'    => $applicant->sale_experience ?? '',
-            'salary'        => $applicant->salary ?? '',
+            'timing'        => $row->timing ?? '',
+            'experience'    => $row->sale_experience ?? '',
+            'salary'        => $row->salary ?? '',
             'position'      => $position,     // RAW HTML
-            'qualification' => $applicant->sale_qualification ?? '',
-            'benefits'      => $applicant->benefits ?? '',
+            'qualification' => $row->sale_qualification ?? '',
+            'benefits'      => $row->benefits ?? '',
         ];
 
         $html .= '<li>
@@ -1625,34 +1555,34 @@ class QualityController extends Controller
         switch ($statusFilter) {
             case 'active cvs':
                 if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-open-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
                 }
                 break;
             case 'open cvs':
                 if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ",\"revert\", \"Mark Revert CV\")'>Mark Revert CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ",\"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                 }
                 break;
             case 'no job cvs':
                 if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"cleared_no_job\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                 }
                 break;
             case 'rejected cvs':
                 if (Gate::allows('quality-assurance-resource-revert-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"revert\", \"Mark Revert As Active\")'>Mark Revert As Active</a></li>";
                 }
                 break;
             case 'cleared cvs':
@@ -1660,19 +1590,19 @@ class QualityController extends Controller
                 break;
             default:
                 if (Gate::allows('quality-assurance-resource-clear-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"cleared\", \"Mark Clear CV\")'>Mark Clear CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-reject-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"rejected\", \"Mark Reject CV\")'>Mark Reject CV</a></li>";
                 }
                 if (Gate::allows('quality-assurance-resource-open-cv')) {
-                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$applicant->id . ", " . (int)$applicant->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
+                    $html .= "<li><a class='dropdown-item' href='#' onclick='clearCVModal(" . (int)$row->id . ", " . (int)$row->sale_id . ", \"opened\", \"Mark Open CV\")'>Mark Open CV</a></li>";
                 }
                 break;
         }
         if (Gate::allows('quality-assurance-resource-upload-resume')) {
             $html .= '<li>
-                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$applicant->id . ')">Upload CRM Resume</a>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int)$row->id . ')">Upload CRM Resume</a>
                                     <!-- Hidden File Input -->
                                     <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                 </li>';
@@ -1682,10 +1612,10 @@ class QualityController extends Controller
             $html .= '<li><hr class="dropdown-divider"></li>';
         }
         if (Gate::allows('applicant-view-history')) {
-            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">Notes History</a></li>';
+            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$row->id . ', ' . (int)$row->sale_id . ')">Notes History</a></li>';
         }
         if (Gate::allows('applicant-view-notes-history')) {
-            $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewManagerDetails(' . (int)$applicant->sale_unit_id . ')">Manager Details</a></li>';
+            $html .= '<li><a class="dropdown-item manager-details-link" href="javascript:void(0);" data-manager-unit-id="' . (int)$row->sale_unit_id . '" onclick="viewManagerDetails(' . (int)$row->sale_unit_id . ')">Manager Details</a></li>';
         }
 
         $html .= '</ul></div>';
