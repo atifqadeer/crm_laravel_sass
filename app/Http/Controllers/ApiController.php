@@ -73,7 +73,7 @@ class ApiController extends Controller
                 'sales.lng',
                 'sales.sale_notes',
                 'sales.created_at',
-                'sales.updated_at',
+                'sales.updated_at as sale_updated_at',
                 'sales.experience',
                 'sales.salary',
                 'sales.qualification',
@@ -100,58 +100,6 @@ class ApiController extends Controller
             ->whereNull('sales.deleted_at')
             ->where('sales.is_on_hold', 0);
 
-        // Portal has no logged-in Gate user — always honour hide_private_data.
-        // $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        // $hidePrivateData = array_filter(
-        //     array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        // );
-
-        // if (count($hidePrivateData) > 0) {
-        //     $sourceIds = JobSource::where('is_active', 1)
-        //         ->where(function ($q) use ($hidePrivateData) {
-        //             foreach ($hidePrivateData as $hideName) {
-        //                 $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-        //             }
-        //         })
-        //         ->pluck('id')
-        //         ->toArray();
-
-        //     if (count($sourceIds) > 0) {
-        //         $query->where(function ($q) use ($sourceIds) {
-        //             $q->whereNotIn('sales.job_source_id', $sourceIds)
-        //                 ->orWhereNull('sales.job_source_id');
-        //         });
-        //     }
-        // }
-
-        // if ($searchTerm !== '') {
-        //     $saleIds = Sale::search($searchTerm)->keys()->toArray();
-        //     $query->where(function ($q) use ($searchTerm, $saleIds) {
-        //         if (!empty($saleIds)) {
-        //             $q->whereIn('sales.id', $saleIds);
-        //         }
-        //         $q->orWhere('offices.office_name', 'LIKE', "%{$searchTerm}%")
-        //             ->orWhere('units.unit_name', 'LIKE', "%{$searchTerm}%")
-        //             ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
-        //             ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
-        //             ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
-        //             ->orWhere('sales.sale_postcode', 'LIKE', "%{$searchTerm}%");
-        //     });
-        // }
-
-        // if ($typeFilter !== '') {
-        //     $query->where('sales.job_type', $typeFilter);
-        // }
-        // if ($officeFilter !== []) {
-        //     $query->whereIn('sales.office_id', $officeFilter);
-        // }
-        // if ($categoryFilter !== []) {
-        //     $query->whereIn('sales.job_category_id', $categoryFilter);
-        // }
-        // if ($titleFilter !== []) {
-        //     $query->whereIn('sales.job_title_id', $titleFilter);
-        // }
-
         $sortMap = [
             'id'            => 'sales.id',
             'sale_title'     => 'job_titles.name',
@@ -169,10 +117,6 @@ class ApiController extends Controller
             $query->orderBy('sales.updated_at', 'desc');
         }
 
-        // $paginator = $query->paginate($perPage)->appends($request->query());
-
-        // Load regions once; each sale is assigned the nearest region by Haversine
-        // using sales.lat / sales.lng against regions.latitude / regions.longitude.
         $regions = Region::query()
             ->get(['id', 'name', 'districts_code', 'latitude', 'longitude', 'radius']);
 
@@ -203,21 +147,13 @@ class ApiController extends Controller
                 'status' => $sale->status == 1 ? 'active' : 'closed',
                 'created' => $sale->open_date
                     ? Carbon::parse($sale->open_date)->format('Y-m-d')
-                    : null,
+                    : Carbon::parse($sale->sale_updated_at)->format('Y-m-d'),
             ];
         })->values();
 
         return response()->json([
             'success' => true,
-            'data' => $data,
-            // 'meta' => [
-            //     'current_page' => $paginator->currentPage(),
-            //     'per_page' => $paginator->perPage(),
-            //     'total' => $paginator->total(),
-            //     'last_page' => $paginator->lastPage(),
-            //     'from' => $paginator->firstItem(),
-            //     'to' => $paginator->lastItem(),
-            // ],
+            'data' => $data
         ]);
     }
 
@@ -262,7 +198,7 @@ class ApiController extends Controller
                 'sales.lng',
                 'sales.sale_notes',
                 'sales.created_at',
-                'sales.updated_at',
+                'sales.updated_at as sale_updated_at',
                 'sales.experience',
                 'sales.salary',
                 'sales.qualification',
@@ -327,7 +263,7 @@ class ApiController extends Controller
                 'status' => (int) $sale->status === 1 ? 'active' : 'closed',
                 'created' => $sale->open_date
                     ? Carbon::parse($sale->open_date)->format('Y-m-d')
-                    : null,
+                    : Carbon::parse($sale->sale_updated_at)->format('Y-m-d'),
             ],
         ]);
     }
