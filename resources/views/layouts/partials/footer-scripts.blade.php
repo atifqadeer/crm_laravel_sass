@@ -1,5 +1,5 @@
 @yield('script')
-@vite(['resources/js/app.js?v=2', 'resources/js/layout.js?v=2'])
+@vite(['resources/js/app.js', 'resources/js/layout.js'])
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Only run if route is available
