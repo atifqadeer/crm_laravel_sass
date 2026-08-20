@@ -45,3 +45,8 @@
     margin-bottom: $spacer;
     color: $text-muted;
 }
+
+#login-card {
+    border-color: $primary !important;
+    box-shadow: 0 0.125rem 1.25rem rgb(203, 130, 8) !important;
+}

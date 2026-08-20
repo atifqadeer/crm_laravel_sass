@@ -2,15 +2,15 @@
 
 @section('content')
     <div class="col-xl-5 col-lg-5 col-md-8">
-        <div class="card auth-card">
+        <div class="card auth-card" id="login-card">
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
                     <a href="{{ route('dashboard.index')}}" class="logo-dark">
-                        <img src="{{ asset('images/logo-dark.png') }}" height="60" alt="crm">
+                        <img src="{{ asset('images/KingsburyPersonnel_logo_row.webp') }}" height="80" alt="crm">
                     </a>
 
                     <a href="{{ route('dashboard.index')}}" class="logo-light">
-                        <img src="{{ asset('images/logo-light.png') }}" height="60" alt="crm">
+                        <img src="{{ asset('images/KingsburyPersonnel_logo_row.webp') }}" height="80" alt="crm">
                     </a>
                 </div>
 
@@ -52,7 +52,7 @@
                         </div> --}}
 
                         <div class="mb-1 text-center d-grid">
-                            <button class="btn btn-danger py-2 fw-medium" type="submit">Sign In</button>
+                            <button class="btn btn-primary py-2 fw-medium" type="submit">Sign In</button>
                         </div>
                     </form>
                 </div> <!-- end col -->

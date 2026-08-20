@@ -2,13 +2,15 @@
     <!-- Sidebar Logo -->
     <div class="logo-box">
         <a href="{{ route('dashboard.index') }}" class="logo-dark">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="Kingsbury Personnel">
-            <img src="/images/logo-dark.png" class="logo-lg" alt="Kingsbury Personnel">
+            <img src="/images/KingsburyPersonnel_logo_icon-removebg-preview.png" class="logo-sm" alt="Kingsbury Personnel">
+            <img src="/images/KingsburyPersonnel_logo_row.webp" class="logo-lg" alt="Kingsbury Personnel">
         </a>
 
         <a href="{{ route('dashboard.index') }}" class="logo-light">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="Kingsbury Personnel">
-            <img src="/images/logo-light.png" class="logo-lg" alt="Kingsbury Personnel" height="50" width="">
+            <img src="/images/KingsburyPersonnel_logo_icon-removebg-preview.png" class="logo-sm"
+                alt="Kingsbury Personnel">
+            <img src="/images/KingsburyPersonnel_logo_row.webp" class="logo-lg" alt="Kingsbury Personnel" height="80"
+                width="">
         </a>
     </div>
 
