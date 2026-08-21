@@ -1367,21 +1367,20 @@
 
         // Function to show the notes modal
         function viewManagerDetails(id) {
-            const modalId = `viewManagerDetailsModal_${id}`;
-            const modalSelector = `#${modalId}`;
+            const modalID = 'viewManagerDetailsModal-' + id;
 
-            // Append modal to DOM only once
-            if ($(modalSelector).length === 0) {
+            // Create modal if it doesn't exist
+            if ($('#' + modalID).length === 0) {
                 $('body').append(`
-                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${id}">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="${modalId}Label">Manager Details</h5>
+                                    <h5 class="modal-title" id="viewManagerDetailsModalLabel-${id}">Manager Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body ">
-                                    <div class="text-center">
+                                <div class="modal-body modal-body-text-left">
+                                    <div class="text-center py-3">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -1394,21 +1393,12 @@
                         </div>
                     </div>
                 `);
-            } else {
-                // Reset body to show loader again if re-used
-                $(`${modalSelector} .modal-body`).html(`
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                `);
             }
 
-            // Show modal immediately
-            $(modalSelector).modal('show');
+            // Show modal immediately with loading state
+            $('#' + modalID).modal('show');
 
-            // Fetch manager contact details via AJAX
+            // Make AJAX call
             $.ajax({
                 url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
@@ -1417,9 +1407,31 @@
                     module: 'Unit'
                 },
                 success: function(response) {
-                    window.managerContacts = response.data;
+                    let contactHtml = '';
 
-                    renderContacts('all');
+                    if (response.data.length === 0) {
+
+                        contactHtml = '<p>' + response.message + '</p>';
+                    } else {
+                        response.data.forEach(function(contact) {
+                            const name = contact.contact_name;
+                            const email = contact.contact_email;
+                            const phone = contact.contact_phone;
+                            const landline = contact.contact_landline || '-';
+                            const note = contact.contact_note || 'N/A';
+
+                            contactHtml += `
+                                <div class="note-entry">
+                                    <p><strong>Name:</strong> ${name}</p>
+                                    <p><strong>Email:</strong> ${email}</p>
+                                    <p><strong>Phone:</strong> ${phone}</p>
+                                    <p><strong>Landline:</strong> ${landline}</p>
+                                    <p><strong>Notes:</strong> ${note}</p>
+                                </div><hr>`;
+                        });
+                    }
+
+                    $('#' + modalID + ' .modal-body').html(contactHtml);
                 },
                 error: function(xhr, status, error) {
 
@@ -1435,86 +1447,6 @@
 
                 }
             });
-        }
-
-        $(document).on('change', 'input[name="contact_filter"]', function() {
-
-            renderContacts($(this).val());
-
-        });
-
-        function renderContacts(filterType) {
-
-            var contacts = window.managerContacts || [];
-            var contactHtml = '';
-
-            // Filter buttons
-            contactHtml += `
-                    <div class="mb-3">
-                        <label class="me-3">
-                            <input type="radio" name="contact_filter" value="all" ${filterType === 'all' ? 'checked' : ''}>
-                            All
-                        </label>
-
-                        <label class="me-3">
-                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
-                            Kingsburry
-                        </label>
-
-                        <label>
-                            <input type="radio" name="contact_filter" value="others" ${filterType === 'others' ? 'checked' : ''}>
-                            Others
-                        </label>
-                    </div>
-                    <hr>
-                `;
-
-            if (contacts.length === 0) {
-
-                contactHtml += '<p>No records found.</p>';
-
-            } else {
-
-                contacts.forEach(function(contact) {
-
-                    var name = contact.contact_name || '';
-                    var email = contact.contact_email || '';
-                    var phone = contact.contact_phone || 'N/A';
-                    var landline = contact.contact_landline || 'N/A';
-                    var note = contact.contact_note || '';
-
-                    // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
-                    var sourceName = (contact.job_source_name ||
-                        (contact.job_source && contact.job_source.name) ||
-                        '').toString().toLowerCase().trim();
-                    var isHayaibuSource = contact.is_hayaibu_source === true ||
-                        contact.is_hayaibu_source === 1 ||
-                        sourceName.indexOf('hayaibu') !== -1;
-
-                    // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
-                    if (filterType === 'kingsburry' && isHayaibuSource) {
-                        return;
-                    }
-
-                    if (filterType === 'others' && !isHayaibuSource) {
-                        return;
-                    }
-
-                    contactHtml += `
-                <div class="note-entry">
-                    <p><strong>Name:</strong> ${name}</p>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Phone:</strong> ${phone}</p>
-                    <p><strong>Landline:</strong> ${landline}</p>
-                    <p><strong>Note:</strong> ${note || 'N/A'}</p>
-                </div>
-                <hr>
-            `;
-                });
-
-            }
-
-            $('#viewManagerDetailsModal_ .modal-body').html(contactHtml);
         }
 
         // Function to show the notes modal
