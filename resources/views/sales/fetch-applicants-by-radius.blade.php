@@ -53,7 +53,8 @@
 
                                             <button type="button"
                                                 class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode"
-                                                data-postcode="{{ strtoupper($sale->sale_postcode ?? 'N/A') }}" title="Copy Postcode">
+                                                data-postcode="{{ strtoupper($sale->sale_postcode ?? 'N/A') }}"
+                                                title="Copy Postcode">
                                                 <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
                                             </button>
                                         </li>
@@ -90,144 +91,96 @@
                                             {{ $jobCategory ? ucwords($jobCategory->name) . $jobType : 'N/A' }}</li>
                                         <li><strong>Title:</strong> {{ $jobTitle ? ucwords($jobTitle->name) : 'N/A' }}</li>
                                         @php
-                                            $fullHtml = $sale->qualification; // HTML from Summernote
-                                            $id = 'qualification-' . $sale->id;
+                                            $saleRichTextPreview = function (?string $html, int $limit = 300): string {
+                                                $html = $html ?? '';
+                                                $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
+                                                $html = preg_replace(
+                                                    '/<(span|[^>]+) style="[^"]*"[^>]*>/i',
+                                                    '<$1>',
+                                                    $html,
+                                                );
+                                                $html = preg_replace('/<\/?span[^>]*>/i', '', $html);
+                                                $withBreaks = preg_replace(
+                                                    '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+                                                    "\n",
+                                                    $html,
+                                                );
+                                                $plainText = html_entity_decode(strip_tags($withBreaks ?? ''));
+                                                $normalizedText = preg_replace("/[\r\n]+/", "\n", $plainText);
 
-                                            // 0. Remove inline styles and <span> tags
-                                            $cleanedHtml = preg_replace(
-                                                '/<(span|[^>]+) style="[^"]*"[^>]*>/i',
-                                                '<$1>',
-                                                $fullHtml,
-                                            );
-                                            $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
+                                                return e(Str::limit(trim($normalizedText ?? ''), $limit, '...'));
+                                            };
 
-                                            // 1. Convert block-level and <br> tags into \n
-                                            $withBreaks = preg_replace(
-                                                '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                                                "\n",
-                                                $cleanedHtml,
-                                            );
+                                            $saleRichTextSafeHtml = function (?string $html): string {
+                                                $html = trim($html ?? '');
+                                                if ($html === '') {
+                                                    return '';
+                                                }
 
-                                            // 2. Remove all other HTML tags except basic formatting tags
-                                            $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
+                                                $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
+                                                $html =
+                                                    preg_replace(
+                                                        '/\sdata-bs-(toggle|target|dismiss)="[^"]*"/i',
+                                                        '',
+                                                        $html,
+                                                    ) ?? $html;
 
-                                            // 3. Decode HTML entities
-                                            $decodedText = html_entity_decode($plainText);
+                                                libxml_use_internal_errors(true);
+                                                $doc = new DOMDocument();
+                                                $doc->loadHTML(
+                                                    '<?xml encoding="UTF-8"><div id="__sale_html_wrap__">' .
+                                                        $html .
+                                                        '</div>',
+                                                );
+                                                $wrap = $doc->getElementById('__sale_html_wrap__');
 
-                                            // 4. Normalize multiple newlines
-                                            $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
+                                                if ($wrap) {
+                                                    foreach (['script', 'iframe', 'object', 'embed'] as $tag) {
+                                                        $nodes = $wrap->getElementsByTagName($tag);
+                                                        for ($i = $nodes->length - 1; $i >= 0; $i--) {
+                                                            $node = $nodes->item($i);
+                                                            $node?->parentNode?->removeChild($node);
+                                                        }
+                                                    }
 
-                                            // 5. Limit preview characters
-                                            $preview = Str::limit(trim($normalizedText), 300, '...');
+                                                    $safe = '';
+                                                    foreach (iterator_to_array($wrap->childNodes) as $child) {
+                                                        $safe .= $doc->saveHTML($child);
+                                                    }
+                                                } else {
+                                                    $safe = strip_tags($html);
+                                                }
 
-                                            // 6. Convert newlines to <br>
-                                            $shortText = nl2br($preview);
+                                                libxml_clear_errors();
 
-                                            $qualification =
-                                                '
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' .
-                                                $id .
-                                                '">' .
-                                                $shortText .
-                                                '</a>
+                                                return $safe;
+                                            };
 
-                                        <div class="modal fade" id="' .
-                                                $id .
-                                                '" tabindex="-1" aria-labelledby="' .
-                                                $id .
-                                                '-label" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="' .
-                                                $id .
-                                                '-label">Sale Qualification</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        ' .
-                                                $fullHtml .
-                                                '
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>';
+                                            $qualificationPreview = $saleRichTextPreview($sale->qualification);
+                                            $benefitsPreview = $saleRichTextPreview($sale->benefits);
+                                            $experiencePreview = $saleRichTextPreview($sale->experience);
+                                            $qualificationHtml = $saleRichTextSafeHtml($sale->qualification);
+                                            $benefitsHtml = $saleRichTextSafeHtml($sale->benefits);
+                                            $experienceHtml = $saleRichTextSafeHtml($sale->experience);
+                                            $timingHtml = $saleRichTextSafeHtml($sale->timing);
                                         @endphp
 
-                                        <li><strong>Qualification:</strong> {!! $qualification !!}</li>
-
-                                        @php
-                                            $fullHtml = $sale->benefits; // HTML from Summernote
-                                            $id = 'benefits-' . $sale->id;
-
-                                            // 0. Remove inline styles and <span> tags
-                                            $cleanedHtml = preg_replace(
-                                                '/<(span|[^>]+) style="[^"]*"[^>]*>/i',
-                                                '<$1>',
-                                                $fullHtml,
-                                            );
-                                            $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                                            // 1. Convert block-level and <br> tags into \n
-                                            $withBreaks = preg_replace(
-                                                '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                                                "\n",
-                                                $cleanedHtml,
-                                            );
-
-                                            // 2. Remove all other HTML tags except basic formatting tags
-                                            $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                                            // 3. Decode HTML entities
-                                            $decodedText = html_entity_decode($plainText);
-
-                                            // 4. Normalize multiple newlines
-                                            $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                                            // 5. Limit preview characters
-                                            $preview = Str::limit(trim($normalizedText), 300, '...');
-
-                                            // 6. Convert newlines to <br>
-                                            $shortText = nl2br($preview);
-
-                                            $benefits =
-                                                '
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' .
-                                                $id .
-                                                '">' .
-                                                $shortText .
-                                                '</a>
-
-                                        <div class="modal fade" id="' .
-                                                $id .
-                                                '" tabindex="-1" aria-labelledby="' .
-                                                $id .
-                                                '-label" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="' .
-                                                $id .
-                                                '-label">Sale Benefits</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        ' .
-                                                $fullHtml .
-                                                '
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>';
-                                        @endphp
-
-                                        <li><strong>Benefits:</strong> {!! $benefits !!}</li>
+                                        <li>
+                                            <strong>Qualification:</strong>
+                                            <button type="button"
+                                                class="btn btn-link p-0 align-baseline text-start text-wrap"
+                                                data-bs-toggle="modal" data-bs-target="#qualification-{{ $sale->id }}">
+                                                {!! nl2br($qualificationPreview) !!}
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <strong>Benefits:</strong>
+                                            <button type="button"
+                                                class="btn btn-link p-0 align-baseline text-start text-wrap"
+                                                data-bs-toggle="modal" data-bs-target="#benefits-{{ $sale->id }}">
+                                                {!! nl2br($benefitsPreview) !!}
+                                            </button>
+                                        </li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -243,75 +196,15 @@
                                                 '</span>'
                                             : 'N/A' !!}</li>
                                         <li><strong>Salary:</strong> {!! $sale->salary !!}</li>
-                                        <li><strong>Timing:</strong> {!! $sale->timing !!}</li>
-                                        @php
-                                            $fullHtml = $sale->experience; // HTML from Summernote
-                                            $id = 'experience-' . $sale->id;
-
-                                            // 0. Remove inline styles and <span> tags
-                                            $cleanedHtml = preg_replace(
-                                                '/<(span|[^>]+) style="[^"]*"[^>]*>/i',
-                                                '<$1>',
-                                                $fullHtml,
-                                            );
-                                            $cleanedHtml = preg_replace('/<\/?span[^>]*>/i', '', $cleanedHtml);
-
-                                            // 1. Convert block-level and <br> tags into \n
-                                            $withBreaks = preg_replace(
-                                                '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
-                                                "\n",
-                                                $cleanedHtml,
-                                            );
-
-                                            // 2. Remove all other HTML tags except basic formatting tags
-                                            $plainText = strip_tags($withBreaks, '<b><strong><i><em><u>');
-
-                                            // 3. Decode HTML entities
-                                            $decodedText = html_entity_decode($plainText);
-
-                                            // 4. Normalize multiple newlines
-                                            $normalizedText = preg_replace("/[\r\n]+/", "\n", $decodedText);
-
-                                            // 5. Limit preview characters
-                                            $preview = Str::limit(trim($normalizedText), 300, '...');
-
-                                            // 6. Convert newlines to <br>
-                                            $shortText = nl2br($preview);
-
-                                            $experience =
-                                                '
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#' .
-                                                $id .
-                                                '">' .
-                                                $shortText .
-                                                '</a>
-
-                                        <div class="modal fade" id="' .
-                                                $id .
-                                                '" tabindex="-1" aria-labelledby="' .
-                                                $id .
-                                                '-label" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="' .
-                                                $id .
-                                                '-label">Sale Experience</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        ' .
-                                                $fullHtml .
-                                                '
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>';
-                                        @endphp
-                                        <li><strong>Experience:</strong> {!! $experience !!}</li>
+                                        <li><strong>Timing:</strong> {!! $timingHtml !!}</li>
+                                        <li>
+                                            <strong>Experience:</strong>
+                                            <button type="button"
+                                                class="btn btn-link p-0 align-baseline text-start text-wrap"
+                                                data-bs-toggle="modal" data-bs-target="#experience-{{ $sale->id }}">
+                                                {!! nl2br($experiencePreview) !!}
+                                            </button>
+                                        </li>
                                         <li><strong>Status:</strong>
                                             @php
                                                 $status = $sale->status;
@@ -363,7 +256,7 @@
                                 <h4 class="card-title">Active Applicants within {{ $radius }}KMs /
                                     {{ $radiusInMiles }}Miles</h4>
                                 <div>
-                                    
+
                                     <!-- Button Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -445,6 +338,59 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Keep sale HTML modals outside the page layout so broken Summernote markup cannot wrap the filter button --}}
+    <div class="modal fade" id="qualification-{{ $sale->id }}" tabindex="-1"
+        aria-labelledby="qualification-{{ $sale->id }}-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qualification-{{ $sale->id }}-label">Sale Qualification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {!! $qualificationHtml !!}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="benefits-{{ $sale->id }}" tabindex="-1"
+        aria-labelledby="benefits-{{ $sale->id }}-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="benefits-{{ $sale->id }}-label">Sale Benefits</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {!! $benefitsHtml !!}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="experience-{{ $sale->id }}" tabindex="-1"
+        aria-labelledby="experience-{{ $sale->id }}-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="experience-{{ $sale->id }}-label">Sale Experience</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {!! $experienceHtml !!}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
