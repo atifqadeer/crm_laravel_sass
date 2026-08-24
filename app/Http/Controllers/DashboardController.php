@@ -1600,104 +1600,6 @@ class DashboardController extends Controller
             'details'   => $salesDetails,
         ]);
     }
-    // public function getSalesAnalytic(Request $request)
-    // {
-    //     $range = $request->input('range', 'month');
-
-    //     if ($range === 'year') {
-    //         $from = now()->startOfYear();
-    //         $to = now()->endOfYear();
-    //         $grouping = 'MONTH(created_at)';
-    //         $rangeLabels = collect(range(1, 12))->map(function ($month) {
-    //             return Carbon::create()->month($month)->format('F');
-    //         });
-    //     } else {
-    //         $from = now()->startOfMonth();
-    //         $to = now()->endOfMonth();
-    //         $grouping = 'DATE(created_at)';
-    //         $daysInMonth = now()->daysInMonth;
-    //         $rangeLabels = collect(range(1, $daysInMonth))->map(function ($day) {
-    //             return now()->startOfMonth()->addDays($day - 1)->format('d M');
-    //         });
-    //     }
-
-    //     $query = Sale::selectRaw("$grouping as label")
-    //         ->selectRaw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as new_added")
-    //         ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
-    //         ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
-    //         ->selectRaw("SUM(CASE WHEN status = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as closed")
-    //         ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
-    //         ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as updated")
-    //         ->whereBetween('created_at', [$from, $to])
-    //         ->whereNotIn('status', [4, 5])
-    //         ->whereNull('deleted_at');
-
-    //     $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-
-    //     $hidePrivateData = array_filter(
-    //         array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-    //     );
-
-    //     $sourceIds = [];
-
-    //     if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-
-    //         $sourceIds = JobSource::where('is_active', 1)
-    //             ->where(function ($q) use ($hidePrivateData) {
-    //                 foreach ($hidePrivateData as $hideName) {
-    //                     $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-    //                 }
-    //             })
-    //             ->pluck('id')
-    //             ->toArray();
-    //     }
-
-    //     if (count($sourceIds) > 0) {
-    //         $query->where(function ($q) use ($sourceIds) {
-    //             $q->whereNotIn('job_source_id', $sourceIds)
-    //                 ->orWhereNull('job_source_id');
-    //         });
-    //     }
-
-    //     $rawData = $query->groupBy(DB::raw($grouping))
-    //         ->orderBy(DB::raw($grouping))
-    //         ->get()
-    //         ->keyBy(function ($item) use ($range) {
-    //             if ($range === 'year') {
-    //                 return Carbon::create()->month((int) $item->label)->format('F');
-    //             }
-
-    //             return Carbon::parse($item->label)->format('d M');
-    //         });
-
-    //     $labels = [];
-    //     $new = [];
-    //     $reopened = [];
-    //     $closed = [];
-    //     $pending = [];
-    //     $rejected = [];
-    //     $updated = [];
-
-    //     foreach ($rangeLabels as $label) {
-    //         $labels[] = $label;
-    //         $new[] = isset($rawData[$label]) ? (int) $rawData[$label]->new_added : 0;
-    //         $reopened[] = isset($rawData[$label]) ? (int) $rawData[$label]->reopened : 0;
-    //         $closed[] = isset($rawData[$label]) ? (int) $rawData[$label]->closed : 0;
-    //         $pending[] = isset($rawData[$label]) ? (int) $rawData[$label]->pending : 0;
-    //         $rejected[] = isset($rawData[$label]) ? (int) $rawData[$label]->rejected : 0;
-    //         $updated[] = isset($rawData[$label]) ? (int) $rawData[$label]->updated : 0;
-    //     }
-
-    //     return response()->json([
-    //         'labels' => $labels,
-    //         'new_added' => $new,
-    //         'updated' => $updated,
-    //         'reopened' => $reopened,
-    //         'closed' => $closed,
-    //         'pending' => $pending,
-    //         'rejected' => $rejected,
-    //     ]);
-    // }
     public function getSalesAnalytic(Request $request)
     {
         $range = $request->input('range', 'month');
@@ -1761,13 +1663,17 @@ class DashboardController extends Controller
         };
 
         // New / pending / reopened / closed / rejected are indexed by created_at.
-        // New sales are only those never edited (created_at = updated_at).
+        // New sales include open and pending creates. Updated sales are real edits
+        // only (ignore the sale_uid write that bumps updated_at on insert).
+        $untouchedSeconds = 10;
+        $isTouched = "TIMESTAMPDIFF(SECOND, created_at, updated_at) > {$untouchedSeconds}";
+
         $query = Sale::selectRaw("$createdGrouping as label")
-            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 AND created_at = updated_at THEN 1 ELSE 0 END) as new_added")
-            ->selectRaw("SUM(CASE WHEN status = 2 AND created_at THEN 1 ELSE 0 END) as pending")
-            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND created_at != updated_at THEN 1 ELSE 0 END) as reopened")
-            ->selectRaw("SUM(CASE WHEN status = 0 AND created_at != updated_at THEN 1 ELSE 0 END) as closed")
-            ->selectRaw("SUM(CASE WHEN status = 3 AND created_at != updated_at THEN 1 ELSE 0 END) as rejected")
+            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 0 THEN 1 ELSE 0 END) as new_added")
+            ->selectRaw("SUM(CASE WHEN status = 2 AND is_re_open = 0 AND {$isTouched} THEN 1 ELSE 0 END) as pending")
+            ->selectRaw("SUM(CASE WHEN status = 1 AND is_re_open = 1 AND {$isTouched} THEN 1 ELSE 0 END) as reopened")
+            ->selectRaw("SUM(CASE WHEN status = 0 AND {$isTouched} THEN 1 ELSE 0 END) as closed")
+            ->selectRaw("SUM(CASE WHEN status = 3 AND {$isTouched} THEN 1 ELSE 0 END) as rejected")
             ->whereBetween('created_at', [$from, $to])
             ->whereNotIn('status', [4, 5])
             ->whereNull('deleted_at');
@@ -1779,13 +1685,13 @@ class DashboardController extends Controller
             ->get()
             ->keyBy($keyByLabel);
 
-        // Updated sales are mutually exclusive from new sales (created_at != updated_at)
+        // Updated sales are mutually exclusive from new sales (real edits only)
         // and are indexed on the chart by updated_at, not created_at.
         $updatedQuery = Sale::selectRaw("$updatedGrouping as label")
             ->selectRaw('COUNT(*) as updated')
             ->where('status', 1)
             ->where('is_re_open', 0)
-            ->whereColumn('created_at', '!=', 'updated_at')
+            ->whereRaw($isTouched)
             ->whereBetween('updated_at', [$from, $to])
             ->whereNotIn('status', [4, 5])
             ->whereNull('deleted_at');
