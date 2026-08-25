@@ -256,7 +256,7 @@
             <div class="card">
                 <div class="card-body p-3">
                     <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
-                             flex row as DataTables' own "Show X entries" length control below. -->
+                                 flex row as DataTables' own "Show X entries" length control below. -->
                     <div id="columnsToolbar" class="dropdown d-inline">
                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
                             id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">
@@ -548,17 +548,17 @@
                         // Add the current filter to the request parameters
                         d.status_filter = currentFilter; // Send the current filter value as a parameter
                         d.type_filter =
-                        currentTypeFilter; // Send the current filter value as a parameter
+                            currentTypeFilter; // Send the current filter value as a parameter
                         d.category_filter =
-                        currentCategoryFilters; // Send the current filter value as a parameter
+                            currentCategoryFilters; // Send the current filter value as a parameter
                         d.title_filter =
-                        currentTitleFilters; // Send the current filter value as a parameter
+                            currentTitleFilters; // Send the current filter value as a parameter
                         d.office_filter =
-                        currentOfficeFilters; // Send the current filter value as a parameter
+                            currentOfficeFilters; // Send the current filter value as a parameter
                         d.source_filter =
-                        currentSourceFilters; // Send the current filter value as a parameter
+                            currentSourceFilters; // Send the current filter value as a parameter
                         d.cv_limit_filter =
-                        currentFilterCvLimit; // Send the current filter value as a parameter
+                            currentFilterCvLimit; // Send the current filter value as a parameter
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -567,7 +567,7 @@
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#sales_table tbody').empty().html(
                             '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
-                            );
+                        );
                     }
                 },
                 columns: [{
@@ -679,7 +679,7 @@
                 ],
                 rowId: function(data) {
                     return 'row_' + data
-                    .id; // Assign a unique ID to each row using the 'id' field from the data
+                        .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
                 // 'l' (length control) wrapped in its own flex row so the "Columns" button
                 // (moved here in initComplete below) lines up beside it instead of stacking
@@ -1366,75 +1366,71 @@
         }
 
         // Function to show the notes modal
+        // Function to show the manager details modal
         function viewManagerDetails(id) {
-            const modalID = 'viewManagerDetailsModal-' + id;
-
-            // Create modal if it doesn't exist
-            if ($('#' + modalID).length === 0) {
-                $('body').append(`
-                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${id}">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="viewManagerDetailsModalLabel-${id}">Manager Details</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body modal-body-text-left">
-                                    <div class="text-center py-3">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
+            const unitId = parseInt(id, 10) || 0;
+            if (unitId <= 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No unit linked',
+                    text: 'This sale does not have a unit, so manager details are unavailable.',
+                });
+                return;
             }
 
-            // Show modal immediately with loading state
-            $('#' + modalID).modal('show');
+            const modalId = 'viewManagerDetailsModal' + unitId;
+            window.managerDetailsModalID = modalId;
 
-            // Make AJAX call
+            // Add modal only once
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
+                    'Label">' +
+                    '<div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">' +
+                    '<div class="modal-content">' +
+                    '<div class="modal-header">' +
+                    '<h5 class="modal-title" id="' + modalId + 'Label">Manager Details</h5>' +
+                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                    '</div>' +
+                    '<div class="modal-body text-start">' +
+                    '<div class="text-center py-4">' +
+                    '<div class="spinner-border text-primary" role="status">' +
+                    '<span class="visually-hidden">Loading...</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="modal-footer">' +
+                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Show the modal and keep loader visible until data is loaded
+            $('#' + modalId).modal('show');
+            $('#' + modalId + ' .modal-body').html(
+                '<div class="text-center py-4">' +
+                '<div class="spinner-border text-dark" role="status">' +
+                '<span class="visually-hidden">Loading...</span>' +
+                '</div>' +
+                '</div>'
+            );
+
+            // AJAX request to fetch manager details
             $.ajax({
                 url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
                 data: {
-                    id: id,
+                    id: unitId,
                     module: 'Unit'
                 },
                 success: function(response) {
-                    let contactHtml = '';
-
-                    if (response.data.length === 0) {
-
-                        contactHtml = '<p>' + response.message + '</p>';
-                    } else {
-                        response.data.forEach(function(contact) {
-                            const name = contact.contact_name;
-                            const email = contact.contact_email;
-                            const phone = contact.contact_phone;
-                            const landline = contact.contact_landline || '-';
-                            const note = contact.contact_note || 'N/A';
-
-                            contactHtml += `
-                                <div class="note-entry">
-                                    <p><strong>Name:</strong> ${name}</p>
-                                    <p><strong>Email:</strong> ${email}</p>
-                                    <p><strong>Phone:</strong> ${phone}</p>
-                                    <p><strong>Landline:</strong> ${landline}</p>
-                                    <p><strong>Notes:</strong> ${note}</p>
-                                </div><hr>`;
-                        });
-                    }
-
-                    $('#' + modalID + ' .modal-body').html(contactHtml);
+                    window.managerContacts = response.data || [];
+                    renderContacts('all');
                 },
-                error: function(xhr, status, error) {
-
+                error: function(xhr) {
                     let message = 'Something went wrong.';
 
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1444,9 +1440,95 @@
                     $('#' + modalId + ' .modal-body').html(
                         '<p class="text-danger">' + message + '</p>'
                     );
-
                 }
             });
+        }
+
+        const canShowPrivateData = @json(auth()->user()?->can('show-private-data') ?? false);
+
+        $(document).on('change', 'input[name="contact_filter"]', function() {
+            if (!canShowPrivateData) {
+                return;
+            }
+            renderContacts($(this).val());
+        });
+
+        function renderContacts(filterType) {
+            var contacts = window.managerContacts || [];
+            var modalId = window.managerDetailsModalID;
+            if (!modalId) {
+                return;
+            }
+
+            if (!canShowPrivateData) {
+                filterType = 'all';
+            }
+
+            var contactHtml = '';
+
+            if (canShowPrivateData) {
+                contactHtml += `
+                    <div class="mb-3">
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="all" ${filterType === 'all' ? 'checked' : ''}>
+                            All
+                        </label>
+
+                        <label class="me-3">
+                            <input type="radio" name="contact_filter" value="kingsbury" ${filterType === 'kingsbury' ? 'checked' : ''}>
+                            Kingsburry
+                        </label>
+
+                        <label>
+                            <input type="radio" name="contact_filter" value="others" ${filterType === 'others' ? 'checked' : ''}>
+                            Others
+                        </label>
+                    </div>
+                    <hr>
+                `;
+            }
+
+            if (contacts.length === 0) {
+                contactHtml += '<p>No records found.</p>';
+            } else {
+                contacts.forEach(function(contact) {
+                    var name = contact.contact_name || '';
+                    var email = contact.contact_email || '';
+                    var phone = contact.contact_phone || 'N/A';
+                    var landline = contact.contact_landline || 'N/A';
+                    var note = contact.contact_note || '';
+
+                    if (canShowPrivateData) {
+                        var sourceName = (contact.job_source_name ||
+                            (contact.job_source && contact.job_source.name) ||
+                            '').toString().toLowerCase().trim();
+                        var isHayaibuSource = contact.is_hayaibu_source === true ||
+                            contact.is_hayaibu_source === 1 ||
+                            sourceName.indexOf('hayaibu') !== -1;
+
+                        if (filterType === 'kingsbury' && isHayaibuSource) {
+                            return;
+                        }
+
+                        if (filterType === 'others' && !isHayaibuSource) {
+                            return;
+                        }
+                    }
+
+                    contactHtml += `
+                <div class="note-entry">
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
+                    <p><strong>Landline:</strong> ${landline}</p>
+                    <p><strong>Note:</strong> ${note || 'N/A'}</p>
+                </div>
+                <hr>
+            `;
+                });
+            }
+
+            $('#' + modalId + ' .modal-body').html(contactHtml);
         }
 
         // Function to show the notes modal
@@ -1613,7 +1695,7 @@
                 const originalText = btn.html();
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
-                    );
+                );
 
                 // Send data via AJAX
                 $.ajax({
