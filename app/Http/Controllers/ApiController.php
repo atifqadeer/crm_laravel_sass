@@ -205,7 +205,7 @@ class ApiController extends Controller
                 'qualification' => $this->cleanSaleText($sale->qualification),
                 'benefits' => $this->cleanSaleText($sale->benefits),
                 'status' => $sale->status == 1 ? 'active' : 'closed',
-                'created' => $createdAt?->format('Y-m-d'),
+                'created' => $this->formatApiCreatedDate($createdAt),
                 'ago' => $createdAt ? $this->formatCreatedAgo($createdAt) : null,
             ];
         })->values();
@@ -332,7 +332,7 @@ class ApiController extends Controller
                 'benefits' => $this->cleanSaleText($sale->benefits),
                 'notes' => $this->cleanSaleText($sale->sale_notes),
                 'status' => (int) $sale->status === 1 ? 'active' : 'closed',
-                'created' => $createdAt?->format('Y-m-d'),
+                'created' => $this->formatApiCreatedDate($createdAt),
                 'ago' => $createdAt ? $this->formatCreatedAgo($createdAt) : null,
             ],
         ]);
@@ -651,6 +651,18 @@ class ApiController extends Controller
         }
 
         return Carbon::parse($value);
+    }
+
+    /**
+     * Calendar date for the API. Null when the listing is less than two months old.
+     */
+    private function formatApiCreatedDate(?Carbon $date): ?string
+    {
+        if ($date === null || $date->greaterThan(Carbon::now()->subMonths(2))) {
+            return null;
+        }
+
+        return $date->format('Y-m-d');
     }
 
     /**
