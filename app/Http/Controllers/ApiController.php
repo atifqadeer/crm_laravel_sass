@@ -654,11 +654,13 @@ class ApiController extends Controller
     }
 
     /**
-     * Calendar date for the API. Null when the listing is less than two months old.
+     * Calendar date for the API.
+     * Show Y-m-d only when the created date is within the last 3 weeks;
+     * otherwise null.
      */
     private function formatApiCreatedDate(?Carbon $date): ?string
     {
-        if ($date === null || $date->greaterThan(Carbon::now()->subMonths(2))) {
+        if ($date === null || $date->lt(Carbon::now()->subWeeks(3))) {
             return null;
         }
 
