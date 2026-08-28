@@ -43,6 +43,7 @@ class ApiController extends Controller
             ->selectRaw('MAX(id) as id, auditable_id')
             ->where('auditable_type', 'Horsefly\\Sale')
             ->whereIn('message', ['open', 'sale-opened'])
+            //   ->orWhere('message', 'LIKE', '%has been updated%')
             ->groupBy('auditable_id');
 
         $cvCountSub = DB::table('cv_notes')
@@ -73,7 +74,7 @@ class ApiController extends Controller
                 'sales.lng',
                 'sales.sale_notes',
                 'sales.created_at',
-                'sales.updated_at as sale_updated_at',
+                'sales.updated_at',
                 'sales.experience',
                 'sales.salary',
                 'sales.qualification',
@@ -100,6 +101,58 @@ class ApiController extends Controller
             ->whereNull('sales.deleted_at')
             ->where('sales.is_on_hold', 0);
 
+        // Portal has no logged-in Gate user — always honour hide_private_data.
+        // $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        // $hidePrivateData = array_filter(
+        //     array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        // );
+
+        // if (count($hidePrivateData) > 0) {
+        //     $sourceIds = JobSource::where('is_active', 1)
+        //         ->where(function ($q) use ($hidePrivateData) {
+        //             foreach ($hidePrivateData as $hideName) {
+        //                 $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+        //             }
+        //         })
+        //         ->pluck('id')
+        //         ->toArray();
+
+        //     if (count($sourceIds) > 0) {
+        //         $query->where(function ($q) use ($sourceIds) {
+        //             $q->whereNotIn('sales.job_source_id', $sourceIds)
+        //                 ->orWhereNull('sales.job_source_id');
+        //         });
+        //     }
+        // }
+
+        // if ($searchTerm !== '') {
+        //     $saleIds = Sale::search($searchTerm)->keys()->toArray();
+        //     $query->where(function ($q) use ($searchTerm, $saleIds) {
+        //         if (!empty($saleIds)) {
+        //             $q->whereIn('sales.id', $saleIds);
+        //         }
+        //         $q->orWhere('offices.office_name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('units.unit_name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('sales.sale_postcode', 'LIKE', "%{$searchTerm}%");
+        //     });
+        // }
+
+        // if ($typeFilter !== '') {
+        //     $query->where('sales.job_type', $typeFilter);
+        // }
+        // if ($officeFilter !== []) {
+        //     $query->whereIn('sales.office_id', $officeFilter);
+        // }
+        // if ($categoryFilter !== []) {
+        //     $query->whereIn('sales.job_category_id', $categoryFilter);
+        // }
+        // if ($titleFilter !== []) {
+        //     $query->whereIn('sales.job_title_id', $titleFilter);
+        // }
+
         $sortMap = [
             'id'            => 'sales.id',
             'sale_title'     => 'job_titles.name',
@@ -109,14 +162,19 @@ class ApiController extends Controller
             'location'     => 'units.unit_name',
         ];
 
-        $sortBy = (string) $request->input('sort_by', 'updated_at');
+        $sortBy = (string) $request->input('sort_by', 'created');
         $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
         if (isset($sortMap[$sortBy])) {
             $query->orderBy($sortMap[$sortBy], $sortDir);
         } else {
-            $query->orderBy('sales.updated_at', 'desc');
+            // Open date when present, otherwise the sale's last update — newest first.
+            $query->orderByRaw('COALESCE(audits.created_at, sales.updated_at) ' . $sortDir);
         }
 
+        // $paginator = $query->paginate($perPage)->appends($request->query());
+
+        // Load regions once; each sale is assigned the nearest region by Haversine
+        // using sales.lat / sales.lng against regions.latitude / regions.longitude.
         $regions = Region::query()
             ->get(['id', 'name', 'districts_code', 'latitude', 'longitude', 'radius']);
 
@@ -127,6 +185,8 @@ class ApiController extends Controller
                 $sale->sale_postcode,
                 $regions
             );
+
+            $createdAt = $this->resolveApiCreatedAt($sale);
 
             return [
                 'sale_id' => (int) $sale->id,
@@ -145,15 +205,22 @@ class ApiController extends Controller
                 'qualification' => $this->cleanSaleText($sale->qualification),
                 'benefits' => $this->cleanSaleText($sale->benefits),
                 'status' => $sale->status == 1 ? 'active' : 'closed',
-                'created' => $sale->open_date
-                    ? Carbon::parse($sale->open_date)->format('Y-m-d')
-                    : Carbon::parse($sale->sale_updated_at)->format('Y-m-d'),
+                'created' => $createdAt?->format('Y-m-d'),
+                'ago' => $createdAt ? $this->formatCreatedAgo($createdAt) : null,
             ];
         })->values();
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
+            // 'meta' => [
+            //     'current_page' => $paginator->currentPage(),
+            //     'per_page' => $paginator->perPage(),
+            //     'total' => $paginator->total(),
+            //     'last_page' => $paginator->lastPage(),
+            //     'from' => $paginator->firstItem(),
+            //     'to' => $paginator->lastItem(),
+            // ],
         ]);
     }
 
@@ -169,6 +236,7 @@ class ApiController extends Controller
             ->selectRaw('MAX(id) as id, auditable_id')
             ->where('auditable_type', 'Horsefly\\Sale')
             ->whereIn('message', ['open', 'sale-opened'])
+            //   ->orWhere('message', 'LIKE', '%has been updated%')
             ->groupBy('auditable_id');
 
         $cvCountSub = DB::table('cv_notes')
@@ -198,7 +266,7 @@ class ApiController extends Controller
                 'sales.lng',
                 'sales.sale_notes',
                 'sales.created_at',
-                'sales.updated_at as sale_updated_at',
+                'sales.updated_at',
                 'sales.experience',
                 'sales.salary',
                 'sales.qualification',
@@ -242,6 +310,8 @@ class ApiController extends Controller
             $regions
         );
 
+        $createdAt = $this->resolveApiCreatedAt($sale);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -260,10 +330,10 @@ class ApiController extends Controller
                 'experience' => $this->cleanSaleText($sale->experience),
                 'qualification' => $this->cleanSaleText($sale->qualification),
                 'benefits' => $this->cleanSaleText($sale->benefits),
+                'notes' => $this->cleanSaleText($sale->sale_notes),
                 'status' => (int) $sale->status === 1 ? 'active' : 'closed',
-                'created' => $sale->open_date
-                    ? Carbon::parse($sale->open_date)->format('Y-m-d')
-                    : Carbon::parse($sale->sale_updated_at)->format('Y-m-d'),
+                'created' => $createdAt?->format('Y-m-d'),
+                'ago' => $createdAt ? $this->formatCreatedAgo($createdAt) : null,
             ],
         ]);
     }
@@ -496,7 +566,7 @@ class ApiController extends Controller
 
     /**
      * Detect pay period from free-text (and figure shape as fallback).
-     * Returns short labels: p.a (per annum), p/h (per hour), p/d (per day).
+     * Returns short labels: p/a (per annum), p/h (per hour), p/d (per day).
      *
      * @param  list<array{amount:int,decimals:?string,k:bool,comma:bool}>  $figures
      */
@@ -524,7 +594,7 @@ class ApiController extends Controller
         }
 
         if (preg_match('/\b(?:per\s*annum|per\s*year|a\s*year|p\.?\s*a\.?|p\/a|annum|annual)\b/i', $lower)) {
-            return 'p.a';
+            return 'p/a';
         }
 
         if (preg_match('/\b(?:per\s*day|p\/d|daily)\b/i', $lower)) {
@@ -534,7 +604,7 @@ class ApiController extends Controller
         // Fallback from figure shape when wording is missing.
         foreach ($figures as $figure) {
             if ($figure['k'] || $figure['comma'] || $figure['amount'] >= 1000) {
-                return 'p.a';
+                return 'p/a';
             }
         }
 
@@ -568,6 +638,31 @@ class ApiController extends Controller
         }
 
         return '£' . $figure['amount'];
+    }
+
+    /**
+     * Created date for the portal API: latest open audit, else the sale's updated_at.
+     */
+    private function resolveApiCreatedAt($sale): ?Carbon
+    {
+        $value = $sale->open_date ?: $sale->updated_at;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse($value);
+    }
+
+    /**
+     * Relative age of the listing vs now, e.g. "recent", "2 hours ago".
+     */
+    private function formatCreatedAgo(Carbon $date): string
+    {
+        if ($date->greaterThanOrEqualTo(Carbon::now()->subHour())) {
+            return 'recent';
+        }
+
+        return $date->diffForHumans();
     }
 
     private function cleanSaleText($value)
