@@ -3,41 +3,44 @@
 namespace App\Exports;
 
 use Horsefly\Unit;
-use Horsefly\Setting;
-use Horsefly\JobSource;
+use Horsefly\Office;
+use Horsefly\Contact;
+use App\Traits\HidesPrivateContacts;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Illuminate\Support\Facades\Gate;
 
 class UnitsExport implements FromCollection, WithHeadings
 {
-    protected $type;
+    use HidesPrivateContacts;
 
-    public function __construct(string $type = 'all')
+    protected $type;
+    protected $filters;
+
+    public function __construct(string $type = 'all', array $filters = [])
     {
         $this->type = $type;
+        $this->filters = $filters;
     }
 
     /**
-     * @return \Illuminate\Support\Collection
-     */
+    * @return \Illuminate\Support\Collection
+    */
     public function collection()
     {
-        $sourceIds = $this->hiddenJobSourceIds();
-
         switch ($this->type) {
             case 'emails':
                 $query = Unit::select(
-                    'units.id',
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'contacts.contact_email',
-                    'units.created_at'
-                )
+                        'units.id', 
+                        'units.unit_name', 
+                        'units.unit_postcode',
+                        'contacts.contact_email',
+                        'units.created_at'
+                    )
                     ->leftJoin('contacts', 'units.id', '=', 'contacts.contactable_id')
                     ->where('contacts.contactable_type', 'Horsefly\\Unit');
 
-                $this->excludePrivateContacts($query, $sourceIds);
+                $this->excludePrivateContacts($query);
+                $this->applyListFilters($query);
 
                 return $query
                     ->get()
@@ -49,26 +52,30 @@ class UnitsExport implements FromCollection, WithHeadings
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
-
+                
             case 'noLatLong':
-                return Unit::select(
-                    'id',
-                    'unit_name',
-                    'unit_postcode',
-                    'lat',
-                    'lng',
-                    'created_at'
-                )
-                    ->where(function ($query) {
+                $query = Unit::select(
+                        'id', 
+                        'unit_name',
+                        'unit_postcode',
+                        'lat',
+                        'lng',
+                        'created_at'
+                    )
+                    ->where(function($query) {
                         $query->where('lat', '0')
                             ->orWhereNull('lat')
                             ->orWhere('lat', '');
                     })
-                    ->where(function ($query) {
+                    ->where(function($query) {
                         $query->where('lng', '0')
                             ->orWhereNull('lng')
                             ->orWhere('lng', '');
-                    })
+                    });
+
+                $this->applyListFilters($query);
+
+                return $query
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -76,29 +83,30 @@ class UnitsExport implements FromCollection, WithHeadings
                             'unit_postcode' => strtoupper($item->unit_postcode),
                             'lat' => $item->lat,
                             'lng' => $item->lng,
-                            'created_at' => $item->created_at
-                                ? $item->created_at->format('d M Y, h:i A')
+                            'created_at' => $item->created_at 
+                                ? $item->created_at->format('d M Y, h:i A') 
                                 : 'N/A',
                         ];
                     });
-
+                
             case 'all':
                 $query = Unit::select(
-                    'units.id',
-                    'offices.office_name',
-                    'units.unit_name',
-                    'units.unit_postcode',
-                    'contacts.contact_name',
-                    'contacts.contact_email',
-                    'contacts.contact_phone',
-                    'contacts.contact_landline',
-                    'units.created_at'
-                )
+                        'units.id', 
+                        'offices.office_name', 
+                        'units.unit_name', 
+                        'units.unit_postcode', 
+                        'contacts.contact_name', 
+                        'contacts.contact_email',
+                        'contacts.contact_phone',
+                        'contacts.contact_landline',
+                        'units.created_at'
+                    )
                     ->leftJoin('contacts', 'units.id', '=', 'contacts.contactable_id')
                     ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
                     ->where('contacts.contactable_type', 'Horsefly\\Unit');
 
-                $this->excludePrivateContacts($query, $sourceIds);
+                $this->excludePrivateContacts($query);
+                $this->applyListFilters($query);
 
                 return $query
                     ->get()
@@ -114,49 +122,61 @@ class UnitsExport implements FromCollection, WithHeadings
                             'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
-
+                
             default:
                 return collect(); // Return empty collection instead of null
         }
     }
 
     /**
-     * Job source IDs that must stay hidden for users without show-private-data.
+     * Match the units list filters (status, head office, search).
      */
-    private function hiddenJobSourceIds(): array
+    protected function applyListFilters($query)
     {
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
+        $query->whereNull('units.deleted_at')
+            ->whereNotIn('units.status', [4, 5]);
 
-        if (Gate::allows('show-private-data') || count($hidePrivateData) === 0) {
+        $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
+        if ($status === 'active') {
+            $query->where('units.status', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('units.status', 0);
+        }
+
+        $officeIds = $this->arrayFilter($this->filters['office_filter'] ?? null);
+        if ($officeIds !== []) {
+            $query->whereIn('units.office_id', $officeIds);
+        }
+
+        $search = trim((string) ($this->filters['search'] ?? ''));
+        if (strlen($search) >= 2) {
+            $unitIdsFromSearch = Unit::search($search)->keys()->toArray();
+            $officeIdsFromSearch = Office::search($search)->keys()->toArray();
+            $unitIdsByOffice = $officeIdsFromSearch !== []
+                ? Unit::whereIn('office_id', $officeIdsFromSearch)->pluck('id')->toArray()
+                : [];
+            $unitIdsFromContacts = Contact::where('contactable_type', 'Horsefly\\Unit')
+                ->where(function ($q) use ($search) {
+                    $q->where('contact_email', 'LIKE', "%{$search}%")
+                        ->orWhere('contact_phone', 'LIKE', "%{$search}%");
+                })
+                ->pluck('contactable_id')
+                ->toArray();
+
+            $allIds = array_unique(array_merge($unitIdsFromSearch, $unitIdsByOffice, $unitIdsFromContacts));
+            $query->whereIn('units.id', $allIds !== [] ? $allIds : [0]);
+        }
+
+        return $query;
+    }
+
+    protected function arrayFilter($value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
             return [];
         }
 
-        return JobSource::where('is_active', 1)
-            ->where(function ($q) use ($hidePrivateData) {
-                foreach ($hidePrivateData as $hideName) {
-                    $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                }
-            })
-            ->pluck('id')
-            ->toArray();
-    }
-
-    /**
-     * Drop contact rows whose job_source_id matches hide_private_data sources.
-     */
-    private function excludePrivateContacts($query, array $sourceIds)
-    {
-        if (count($sourceIds) === 0) {
-            return $query;
-        }
-
-        return $query->where(function ($q) use ($sourceIds) {
-            $q->whereNotIn('contacts.job_source_id', $sourceIds)
-                ->orWhereNull('contacts.job_source_id');
-        });
+        return array_values(array_filter((array) $value, fn ($item) => $item !== '' && $item !== null));
     }
 
     public function headings(): array

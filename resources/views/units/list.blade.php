@@ -223,13 +223,12 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
+        var currentFilter = '';
+        var currentOfficeFilters = [];
+
         $(document).ready(function() {
             const hasViewNotePermission = @json(auth()->user()->can('unit-view-note'));
             const hasAddNotePermission = @json(auth()->user()->can('unit-add-note'));
-
-            // Store the current filter in a variable
-            var currentFilter = '';
-            var currentOfficeFilters = [];
 
             let columns = [{
                     data: 'DT_RowIndex',
@@ -506,7 +505,7 @@
             });
 
             // Handle filter button clicks and send filter parameters to the DataTable
-            $('.dropdown-item').on('click', function() {
+            $('.dropdown-item').not('.export-btn').on('click', function() {
                 // Get the selected filter value
                 currentFilter = $(this).text().toLowerCase();
 
@@ -1098,12 +1097,12 @@
                     if (canShowPrivateData) {
                         // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
                         // Do NOT use === '%hayaibu%' — % is SQL syntax, not a JS string match.
-                        var sourceName = (contact.job_source_name ||
-                            (contact.job_source && contact.job_source.name) ||
-                            '').toString().toLowerCase().trim();
-                        var isHayaibuSource = contact.is_hayaibu_source === true ||
-                            contact.is_hayaibu_source === 1 ||
-                            sourceName.indexOf('hayaibu') !== -1;
+                        var sourceName = (contact.job_source_name
+                            || (contact.job_source && contact.job_source.name)
+                            || '').toString().toLowerCase().trim();
+                        var isHayaibuSource = contact.is_hayaibu_source === true
+                            || contact.is_hayaibu_source === 1
+                            || sourceName.indexOf('hayaibu') !== -1;
 
                         // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
                         if (filterType === 'kingsburry' && isHayaibuSource) {
@@ -1200,49 +1199,59 @@
 
                 xhr.send(formData);
             });
-        });
 
-        $(document).on('click', '.export-btn', function(e) {
-            e.preventDefault();
+            $(document).on('click', '.export-btn', function(e) {
+                e.preventDefault();
 
-            const $link = $(this);
-            const url = $link.attr('href');
-            const $dropdown = $link.closest('.dropdown');
-            const $btn = $dropdown.find('button');
-            const $icon = $btn.find('i');
-            const $text = $btn.find('.btn-text');
+                const $link = $(this);
+                const url = new URL($link.attr('href'), window.location.origin);
+                const $dropdown = $link.closest('.dropdown');
+                const $btn = $dropdown.find('button');
+                const $icon = $btn.find('i');
+                const $text = $btn.find('.btn-text');
 
-            // Disable button + show loader
-            $btn.prop('disabled', true);
-            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
-            $text.text('Exporting...');
+                url.searchParams.set('status_filter', currentFilter || '');
+                url.searchParams.set('search', ($('#customSearchInput').val() || '').trim());
+                url.searchParams.delete('office_filter[]');
+                url.searchParams.delete('office_filter');
+                (currentOfficeFilters || []).forEach(function(id) {
+                    if (id !== '' && id !== null && typeof id !== 'undefined') {
+                        url.searchParams.append('office_filter[]', id);
+                    }
+                });
 
-            $.ajax({
-                url: url,
-                type: 'GET',
-                xhrFields: {
-                    responseType: 'blob'
-                }, // for binary file
-                success: function(data, status, xhr) {
-                    const blob = new Blob([data]);
-                    const link = document.createElement('a');
-                    const fileName = xhr.getResponseHeader('Content-Disposition')
-                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                },
-                error: function() {
-                    alert('Export failed. Please try again.');
-                },
-                complete: function() {
-                    // Re-enable button + reset text
-                    $btn.prop('disabled', false);
-                    $icon.removeClass().addClass('ri-download-line me-1');
-                    $text.text('Export');
-                }
+                // Disable button + show loader
+                $btn.prop('disabled', true);
+                $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+                $text.text('Exporting...');
+
+                $.ajax({
+                    url: url.toString(),
+                    type: 'GET',
+                    xhrFields: {
+                        responseType: 'blob'
+                    }, // for binary file
+                    success: function(data, status, xhr) {
+                        const blob = new Blob([data]);
+                        const link = document.createElement('a');
+                        const fileName = xhr.getResponseHeader('Content-Disposition')
+                            ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                        link.href = window.URL.createObjectURL(blob);
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    },
+                    error: function() {
+                        alert('Export failed. Please try again.');
+                    },
+                    complete: function() {
+                        // Re-enable button + reset text
+                        $btn.prop('disabled', false);
+                        $icon.removeClass().addClass('ri-download-line me-1');
+                        $text.text('Export');
+                    }
+                });
             });
         });
     </script>

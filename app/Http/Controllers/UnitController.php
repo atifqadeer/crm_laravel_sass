@@ -20,13 +20,14 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\UnitsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
+use App\Traits\HidesPrivateContacts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Carbon;
 use App\Observers\ActionObserver;
 
 class UnitController extends Controller
 {
-    use Geocode;
+    use Geocode, HidesPrivateContacts;
 
     public function __construct()
     {
@@ -41,23 +42,7 @@ class UnitController extends Controller
     {
         $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
-
-        $sourceIds = [];
-
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
-        }
+        $sourceIds = $this->hiddenPrivateSourceIds();
 
         $query = JobSource::where('is_active', 1);
 
@@ -72,23 +57,7 @@ class UnitController extends Controller
     {
         $offices = Office::where('status', 1)->select('id', 'office_name')->get();
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
-
-        $sourceIds = [];
-
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
-        }
+        $sourceIds = $this->hiddenPrivateSourceIds();
 
         $query = JobSource::where('is_active', 1);
 
@@ -251,61 +220,15 @@ class UnitController extends Controller
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
-            ->select(
-                'units.*',
-                'offices.office_name as office_name',
-                'job_sources.name as job_source_name'
-            )
+            ->select('units.*', 'offices.office_name as office_name')
             ->leftJoin('offices', 'units.office_id', '=', 'offices.id')
-            ->leftJoin('job_sources', 'units.job_source_id', '=', 'job_sources.id')
             ->whereNull('units.deleted_at')
             ->with('office')
             ->whereNotIn('units.status', [4, 5]);
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
-
-        $sourceIds = [];
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $query->with(['contacts' => function ($q) use ($hidePrivateData) {
-                $q->where(function ($sub) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideValue) {
-                        $sub->where(function ($fieldGroup) use ($hideValue) {
-                            $fieldGroup->where(function ($nameCheck) use ($hideValue) {
-                                $nameCheck->whereNull('contact_name')
-                                    ->orWhere('contact_name', 'NOT LIKE', '%' . $hideValue . '%');
-                            })
-                                ->where(function ($emailCheck) use ($hideValue) {
-                                    $emailCheck->whereNull('contact_email')
-                                        ->orWhere('contact_email', 'NOT LIKE', '%' . $hideValue . '%');
-                                })
-                                ->where(function ($noteCheck) use ($hideValue) {
-                                    $noteCheck->whereNull('contact_note')
-                                        ->orWhere('contact_note', 'NOT LIKE', '%' . $hideValue . '%');
-                                });
-                        });
-                    }
-                });
-            }]);
-
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
-        } else {
-            $query->with('contacts');
-        }
-
-        if (count($sourceIds) > 0) {
-            $query->whereNotIn('units.job_source_id', $sourceIds)
-                ->orWhere('units.job_source_id', null);
-        }
+        $query->with(['contacts' => function ($q) {
+            $this->excludePrivateContacts($q);
+        }]);
 
         if ($statusFilter === 'active') {
             $query->where('units.status', 1);
@@ -330,13 +253,15 @@ class UnitController extends Controller
                 $officeIds = Office::search($search)->keys()->toArray();
                 $unitIdsByOffice = Unit::whereIn('office_id', $officeIds)->pluck('id')->toArray();
 
-                // 3. Still do the Contact SQL check
-                $contactIds = Contact::where('contactable_id', '>', 0)
+                // 3. Still do the Contact SQL check (visible contacts only)
+                $contactSearch = Contact::where('contactable_id', '>', 0)
                     ->where('contactable_type', 'Horsefly\\Unit')
                     ->where(function ($q) use ($search) {
                         $q->where('contact_email', 'LIKE', "%{$search}%")
                             ->orWhere('contact_phone', 'LIKE', "%{$search}%");
-                    })->pluck('contactable_id')->toArray();
+                    });
+                $this->excludePrivateContacts($contactSearch);
+                $contactIds = $contactSearch->pluck('contactable_id')->toArray();
 
                 $allIds = array_unique(array_merge($unitIdsFromElastic, $unitIdsByOffice, $contactIds));
 
@@ -366,6 +291,7 @@ class UnitController extends Controller
         -------------------------------------------------*/
         return DataTables::eloquent($query)
             ->addIndexColumn()
+
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
                 $words = preg_split('/\s+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
@@ -386,11 +312,6 @@ class UnitController extends Controller
                             </button>';
 
                 return '<div class="d-flex align-items-center justify-content-between">' . $postcode . $copyBtn . '</div>';
-            })
-            ->addColumn('job_source', function ($u) {
-                if (!$u->job_sources)
-                    return '-';
-                return '<span class="badge bg-light text-dark">' . e($u->job_source_name) . '</span>';
             })
             ->addColumn(
                 'contact_email',
@@ -415,6 +336,7 @@ class UnitController extends Controller
                         ->whereColumn('contacts.contactable_id', 'units.id')
                         ->where('contacts.contactable_type', \Horsefly\Unit::class)
                         ->where('contact_email', 'LIKE', "{$keyword}%");
+                    $this->excludePrivateContacts($q);
                 });
             })
             ->filterColumn('contact_phone', function ($query, $keyword) {
@@ -425,6 +347,7 @@ class UnitController extends Controller
                         ->whereColumn('contacts.contactable_id', 'units.id')
                         ->where('contacts.contactable_type', \Horsefly\Unit::class)
                         ->where('contact_phone', 'LIKE', "{$clean}%");
+                    $this->excludePrivateContacts($q);
                 });
             })
             ->filterColumn('contact_landline', function ($query, $keyword) {
@@ -435,6 +358,7 @@ class UnitController extends Controller
                         ->whereColumn('contacts.contactable_id', 'units.id')
                         ->where('contacts.contactable_type', \Horsefly\Unit::class)
                         ->where('contact_landline', 'LIKE', "{$clean}%");
+                    $this->excludePrivateContacts($q);
                 });
             })
 
@@ -511,8 +435,7 @@ class UnitController extends Controller
                 'office_name',
                 'unit_name',
                 'action',
-                'unit_postcode',
-                'job_source',
+                'unit_postcode'
             ])
             ->make(true);
     }
@@ -624,42 +547,9 @@ class UnitController extends Controller
         $contactsQuery = Contact::where('contactable_id', $unit->id)
             ->where('contactable_type', 'Horsefly\Unit');
 
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
+        $this->excludePrivateContacts($contactsQuery);
 
-        $sourceIds = [];
-
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $contactsQuery->where(function ($sub) use ($hidePrivateData) {
-                foreach ($hidePrivateData as $hideValue) {
-                    $sub->where(function ($fieldGroup) use ($hideValue) {
-                        $fieldGroup->where(function ($nameCheck) use ($hideValue) {
-                            $nameCheck->whereNull('contact_name')
-                                ->orWhere('contact_name', 'NOT LIKE', '%' . $hideValue . '%');
-                        })
-                            ->where(function ($emailCheck) use ($hideValue) {
-                                $emailCheck->whereNull('contact_email')
-                                    ->orWhere('contact_email', 'NOT LIKE', '%' . $hideValue . '%');
-                            })
-                            ->where(function ($noteCheck) use ($hideValue) {
-                                $noteCheck->whereNull('contact_note')
-                                    ->orWhere('contact_note', 'NOT LIKE', '%' . $hideValue . '%');
-                            });
-                    });
-                }
-            });
-
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
-        }
+        $sourceIds = $this->hiddenPrivateSourceIds();
 
         $query = JobSource::where('is_active', 1);
 
@@ -849,7 +739,20 @@ class UnitController extends Controller
     public function export(Request $request)
     {
         $type = $request->query('type', 'all'); // Default to 'all' if not provided
+        $filters = $this->exportFiltersFromRequest($request);
 
-        return Excel::download(new UnitsExport($type), "units_{$type}.csv");
+        return Excel::download(new UnitsExport($type, $filters), "units_{$type}.csv");
+    }
+
+    protected function exportFiltersFromRequest(Request $request): array
+    {
+        $filters = [];
+        foreach (['status_filter', 'office_filter', 'search'] as $key) {
+            if ($request->has($key)) {
+                $filters[$key] = $request->query($key);
+            }
+        }
+
+        return $filters;
     }
 }

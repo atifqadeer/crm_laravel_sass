@@ -180,12 +180,11 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
+        var currentFilter = '';
+
         $(document).ready(function() {
             const hasViewNotePermission = @json(auth()->user()->can('office-view-note'));
             const hasAddNotePermission = @json(auth()->user()->can('office-add-note'));
-
-            // Store the current filter in a variable
-            var currentFilter = '';
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -926,49 +925,52 @@
 
                 xhr.send(formData);
             });
-        });
 
-        $(document).on('click', '.export-btn', function(e) {
-            e.preventDefault();
+            $(document).on('click', '.export-btn', function(e) {
+                e.preventDefault();
 
-            const $link = $(this);
-            const url = $link.attr('href');
-            const $dropdown = $link.closest('.dropdown');
-            const $btn = $dropdown.find('button');
-            const $icon = $btn.find('i');
-            const $text = $btn.find('.btn-text');
+                const $link = $(this);
+                const url = new URL($link.attr('href'), window.location.origin);
+                const $dropdown = $link.closest('.dropdown');
+                const $btn = $dropdown.find('button');
+                const $icon = $btn.find('i');
+                const $text = $btn.find('.btn-text');
 
-            // Disable button + show loader
-            $btn.prop('disabled', true);
-            $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
-            $text.text('Exporting...');
+                url.searchParams.set('status_filter', currentFilter || '');
+                url.searchParams.set('search', ($('#customSearchInput').val() || '').trim());
 
-            $.ajax({
-                url: url,
-                type: 'GET',
-                xhrFields: {
-                    responseType: 'blob'
-                }, // for binary file
-                success: function(data, status, xhr) {
-                    const blob = new Blob([data]);
-                    const link = document.createElement('a');
-                    const fileName = xhr.getResponseHeader('Content-Disposition')
-                        ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                },
-                error: function() {
-                    alert('Export failed. Please try again.');
-                },
-                complete: function() {
-                    // Re-enable button + reset text
-                    $btn.prop('disabled', false);
-                    $icon.removeClass().addClass('ri-download-line me-1');
-                    $text.text('Export');
-                }
+                // Disable button + show loader
+                $btn.prop('disabled', true);
+                $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');
+                $text.text('Exporting...');
+
+                $.ajax({
+                    url: url.toString(),
+                    type: 'GET',
+                    xhrFields: {
+                        responseType: 'blob'
+                    }, // for binary file
+                    success: function(data, status, xhr) {
+                        const blob = new Blob([data]);
+                        const link = document.createElement('a');
+                        const fileName = xhr.getResponseHeader('Content-Disposition')
+                            ?.split('filename=')[1]?.replace(/['"]/g, '') || 'export.xlsx';
+                        link.href = window.URL.createObjectURL(blob);
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    },
+                    error: function() {
+                        alert('Export failed. Please try again.');
+                    },
+                    complete: function() {
+                        // Re-enable button + reset text
+                        $btn.prop('disabled', false);
+                        $icon.removeClass().addClass('ri-download-line me-1');
+                        $text.text('Export');
+                    }
+                });
             });
         });
     </script>

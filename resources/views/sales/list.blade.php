@@ -483,12 +483,12 @@
             // the "Columns" dropdown (row index + action menu).
             const columnConfig = [
                 { title: '#', toggleable: false },
-                { title: 'Created Date', default: false },
-                { title: 'Updated Date', default: true },
-                { title: 'Open Date', default: true },
+                { title: 'Created Date', default: true },
+                { title: 'Updated Date', default: false },
+                { title: 'Open Date', default: false },
                 { title: 'Agent', default: true },
                 { title: 'Head Office', default: true },
-                { title: 'Unit Name', default: true },
+                { title: 'Unit Name', default: false },
                 { title: 'PostCode', default: true },
                 { title: 'Position Type', default: false },
                 { title: 'Title', default: true },
@@ -2001,11 +2001,40 @@
             e.preventDefault();
 
             const $link = $(this);
-            const url = $link.attr('href');
+            const url = new URL($link.attr('href'), window.location.origin);
             const $dropdown = $link.closest('.dropdown');
             const $btn = $dropdown.find('button');
             const $icon = $btn.find('i');
             const $text = $btn.find('.btn-text');
+
+            const statusFilter = ($('#showFilterStatus').text() || '').trim().toLowerCase() || 'open';
+            const typeFilter = ($('#showFilterType').text() || '').trim().toLowerCase();
+            const cvLimitFilter = ($('#showFilterCvLimit').text() || '').trim().toLowerCase();
+            const search = $.fn.DataTable.isDataTable('#sales_table')
+                ? ($('#sales_table').DataTable().search() || '').trim()
+                : ($('#customSearchInput').val() || '').trim();
+
+            url.searchParams.set('status_filter', statusFilter);
+            url.searchParams.set('type_filter', typeFilter);
+            url.searchParams.set('cv_limit_filter', cvLimitFilter);
+            url.searchParams.set('search', search);
+
+            function appendSelectedIds(param, selector, dataKey) {
+                url.searchParams.delete(param + '[]');
+                url.searchParams.delete(param);
+                $(selector + ':checked').each(function() {
+                    const id = $(this).data(dataKey);
+                    if (id !== '' && id !== null && typeof id !== 'undefined') {
+                        url.searchParams.append(param + '[]', id);
+                    }
+                });
+            }
+
+            appendSelectedIds('category_filter', '.category-filter', 'category-id');
+            appendSelectedIds('source_filter', '.source-filter', 'source-id');
+            appendSelectedIds('title_filter', '.title-filter', 'title-id');
+            appendSelectedIds('office_filter', '.office-filter', 'office-id');
+            appendSelectedIds('user_filter', '.user-filter', 'user-id');
 
             // Disable button + show loader
             $btn.prop('disabled', true);
@@ -2013,7 +2042,7 @@
             $text.text('Exporting...');
 
             $.ajax({
-                url: url,
+                url: url.toString(),
                 type: 'GET',
                 xhrFields: {
                     responseType: 'blob'
@@ -2030,7 +2059,7 @@
                     document.body.removeChild(link);
                 },
                 error: function() {
-                    alert('Export failed. Please try again.');
+                    toastr.error('Export failed. Please try again.');
                 },
                 complete: function() {
                     // Re-enable button + reset text

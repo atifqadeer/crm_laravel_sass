@@ -3,16 +3,22 @@
 namespace App\Exports;
 
 use Horsefly\Office;
+use Horsefly\Contact;
+use App\Traits\HidesPrivateContacts;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class HeadOfficesExport implements FromCollection, WithHeadings
 {
-    protected $type;
+    use HidesPrivateContacts;
 
-    public function __construct(string $type = 'all')
+    protected $type;
+    protected $filters;
+
+    public function __construct(string $type = 'all', array $filters = [])
     {
         $this->type = $type;
+        $this->filters = $filters;
     }
 
     /**
@@ -22,7 +28,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
     {
         switch ($this->type) {
             case 'emails':
-                return Office::select(
+                $query = Office::select(
                         'offices.id', 
                         'offices.office_name', 
                         'offices.office_postcode',
@@ -30,7 +36,12 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                         'offices.created_at'
                     )
                     ->leftJoin('contacts', 'offices.id', '=', 'contacts.contactable_id')
-                    ->where('contacts.contactable_type', 'Horsefly\\Office')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+
+                $this->excludePrivateContacts($query);
+                $this->applyListFilters($query);
+
+                return $query
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -43,7 +54,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                     });
                 
             case 'noLatLong':
-                return Office::select(
+                $query = Office::select(
                         'id',
                         'office_name',
                         'office_postcode',
@@ -52,8 +63,12 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                         'created_at'
                     )
                     ->whereIn('office_lng', ['0', '', null])
-                    ->whereIn('office_lat', ['0', '', null])
-                    ->get() // execute the query to get a collection
+                    ->whereIn('office_lat', ['0', '', null]);
+
+                $this->applyListFilters($query);
+
+                return $query
+                    ->get()
                     ->map(function ($item) {
                         return [
                             'id'              => $item->id,
@@ -68,7 +83,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                     });
                 
             case 'all':
-                return Office::select(
+                $query = Office::select(
                         'offices.id', 
                         'offices.office_name', 
                         'contacts.contact_name', 
@@ -78,7 +93,12 @@ class HeadOfficesExport implements FromCollection, WithHeadings
                         'offices.created_at'
                     )
                     ->leftJoin('contacts', 'offices.id', '=', 'contacts.contactable_id')
-                    ->where('contacts.contactable_type', 'Horsefly\\Office')
+                    ->where('contacts.contactable_type', 'Horsefly\\Office');
+
+                $this->excludePrivateContacts($query);
+                $this->applyListFilters($query);
+
+                return $query
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -96,6 +116,40 @@ class HeadOfficesExport implements FromCollection, WithHeadings
             default:
                 return collect(); // Return empty collection instead of null
         }
+    }
+
+    /**
+     * Match the head office list filters (status, search).
+     */
+    protected function applyListFilters($query)
+    {
+        $query->whereNull('offices.deleted_at')
+            ->whereNotIn('offices.status', [4, 5]);
+
+        $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
+        if ($status === 'active') {
+            $query->where('offices.status', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('offices.status', 0);
+        }
+
+        $search = trim((string) ($this->filters['search'] ?? ''));
+        if (strlen($search) >= 2) {
+            $officeIds = Office::search($search)->keys()->toArray();
+            $contactIds = Contact::where('contactable_type', 'Horsefly\\Office')
+                ->where(function ($q) use ($search) {
+                    $q->where('contact_email', 'LIKE', "%{$search}%")
+                        ->orWhere('contact_phone', 'LIKE', "%{$search}%")
+                        ->orWhere('contact_landline', 'LIKE', "%{$search}%");
+                })
+                ->pluck('contactable_id')
+                ->toArray();
+
+            $allIds = array_unique(array_merge($officeIds, $contactIds));
+            $query->whereIn('offices.id', $allIds !== [] ? $allIds : [0]);
+        }
+
+        return $query;
     }
 
     public function headings(): array
