@@ -2794,91 +2794,8 @@ class DashboardController extends Controller
         if ($type) {
             $query->where('applicants.job_type', $type);
         }
-        // Derived table for latest cv_notes (if needed for user_name)
-        $latestCv = DB::table('cv_notes')
-            ->select('applicant_id', 'sale_id', 'user_id', 'created_at', 'id')
-            ->whereIn('id', function ($sub) {
-                $sub->select(DB::raw('MAX(id)'))
-                    ->from('cv_notes')
-                    ->groupBy('applicant_id', 'sale_id');
-            });
 
-
-        /* status filter - join history table */
-        $crmNoteMap = [
-            'crm_sent_cvs' => ['cv_sent', 'cv_sent_saved'],
-            'crm_open_cvs' => 'quality_cvs_hold',
-            'crm_rejected' => 'crm_reject',
-            'crm_requested' => 'crm_request',
-            'crm_request_rejected' => 'crm_request_reject',
-            'crm_confirmed' => 'crm_request_confirm',
-            'crm_rebook' => 'crm_rebook',
-            'crm_prestart_attended' => 'crm_interview_attended',
-            'crm_declined' => 'crm_declined',
-            'crm_not_attended' => 'crm_interview_not_attended',
-            'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
-            'crm_start_date_hold' => 'crm_start_date_hold',
-            'crm_invoiced' => 'crm_invoice',
-            'crm_disputed' => 'crm_dispute',
-            'crm_paid' => 'crm_paid',
-            'crm_revert' => 'crm_revert',
-            'quality_revert' => 'quality_revert',
-        ];
-
-        $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
-
-        /* status filter - join history table */
-        $map = [
-            'crm_sent_cvs' => 'quality_cleared',
-            'crm_open_cvs' => 'quality_cvs_hold',
-            'crm_rejected' => 'crm_reject',
-            'crm_requested' => 'crm_request',
-            'crm_request_rejected' => 'crm_request_reject',
-            'crm_confirmed' => 'crm_request_confirm',
-            'crm_rebook' => 'crm_rebook',
-            'crm_prestart_attended' => 'crm_interview_attended',
-            'crm_declined' => 'crm_declined',
-            'crm_not_attended' => 'crm_interview_not_attended',
-            'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
-            'crm_start_date_hold' => 'crm_start_date_hold',
-            'crm_invoiced' => 'crm_invoice',
-            'crm_disputed' => 'crm_dispute',
-            'crm_paid' => 'crm_paid',
-            'crm_revert' => 'crm_revert',
-            'quality_revert' => 'quality_revert',
-        ];
-
-        $subStages = $map[$status] ?? 'quality_cleared';
-
-        // Derived table for latest crm_notes
-        $latestCrm = DB::table('crm_notes')
-            ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereIn('id', function ($sub) use ($startDate, $endDate) {
-                $sub->select(DB::raw('MAX(id)'))
-                    ->from('crm_notes')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->groupBy('applicant_id', 'sale_id');
-            });
-
-        $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
-            $q->selectRaw(1)
-                ->from('history')
-                ->whereColumn('history.applicant_id', 'applicants.id')
-                ->whereIn('history.sub_stage', (array) $subStages)
-                ->whereBetween('history.created_at', [$startDate, $endDate]);
-        })
-            ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
-                $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
-            })
-            ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
-                $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                    ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-            })
-            ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id');
-
-        $query->select([
+        $applicantSelect = [
             'applicants.id',
             'applicants.applicant_name',
             'applicants.applicant_email',
@@ -2894,18 +2811,129 @@ class DashboardController extends Controller
             'applicants.job_source_id',
             'applicants.job_type',
             'applicants.applicant_notes',
+            'applicants.applicant_cv',
+            'applicants.updated_cv',
             'applicants.created_at',
-
-            'crm_notes.details as notes_detail',
-            'crm_notes.created_at as notes_created_at',
-
-            'users.name as user_name',
-
             'job_titles.name as job_title_name',
             'job_categories.name as job_category_name',
             'job_sources.name as job_source_name',
+        ];
 
-        ]);
+        $isRevertStatus = in_array($status, ['crm_revert', 'quality_revert'], true);
+
+        if ($isRevertStatus) {
+            // Chart / modal counts come from revert_stages, not history.
+            $revertStages = [$status];
+
+            $latestRevert = DB::table('revert_stages')
+                ->select('applicant_id', 'sale_id', 'user_id', 'notes', 'created_at', 'id', 'stage')
+                ->whereIn('stage', $revertStages)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereIn('id', function ($sub) use ($revertStages, $startDate, $endDate) {
+                    $sub->select(DB::raw('MAX(id)'))
+                        ->from('revert_stages')
+                        ->whereIn('stage', $revertStages)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->groupBy('applicant_id');
+                });
+
+            $query->whereExists(function ($q) use ($revertStages, $startDate, $endDate) {
+                $q->selectRaw(1)
+                    ->from('revert_stages')
+                    ->whereColumn('revert_stages.applicant_id', 'applicants.id')
+                    ->whereIn('revert_stages.stage', $revertStages)
+                    ->whereBetween('revert_stages.created_at', [$startDate, $endDate]);
+            })
+                ->leftJoinSub($latestRevert, 'revert_notes', function ($join) {
+                    $join->on('applicants.id', '=', 'revert_notes.applicant_id');
+                })
+                ->leftJoin('users', 'revert_notes.user_id', '=', 'users.id')
+                ->select(array_merge($applicantSelect, [
+                    'revert_notes.notes as notes_detail',
+                    'revert_notes.created_at as notes_created_at',
+                    'users.name as user_name',
+                ]));
+        } else {
+            $latestCv = DB::table('cv_notes')
+                ->select('applicant_id', 'sale_id', 'user_id', 'created_at', 'id')
+                ->whereIn('id', function ($sub) {
+                    $sub->select(DB::raw('MAX(id)'))
+                        ->from('cv_notes')
+                        ->groupBy('applicant_id', 'sale_id');
+                });
+
+            $crmNoteMap = [
+                'crm_sent_cvs' => ['cv_sent', 'cv_sent_saved'],
+                'crm_open_cvs' => 'quality_cvs_hold',
+                'crm_rejected' => 'crm_reject',
+                'crm_requested' => 'crm_request',
+                'crm_request_rejected' => 'crm_request_reject',
+                'crm_confirmed' => 'crm_request_confirm',
+                'crm_rebook' => 'crm_rebook',
+                'crm_prestart_attended' => 'crm_interview_attended',
+                'crm_declined' => 'crm_declined',
+                'crm_not_attended' => 'crm_interview_not_attended',
+                'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
+                'crm_start_date_hold' => 'crm_start_date_hold',
+                'crm_invoiced' => 'crm_invoice',
+                'crm_disputed' => 'crm_dispute',
+                'crm_paid' => 'crm_paid',
+            ];
+
+            $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
+
+            $map = [
+                'crm_sent_cvs' => 'quality_cleared',
+                'crm_open_cvs' => 'quality_cvs_hold',
+                'crm_rejected' => 'crm_reject',
+                'crm_requested' => 'crm_request',
+                'crm_request_rejected' => 'crm_request_reject',
+                'crm_confirmed' => 'crm_request_confirm',
+                'crm_rebook' => 'crm_rebook',
+                'crm_prestart_attended' => 'crm_interview_attended',
+                'crm_declined' => 'crm_declined',
+                'crm_not_attended' => 'crm_interview_not_attended',
+                'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
+                'crm_start_date_hold' => 'crm_start_date_hold',
+                'crm_invoiced' => 'crm_invoice',
+                'crm_disputed' => 'crm_dispute',
+                'crm_paid' => 'crm_paid',
+            ];
+
+            $subStages = $map[$status] ?? 'quality_cleared';
+
+            $latestCrm = DB::table('crm_notes')
+                ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereIn('id', function ($sub) use ($startDate, $endDate) {
+                    $sub->select(DB::raw('MAX(id)'))
+                        ->from('crm_notes')
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->groupBy('applicant_id', 'sale_id');
+                });
+
+            $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
+                $q->selectRaw(1)
+                    ->from('history')
+                    ->whereColumn('history.applicant_id', 'applicants.id')
+                    ->whereIn('history.sub_stage', (array) $subStages)
+                    ->whereBetween('history.created_at', [$startDate, $endDate]);
+            })
+                ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
+                    $join->on('applicants.id', '=', 'crm_notes.applicant_id')
+                        ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
+                })
+                ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
+                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
+                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
+                })
+                ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
+                ->select(array_merge($applicantSelect, [
+                    'crm_notes.details as notes_detail',
+                    'crm_notes.created_at as notes_created_at',
+                    'users.name as user_name',
+                ]));
+        }
 
         if ($request->ajax()) {
             return DataTables::eloquent($query)
@@ -2999,7 +3027,9 @@ class DashboardController extends Controller
                 })
                 ->addColumn('notes_details', function ($applicant) {
                     $notes_detail = strip_tags((string) ($applicant->notes_detail ?? $applicant->applicant_notes ?? ''));
-                    $notes_created_at = Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
+                    $notes_created_at = $applicant->notes_created_at
+                        ? Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A')
+                        : '-';
                     $notes = "<strong>Date: {$notes_created_at}</strong><br>{$notes_detail}";
 
                     $short = Str::limit($notes, 150);
