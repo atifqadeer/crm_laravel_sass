@@ -2830,6 +2830,7 @@ class QualityController extends Controller
                         'benefits'      => $sale->benefits,
                     ];
 
+                    $url = route('sales.history', ['id' => (int) $sale->id]);
                     if (Gate::allows('quality-assurance-sale-view')) {
                         return '<a href="javascript:void(0);"
                             class="dropdown-item job-details"
@@ -2838,7 +2839,11 @@ class QualityController extends Controller
                             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
                         ) . '\'>
                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
-                            </a>';
+                        </a>
+                        
+                        <a href="' . $url . '" target="_blank" title="View History">
+                            <iconify-icon icon="solar:history-bold" class="text-warning fs-24"></iconify-icon>
+                        </a>';
                     }
                 })
                 ->addColumn('status', function ($sale) {
@@ -2956,8 +2961,6 @@ class QualityController extends Controller
                     }
 
                     $action .= '<li><hr class="dropdown-divider"></li>';
-                    $url = route('sales.history', ['id' => (int) $sale->id]);
-                    $action .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">View History</a></li>';
 
                     if (Gate::allows('quality-assurance-sale-view-documents')) {
                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>';
