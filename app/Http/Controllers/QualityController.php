@@ -1050,7 +1050,7 @@ class QualityController extends Controller
                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                         </a>
                         
-                        <a href="' . $url . '" target="_blank" title="View History">
+                        <a href="' . $url . '" target="_blank" title="View Sale History">
                             <iconify-icon icon="solar:history-bold" class="text-warning fs-24"></iconify-icon>
                         </a>';
                 }
@@ -2907,7 +2907,7 @@ class QualityController extends Controller
                             <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
                         </a>
                         
-                        <a href="' . $url . '" target="_blank" title="View History">
+                        <a href="' . $url . '" target="_blank" title="View Sale History">
                             <iconify-icon icon="solar:history-bold" class="text-warning fs-24"></iconify-icon>
                         </a>';
                     }
