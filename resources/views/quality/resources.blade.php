@@ -199,7 +199,7 @@
             <div class="card">
                 <div class="card-body p-3">
                     <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
-                                         flex row as DataTables' own "Show X entries" length control below. -->
+                                                             flex row as DataTables' own "Show X entries" length control below. -->
                     <div id="columnsToolbar" class="dropdown d-inline">
                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
                             id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">
@@ -233,6 +233,7 @@
                                     <th width="10%">Phone / Landline</th>
                                     <th>Applicant Resume</th>
                                     <th>CRM Resume</th>
+                                    <th>Job Details</th>
                                     <th>Head Office</th>
                                     <th>Unit</th>
                                     <th>PostCode (Sale)</th>
@@ -376,6 +377,10 @@
                 {
                     title: 'CRM Resume',
                     default: false
+                },
+                {
+                    title: 'Job Details',
+                    default: true
                 },
                 {
                     title: 'Head Office',
@@ -554,6 +559,12 @@
                         searchable: false
                     },
                     {
+                        data: 'job_details',
+                        name: 'job_details',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'office_name',
                         name: 'offices.office_name'
                     },
@@ -595,13 +606,25 @@
                         }
                     },
                     {
+                        targets: 10, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
+                        }
+                    },
+                    {
                         targets: 13, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 15, // Column index for 'job_details'
+                        targets: 14, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
+                        }
+                    },
+                    {
+                        targets: 16, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }

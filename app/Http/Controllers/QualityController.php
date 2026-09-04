@@ -953,6 +953,9 @@ class QualityController extends Controller
             return response()->json(['error' => 'Invalid request'], 400);
         }
 
+        $jobTitleNamesById = JobTitle::pluck('name', 'id');
+        $jobCategoryNamesById = JobCategory::pluck('name', 'id');
+
         return DataTables::eloquent($model)
             ->skipTotalRecords()
             ->order(fn($query) => $this->applySorting($query, $request))
@@ -989,6 +992,69 @@ class QualityController extends Controller
                 $name = ucwords($row->applicant_name);
                 return '<a class="dropdown-item" target="_blank" title="View Applicant History" href="' . route('applicants.history', ['id' => (int) $row->id]) . '">' . $name . '</a>';
             })
+            ->addColumn('job_details', function ($applicant) use ($jobTitleNamesById, $jobCategoryNamesById) {
+                $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+                $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                $status = '';
+                if ($applicant->sale_status == 1) {
+                    $status = '<span class="badge bg-success">Active</span>';
+                } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+                    $status = '<span class="badge bg-danger">Closed</span>';
+                } elseif ($applicant->sale_status == 2) {
+                    $status = '<span class="badge bg-warning">Pending</span>';
+                } elseif ($applicant->sale_status == 3) {
+                    $status = '<span class="badge bg-danger">Rejected</span>';
+                }
+
+                $sale_source_name = '';
+                if ($applicant->sale_source_name) {
+                    $sale_source_name = '<span class="badge bg-light text-dark">' . e($applicant->sale_source_name) . '</span>';
+                }
+
+                $postcode = strtoupper($applicant->sale_postcode);
+                $posted_date = Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A');
+                $office_name = ucwords($applicant->office_name) ?? '-';
+                $unit_name = ucwords($applicant->unit_name) ?? '-';
+                $jobTitleNameValue = $jobTitleNamesById->get($applicant->sale_title_id);
+                $jobTitle = $jobTitleNameValue ? strtoupper($jobTitleNameValue) : '-';
+                $stype  = $applicant->sale_job_type && $applicant->sale_job_type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                $jobCategoryNameValue = $jobCategoryNamesById->get($applicant->sale_category_id);
+                $jobCategory = $jobCategoryNameValue ? (ucwords($jobCategoryNameValue) . $stype) : '-';
+
+                $jobData = [
+                    'sale_id'       => (int)$applicant->sale_id,
+                    'posted_date'   => $posted_date,
+                    'office_name'   => $office_name,
+                    'unit_name'     => $unit_name,
+                    'postcode'      => $postcode,
+                    'job_category'  => $jobCategory,
+                    'job_title'     => $jobTitle,
+                    'sale_source_name' => $sale_source_name,
+                    'status'        => $status,       // RAW HTML
+                    'timing'        => $applicant->timing,
+                    'experience'    => $applicant->sale_experience,
+                    'salary'        => $applicant->salary,
+                    'position'      => $position,     // RAW HTML
+                    'qualification' => $applicant->sale_qualification,
+                    'benefits'      => $applicant->benefits,
+                ];
+
+                $url = route('sales.history', ['id' => (int) $applicant->sale_id]);
+                if (Gate::allows('quality-assurance-sale-view')) {
+                    return '<a href="javascript:void(0);"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                        $jobData,
+                        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                    ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>
+                        
+                        <a href="' . $url . '" target="_blank" title="View History">
+                            <iconify-icon icon="solar:history-bold" class="text-warning fs-24"></iconify-icon>
+                        </a>';
+                }
+            })
             ->addColumn('applicantEmail', fn($row) => $this->renderApplicantEmail($row))
             ->filterColumn('applicantEmail', function ($query, $keyword) {
                 $keyword = trim($keyword);
@@ -1018,7 +1084,7 @@ class QualityController extends Controller
             ->addColumn('crm_resume', fn($row) => $this->renderResumeLink($row->updated_cv, $row->is_blocked, 'primary'))
             ->addColumn('customStatus', fn($row) => $this->renderCustomStatus($row))
             ->addColumn('action', fn($row) => $this->renderActionMenu($row, $statusFilter))
-            ->rawColumns(['notes_detail', 'applicant_name', 'notes_created_at', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'sale_job_source', 'action'])
+            ->rawColumns(['notes_detail', 'applicant_name', 'notes_created_at', 'job_details', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'sale_job_source', 'action'])
             ->make(true);
     }
 
