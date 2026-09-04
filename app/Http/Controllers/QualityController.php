@@ -2273,6 +2273,7 @@ class QualityController extends Controller
                     }
 
                     $action .= '<li><hr class="dropdown-divider"></li>';
+
                     $url = route('sales.history', ['id' => (int) $sale->id]);
                     $action .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">View History</a></li>';
 
@@ -2955,6 +2956,9 @@ class QualityController extends Controller
                     }
 
                     $action .= '<li><hr class="dropdown-divider"></li>';
+                    $url = route('sales.history', ['id' => (int) $sale->id]);
+                    $action .= '<li><a class="dropdown-item" target="_blank" href="' . $url . '">View History</a></li>';
+
                     if (Gate::allows('quality-assurance-sale-view-documents')) {
                         $action .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewSaleDocuments(' . $sale->id . ')">View Documents</a></li>';
                     }
