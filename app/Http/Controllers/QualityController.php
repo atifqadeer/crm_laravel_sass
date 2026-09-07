@@ -44,13 +44,39 @@ class QualityController extends Controller
 {
     use SendEmails, SendSMS;
 
-    protected $sendEmails;
-    protected $sendSMS;
+    private const QUALITY_RESOURCE_TABS = [
+        'requested cvs' => [
+            'permission' => 'quality-resources-tab-requested-cvs',
+            'label' => 'Requested CVs',
+        ],
+        'open cvs' => [
+            'permission' => 'quality-resources-tab-open-cvs',
+            'label' => 'Open CVs',
+        ],
+        'no job cvs' => [
+            'permission' => 'quality-resources-tab-no-job-cvs',
+            'label' => 'No Job CVs',
+        ],
+        'rejected cvs' => [
+            'permission' => 'quality-resources-tab-rejected-cvs',
+            'label' => 'Rejected CVs',
+        ],
+        'cleared cvs' => [
+            'permission' => 'quality-resources-tab-cleared-cvs',
+            'label' => 'Cleared CVs',
+        ],
+    ];
 
     public function __construct()
     {
-        //
+        $this->middleware('permission:quality-assurance-resource-index,quality-resources-tab-requested-cvs,quality-resources-tab-open-cvs,quality-resources-tab-no-job-cvs,quality-resources-tab-rejected-cvs,quality-resources-tab-cleared-cvs')->only(['resourceIndex']);
+        $this->middleware('permission:quality-resources-tab-requested-cvs,quality-resources-tab-open-cvs,quality-resources-tab-no-job-cvs,quality-resources-tab-rejected-cvs,quality-resources-tab-cleared-cvs')->only(['getResourcesByTypeAjaxRequest']);
+        $this->middleware('permission:quality-assurance-sale-index')->only(['saleIndex', 'getSalesByTypeAjaxRequest']);
+        $this->middleware('permission:quality-assurance-sale-clear')->only(['clearRejectSale']);
+        $this->middleware('permission:quality-assurance-resource-open-cv,quality-assurance-resource-clear-cv,quality-assurance-resource-reject-cv,quality-assurance-resource-revert-cv')->only(['updateApplicantStatusByQuality']);
+        $this->middleware('permission:quality-assurance-resource-view-notes-history,quality-assurance-sale-view-notes-history')->only(['getQualityNotesHistory']);
     }
+
     public function resourceIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
@@ -82,7 +108,18 @@ class QualityController extends Controller
 
         $jobSources = $query->orderBy('name', 'asc')->get();
 
-        return view('quality.resources', compact('jobCategories', 'jobTitles', 'jobSources'));
+        $qualityResourceTabs = $this->allowedQualityResourceTabs();
+        $defaultQualityResourceTab = array_key_first($qualityResourceTabs) ?? '';
+        $defaultQualityResourceTabLabel = $qualityResourceTabs[$defaultQualityResourceTab] ?? 'Requested CVs';
+
+        return view('quality.resources', compact(
+            'jobCategories',
+            'jobTitles',
+            'jobSources',
+            'qualityResourceTabs',
+            'defaultQualityResourceTab',
+            'defaultQualityResourceTabLabel'
+        ));
     }
     public function saleIndex()
     {
@@ -853,9 +890,14 @@ class QualityController extends Controller
         $titleFilter    = $request->input('title_filter', []);
         $sourceFilter   = $request->input('source_filter', []);
         $statusFilter   = strtolower(trim(preg_replace('/\s+/', ' ', (string) $request->input('status_filter', ''))));
+        $allowedTabs = $this->allowedQualityResourceTabs();
 
         if (in_array($statusFilter, ['', 'all'], true)) {
-            $statusFilter = 'requested cvs';
+            $statusFilter = array_key_first($allowedTabs) ?? '';
+        }
+
+        if ($statusFilter === '' || !isset($allowedTabs[$statusFilter])) {
+            abort(403, 'You do not have permission to view this quality resources tab.');
         }
 
         $commonSaleSelect = [
@@ -1092,10 +1134,15 @@ class QualityController extends Controller
         string $table,
         array $columns,
         ?\Closure $where = null,
-        string $direction = 'DESC'
+        string $direction = 'DESC',
+        array $partitionBy = ['applicant_id', 'sale_id']
     ): Builder {
+        $allowedPartitionColumns = ['applicant_id', 'sale_id'];
+        $partitionBy = array_values(array_intersect($partitionBy, $allowedPartitionColumns)) ?: ['applicant_id', 'sale_id'];
+        $partitionSql = implode(', ', $partitionBy);
+
         $query = DB::table($table)->select(array_merge($columns, [
-            DB::raw("ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id {$direction}) as rn"),
+            DB::raw("ROW_NUMBER() OVER (PARTITION BY {$partitionSql} ORDER BY id {$direction}) as rn"),
         ]));
 
         if ($where) {
@@ -1107,14 +1154,17 @@ class QualityController extends Controller
             ->select($columns);
     }
 
-    private function currentQualityHistorySubquery(array $targetSubStages): Builder
+    private function currentQualityHistorySubquery(array $targetSubStages, bool $latestPerApplicant = false): Builder
     {
         $decisionSubStages = ['quality_reject', 'quality_cleared', 'quality_cleared_no_job'];
+        $partitionBy = $latestPerApplicant ? ['applicant_id'] : ['applicant_id', 'sale_id'];
 
         return $this->rankedPerApplicantSaleSubquery(
             'history',
             ['applicant_id', 'sale_id', 'sub_stage', 'created_at'],
-            fn($q) => $q->whereIn('sub_stage', $decisionSubStages)
+            fn($q) => $q->whereIn('sub_stage', $decisionSubStages),
+            'DESC',
+            $partitionBy
         )->whereIn('sub_stage', $targetSubStages);
     }
 
@@ -1145,7 +1195,7 @@ class QualityController extends Controller
         );
     }
 
-    private function applyQualityDecisionFilter($model, array $historyStages, array $commonSaleSelect)
+    private function applyQualityDecisionFilter($model, array $historyStages, array $commonSaleSelect, bool $latestPerApplicant = false)
     {
         $saleSelect = array_values(array_filter(
             $commonSaleSelect,
@@ -1153,16 +1203,8 @@ class QualityController extends Controller
         ));
 
         return $model
-            ->joinSub($this->currentQualityHistorySubquery($historyStages), 'lh', fn($j) => $j
+            ->joinSub($this->currentQualityHistorySubquery($historyStages, $latestPerApplicant), 'lh', fn($j) => $j
                 ->on('applicants.id', '=', 'lh.applicant_id'))
-            // sales/offices/units are LEFT joins purely as a query-plan control: MySQL's
-            // optimizer was picking `offices` as the driving table (full index scan of
-            // every office, ~2k rows) instead of the far more selective `lh` derived
-            // table (~22k *grouped* rows out of 550k+ history rows), because inner joins
-            // can be freely reordered. office_id/unit_id are NOT NULL FKs on `sales`, so
-            // this can't change which rows match — but a LEFT JOIN's outer table can't be
-            // reordered ahead of the table it's chained from, which pins the plan to
-            // lh -> sales -> offices/units (all eq_ref) and avoids the pathological scan.
             ->leftJoin('sales', 'sales.id', '=', 'lh.sale_id')
             ->leftJoin('offices', 'offices.id', '=', 'sales.office_id')
             ->leftJoin('units', 'units.id', '=', 'sales.unit_id')
@@ -1191,19 +1233,6 @@ class QualityController extends Controller
             ? ['rejected']
             : ['cleared', 'cleared_no_job'];
 
-        // `quality_notes.status` is the same kind of flag as `history.status` —
-        // it only marks the single most-recent quality_notes row for this
-        // (applicant_id, sale_id) pair *across any action* (reject/clear/hold/
-        // revert/etc.), not "the most recent row of this specific decision
-        // type". Once a rejected/cleared applicant gets any further quality
-        // action (e.g. put on hold, reverted), their reject/clear note's
-        // status flips to 0 and a same-pair-but-different-`moved_tab_to` row
-        // becomes status=1 instead — so filtering on status=1 here picked up
-        // the wrong row (or one that failed the moved_tab_to check below) and
-        // silently left notes_detail blank, even though the pair is still
-        // correctly listed under this tab via currentQualityHistorySubquery()
-        // (which ranks by decision type, not by status). Filtering directly
-        // on `moved_tab_to` fixes this the same way that fix did.
         $note = DB::table('quality_notes')
             ->where('applicant_id', $applicant->id)
             ->where('sale_id', $applicant->cvnote_sale_id)
@@ -1277,7 +1306,8 @@ class QualityController extends Controller
             'cleared cvs' => $this->applyQualityDecisionFilter(
                 $model,
                 ['quality_cleared', 'quality_cleared_no_job'],
-                $commonSaleSelect
+                $commonSaleSelect,
+                true
             ),
 
             'requested cvs' => $model
@@ -1314,6 +1344,22 @@ class QualityController extends Controller
                     'sales.job_category_id as sale_category_id',
                 ])),
         };
+    }
+
+    private function allowedQualityResourceTabs(): array
+    {
+        if (!Auth::check()) {
+            return [];
+        }
+
+        $tabs = [];
+        foreach (self::QUALITY_RESOURCE_TABS as $status => $tab) {
+            if (Gate::allows($tab['permission'])) {
+                $tabs[$status] = $tab['label'];
+            }
+        }
+
+        return $tabs;
     }
 
     private function applySorting($model, Request $request): void
@@ -1445,38 +1491,38 @@ class QualityController extends Controller
         $shortPreviewHtml = nl2br(e($shortPreview)); // preserve line breaks safely
 
         return '
-                            <div>
-                                <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
-                                    ' . $shortPreviewHtml . '
-                                </a>
-                                <br>
+        <div>
+            <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#' . $id . '">
+                ' . $shortPreviewHtml . '
+            </a>
+            <br>
 
-                                <!-- Hidden full plain text for copy -->
-                                <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
+            <!-- Hidden full plain text for copy -->
+            <div id="' . $copyId . '" class="d-none">' . e($plainText) . '</div>
 
-                                <!-- Copy button under short note -->
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
-                                    Copy Notes
-                                </button>
-                            </div>
+            <!-- Copy button under short note -->
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 copy-quality-resource-notes-btn" data-copy-quality-resource-notes-target="#' . $copyId . '">
+                Copy Notes
+            </button>
+        </div>
 
-                            <!-- Modal showing full formatted HTML notes -->
-                            <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
-                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body" style="color:#5d7186">
-                                            ' . $fullHtml . '
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>';
+        <!-- Modal showing full formatted HTML notes -->
+        <div class="modal fade" id="' . $id . '" tabindex="-1" aria-labelledby="' . $id . '-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" style="color:#5d7186" id="' . $id . '-label">Notes Detail</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="color:#5d7186">
+                        ' . $fullHtml . '
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>';
     }
 
     private function renderApplicantPhone($applicant): string

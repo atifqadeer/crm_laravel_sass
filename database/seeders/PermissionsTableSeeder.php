@@ -296,6 +296,11 @@ class PermissionsTableSeeder extends Seeder
             'quality-assurance-sale-change-status',
             'quality-assurance-sale-view-documents',
             'quality-assurance-sale-clear',
+            'quality-assurance-resources-tab-requested-cvs',
+            'quality-assurance-resources-tab-open-cvs',
+            'quality-assurance-resources-tab-no-job-cvs',
+            'quality-assurance-resources-tab-rejected-cvs',
+            'quality-assurance-resources-tab-cleared-cvs',
 
             // Regions Permissions
             // Region Sub Modules Resources Permissions

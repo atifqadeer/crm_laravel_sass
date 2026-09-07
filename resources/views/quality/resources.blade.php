@@ -33,19 +33,21 @@
                         <div class="col-lg-9">
                             <div class="text-md-end mt-3">
                                 <!-- Button Dropdown -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Requested CVs</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
-                                        <a class="dropdown-item status-filter" href="#">Requested CVs</a>
-                                        <a class="dropdown-item status-filter" href="#">Open CVs</a>
-                                        <a class="dropdown-item status-filter" href="#">No Job CVs</a>
-                                        <a class="dropdown-item status-filter" href="#">Rejected CVs</a>
-                                        <a class="dropdown-item status-filter" href="#">Cleared CVs</a>
+                                @if (!empty($qualityResourceTabs))
+                                    <div class="dropdown d-inline">
+                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                            id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span
+                                                id="showFilterStatus">{{ $defaultQualityResourceTabLabel }}</span>
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                            @foreach ($qualityResourceTabs as $status => $label)
+                                                <a class="dropdown-item status-filter" href="#"
+                                                    data-status="{{ $status }}">{{ $label }}</a>
+                                            @endforeach
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -199,7 +201,7 @@
             <div class="card">
                 <div class="card-body p-3">
                     <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
-                                                             flex row as DataTables' own "Show X entries" length control below. -->
+                                                                                     flex row as DataTables' own "Show X entries" length control below. -->
                     <div id="columnsToolbar" class="dropdown d-inline">
                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
                             id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">
@@ -314,7 +316,7 @@
         $(document).ready(function() {
             // Store the current filter in a variable
             var currentTypeFilter = '';
-            var currentFilter = '';
+            var currentFilter = @json($defaultQualityResourceTab ?? '');
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
             var currentSourceFilters = [];
@@ -502,12 +504,24 @@
                         }
                     },
                     beforeSend: function() {
-                        showLoader(); // Show loader before AJAX request starts
+                        if (!currentFilter) {
+                            $('#applicants_table tbody').empty().html(
+                                '<tr><td colspan="100%" class="text-center">You do not have permission to view any quality resource tabs.</td></tr>'
+                            );
+                            return false;
+                        }
+                        showLoader();
                     },
                     error: function(xhr) {
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+                        const message = xhr.status === 403 ?
+                            'You do not have permission to view this tab' :
+                            'Failed to load data';
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
                         $('#applicants_table tbody').empty().html(
-                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                            '<tr><td colspan="100%" class="text-center">' + message + '</td></tr>'
                         );
                     }
                 },
@@ -822,17 +836,11 @@
             });
 
             // Status filter dropdown handler
+            // Status filter dropdown handler
             $('.status-filter').on('click', function() {
-                currentFilter = $(this).text().toLowerCase();
-
-                // Capitalize each word
-                const formattedText = currentFilter
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                $('#showFilterStatus').html(formattedText);
-                table.ajax.reload(); // Reload with updated status filter
+                currentFilter = ($(this).attr('data-status') || $(this).text()).toString().toLowerCase();
+                $('#showFilterStatus').html($(this).text());
+                table.ajax.reload();
             });
 
             // Type filter dropdown handler

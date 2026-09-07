@@ -241,7 +241,10 @@
             <!-- end resources Menu -->
 
             <!-- quality Menu -->
-            @canany(['quality-assurance-resource-index', 'quality-assurance-sale-index'])
+            @canany(['quality-assurance-resource-index', 'quality-assurance-sale-index',
+                'quality-assurance-resources-tab-requested-cvs', 'quality-assurance-resources-tab-open-cvs',
+                'quality-assurance-resources-tab-no-job-cvs', 'quality-assurance-resources-tab-rejected-cvs',
+                'quality-assurance-resources-tab-cleared-cvs'])
                 <li class="nav-item">
                     <a class="nav-link menu-arrow" href="#sidebarQuality" data-bs-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="sidebarQuality">
@@ -252,7 +255,9 @@
                     </a>
                     <div class="collapse" id="sidebarQuality">
                         <ul class="nav sub-navbar-nav">
-                            @canany(['quality-assurance-resource-index'])
+                            @canany(['quality-assurance-resource-index', 'quality-resources-tab-requested-cvs',
+                                'quality-resources-tab-open-cvs', 'quality-resources-tab-no-job-cvs',
+                                'quality-resources-tab-rejected-cvs', 'quality-resources-tab-cleared-cvs'])
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link" href="{{ route('quality.resources') }}">Resources</a>
                                 </li>

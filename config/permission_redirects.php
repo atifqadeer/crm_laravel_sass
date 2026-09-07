@@ -24,6 +24,11 @@ return [
     'resource-not-interested-index' => 'resources.notInterestedIndex',
 
     'quality-assurance-resource-index' => 'quality.resources',
+    'quality-assurance-resources-tab-requested-cvs' => 'quality.resources',
+    'quality-assurance-resources-tab-open-cvs' => 'quality.resources',
+    'quality-assurance-resources-tab-no-job-cvs' => 'quality.resources',
+    'quality-assurance-resources-tab-rejected-cvs' => 'quality.resources',
+    'quality-assurance-resources-tab-cleared-cvs' => 'quality.resources',
     'quality-assurance-sale-index' => 'quality.sales',
 
     'region-resource-index' => 'regions.resources',
