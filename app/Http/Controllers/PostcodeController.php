@@ -16,19 +16,14 @@ use Horsefly\JobTitle;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Geocode;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 
-class PostcodeController extends Controller implements HasMiddleware
+class PostcodeController extends Controller
 {
     use Geocode;
 
-    public static function middleware(): array
+    public function __construct()
     {
-        return [
-            'auth',
-            new Middleware('permission:postcode-index', only: ['index', 'getPostcodeResults'])
-        ];
+        $this->middleware('permission:postcode-index')->only(['index', 'getPostcodeResults']);
     }
 
     public function index()
