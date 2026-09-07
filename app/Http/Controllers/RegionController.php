@@ -50,8 +50,8 @@ class RegionController extends Controller
     {
         $regionFilter = $request->input('region_filter', []);
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
+        $categoryFilter = $request->input('category_filter', []); // Default is empty (no filter)
+        $titleFilter = $request->input('title_filter', []); // Default is empty (no filter)
 
         if (!empty($regionFilter)) {
 
@@ -467,20 +467,28 @@ class RegionController extends Controller
     public function getSalesByRegions(Request $request)
     {
         $statusFilter = $request->input('status_filter', '');
-        $regionFilter = $request->input('region_filter', ''); // Default is empty (no filter)
+        $regionFilter = $request->input('region_filter', []); // Default is empty (no filter)
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
-        $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
-        $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
+        $categoryFilter = $request->input('category_filter', []); // Default is empty (no filter)
+        $titleFilter = $request->input('title_filter', []); // Default is empty (no filter)
         $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
-        $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
+        $officeFilter = $request->input('office_filter', []); // Default is empty (no filter)
 
-        if ($regionFilter) {
-            $reg = Region::where('id', $regionFilter)->first();
+        if (!empty($regionFilter)) {
+            $districtCodes = Region::whereIn('id', $regionFilter)
+                ->pluck('districts_code')
+                ->filter()
+                ->toArray();
         } else {
-            $reg = Region::first();
+
+            $firstRegion = Region::first();
+
+            $districtCodes = $firstRegion && $firstRegion->districts_code
+                ? [$firstRegion->districts_code]
+                : [];
         }
 
-        $district = $reg['districts_code'] ?? null;
+        $districtRegex = implode('|', $districtCodes);
 
         $model = Sale::query()
             ->select([
@@ -498,8 +506,13 @@ class RegionController extends Controller
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
             ->selectRaw(DB::raw("(SELECT COUNT(*) FROM cv_notes WHERE cv_notes.sale_id = sales.id AND cv_notes.status = 1) as no_of_sent_cv"))
-            ->whereRaw("UPPER(TRIM(sales.sale_postcode)) REGEXP '^($district)[0-9]'")
             ->whereNull('sales.deleted_at');
+
+        if (!empty($districtRegex)) {
+            $model->whereRaw(
+                "UPPER(TRIM(sales.sale_postcode)) REGEXP '^($districtRegex)[0-9]'"
+            );
+        }
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
 
@@ -601,11 +614,6 @@ class RegionController extends Controller
         }
 
         // Filter by category if it's not empty
-        if ($officeFilter) {
-            $model->whereIn('sales.office_id', $officeFilter);
-        }
-
-        // Filter by category if it's not empty
         if ($limitCountFilter) {
             if ($limitCountFilter == 'zero') {
                 $model->where('sales.cv_limit', '=', function ($query) {
@@ -633,6 +641,11 @@ class RegionController extends Controller
                     ));
                 });
             }
+        }
+
+        // Filter by category if it's not empty
+        if ($officeFilter) {
+            $model->whereIn('sales.office_id', $officeFilter);
         }
 
         // Filter by category if it's not empty

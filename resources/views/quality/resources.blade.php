@@ -201,7 +201,7 @@
             <div class="card">
                 <div class="card-body p-3">
                     <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
-                                                                                     flex row as DataTables' own "Show X entries" length control below. -->
+                                                                                         flex row as DataTables' own "Show X entries" length control below. -->
                     <div id="columnsToolbar" class="dropdown d-inline">
                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
                             id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">

@@ -46,31 +46,31 @@ class QualityController extends Controller
 
     private const QUALITY_RESOURCE_TABS = [
         'requested cvs' => [
-            'permission' => 'quality-resources-tab-requested-cvs',
+            'permission' => 'quality-assurance-resources-tab-requested-cvs',
             'label' => 'Requested CVs',
         ],
         'open cvs' => [
-            'permission' => 'quality-resources-tab-open-cvs',
+            'permission' => 'quality-assurance-resources-tab-open-cvs',
             'label' => 'Open CVs',
         ],
         'no job cvs' => [
-            'permission' => 'quality-resources-tab-no-job-cvs',
+            'permission' => 'quality-assurance-resources-tab-no-job-cvs',
             'label' => 'No Job CVs',
         ],
         'rejected cvs' => [
-            'permission' => 'quality-resources-tab-rejected-cvs',
+            'permission' => 'quality-assurance-resources-tab-rejected-cvs',
             'label' => 'Rejected CVs',
         ],
         'cleared cvs' => [
-            'permission' => 'quality-resources-tab-cleared-cvs',
+            'permission' => 'quality-assurance-resources-tab-cleared-cvs',
             'label' => 'Cleared CVs',
         ],
     ];
 
     public function __construct()
     {
-        $this->middleware('permission:quality-assurance-resource-index,quality-resources-tab-requested-cvs,quality-resources-tab-open-cvs,quality-resources-tab-no-job-cvs,quality-resources-tab-rejected-cvs,quality-resources-tab-cleared-cvs')->only(['resourceIndex']);
-        $this->middleware('permission:quality-resources-tab-requested-cvs,quality-resources-tab-open-cvs,quality-resources-tab-no-job-cvs,quality-resources-tab-rejected-cvs,quality-resources-tab-cleared-cvs')->only(['getResourcesByTypeAjaxRequest']);
+        $this->middleware('permission:quality-assurance-resource-index,quality-assurance-resources-tab-requested-cvs,quality-assurance-resources-tab-open-cvs,quality-assurance-resources-tab-no-job-cvs,quality-assurance-resources-tab-rejected-cvs,quality-assurance-resources-tab-cleared-cvs')->only(['resourceIndex']);
+        $this->middleware('permission:quality-assurance-resources-tab-requested-cvs,quality-assurance-resources-tab-open-cvs,quality-assurance-resources-tab-no-job-cvs,quality-assurance-resources-tab-rejected-cvs,quality-assurance-resources-tab-cleared-cvs')->only(['getResourcesByTypeAjaxRequest']);
         $this->middleware('permission:quality-assurance-sale-index')->only(['saleIndex', 'getSalesByTypeAjaxRequest']);
         $this->middleware('permission:quality-assurance-sale-clear')->only(['clearRejectSale']);
         $this->middleware('permission:quality-assurance-resource-open-cv,quality-assurance-resource-clear-cv,quality-assurance-resource-reject-cv,quality-assurance-resource-revert-cv')->only(['updateApplicantStatusByQuality']);
