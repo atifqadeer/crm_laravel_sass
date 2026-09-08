@@ -2915,7 +2915,7 @@ class CrmController extends Controller
                                     onclick="crmMoveRequestToNoResponseModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                     Mark No Response
                                 </a></li>';
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
@@ -2927,7 +2927,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3022,7 +3022,7 @@ class CrmController extends Controller
                                             Move to Confirmation
                                         </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3033,7 +3033,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3080,7 +3080,7 @@ class CrmController extends Controller
                                     Mark Confirm / Reject CV
                                 </a></li>';
 
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3091,7 +3091,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-request', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 

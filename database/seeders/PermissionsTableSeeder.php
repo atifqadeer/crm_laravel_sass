@@ -342,6 +342,7 @@ class PermissionsTableSeeder extends Seeder
             'crm-send-request',
             'crm-revert',
             'crm-revert-in-quality',
+            'crm-revert-request',
             'crm-paid-toggle-status',
             'crm-paid-revert',
 
