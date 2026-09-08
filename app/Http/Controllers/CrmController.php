@@ -2717,9 +2717,8 @@ class CrmController extends Controller
                                         Send Request
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
-                                $actionButtons .= '
-                                    <li><a class="dropdown-item" 
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRevertInQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -2770,7 +2769,7 @@ class CrmController extends Controller
                                             Send Request
                                         </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                             href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
@@ -2811,7 +2810,7 @@ class CrmController extends Controller
                                             Revert In Sent CV
                                         </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '
                                     <li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
@@ -2928,7 +2927,7 @@ class CrmController extends Controller
                                         Revert In Sent CV
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3033,6 +3032,8 @@ class CrmController extends Controller
                                         onclick="crmRevertRequestedCvToSentCvModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Sent CV
                                     </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3089,6 +3090,8 @@ class CrmController extends Controller
                                         onclick="crmRevertRequestedCvToSentCvModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Sent CV
                                     </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3134,8 +3137,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRejectRequestRevertToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Request
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '   <li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRejectRequestRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3181,8 +3186,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertConfirmationToRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Request
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmConfirmationRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3229,8 +3236,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertRebookToConfirmationModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Confirmation
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmRebookRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3275,8 +3284,10 @@ class CrmController extends Controller
                                             data-sale-id="' . (int)$applicant->sale_id . '"
                                             onclick="crmRevertAttendToRebookModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                             Revert In Rebook
-                                        </a></li>
-                                        <li><a class="dropdown-item" 
+                                        </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                             href="javascript:void(0);" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#crmAttendedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3312,16 +3323,18 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertDeclinedToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Attended
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
-                                        href="javascript:void(0);" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#crmDeclinedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
-                                        data-applicant-id="' . (int)$applicant->id . '"
-                                        data-sale-id="' . (int)$applicant->sale_id . '"
-                                        onclick="crmDeclinedRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
-                                        Revert In Quality
                                     </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
+                                    href="javascript:void(0);" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#crmDeclinedRevertToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
+                                    data-applicant-id="' . (int)$applicant->id . '"
+                                    data-sale-id="' . (int)$applicant->sale_id . '"
+                                    onclick="crmDeclinedRevertToQualityModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                    Revert In Quality
+                                </a></li>';
                             }
                             $actionButtons .= '<li><a class="dropdown-item chat-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
                                 data-phone="' . $applicant->applicant_phone . '"
@@ -3349,8 +3362,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertNotAttendedToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Attended
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmNotAttendedToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3396,8 +3411,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertStartDateToAttendedModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Attended
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3443,8 +3460,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertStartDateHoldToStartDateModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Start Date
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmStartDateHoldToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3491,8 +3510,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertInvoiceToStartDateModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Start Date
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmInvoiceToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3529,7 +3550,7 @@ class CrmController extends Controller
                                         Accept CV
                                     </a></li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
@@ -3566,8 +3587,10 @@ class CrmController extends Controller
                                         data-sale-id="' . (int)$applicant->sale_id . '"
                                         onclick="crmRevertDisputeToInvoiceModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
                                         Revert In Invoice
-                                    </a></li>
-                                    <li><a class="dropdown-item" 
+                                    </a></li>';
+                            }
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
+                                $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#crmDisputeToQualityModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '"
@@ -3676,7 +3699,7 @@ class CrmController extends Controller
                                         </a>
                                     </li>';
                             }
-                            if (Gate::allows('crm-revert', [$applicant, $tabFilter])) {
+                            if (Gate::allows('crm-revert-in-quality', [$applicant, $tabFilter])) {
                                 $actionButtons .= '<li><a class="dropdown-item" 
                                         href="javascript:void(0);" 
                                         data-bs-toggle="modal" 
