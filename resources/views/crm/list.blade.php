@@ -5,10 +5,10 @@
         .dropdown-toggle::after {
             display: none !important;
         }
+
         table.dataTable.no-footer {
             border-bottom: none !important;
         }
-        
     </style>
 @endsection
 @section('content')
@@ -21,12 +21,16 @@
                             <div class="text-md-start mt-3 pt-1">
                                 <div class="input-group">
                                     <!-- Use padding-right to prevent text from overlapping the clear icon -->
-                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..." style="padding-right: 30px;">
+                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
+                                        style="padding-right: 30px;">
                                     <!-- Absolutely positioned over the input field -->
-                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear" style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
-                                        <i class="ri-close-line text-primary" style="font-size: 20px; font-weight: 900;"></i>
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
                                     </span>
-                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i class="ri-search-line"></i> Search</button>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
                                 </div>
                             </div>
                         </div>
@@ -43,13 +47,17 @@
                                         <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="rejected_cv_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'rejected_cv']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'rejected_cv']) }}">Export Emails</a>
                                     </div>
                                 </div>
                                 <!-- Date Range filter -->
                                 <div class="d-inline d-none" id="confirmation_date_range_filter">
-                                    <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
-                                    <button class="btn btn-outline-primary my-1 me-1" type="button" id="clearDateRange" title="Clear Date Range">
+                                    <input type="text" id="dateRangePicker" class="form-control d-inline-block"
+                                        style="width: 220px; display: inline-block;" placeholder="Select date range"
+                                        readonly />
+                                    <button class="btn btn-outline-primary my-1 me-1" type="button" id="clearDateRange"
+                                        title="Clear Date Range">
                                         <i class="ri-close-line"></i>
                                     </button>
                                 </div>
@@ -62,7 +70,8 @@
                                         <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="declined_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'declined']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'declined']) }}">Export Emails</a>
                                     </div>
                                 </div>
                                 <!-- NOT ATTENDED -->
@@ -72,7 +81,8 @@
                                         <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="not_attended_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'not_attended']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'not_attended']) }}">Export Emails</a>
                                     </div>
                                 </div>
 
@@ -83,7 +93,9 @@
                                         <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="start_date_hold_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'start_date_hold']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'start_date_hold']) }}">Export
+                                            Emails</a>
                                     </div>
                                 </div>
 
@@ -94,7 +106,8 @@
                                         <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dispute_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'dispute']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'dispute']) }}">Export Emails</a>
                                     </div>
                                 </div>
 
@@ -105,17 +118,21 @@
                                         <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="paid_btn">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'paid']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn"
+                                            href="{{ route('salesExport', ['type' => 'paid']) }}">Export Emails</a>
                                     </div>
                                 </div>
-                               
+
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterTab">Sent CVs</span>
                                     </button>
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton4">
-                                        @can('crm-sent-cv-list')<a class="dropdown-item tab-filter" href="#">Sent CVs</a>@endcan
+                                        @can('crm-sent-cv-list')
+                                            <a class="dropdown-item tab-filter active" href="#">Sent CVs</a>
+                                        @endcan
                                         <a class="dropdown-item tab-filter" href="#">Open CVs</a>
                                         <a class="dropdown-item tab-filter" href="#">Sent CVs (No Job)</a>
                                         <a class="dropdown-item tab-filter" href="#">Rejected CVs</a>
@@ -139,8 +156,10 @@
 
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Categories</span>
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                            Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -152,34 +171,41 @@
                                         <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
                                             <a href="#" id="categorySelectAll"
                                                 class="filter-select-all text-primary small fw-semibold me-2"
-                                                data-target=".category-filter"
-                                                data-exclude="[data-category-id='']">Select All</a>
+                                                data-target=".category-filter" data-exclude="[data-category-id='']">Select
+                                                All</a>
                                             <a href="#" id="categoryDeselectAll"
                                                 class="filter-deselect-all text-danger small fw-semibold"
-                                                data-target=".category-filter"
-                                                data-exclude="[data-category-id='']"
+                                                data-target=".category-filter" data-exclude="[data-category-id='']"
                                                 style="display:none">Deselect All</a>
                                         </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
-                                            <div class="form-check">
-                                                <input id="all-categories" class="form-check-input category-filter" type="checkbox" value=""
-                                                    data-category-id="" data-category-name="All Categories">
-                                                <label class="form-check-label" for="all-categories">All Categories</label>
-                                            </div>
 
-                                            @foreach($jobCategories as $category)
+                                            @foreach ($jobCategories as $category)
                                                 <div class="form-check">
-                                                    <input id="category_{{ $category->id }}" class="form-check-input category-filter" type="checkbox"
-                                                        value="{{ $category->id }}"
-                                                        data-category-id="{{ $category->id }}"
+                                                    <input id="category_{{ $category->id }}"
+                                                        class="form-check-input category-filter" type="checkbox"
+                                                        value="{{ $category->id }}" data-category-id="{{ $category->id }}"
                                                         data-category-name="{{ ucwords($category->name) }}">
                                                     <label class="form-check-label"
                                                         for="category_{{ $category->id }}">{{ ucwords($category->name) }}</label>
                                                 </div>
                                             @endforeach
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Type Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
+                                        <a class="dropdown-item type-filter" href="#">All Types</a>
+                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                        <a class="dropdown-item type-filter" href="#">Regular</a>
                                     </div>
                                 </div>
 
@@ -199,27 +225,23 @@
                                         <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
                                             <a href="#" id="titleSelectAll"
                                                 class="filter-select-all text-primary small fw-semibold me-2"
-                                                data-target=".title-filter"
-                                                data-exclude="[data-title-id='']">Select All</a>
+                                                data-target=".title-filter" data-exclude="[data-title-id='']">Select
+                                                All</a>
                                             <a href="#" id="titleDeselectAll"
                                                 class="filter-deselect-all text-danger small fw-semibold"
-                                                data-target=".title-filter"
-                                                data-exclude="[data-title-id='']"
+                                                data-target=".title-filter" data-exclude="[data-title-id='']"
                                                 style="display:none">Deselect All</a>
                                         </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
-                                            <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox" value=""
-                                                    id="all-titles" data-title-id="">
-                                                <label class="form-check-label" for="all-titles">All Titles</label>
-                                            </div>
                                             @foreach ($jobTitles as $title)
                                                 <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox"
                                                         value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                        data-title-id="{{ $title->id }}">
+                                                        data-title-id="{{ $title->id }}"
+                                                        data-category-id="{{ $title->job_category_id }}"
+                                                        data-type="{{ $title->type }}">
                                                     <label class="form-check-label"
                                                         for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
                                                 </div>
@@ -227,21 +249,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Type Filter Dropdown -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                        <a class="dropdown-item type-filter" href="#">All Types</a>
-                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                        <a class="dropdown-item type-filter" href="#">Regular</a>
-                                    </div>
-                                </div>
 
-                                 <!-- Sources Filter Dropdown -->
-                                 <div class="dropdown d-inline">
+                                <!-- Sources Filter Dropdown -->
+                                <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
@@ -256,24 +266,18 @@
                                         <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
                                             <a href="#" id="sourceSelectAll"
                                                 class="filter-select-all text-primary small fw-semibold me-2"
-                                                data-target=".source-filter"
-                                                data-exclude="[data-source-id='']">Select All</a>
+                                                data-target=".source-filter" data-exclude="[data-source-id='']">Select
+                                                All</a>
                                             <a href="#" id="sourceDeselectAll"
                                                 class="filter-deselect-all text-danger small fw-semibold"
-                                                data-target=".source-filter"
-                                                data-exclude="[data-source-id='']"
+                                                data-target=".source-filter" data-exclude="[data-source-id='']"
                                                 style="display:none">Deselect All</a>
                                         </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="sourceList">
-                                            <div class="form-check">
-                                                <input class="form-check-input source-filter" type="checkbox"
-                                                    value="" id="all-sources" data-source-id="">
-                                                <label class="form-check-label" for="all-sources">All Sources</label>
-                                            </div>
 
-                                            @foreach (($jobSources ?? []) as $source)
+                                            @foreach ($jobSources ?? [] as $source)
                                                 <div class="form-check">
                                                     <input class="form-check-input source-filter" type="checkbox"
                                                         value="{{ $source->id }}" id="source_{{ $source->id }}"
@@ -300,7 +304,7 @@
                     <div class="table-responsive">
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
-                                 <tr>
+                                <tr>
                                     <th>#</th>
                                     <th>Date</th>
                                     <th>Agent</th>
@@ -310,7 +314,7 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode (Applicant)</th>
-                                    <th>Job</th>
+                                    <th>Job Details</th>
                                     <th>Head Office</th>
                                     <th>Unit</th>
                                     <th>PostCode (Sale)</th>
@@ -330,57 +334,59 @@
             </div>
         </div>
     </div>
-    
-    <div id="send_sms_to_requested_applicant" class="modal fade send_sms_to_requested_applicant_Modal" tabindex="-1" aria-labelledby="send_sms_to_requested_applicant_ModalLabel" aria-hidden="true">
+
+    <div id="send_sms_to_requested_applicant" class="modal fade send_sms_to_requested_applicant_Modal" tabindex="-1"
+        aria-labelledby="send_sms_to_requested_applicant_ModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-top">
             <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Send Request SMS To <span id="smsName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="#" method="POST" id="send_non_nurse_sms" class="form-horizontal">
-                <div class="modal-body">
-                    <div id="sent_cv_alert_non_nurse"></div>
-                    <div class="form-group row">
-                        <label class="col-form-label col-sm-2">Message Text:</label>
-                        <div class="col-sm-10">
-                            <input type="hidden" name="applicant_id" id="applicant_id">
-                            <input type="hidden" name="applicant_phone_number" id="applicant_phone_number">
-                            <input type="hidden" name="non_nurse_modal_id" id="non_nurse_modal_id">
-                            <textarea name="details" id="smsBodyDetails" class="form-control" cols="40" rows="8" placeholder="TYPE HERE.." required></textarea>
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Request SMS To <span id="smsName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="#" method="POST" id="send_non_nurse_sms" class="form-horizontal">
+                    <div class="modal-body">
+                        <div id="sent_cv_alert_non_nurse"></div>
+                        <div class="form-group row">
+                            <label class="col-form-label col-sm-2">Message Text:</label>
+                            <div class="col-sm-10">
+                                <input type="hidden" name="applicant_id" id="applicant_id">
+                                <input type="hidden" name="applicant_phone_number" id="applicant_phone_number">
+                                <input type="hidden" name="non_nurse_modal_id" id="non_nurse_modal_id">
+                                <textarea name="details" id="smsBodyDetails" class="form-control" cols="40" rows="8"
+                                    placeholder="TYPE HERE.." required></textarea>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="sendSMSToRequestedApplicant" class="btn btn-success">Send SMS</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="sendSMSToRequestedApplicant" class="btn btn-success">Send SMS</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
 
     <!-- DataTables CSS (for styling the table) -->
-    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/jquery.dataTables.min.css') }}">
 
     <!-- DataTables JS (for the table functionality) -->
-    <script src="{{ asset('js/jquery.dataTables.min.js')}}"></script>
-    
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
-    <script src="{{ asset('js/sweetalert2@11.js')}}"></script>
+    <script src="{{ asset('js/sweetalert2@11.js') }}"></script>
 
     <!-- Toastr JS -->
-    <script src="{{ asset('js/toastr.min.js')}}"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!-- Moment JS -->
-    <script src="{{ asset('js/moment.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
 
     <!-- Add daterangepicker -->
     <link rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}" />
@@ -446,9 +452,11 @@
 
             // When a date range is selected
             $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format(
+                    'YYYY-MM-DD'));
                 // Set the filter variable and reload DataTable
-                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
+                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate
+                    .format('YYYY-MM-DD');
                 $('#showDateRange').html($(this).val());
                 $('#applicants_table').DataTable().ajax.reload();
             });
@@ -503,8 +511,10 @@
                         d.type_filter = currentTypeFilter;
                         d.category_filter = currentCategoryFilters;
                         d.source_filter = currentSourceFilters;
-                        d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilters;
+                        d.date_range_filter = window
+                            .currentDateRangeFilter; // Send the current filter value as a parameter
+                        d.title_filter = (typeof window.getVisibleListingTitleIds === 'function' ?
+                            window.getVisibleListingTitleIds() : currentTitleFilters);
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -514,43 +524,89 @@
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>');
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Failed to load data</td></tr>'
+                        );
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'show_created_at', name: 'show_created_at' },
-                    { data: 'user_name', name: 'users.name' },
-                    { 
-                        data: 'schedule_date', 
-                        name: 'interviews.schedule_date', 
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'show_created_at',
+                        name: 'show_created_at'
+                    },
+                    {
+                        data: 'user_name',
+                        name: 'user_name'
+                    },
+                    {
+                        data: 'schedule_date',
+                        name: 'interviews.schedule_date',
                         visible: tabFilter.toLowerCase() === 'confirmation',
                         createdCell: function(td, cellData, rowData, row, col) {
                             if (cellData) {
-                                $(td).text(cellData); // Use moment.js if needed, e.g., moment(cellData).format('YYYY-MM-DD')
+                                $(td).text(
+                                    cellData
+                                ); // Use moment.js if needed, e.g., moment(cellData).format('YYYY-MM-DD')
                             }
                         }
                     },
-                    { data: 'applicant_name', name: 'applicants.applicant_name' },
+                    {
+                        data: 'applicant_name',
+                        name: 'applicants.applicant_name'
+                    },
                     // { data: 'applicant_email', name: 'applicants.applicant_email' },
                     {
                         data: 'applicantPhone',
-                        name: 'applicantPhone',               // ← Use the same as data key
+                        name: 'applicantPhone', // ← Use the same as data key
                         orderable: false,
                         searchable: true,
                     },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'applicant_postcode', name: 'applicants.applicant_postcode' },
-                    { data: 'job_details', name: 'job_details' },
-                    { data: 'office_name', name: 'offices.office_name' },
-                    { data: 'unit_name', name: 'units.unit_name' },
-                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
-                    { data: 'sale_source_name', name: 'sale_job_sources.name' },
-                    { data: 'notes_detail', name: 'notes_detail', orderable: false, searchable: false },
-                    { 
-                        data: 'paid_status', 
-                        name: 'applicants.paid_status', 
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'applicant_postcode',
+                        name: 'applicants.applicant_postcode'
+                    },
+                    {
+                        data: 'job_details',
+                        name: 'job_details'
+                    },
+                    {
+                        data: 'office_name',
+                        name: 'offices.office_name'
+                    },
+                    {
+                        data: 'unit_name',
+                        name: 'units.unit_name'
+                    },
+                    {
+                        data: 'sale_postcode',
+                        name: 'sales.sale_postcode'
+                    },
+                    {
+                        data: 'sale_source_name',
+                        name: 'sale_job_sources.name'
+                    },
+                    {
+                        data: 'notes_detail',
+                        name: 'notes_detail',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'paid_status',
+                        name: 'applicants.paid_status',
                         visible: tabFilter.toLowerCase() === 'paid',
                         createdCell: function(td, cellData, rowData, row, col) {
                             if (cellData) {
@@ -563,24 +619,28 @@
                                 } else if (cellData.toLowerCase() === 'close') {
                                     badgeClass = 'bg-dark';
                                 }
-                                label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+                                label = label.charAt(0).toUpperCase() + label.slice(1)
+                                    .toLowerCase();
                                 $(td).html(`<span class="badge ${badgeClass}">${label}</span>`);
                             } else {
                                 $(td).html('');
                             }
                         }
                     },
-                    { data: 'action', name: 'action', orderable: false, searchable: false }
-                ],
-                columnDefs: [
                     {
-                        // job_details, office_name, sale_postcode, sale_source_name, notes_detail
-                        targets: [9, 10, 12, 13],
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');
-                        }
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
                     }
                 ],
+                columnDefs: [{
+                    // job_details, office_name, sale_postcode, sale_source_name, notes_detail
+                    targets: [9, 10, 12, 13],
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).css('text-align', 'center');
+                    }
+                }],
                 rowId: function(data) {
                     return 'row_' + data.id;
                 },
@@ -595,7 +655,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#applicants_table tbody').empty().html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#applicants_table tbody').empty().html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -618,7 +679,8 @@
                     </li>`;
 
                     if (start > 2) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                     }
 
                     for (let i = start; i <= end; i++) {
@@ -628,7 +690,8 @@
                     }
 
                     if (end < totalPages - 1) {
-                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                     }
 
                     if (totalPages > 1) {
@@ -706,6 +769,10 @@
 
             // Status filter handler
             $('.tab-filter').on('click', function() {
+                // Mark this item active, clear the rest
+                $('.tab-filter').removeClass('active');
+                $(this).addClass('active');
+
                 tabFilter = $(this).text().toLowerCase();
                 const formattedText = tabFilter
                     .split(' ')
@@ -725,10 +792,12 @@
                 $('#openToPaid').toggle(formattedText === 'Paid');
                 $('#schedule_date').toggle(formattedText === 'Confirmation');
                 $('#rejected_cv_export_email').toggleClass('d-none', formattedText !== 'Rejected Cvs');
-                $('#confirmation_date_range_filter').toggleClass('d-none', formattedText !== 'Confirmation');
+                $('#confirmation_date_range_filter').toggleClass('d-none', formattedText !==
+                    'Confirmation');
                 $('#declined_export_email').toggleClass('d-none', formattedText !== 'Declined');
                 $('#not_attended_export_email').toggleClass('d-none', formattedText !== 'Not Attended');
-                $('#start_date_hold_export_email').toggleClass('d-none', formattedText !== 'Start Date Hold');
+                $('#start_date_hold_export_email').toggleClass('d-none', formattedText !==
+                    'Start Date Hold');
                 $('#dispute_export_email').toggleClass('d-none', formattedText !== 'Dispute');
                 $('#paid_export_email').toggleClass('d-none', formattedText !== 'Paid');
                 $('#paid_status').toggle(formattedText === 'Paid');
@@ -785,7 +854,9 @@
                     toggleContainer: '#categoryToggleContainer',
                     getSelectedIds: () => $('.category-filter:checked')
                         .not('[data-category-id=""]')
-                        .map(function() { return $(this).data('category-id'); })
+                        .map(function() {
+                            return $(this).data('category-id');
+                        })
                         .get()
                 });
 
@@ -817,7 +888,9 @@
                     toggleContainer: '#titleToggleContainer',
                     getSelectedIds: () => $('.title-filter:checked')
                         .not('[data-title-id=""]')
-                        .map(function() { return $(this).data('title-id'); })
+                        .map(function() {
+                            return $(this).data('title-id');
+                        })
                         .get()
                 });
 
@@ -849,7 +922,9 @@
                     toggleContainer: '#sourceToggleContainer',
                     getSelectedIds: () => $('.source-filter:checked')
                         .not('[data-source-id=""]')
-                        .map(function() { return $(this).data('source-id'); })
+                        .map(function() {
+                            return $(this).data('source-id');
+                        })
                         .get()
                 });
 
@@ -869,7 +944,9 @@
                 $items.prop('checked', true);
 
                 if (filterClass === '.category-filter') {
-                    currentCategoryFilters = $items.map(function() { return $(this).data('category-id'); }).get();
+                    currentCategoryFilters = $items.map(function() {
+                        return $(this).data('category-id');
+                    }).get();
                     syncCheckboxFilterUI({
                         filterClass: '.category-filter',
                         excludeAttr: '[data-category-id=""]',
@@ -880,7 +957,9 @@
                         getSelectedIds: () => currentCategoryFilters
                     });
                 } else if (filterClass === '.title-filter') {
-                    currentTitleFilters = $items.map(function() { return $(this).data('title-id'); }).get();
+                    currentTitleFilters = $items.map(function() {
+                        return $(this).data('title-id');
+                    }).get();
                     syncCheckboxFilterUI({
                         filterClass: '.title-filter',
                         excludeAttr: '[data-title-id=""]',
@@ -891,7 +970,9 @@
                         getSelectedIds: () => currentTitleFilters
                     });
                 } else if (filterClass === '.source-filter') {
-                    currentSourceFilters = $items.map(function() { return $(this).data('source-id'); }).get();
+                    currentSourceFilters = $items.map(function() {
+                        return $(this).data('source-id');
+                    }).get();
                     syncCheckboxFilterUI({
                         filterClass: '.source-filter',
                         excludeAttr: '[data-source-id=""]',
@@ -1011,13 +1092,17 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
+
+        $('.tab-filter').filter(function() {
+            return $(this).text().trim() === formattedText; // your saved/initial tab
+        }).addClass('active');
     </script>
 
     <!--- other modal functions -->
@@ -1033,8 +1118,8 @@
             const rejectButton = $(`${formId} .crmSentCVRejectButton`);
 
             // Reset form when modal opens (clear fields, validation, and alerts)
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-                $(formId)[0].reset();  // Resets all form fields to their initial state
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
+                $(formId)[0].reset(); // Resets all form fields to their initial state
                 $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
                 $(reasonId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
                 $(notificationAlert).html('').hide();
@@ -1047,16 +1132,16 @@
             $(notificationAlert).html('').hide();
 
             // Show/hide reject button based on reason selection
-            $(reasonId).off('change.rejectButton').on('change.rejectButton', function () {
+            $(reasonId).off('change.rejectButton').on('change.rejectButton', function() {
                 // if ($(this).val() === 'position_filled') {
-                    $(rejectButton).show();
+                $(rejectButton).show();
                 // } else {
                 //     $(rejectButton).hide();
                 // }
             });
 
             // Handle save button click
-            rejectButton.off('click').on('click', function () {
+            rejectButton.off('click').on('click', function() {
                 const notes = $(detailsId).val();
                 const reason = $(reasonId).val();
 
@@ -1078,14 +1163,16 @@
                         }
                     }
 
-                    $(detailsId).off('input').on('input', function () {
+                    $(detailsId).off('input').on('input', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
-                    $(reasonId).off('change').on('change', function () {
+                    $(reasonId).off('change').on('change', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
 
@@ -1094,7 +1181,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const form = $(formId)[0];
 
@@ -1109,7 +1198,7 @@
                         tab: tab,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         $(notificationAlert).html(`
                             <div class="notification-alert success">
                                 ${response.message}
@@ -1122,21 +1211,21 @@
                             $('#applicants_table').DataTable().ajax.reload();
                         }, 2000);
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         $(notificationAlert).html(`
                             <div class="notification-alert error">
                                 An error occurred while saving notes.
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
 
             // Handle save button click
-            saveButton.off('click').on('click', function () {
+            saveButton.off('click').on('click', function() {
                 const notes = $(detailsId).val();
                 const reason = $(reasonId).val();
 
@@ -1158,14 +1247,16 @@
                         }
                     }
 
-                    $(detailsId).off('input').on('input', function () {
+                    $(detailsId).off('input').on('input', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
-                    $(reasonId).off('change').on('change', function () {
+                    $(reasonId).off('change').on('change', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
 
@@ -1174,7 +1265,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const form = $(formId)[0];
 
@@ -1189,7 +1282,7 @@
                         tab: tab,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         $(notificationAlert).html(`
                             <div class="notification-alert success">
                                 ${response.message}
@@ -1202,14 +1295,14 @@
                             $('#applicants_table').DataTable().ajax.reload();
                         }, 2000);
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         $(notificationAlert).html(`
                             <div class="notification-alert error">
                                 An error occurred while saving notes.
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1240,12 +1333,12 @@
             }
 
             // Reset modal
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 $(formId)[0].reset();
                 $(notificationAlert).html('').hide();
             });
 
-            saveButton.off('click').on('click', function () {
+            saveButton.off('click').on('click', function() {
                 const notes = $(detailsId).val();
 
                 if (!notes) {
@@ -1267,7 +1360,7 @@
                         tab: tab,
                         _token: $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function (response) {
+                    success: function(response) {
                         $(notificationAlert).html(
                             `<div class="notification-alert success">${response.message}</div>`
                         ).show();
@@ -1277,7 +1370,7 @@
                             $('#applicants_table').DataTable().ajax.reload();
                         }, 1500);
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1293,7 +1386,7 @@
             const saveButton = $(`${formId} .saveCrmRevertInQualityButton`);
 
             // 🧼 Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1308,21 +1401,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -1335,7 +1430,7 @@
                         applicant_id: applicantID,
                         sale_id: saleID,
                         details: notes,
-                        tab : tab,
+                        tab: tab,
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
@@ -1361,7 +1456,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1378,7 +1473,7 @@
             const saveButton = $(`${formId} .saveupdateCrmNoJobNotesButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1391,7 +1486,7 @@
             });
 
             // Clear previous validation states
-           
+
             $(notificationAlert).html('').hide(); // Clear previous alerts
 
             // Handle save button click
@@ -1421,12 +1516,14 @@
                     // Add event listeners to remove validation errors dynamically
                     $(detailsId).off('input').on('input', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
                     $(reasonId).off('change').on('change', function() {
                         if ($(this).val()) {
-                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback').remove();
+                            $(this).removeClass('is-invalid').addClass('is-valid').next('.invalid-feedback')
+                                .remove();
                         }
                     });
 
@@ -1436,7 +1533,9 @@
                 // Show loading state
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -1466,7 +1565,7 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                         $(notificationAlert).html(`
+                        $(notificationAlert).html(`
                                 <div class="notification-alert error">
                                     An error occurred while saving notes.
                                 </div>
@@ -1488,7 +1587,7 @@
             const saveButton = $(`${formId} .saveCrmRevertRequestedCvToSentCvButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1500,10 +1599,10 @@
             });
 
             // 💾 Save button handler
-            saveButton.off('click').on('click', function () {
+            saveButton.off('click').on('click', function() {
                 // Clear previous validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
+                    .next('.invalid-feedback').remove();
 
                 // Validate input
                 const notes = $(detailsId).val();
@@ -1511,13 +1610,15 @@
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const form = $(formId)[0];
 
@@ -1553,7 +1654,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1569,7 +1670,7 @@
             const saveButton = $(`${formId} .saveCrmRevertRequestedCvToQualityButton`);
 
             // 🧼 Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1581,104 +1682,25 @@
             });
 
             // 💾 Save button logic
-            saveButton.off('click').on('click', function () {
+            saveButton.off('click').on('click', function() {
                 // Clear previous validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
+                    .next('.invalid-feedback').remove();
 
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-
-                const form = $(formId)[0];
-
-                $.ajax({
-                    url: form.action,
-                    method: form.method,
-                    data: {
-                        applicant_id: applicantID,
-                        sale_id: saleID,
-                        details: notes,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function (response) {
-                        const alertClass = response.success ? 'success' : 'error';
-                        $(notificationAlert).html(`
-                            <div class="notification-alert ${alertClass}">
-                                ${response.message}
-                            </div>
-                        `).show();
-
-                        if (response.success) {
-                            setTimeout(() => {
-                                $(modalId).modal('hide');
-                                $(formId)[0].reset();
-                                $('#applicants_table').DataTable().ajax.reload();
-                            }, 2000);
-                        }
-                    },
-                    error: function (xhr) {
-                        $(notificationAlert).html(`
-                            <div class="notification-alert error">
-                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
-                            </div>
-                        `).show();
-                    },
-                    complete: function () {
-                        btn.prop('disabled', false).html(originalText);
-                    }
-                });
-            });
-        }
-
-        /** Revert Rejected Cv to Sent CV */
-        function crmRevertRejectedCvToSentCvModal(applicantID, saleID) {
-            const formId = `#crmRevertRejectedCvToSentCvForm${applicantID}-${saleID}`;
-            const modalId = `#crmRevertRejectedCvToSentCvModal${applicantID}-${saleID}`;
-            const detailsId = `#RevertRevertRejectedCvToSentCvDetails${applicantID}-${saleID}`;
-            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            const saveButton = $(`${formId} .saveCrmRevertRejectedCvToSentCvButton`);
-
-            // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
-                // Reset form fields
-                $(formId)[0].reset();
-
-                // Remove validation styles and messages
-                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
-
-                // Hide any previous alerts
-                $(notificationAlert).html('').hide();
-            });
-
-            // 💾 Save button handler
-            saveButton.off('click').on('click', function () {
-                // Clear previous validation
-                $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-
-                // Validate input
-                const notes = $(detailsId).val();
-
-                if (!notes) {
-                    $(detailsId).addClass('is-invalid');
-                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
-                    return
-                }
-
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const form = $(formId)[0];
 
@@ -1714,23 +1736,23 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
 
-        /** Revert Rejected Cv to Quality */
-        function crmRevertRejectedCvToQualityModal(applicantID, saleID) {
-            const formId = `#crmRevertRejectedCvToQualityForm${applicantID}-${saleID}`;
-            const modalId = `#crmRevertRejectedCvToQualityModal${applicantID}-${saleID}`;
-            const detailsId = `#RevertRevertRejectedCvToQualityDetails${applicantID}-${saleID}`;
+        /** Revert Rejected Cv to Sent CV */
+        function crmRevertRejectedCvToSentCvModal(applicantID, saleID) {
+            const formId = `#crmRevertRejectedCvToSentCvForm${applicantID}-${saleID}`;
+            const modalId = `#crmRevertRejectedCvToSentCvModal${applicantID}-${saleID}`;
+            const detailsId = `#RevertRevertRejectedCvToSentCvDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            const saveButton = $(`${formId} .saveCrmRevertRejectedCvToQualityButton`);
+            const saveButton = $(`${formId} .saveCrmRevertRejectedCvToSentCvButton`);
 
-            // 🧼 Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            // Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1741,24 +1763,27 @@
                 $(notificationAlert).html('').hide();
             });
 
-            // 💾 Save button logic
-            saveButton.off('click').on('click', function () {
+            // 💾 Save button handler
+            saveButton.off('click').on('click', function() {
                 // Clear previous validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
+                    .next('.invalid-feedback').remove();
 
+                // Validate input
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
-                    return;
+
+                    return
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const form = $(formId)[0];
 
@@ -1771,7 +1796,7 @@
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         const alertClass = response.success ? 'success' : 'error';
                         $(notificationAlert).html(`
                             <div class="notification-alert ${alertClass}">
@@ -1787,14 +1812,96 @@
                             }, 2000);
                         }
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         $(notificationAlert).html(`
                             <div class="notification-alert error">
                                 ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        }
+
+        /** Revert Rejected Cv to Quality */
+        function crmRevertRejectedCvToQualityModal(applicantID, saleID) {
+            const formId = `#crmRevertRejectedCvToQualityForm${applicantID}-${saleID}`;
+            const modalId = `#crmRevertRejectedCvToQualityModal${applicantID}-${saleID}`;
+            const detailsId = `#RevertRevertRejectedCvToQualityDetails${applicantID}-${saleID}`;
+            const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
+            const saveButton = $(`${formId} .saveCrmRevertRejectedCvToQualityButton`);
+
+            // 🧼 Reset modal when it is about to be shown
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
+                // Reset form fields
+                $(formId)[0].reset();
+
+                // Remove validation styles and messages
+                $(detailsId).removeClass('is-invalid is-valid').next('.invalid-feedback').remove();
+
+                // Hide any previous alerts
+                $(notificationAlert).html('').hide();
+            });
+
+            // 💾 Save button logic
+            saveButton.off('click').on('click', function() {
+                // Clear previous validation
+                $(detailsId).removeClass('is-invalid is-valid')
+                    .next('.invalid-feedback').remove();
+
+                const notes = $(detailsId).val();
+
+                if (!notes) {
+                    $(detailsId).addClass('is-invalid');
+                    $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
+
+                    return;
+                }
+
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                const form = $(formId)[0];
+
+                $.ajax({
+                    url: form.action,
+                    method: form.method,
+                    data: {
+                        applicant_id: applicantID,
+                        sale_id: saleID,
+                        details: notes,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        const alertClass = response.success ? 'success' : 'error';
+                        $(notificationAlert).html(`
+                            <div class="notification-alert ${alertClass}">
+                                ${response.message}
+                            </div>
+                        `).show();
+
+                        if (response.success) {
+                            setTimeout(() => {
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                                $('#applicants_table').DataTable().ajax.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $(notificationAlert).html(`
+                            <div class="notification-alert error">
+                                ${xhr.responseJSON?.message || 'An error occurred while saving notes.'}
+                            </div>
+                        `).show();
+                    },
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -1810,7 +1917,7 @@
             const saveButton = $(`${formId} .saveCrmSendNoJobRequestButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1825,22 +1932,24 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 // Show loading state
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -1881,7 +1990,7 @@
                 });
             });
         }
-                
+
         /** Revert Sent Cv No Job to Quality Modal */
         function crmSentCvNoJobRevertInQualityModal(applicantID, saleID) {
             const formId = `#crmNoJobRevertInQualityForm${applicantID}-${saleID}`;
@@ -1891,7 +2000,7 @@
             const saveButton = $(`${formId} .saveCrmNoJobRevertInQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1906,21 +2015,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -1958,13 +2069,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Request Reject to Sent CV Modal */
         function crmRejectRequestRevertToSentCvModal(applicantID, saleID) {
             const formId = `#crmRevertToSentCVForm${applicantID}-${saleID}`;
@@ -1974,7 +2085,7 @@
             const saveButton = $(`${formId} .saveCrmRevertToSentCVButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -1989,21 +2100,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                   
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2041,7 +2154,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -2057,7 +2170,7 @@
             const saveButton = $(`${formId} .saveCrmRevertToRequestButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2072,21 +2185,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2124,7 +2239,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -2140,7 +2255,7 @@
             const saveButton = $(`${formId} .saveCrmRevertRequestRejectedToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2155,21 +2270,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2207,13 +2324,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Confirmation to Quality Modal */
         function crmConfirmationRevertToQualityModal(applicantID, saleID) {
             const formId = `#crmConfirmationRevertToQualityForm${applicantID}-${saleID}`;
@@ -2223,7 +2340,7 @@
             const saveButton = $(`${formId} .saveCrmRevertConfirmationToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2238,21 +2355,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2290,13 +2409,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Confirmation to Quality Modal */
         function crmRebookRevertToQualityModal(applicantID, saleID) {
             const formId = `#crmRebookRevertToQualityForm${applicantID}-${saleID}`;
@@ -2306,7 +2425,7 @@
             const saveButton = $(`${formId} .saveCrmRevertRebookToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2321,21 +2440,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2373,13 +2494,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Attended to Quality Modal */
         function crmAttendedRevertToQualityModal(applicantID, saleID) {
             const formId = `#crmAttendedRevertToQualityForm${applicantID}-${saleID}`;
@@ -2389,7 +2510,7 @@
             const saveButton = $(`${formId} .saveCrmRevertAttendedToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2404,21 +2525,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2456,13 +2579,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Declined to Quality Modal */
         function crmDeclinedRevertToQualityModal(applicantID, saleID) {
             const formId = `#crmDeclinedRevertToQualityForm${applicantID}-${saleID}`;
@@ -2472,7 +2595,7 @@
             const saveButton = $(`${formId} .saveCrmRevertDeclinedToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2487,21 +2610,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2539,7 +2664,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -2555,7 +2680,7 @@
             const saveButton = $(`${formId} .saveCrmRevertConfirmationToRequestButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2570,21 +2695,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2622,14 +2749,14 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
 
-       
+
         function crmRevertRebookToConfirmationModal(applicantID, saleID) {
 
             const formId = `#crmRevertRebookToConfirmationForm${applicantID}-${saleID}`;
@@ -2638,7 +2765,7 @@
 
             const saveButton = $(`${formId} .saveCrmRevertRebookToConfirmationButton`);
 
-            saveButton.off('click').on('click', function () {
+            saveButton.off('click').on('click', function() {
 
                 $(detailsId).removeClass('is-invalid').next('.invalid-feedback').remove();
 
@@ -2660,7 +2787,7 @@
             });
         }
 
-        $(document).on('click', '.saveCrmReScheduleInterviewButton', function () {
+        $(document).on('click', '.saveCrmReScheduleInterviewButton', function() {
 
             const btn = $(this);
             const applicantID = btn.data('applicant-id');
@@ -2692,13 +2819,15 @@
             $.ajax({
                 url: $(revertForm).attr('action'),
                 type: 'POST',
-                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
                 data: {
                     applicant_id: $(revertForm + ' input[name="applicant_id"]').val(),
                     sale_id: $(revertForm + ' input[name="sale_id"]').val(),
                     details: $(revertForm + ' textarea[name="details"]').val()
                 },
-                success: function () {
+                success: function() {
 
                     // =======================
                     // AJAX #2 → RESCHEDULE
@@ -2706,14 +2835,16 @@
                     $.ajax({
                         url: $(scheduleForm).attr('action'),
                         type: 'POST',
-                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
                         data: {
                             applicant_id: applicantID,
                             sale_id: saleID,
                             schedule_date: sdate,
                             schedule_time: stime
                         },
-                        success: function (response) {
+                        success: function(response) {
                             $(alertBox).html(
                                 `<div class="notification-alert success">${response.message}</div>`
                             ).show();
@@ -2725,15 +2856,15 @@
                                 $('#applicants_table').DataTable().ajax.reload();
                             }, 1500);
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             showError(xhr);
                         }
                     });
                 },
-                error: function (xhr) {
+                error: function(xhr) {
                     showError(xhr);
                 },
-                complete: function () {
+                complete: function() {
                     btn.prop('disabled', false).html('Schedule');
                 }
             });
@@ -2757,7 +2888,7 @@
             const saveButton = $(`${formId} .saveCrmScheduleInterviewButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2773,11 +2904,11 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(schedule_date).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                        
+                    .next('.invalid-feedback').remove();
+
                 $(schedule_time).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const sdate = $(schedule_date).val();
                 const stime = $(schedule_time).val();
@@ -2797,7 +2928,9 @@
                 // Show loading state
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2836,7 +2969,8 @@
                                 errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
                             }
                         }
-                        $(notificationAlert).html(`<div class="notification-alert error">${errorMessage}</div>`).show();
+                        $(notificationAlert).html(
+                            `<div class="notification-alert error">${errorMessage}</div>`).show();
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -2844,7 +2978,7 @@
                 });
             });
         }
-        
+
         /** Send Email on Schedule Interview Request */
         function crmSendApplicantEmailRequestModal(applicantID, saleID) {
             const formId = `#crmSendApplicantEmailRequestForm${applicantID}-${saleID}`;
@@ -2869,12 +3003,12 @@
                     ['view', []]
                 ]
             });
-            
+
             // Hide any previous alerts
             $(notificationAlert).empty().hide();
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -2888,12 +3022,12 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(emailAddressTo).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
+                    .next('.invalid-feedback').remove();
                 $(emailSubject).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
+                    .next('.invalid-feedback').remove();
                 $(emailBody).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const emailTo = $(emailAddressTo).val().trim();
                 const emailFrom = $(emailAddressFrom).val().trim();
@@ -2919,7 +3053,9 @@
                 // Show loading state
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -2971,9 +3107,9 @@
             const modalId = `#crmMoveToconfirmationModal${applicantID}-${saleID}`;
             const detailsId = `#crmMoveToconfirmationDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             console.log('Initializing crmMoveToconfirmationModal with applicantID:', applicantID, 'saleID:', saleID);
-            
+
             const initModal = () => {
                 resetValidation();
                 attachEventHandlers();
@@ -3005,10 +3141,14 @@
                     reject: "{{ route('crmRequestReject') }}"
                 };
 
-                const btn = $(`${formId} .savecrmConfirmation${actionType === 'confirm' ? 'Button' : actionType === 'save' ? 'SaveButton' : 'RejectButton'}`);
+                const btn = $(
+                    `${formId} .savecrmConfirmation${actionType === 'confirm' ? 'Button' : actionType === 'save' ? 'SaveButton' : 'RejectButton'}`
+                );
                 const originalText = btn.html();
-                
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -3031,7 +3171,8 @@
                         setTimeout(() => {
                             $(modalId).modal('hide');
                             if (actionType === 'reject') {
-                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`).modal('hide');
+                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`)
+                                    .modal('hide');
                             }
                             $(formId)[0].reset();
                             $('#applicants_table').DataTable().ajax.reload();
@@ -3039,7 +3180,8 @@
                     },
                     error: function(xhr) {
                         console.error('Form submission error:', xhr.status, xhr.responseJSON);
-                        showError(xhr.responseJSON?.message || `Failed to process ${actionType} (Status: ${xhr.status})`);
+                        showError(xhr.responseJSON?.message ||
+                            `Failed to process ${actionType} (Status: ${xhr.status})`);
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -3071,10 +3213,10 @@
                 const reject_template = button.data('request-reject-template');
                 console.log('Attaching event handler to reject button:', rejectButtonSelector);
 
-                $(rejectButtonSelector).off('click').on('click', function () {
+                $(rejectButtonSelector).off('click').on('click', function() {
                     console.log('Reject button clicked');
                     resetValidation();
-                    
+
                     if (validateNotes()) {
                         const notes = $(detailsId).val().trim();
 
@@ -3085,7 +3227,8 @@
 
                         crmSendApplicantEmailOnRequestRejectModal(applicantID, saleID, notes);
 
-                        const emailModalId = `#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`;
+                        const emailModalId =
+                            `#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`;
                         const templateFieldId = `#request_reject_template${applicantID}-${saleID}`;
                         const subjectFieldId = `#request_reject_subject${applicantID}-${saleID}`;
                         const slugFieldId = `#request_reject_slug${applicantID}-${saleID}`;
@@ -3118,7 +3261,8 @@
                     }
                 });
 
-                $(`${formId} .savecrmMoveToconfirmationRequestButton`).off('click').on('click', () => handleSubmit('confirm'));
+                $(`${formId} .savecrmMoveToconfirmationRequestButton`).off('click').on('click', () => handleSubmit(
+                    'confirm'));
                 $(`${formId} .savecrmConfirmationSaveButton`).off('click').on('click', () => handleSubmit('save'));
 
                 $(modalId).off('hidden.bs.modal').on('hidden.bs.modal', () => {
@@ -3139,8 +3283,10 @@
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
 
             console.log(
-                'Initializing crmMarkRequestConfirmOrRejectModal',
-                { applicantID, saleID }
+                'Initializing crmMarkRequestConfirmOrRejectModal', {
+                    applicantID,
+                    saleID
+                }
             );
 
             const resetValidation = () => {
@@ -3209,9 +3355,9 @@
                 }
 
                 const btnSelector =
-                    actionType === 'confirm'
-                        ? `${formId} .savecrmMarkRequestButtonConfirm`
-                        : `${formId} .savecrmMarkRequestButtonReject`;
+                    actionType === 'confirm' ?
+                    `${formId} .savecrmMarkRequestButtonConfirm` :
+                    `${formId} .savecrmMarkRequestButtonReject`;
 
                 const btn = $(btnSelector);
                 const originalText = btn.html();
@@ -3227,7 +3373,10 @@
                     _token: '{{ csrf_token() }}'
                 };
 
-                console.log('Submitting form data:', { actionType, formData });
+                console.log('Submitting form data:', {
+                    actionType,
+                    formData
+                });
 
                 $.ajax({
                     url: endpoints[actionType],
@@ -3325,7 +3474,9 @@
                 const btn = $(`${formId} .savecrmRequestToNoResponseSaveButton`);
                 const originalText = btn.html();
 
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -3348,12 +3499,14 @@
                         setTimeout(() => {
                             $(modalId).modal('hide'); // Hide the modal after successful submission
                             $(formId)[0].reset(); // Reset form fields
-                            $('#applicants_table').DataTable().ajax.reload(); // Reload the table with updated data
+                            $('#applicants_table').DataTable().ajax
+                                .reload(); // Reload the table with updated data
                         }, 2000);
                     },
                     error: function(xhr) {
                         console.error('Form submission error:', xhr.status, xhr.responseJSON);
-                        showError(xhr.responseJSON?.message || `Failed to process request (Status: ${xhr.status})`);
+                        showError(xhr.responseJSON?.message ||
+                            `Failed to process request (Status: ${xhr.status})`);
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText); // Restore button state
@@ -3414,7 +3567,7 @@
 
             const validateForm = () => {
                 let valid = true;
-                $(`${formId} [required]`).each(function () {
+                $(`${formId} [required]`).each(function() {
                     if (!$(this).val().trim()) {
                         $(this).addClass('is-invalid')
                             .after('<div class="invalid-feedback">This field is required.</div>');
@@ -3433,7 +3586,7 @@
                 `).show();
             };
 
-            const handleSubmit = function (e) {
+            const handleSubmit = function(e) {
                 e.preventDefault();
 
                 if (!validateForm()) return;
@@ -3469,9 +3622,11 @@
                     },
                     error: (xhr) => {
                         console.error('AJAX error:', xhr.status, xhr.responseJSON);
-                        let errorMessage = xhr.responseJSON?.message || `Failed to process rejection and email (Status: ${xhr.status})`;
+                        let errorMessage = xhr.responseJSON?.message ||
+                            `Failed to process rejection and email (Status: ${xhr.status})`;
                         if (xhr.status === 405) {
-                            errorMessage = 'POST method not supported. Check route configuration for /crm/request-reject.';
+                            errorMessage =
+                                'POST method not supported. Check route configuration for /crm/request-reject.';
                         }
                         showAlert('danger', errorMessage);
                         btn.prop('disabled', false).html(originalText);
@@ -3491,7 +3646,7 @@
             const modalId = `#crmConfirmationAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmConfirmationAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -3533,7 +3688,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -3555,14 +3712,16 @@
                         setTimeout(() => {
                             $(modalId).modal('hide');
                             if (actionType === 'reject') {
-                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`).modal('hide');
+                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`)
+                                    .modal('hide');
                             }
                             $(formId)[0].reset();
                             $('#applicants_table').DataTable().ajax.reload();
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -3592,19 +3751,19 @@
 
             // Attach event handlers
             const attachEventHandlers = () => {
-                $(`${formId} .crmConfirmationNotAttendButton`).off('click').on('click', function () {
+                $(`${formId} .crmConfirmationNotAttendButton`).off('click').on('click', function() {
                     handleSubmit('not_attend', $(this));
                 });
 
-                $(`${formId} .crmConfirmationAttendButton`).off('click').on('click', function () {
+                $(`${formId} .crmConfirmationAttendButton`).off('click').on('click', function() {
                     handleSubmit('attend', $(this));
                 });
 
-                $(`${formId} .crmConfirmationRebookButton`).off('click').on('click', function () {
+                $(`${formId} .crmConfirmationRebookButton`).off('click').on('click', function() {
                     handleSubmit('rebook', $(this));
                 });
 
-                $(`${formId} .crmConfirmationSaveButton`).off('click').on('click', function () {
+                $(`${formId} .crmConfirmationSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
@@ -3626,7 +3785,7 @@
             const modalId = `#crmRebookAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmRebookAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -3662,7 +3821,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -3684,7 +3845,8 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -3713,21 +3875,21 @@
             };
 
             // Attach event handlers
-            const attachEventHandlers = () => {          
-                $(`${formId} .crmRebookToNotAttendButton`).off('click').on('click', function () {
+            const attachEventHandlers = () => {
+                $(`${formId} .crmRebookToNotAttendButton`).off('click').on('click', function() {
                     handleSubmit('not_attend', $(this));
                 });
 
-                $(`${formId} .crmRebookToAttendButton`).off('click').on('click', function () {
+                $(`${formId} .crmRebookToAttendButton`).off('click').on('click', function() {
                     handleSubmit('attend', $(this));
                 });
 
-                $(`${formId} .crmRebookSaveButton`).off('click').on('click', function () {
+                $(`${formId} .crmRebookSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -3743,7 +3905,7 @@
             const modalId = `#crmAttendedPreStartDateAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmAttendedPreStartDateAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -3779,7 +3941,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -3797,14 +3961,16 @@
                         setTimeout(() => {
                             $(modalId).modal('hide');
                             if (actionType === 'reject') {
-                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`).modal('hide');
+                                $(`#crmSendApplicantEmailOnRequestRejectModal${applicantID}-${saleID}`)
+                                    .modal('hide');
                             }
                             $(formId)[0].reset();
                             $('#applicants_table').DataTable().ajax.reload();
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -3833,21 +3999,21 @@
             };
 
             // Attach event handlers
-            const attachEventHandlers = () => {  
-                $(`${formId} .crmAttendedToDeclineButton`).off('click').on('click', function () {
+            const attachEventHandlers = () => {
+                $(`${formId} .crmAttendedToDeclineButton`).off('click').on('click', function() {
                     handleSubmit('decline', $(this));
                 });
-                
-                $(`${formId} .crmAttendedToStartDateButton`).off('click').on('click', function () {
+
+                $(`${formId} .crmAttendedToStartDateButton`).off('click').on('click', function() {
                     handleSubmit('start_date', $(this));
                 });
-                
-                $(`${formId} .crmAttendedSaveButton`).off('click').on('click', function () {
+
+                $(`${formId} .crmAttendedSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -3866,7 +4032,7 @@
             const saveButton = $(`${formId} .saveCrmRevertAttendToRebookButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -3881,21 +4047,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                    
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -3933,7 +4101,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -3949,7 +4117,7 @@
             const saveButton = $(`${formId} .saveCrmNotAttendedToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -3964,8 +4132,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -3977,7 +4145,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4015,7 +4185,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4031,7 +4201,7 @@
             const saveButton = $(`${formId} .saveCrmNotAttendedToAttendedButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4046,8 +4216,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4059,7 +4229,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4097,7 +4269,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4113,7 +4285,7 @@
             const saveButton = $(`${formId} .saveCrmStartDateToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4128,8 +4300,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4141,7 +4313,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4179,7 +4353,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4195,7 +4369,7 @@
             const saveButton = $(`${formId} .saveCrmStartDateHoldToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4210,8 +4384,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4223,7 +4397,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4261,13 +4437,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Invoice to Quality */
         function crmInvoiceToQualityModal(applicantID, saleID) {
             const formId = `#crmInvoiceToQualityForm${applicantID}-${saleID}`;
@@ -4277,7 +4453,7 @@
             const saveButton = $(`${formId} .saveCrmInvoiceToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4292,8 +4468,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4305,7 +4481,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4343,7 +4521,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4359,7 +4537,7 @@
             const saveButton = $(`${formId} .saveCrmInvoiceSentToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4374,8 +4552,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4387,7 +4565,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4425,7 +4605,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4441,7 +4621,7 @@
             const saveButton = $(`${formId} .saveCrmRevertDeclinedToAttendedButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4456,8 +4636,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4469,7 +4649,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4507,7 +4689,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4520,7 +4702,7 @@
             const modalId = `#crmStartDateAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmStartDateAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -4556,7 +4738,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -4578,7 +4762,8 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -4608,20 +4793,20 @@
 
             // Attach event handlers
             const attachEventHandlers = () => {
-                $(`${formId} .crmStartDateToInvoiceButton`).off('click').on('click', function () {
+                $(`${formId} .crmStartDateToInvoiceButton`).off('click').on('click', function() {
                     handleSubmit('invoice', $(this));
                 });
-                
-                $(`${formId} .crmStartDateToHoldButton`).off('click').on('click', function () {
+
+                $(`${formId} .crmStartDateToHoldButton`).off('click').on('click', function() {
                     handleSubmit('startDate_hold', $(this));
                 });
-                
-                $(`${formId} .crmStartDateSaveButton`).off('click').on('click', function () {
+
+                $(`${formId} .crmStartDateSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -4640,7 +4825,7 @@
             const saveButton = $(`${formId} .saveCrmRevertStartDateToAttendedButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4655,8 +4840,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4668,7 +4853,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4706,7 +4893,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4719,7 +4906,7 @@
             const modalId = `#crmStartDateHoldAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmStartDateHoldAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -4753,7 +4940,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -4775,7 +4964,8 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -4805,12 +4995,12 @@
 
             // Attach event handlers
             const attachEventHandlers = () => {
-                $(`${formId} .crmStartDateHoldSaveButton`).off('click').on('click', function () {
+                $(`${formId} .crmStartDateHoldSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -4829,7 +5019,7 @@
             const saveButton = $(`${formId} .saveCrmRevertStartDateHoldToStartDateButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -4844,8 +5034,8 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
@@ -4857,7 +5047,9 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -4895,7 +5087,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -4908,7 +5100,7 @@
             const modalId = `#crmInvoiceAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmInvoiceAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -4944,7 +5136,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -4966,7 +5160,8 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -4996,20 +5191,20 @@
 
             // Attach event handlers
             const attachEventHandlers = () => {
-                $(`${formId} .crmInvoiceSendInvoiceButton`).off('click').on('click', function () {
+                $(`${formId} .crmInvoiceSendInvoiceButton`).off('click').on('click', function() {
                     handleSubmit('sendInvoice', $(this));
                 });
 
-                $(`${formId} .crmInvoiceDisputeButton`).off('click').on('click', function () {
+                $(`${formId} .crmInvoiceDisputeButton`).off('click').on('click', function() {
                     handleSubmit('dispute', $(this));
                 });
 
-                $(`${formId} .crmInvoiceSaveButton`).off('click').on('click', function () {
+                $(`${formId} .crmInvoiceSaveButton`).off('click').on('click', function() {
                     handleSubmit('save', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -5028,7 +5223,7 @@
             const saveButton = $(`${formId} .saveCrmRevertInvoiceToStartDateButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -5043,21 +5238,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                   
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -5095,7 +5292,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -5108,7 +5305,7 @@
             const modalId = `#crmInvoiceSentAcceptCVModal${applicantID}-${saleID}`;
             const detailsId = `#crmInvoiceSentAcceptCVDetails${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
-            
+
             // Initialize modal
             const initModal = () => {
                 resetValidation();
@@ -5143,7 +5340,9 @@
                 };
 
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 const formData = {
                     applicant_id: applicantID,
@@ -5165,7 +5364,8 @@
                         }, 2000);
                     },
                     error: function(xhr) {
-                        showError(xhr.responseJSON?.message || 'An error occurred while processing your request.');
+                        showError(xhr.responseJSON?.message ||
+                            'An error occurred while processing your request.');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(originalText);
@@ -5195,16 +5395,16 @@
 
             // Attach event handlers
             const attachEventHandlers = () => {
-                $(`${formId} .crmInvoiceSentPaidButton`).off('click').on('click', function () {
+                $(`${formId} .crmInvoiceSentPaidButton`).off('click').on('click', function() {
                     handleSubmit('paid', $(this));
                 });
-               
-                $(`${formId} .crmInvoiceSentDisputeButton`).off('click').on('click', function () {
+
+                $(`${formId} .crmInvoiceSentDisputeButton`).off('click').on('click', function() {
                     handleSubmit('dispute', $(this));
                 });
 
                 // Reset on modal hide
-                $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+                $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                     $(formId)[0].reset();
                     resetValidation();
                 });
@@ -5223,7 +5423,7 @@
             const saveButton = $(`${formId} .saveCrmDisputeToQualityButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -5238,21 +5438,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                   
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -5290,13 +5492,13 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         /** Revert Dispute To Invoice */
         function crmRevertDisputeToInvoiceModal(applicantID, saleID) {
             const formId = `#crmRevertDisputeToInvoiceForm${applicantID}-${saleID}`;
@@ -5306,7 +5508,7 @@
             const saveButton = $(`${formId} .saveCrmRevertDisputeToInvoiceButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
 
@@ -5321,21 +5523,23 @@
             saveButton.off('click').on('click', function() {
                 // Reset validation
                 $(detailsId).removeClass('is-invalid is-valid')
-                        .next('.invalid-feedback').remove();
-                
+                    .next('.invalid-feedback').remove();
+
                 // Validate inputs
                 const notes = $(detailsId).val();
 
                 if (!notes) {
                     $(detailsId).addClass('is-invalid');
                     $(detailsId).after('<div class="invalid-feedback">Please provide details.</div>');
-                   
+
                     return;
                 }
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -5373,7 +5577,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -5390,10 +5594,10 @@
             const saveButton = $(`${formId} .saveCrmChangePaidStatusButton`);
 
             // Reset modal when it is about to be shown
-            $(modalId).off('show.bs.modal').on('show.bs.modal', function () {
+            $(modalId).off('show.bs.modal').on('show.bs.modal', function() {
                 // Reset form fields
                 $(formId)[0].reset();
-                
+
                 // Hide any previous alerts
                 $(notificationAlert).html('').hide();
             });
@@ -5402,7 +5606,9 @@
             saveButton.off('click').on('click', function() {
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
 
                 // Get form properly
                 const form = $(formId)[0];
@@ -5441,7 +5647,7 @@
                             </div>
                         `).show();
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -5503,7 +5709,7 @@
 
             // Make AJAX call
             $.ajax({
-                url: '{{ route("getModuleContacts") }}',
+                url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
                 data: {
                     id: unitId,
@@ -5588,13 +5794,13 @@
                     if (canShowPrivateData) {
                         // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
                         // Do NOT use === '%hayaibu%' — % is SQL syntax, not a JS string match.
-                        var sourceName = (contact.job_source_name
-                            || (contact.job_source && contact.job_source.name)
-                            || '').toString().toLowerCase().trim();
-                            
-                        var isHayaibuSource = contact.is_hayaibu_source === true
-                            || contact.is_hayaibu_source === 1
-                            || sourceName.indexOf('hayaibu') !== -1;
+                        var sourceName = (contact.job_source_name ||
+                            (contact.job_source && contact.job_source.name) ||
+                            '').toString().toLowerCase().trim();
+
+                        var isHayaibuSource = contact.is_hayaibu_source === true ||
+                            contact.is_hayaibu_source === 1 ||
+                            sourceName.indexOf('hayaibu') !== -1;
 
                         // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
                         if (filterType === 'kingsburry' && isHayaibuSource) {
@@ -5623,7 +5829,7 @@
         }
 
         /** Function for make open to all applicants */
-        $(document).on("click", "#openToPaid", function (event) {
+        $(document).on("click", "#openToPaid", function(event) {
             event.preventDefault();
 
             Swal.fire({
@@ -5641,7 +5847,7 @@
                         url: "{{ route('openToPaidApplicants') }}",
                         method: "GET",
                         dataType: "json",
-                        success: function (response) {
+                        success: function(response) {
                             if (response.success) {
                                 toastr.success(response.message);
                                 // Optional: reload table or update UI
@@ -5650,8 +5856,9 @@
                                 toastr.error(response.message);
                             }
                         },
-                        error: function (xhr) {
-                            const message = xhr.responseJSON?.message || "An error occurred while processing your request.";
+                        error: function(xhr) {
+                            const message = xhr.responseJSON?.message ||
+                                "An error occurred while processing your request.";
                             toastr.error(message);
                         }
                     });
@@ -5659,7 +5866,7 @@
             });
         });
 
-        $(document).on("click", "#sendSMSToRequestedApplicant", function (event) {
+        $(document).on("click", "#sendSMSToRequestedApplicant", function(event) {
             event.preventDefault();
 
             const applicantMessage = $.trim($('#smsBodyDetails').val());
@@ -5677,15 +5884,15 @@
             $.ajax({
                 url: "{{ route('sendMessageToApplicant') }}",
                 type: "POST",
-                
+
                 dataType: "json",
-                data: { 
-                    phone_number: applicantNumber, 
-                    applicant_id: applicantID, 
+                data: {
+                    phone_number: applicantNumber,
+                    applicant_id: applicantID,
                     message: applicantMessage,
-                    _token: '{{ csrf_token() }}' 
+                    _token: '{{ csrf_token() }}'
                 },
-                success: function (response) {
+                success: function(response) {
                     if (response.success) {
                         toastr.success(response.message);
                         $('#send_sms_to_requested_applicant').modal('hide');
@@ -5693,7 +5900,7 @@
                         toastr.error(response.error || "Failed to send SMS.");
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
+                error: function(jqXHR, textStatus, errorThrown) {
                     let message = 'Something went wrong, please try again...';
 
                     if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
@@ -5712,7 +5919,7 @@
 
                     toastr.error(message);
                 },
-                complete: function () {
+                complete: function() {
                     btn.prop("disabled", false); // Re-enable button after request
                 }
             });
@@ -5737,12 +5944,12 @@
                             applicant_id: applicant_id,
                             sale_id: sale_id
                         },
-                        success: function (response) {
+                        success: function(response) {
                             toastr.success("Applicant reverted successfully!");
                             // Reload table
                             $('#applicants_table').DataTable().ajax.reload();
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             toastr.error("Error: " + xhr.responseJSON?.message);
                         }
                     });
@@ -5750,7 +5957,7 @@
             });
         }
 
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', function(e) {
             const link = e.target.closest('.job-details');
             if (!link) return;
 
@@ -5809,7 +6016,7 @@
             new bootstrap.Modal(document.getElementById(modalId)).show();
         }
 
-        $(document).on('click', '.export-btn', function (e) {
+        $(document).on('click', '.export-btn', function(e) {
             e.preventDefault();
 
             const $link = $(this);
@@ -5827,8 +6034,10 @@
             $.ajax({
                 url: url,
                 type: 'GET',
-                xhrFields: { responseType: 'blob' }, // for binary file
-                success: function (data, status, xhr) {
+                xhrFields: {
+                    responseType: 'blob'
+                }, // for binary file
+                success: function(data, status, xhr) {
                     const blob = new Blob([data]);
                     const link = document.createElement('a');
                     const fileName = xhr.getResponseHeader('Content-Disposition')
@@ -5839,10 +6048,10 @@
                     link.click();
                     document.body.removeChild(link);
                 },
-                error: function () {
+                error: function() {
                     alert('Export failed. Please try again.');
                 },
-                complete: function () {
+                complete: function() {
                     // Re-enable button + reset text
                     $btn.prop('disabled', false);
                     $icon.removeClass().addClass('ri-download-line me-1');
@@ -5852,4 +6061,4 @@
         });
     </script>
 @endsection
-@endsection                  
+@endsection
