@@ -40,4 +40,8 @@ class QualityNotes extends Model
     {
         return $this->belongsTo(Applicant::class, 'applicant_id');
     }
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class, 'sale_id');
+    }
 }
