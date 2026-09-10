@@ -15,26 +15,8 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-header border-0">
-                    <div class="row justify-content-between">
-                        <div class="col-lg-3">
-                            <div class="text-md-start mt-3 pt-1">
-                                <div class="input-group">
-                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
-                                    <input type="text" id="customSearchInput" class="form-control" placeholder="Search ..."
-                                        style="padding-right: 30px;">
-                                    <!-- Absolutely positioned over the input field -->
-                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
-                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
-                                        <i class="ri-close-line text-primary"
-                                            style="font-size: 20px; font-weight: 900;"></i>
-                                    </span>
-                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
-                                            class="ri-search-line"></i> Search</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-9">
-                            <!-- Custom Search Bar -->
+                    <div class="row justify-content-end">
+                        <div class="col-lg-12">
                             <div class="text-md-end mt-3">
                                 @canany(['applicant-filters'])
                                     <!-- Category Filter Dropdown -->
@@ -42,7 +24,7 @@
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                                Category</span>
+                                                Categories</span>
                                         </button>
 
                                         <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -113,7 +95,9 @@
                                                     <div class="form-check">
                                                         <input class="form-check-input title-filter" type="checkbox"
                                                             value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                            data-title-id="{{ $title->id }}">
+                                                            data-title-id="{{ $title->id }}"
+                                                            data-category-id="{{ $title->job_category_id }}"
+                                                            data-type="{{ $title->type }}">
                                                         <label class="form-check-label"
                                                             for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
                                                     </div>
@@ -146,11 +130,6 @@
                                             </div>
                                             <!-- Scrollable checkbox list -->
                                             <div id="sourceList">
-                                                <div class="form-check">
-                                                    <input class="form-check-input source-filter" type="checkbox"
-                                                        value="" id="all-sources" data-source-id="">
-                                                    <label class="form-check-label" for="all-sources">All Sources</label>
-                                                </div>
 
                                                 @foreach ($jobSources as $source)
                                                     <div class="form-check">
@@ -223,7 +202,27 @@
                                     </a>
                                 @endcanany
                             </div>
-                        </div><!-- end col-->
+                        </div>
+                    </div>
+                    <!-- Custom Search Bar -->
+                    <div class="row justify-content-start">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control"
+                                        placeholder="Search ..." style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -494,7 +493,8 @@
                         d.category_filter = currentCategoryFilters;
                         d.source_filter =
                             currentSourceFilters; // Send the current filter value as a parameter
-                        d.title_filters = currentTitleFilters;
+                        d.title_filters = (typeof window.getVisibleListingTitleIds === 'function' ?
+                            window.getVisibleListingTitleIds() : currentTitleFilters);
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -679,8 +679,8 @@
                 const total = $('.category-filter').not('[data-category-id=""]').length;
                 const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
 
-                $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` :
-                    'All Category');
+                $('#showFilterCategory').text(checked > 0 ? `Selected Categories (${checked})` :
+                    'All Categories');
 
                 const container = $('#categoryToggleContainer');
                 container.find('.filter-select-all').toggle(checked < total);
@@ -1754,11 +1754,41 @@
             e.preventDefault();
 
             const $link = $(this);
-            const url = $link.attr('href');
+            const url = new URL($link.attr('href'), window.location.origin);
             const $dropdown = $link.closest('.dropdown');
             const $btn = $dropdown.find('button');
             const $icon = $btn.find('i');
             const $text = $btn.find('.btn-text');
+
+            const statusFilter = ($('#showFilterStatus').text() || '').trim().toLowerCase();
+            const typeFilter = ($('#showFilterType').text() || '').trim().toLowerCase();
+            const search = $.fn.DataTable.isDataTable('#applicants_table') ?
+                ($('#applicants_table').DataTable().search() || '').trim() :
+                ($('#customSearchInput').val() || '').trim();
+
+            url.searchParams.set('status_filter', (statusFilter === 'all' || statusFilter === '') ? '' :
+                statusFilter);
+            url.searchParams.set('type_filter', (typeFilter === 'all types' || typeFilter === 'all' ||
+                typeFilter === '') ? '' : typeFilter);
+            url.searchParams.set('search', search);
+
+            function appendSelectedIds(param, selector, dataKey) {
+                url.searchParams.delete(param + '[]');
+                url.searchParams.delete(param);
+                $(selector + ':checked').each(function() {
+                    if (selector === '.title-filter' && $(this).closest('.listing-title-hidden').length) {
+                        return;
+                    }
+                    const id = $(this).data(dataKey);
+                    if (id !== '' && id !== null && typeof id !== 'undefined') {
+                        url.searchParams.append(param + '[]', id);
+                    }
+                });
+            }
+
+            appendSelectedIds('category_filter', '.category-filter', 'category-id');
+            appendSelectedIds('source_filter', '.source-filter', 'source-id');
+            appendSelectedIds('title_filters', '.title-filter', 'title-id');
 
             // Disable button + show loader
             $btn.prop('disabled', true);
@@ -1766,7 +1796,7 @@
             $text.text('Exporting...');
 
             $.ajax({
-                url: url,
+                url: url.toString(),
                 type: 'GET',
                 xhrFields: {
                     responseType: 'blob'

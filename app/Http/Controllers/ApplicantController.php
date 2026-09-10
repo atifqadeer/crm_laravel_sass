@@ -60,7 +60,20 @@ class ApplicantController extends Controller
 
     public function __construct()
     {
-        //
+        $this->middleware('permission:applicant-index')->only(['index', 'getApplicantsAjaxRequest']);
+        $this->middleware('permission:applicant-create')->only(['create', 'store']);
+        $this->middleware('permission:applicant-edit')->only(['edit', 'update']);
+        $this->middleware('permission:applicant-view')->only(['show', 'availableJobsIndex', 'availableNoJobsIndex', 'getAvailableJobs', 'getAvailableNoJobs']);
+        $this->middleware('permission:applicant-delete')->only(['destroy', 'changeStatus']);
+        $this->middleware('permission:applicant-export')->only(['export']);
+        $this->middleware('permission:region-export')->only(['regionalApplicatsExport']);
+        $this->middleware('permission:applicant-download-resume')->only(['downloadCv']);
+        $this->middleware('permission:applicant-upload-resume')->only(['uploadCv']);
+        $this->middleware('permission:applicant-upload-crm-resume')->only(['crmuploadCv']);
+        $this->middleware('permission:applicant-add-note')->only(['storeShortNotes', 'markApplicantNoNursingHome']);
+        $this->middleware('permission:applicant-view-note')->only(['getApplicanCallbackNotes', 'getApplicantNoNursingHomeNotes']);
+        $this->middleware('permission:applicant-view-history')->only(['history', 'getApplicantHistoryAjaxRequest']);
+        $this->middleware('permission:applicant-view,resource-direct-index')->only(['sendCVtoQuality']);
     }
 
     /**
@@ -1813,6 +1826,23 @@ class ApplicantController extends Controller
         $radius = $request->query('radius', null); // Default to 0 if not provided
         $model_type = $request->query('model_type', null);
         $model_id = $request->query('model_id', null);
+        $filters = [];
+        foreach (
+            [
+                'status_filter',
+                'cv_status_filter',
+                'title_filter',
+                'title_filters',
+                'source_filter',
+                'category_filter',
+                'type_filter',
+                'search',
+            ] as $key
+        ) {
+            if ($request->exists($key)) {
+                $filters[$key] = $request->input($key);
+            }
+        }
 
         if ($radius != null) {
             $sale = Sale::find($model_id);
@@ -1821,7 +1851,21 @@ class ApplicantController extends Controller
             $fileName = "applicants_{$type}.csv";
         }
 
-        return Excel::download(new ApplicantsExport($type, $radius, $model_type, $model_id), $fileName);
+        $export = new ApplicantsExport($type, $radius, $model_type, $model_id, $filters);
+
+        return response()->streamDownload(function () use ($export) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $handle = fopen('php://output', 'w');
+            $export->streamCsv($handle);
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
     public function regionalApplicatsExport(Request $request)
     {
@@ -2544,6 +2588,7 @@ class ApplicantController extends Controller
     //                 </div>
     //             </div>';
     // }
+
     public function sendCVtoQuality(Request $request)
     {
         try {
@@ -2606,8 +2651,6 @@ class ApplicantController extends Controller
                 } else {
                     $noteDetail .= $this->handleRegularSubmission($request, $user);
                 }
-
-                $noteDetail .= $details . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
 
                 // ✅ Check CV limits
                 $sent_cv_count = CVNote::where([
@@ -2715,12 +2758,12 @@ class ApplicantController extends Controller
     }
 
     // Helper methods
-    private function handleHangupCall(Request $request, User $user, Applicant $applicant, Sale $sale, int $notes)
+    private function handleHangupCall(Request $request, User $user, Applicant $applicant, Sale $sale, $notes)
     {
         $noteDetail = '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
         $noteDetail .= '<strong>Call Hung up/Not Interested:</strong> Yes<br>';
         $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
-        $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+        $noteDetail .= '<strong>By:</strong> ' . $user->name  . ' Date: ' . now()->format('d-m-Y') . '<br>';
 
         $applicant->update([
             'is_temp_not_interested' => true,
@@ -2743,6 +2786,7 @@ class ApplicantController extends Controller
 
         return $noteDetail;
     }
+
     private function handleNoJob($request, $user, $applicant)
     {
         $noteDetail = '<strong>Date:</strong> ' . Carbon::now()->format('d-m-Y') . '<br>';
@@ -2774,12 +2818,12 @@ class ApplicantController extends Controller
         $noteDetail .= '<strong>Qualification:</strong> ' . htmlspecialchars($request->input('qualification')) . '<br>';
         $noteDetail .= '<strong>Transport Type:</strong> ' . htmlspecialchars($transportType) . '<br>';
         $noteDetail .= '<strong>Shift Pattern:</strong> ' . htmlspecialchars($shiftPattern) . '<br>';
-        $noteDetail .= '<strong>Nursing Home:</strong> ' . ($request->has('nursing_home') && $request->input('nursing_home') == 'on' ? 'Yes' : 'No') . '<br>';
-        $noteDetail .= '<strong>Alternate Weekend:</strong> ' . ($request->has('alternate_weekend') && $request->input('alternate_weekend') == 'on' ? 'Yes' : 'No') . '<br>';
-        $noteDetail .= '<strong>Interview Availability:</strong> ' . ($request->has('interview_availability') && $request->input('interview_availability') == 'on' ? 'Available' : 'Not Available') . '<br>';
-        $noteDetail .= '<strong>No Job:</strong> ' . ($request->input('no_job') && $request->input('no_job') == 'on' ? 'Yes' : 'No') . '<br>';
+        $noteDetail .= '<strong>Nursing Home:</strong> ' . ($request->boolean('nursing_home') ? 'Yes' : 'No') . '<br>';
+        $noteDetail .= '<strong>Alternate Weekend:</strong> ' . ($request->boolean('alternate_weekend') ? 'Yes' : 'No') . '<br>';
+        $noteDetail .= '<strong>Interview Availability:</strong> ' . ($request->boolean('interview_availability') ? 'Available' : 'Not Available') . '<br>';
+        $noteDetail .= '<strong>No Job:</strong> ' . ($request->boolean('no_job') ? 'Yes' : 'No') . '<br>';
         $noteDetail .= '<strong>Details:</strong> ' . nl2br(htmlspecialchars($request->input('details'))) . '<br>';
-        $noteDetail .= '<strong>By:</strong> ' . $user->name . '<br>';
+        $noteDetail .= '<strong>By:</strong> ' . $user->name . ' Date: ' . now()->format('d-m-Y') . '<br>';
 
         return $noteDetail;
     }

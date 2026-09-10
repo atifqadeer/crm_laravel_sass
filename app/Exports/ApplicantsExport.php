@@ -3,714 +3,49 @@
 namespace App\Exports;
 
 use Horsefly\Applicant;
-use Horsefly\JobTitle;
-use Horsefly\Sale;
 use Horsefly\Setting;
 use Horsefly\JobSource;
 
 use App\Traits\HasDistanceCalculation;
+use App\Traits\FiltersRadiusApplicants;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
-
 
 class ApplicantsExport implements FromCollection, WithHeadings
 {
-    use HasDistanceCalculation; // Add the trait here
+    use HasDistanceCalculation;
+    use FiltersRadiusApplicants;
 
     protected $type;
     protected $radius;
     protected $model_type;
     protected $model_id;
+    protected $filters;
 
     public function __construct(
         string $type = 'all',
         ?float $radius = null,
         ?string $model_type = null,
-        ?int $model_id = null
+        ?int $model_id = null,
+        array $filters = []
     ) {
         $this->type = $type;
         $this->radius = $radius;
         $this->model_type = $model_type;
         $this->model_id = $model_id;
+        $this->filters = $filters;
     }
 
     public function collection()
     {
-        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
-        $hidePrivateData = array_filter(
-            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
-        );
-
-        $sourceIds = [];
-
-        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
-            $sourceIds = JobSource::where('is_active', 1)
-                ->where(function ($q) use ($hidePrivateData) {
-                    foreach ($hidePrivateData as $hideName) {
-                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
-                    }
-                })
-                ->pluck('id')
-                ->toArray();
+        $rows = [];
+        foreach ($this->exportCursor() as $item) {
+            $rows[] = $this->mapRow($item);
         }
 
-        switch ($this->type) {
-            case 'emails':
-                $query = Applicant::select(
-                    'applicants.id',
-                    'applicants.applicant_name',
-                    'applicants.applicant_email',
-                    'applicants.applicant_email_secondary',
-                    'applicants.job_type',
-                    'applicants.created_at',
-
-                    'job_categories.name as job_category',
-                    'job_titles.name as job_title',
-                )
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at');
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                return $query->get()->map(function ($item) {
-                    return [
-                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'job_category' => strtoupper($item->job_category),
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                    ];
-                });
-
-            case 'noLatLong':
-                $query = Applicant::select(
-                    'applicants.id',
-                    'applicants.applicant_name',
-                    'applicants.applicant_postcode',
-                    'applicants.lat',
-                    'applicants.lng',
-                    'job_categories.name as job_category',
-                    'applicants.job_type',
-                    'job_titles.name as job_title',
-                    'applicants.created_at'
-                )
-                    ->whereIn('applicants.lat', ['0', '', null])
-                    ->whereIn('applicants.lng', ['0', '', null])
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at');
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                return $query->get()->map(function ($item) {
-                    return [
-                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'lat' => $item->lat,
-                        'lng' => $item->lng,
-                        'job_category' => strtoupper($item->job_category),
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                    ];
-                });
-            case 'all':
-                $query = Applicant::select(
-                    'applicants.id',
-                    'applicants.applicant_name',
-                    'applicants.applicant_email',
-                    'applicants.applicant_email_secondary',
-                    'applicants.applicant_postcode',
-                    'applicants.applicant_phone',
-                    'applicants.applicant_phone_secondary',
-                    'applicants.applicant_landline',
-                    'applicants.applicant_experience',
-                    'applicants.applicant_notes',
-                    'applicant_notes.details as note_details',
-                    'applicants.created_at',
-
-                    'job_categories.name as job_category',
-                    'applicants.job_type',
-                    'job_titles.name as job_title',
-                )
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('applicant_notes', 'applicants.id', '=', 'applicant_notes.applicant_id')
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at');
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                return $query->get()->map(function ($item) {
-                    return [
-                        'created_at' => $item->created_at ? $item->created_at->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'applicant_phone' => $item->applicant_phone,
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                        'applicant_landline' => $item->applicant_landline,
-                        'job_category' => strtoupper($item->job_category),
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                        'experience' => $item->applicant_experience,
-                        'note' => $item->note_details ?? $item->applicant_notes,
-                    ];
-                });
-
-            case 'withinRadius':
-                $sale = $this->model_type::find($this->model_id);
-                $lat = $sale->lat;
-                $lon = $sale->lng;
-                $sale_id = $this->model_id;
-                $radius = $this->radius; // Default radius if not provided
-
-                // Start building the query for Applicants
-                $model = Applicant::query()
-                    ->with('cv_notes', 'pivotSales', 'history_request_nojob') // Eager load related data
-                    ->select([
-                        'applicants.*',
-                        'job_titles.name as job_title_name',
-                        'job_categories.name as job_category_name',
-                        'job_sources.name as job_source_name',
-                        DB::raw("(ACOS(SIN($lat * PI() / 180) * SIN(lat * PI() / 180) + 
-                                    COS($lat * PI() / 180) * COS(lat * PI() / 180) * 
-                                    COS(($lon - lng) * PI() / 180)) * 180 / PI() * 60 * 1.852) AS distance"),
-
-                        // ✅ Single variable: picks module_notes first, falls back to applicant_notes
-                        DB::raw("
-                            COALESCE(
-                                (SELECT mn.details FROM module_notes mn
-                                WHERE mn.module_noteable_id = applicants.id
-                                AND mn.module_noteable_type = 'Horsefly\\\\Applicant'
-                                ORDER BY mn.created_at DESC LIMIT 1),
-                                (SELECT an.details FROM applicant_notes an
-                                WHERE an.applicant_id = applicants.id
-                                ORDER BY an.created_at DESC LIMIT 1)
-                            ) AS notes_details
-                        "),
-
-                        // ✅ Single variable: picks module_notes date first, falls back to applicant_notes, then updated_at
-                        DB::raw("
-                            COALESCE(
-                                (SELECT mn.created_at FROM module_notes mn
-                                WHERE mn.module_noteable_id = applicants.id
-                                AND mn.module_noteable_type = 'Horsefly\\\\Applicant'
-                                ORDER BY mn.created_at DESC LIMIT 1),
-                                (SELECT an.created_at FROM applicant_notes an
-                                WHERE an.applicant_id = applicants.id
-                                ORDER BY an.created_at DESC LIMIT 1),
-                                applicants.updated_at
-                            ) AS notes_created_at
-                        "),
-                    ])
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->where('is_in_nurse_home', 0)
-                    ->having('distance', '<', $radius) // Filter by distance
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
-                    ->selectRaw("
-                        CASE
-                            WHEN applicants.paid_status = 'close' THEN 1
-                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 1) THEN 2
-                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0 AND cv_notes.sale_id = ?) THEN 3
-                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0) THEN 4
-                            WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 2 AND cv_notes.sale_id = ? AND applicants.paid_status = 'open') THEN 5
-                            ELSE 6
-                        END AS paid_status_order
-                    ", [$sale_id, $sale_id]);
-
-                if (count($sourceIds) > 0) {
-                    $model->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                // Fetch the job title based on the sale's job title ID
-                $jobTitle = JobTitle::find($sale->job_title_id);
-
-                // Decode related titles safely, ensure it is an array and normalize
-                $relatedTitles = is_array($jobTitle->related_titles)
-                    ? $jobTitle->related_titles
-                    : (empty($jobTitle->related_titles) ? [] : json_decode($jobTitle->related_titles, true));
-
-                // Normalize the titles (lowercase all) and add main title
-                $titles = collect($relatedTitles)
-                    ->map(fn($item) => strtolower(trim($item)))
-                    ->push(strtolower(trim($jobTitle->name))) // Add the main job title as well
-                    ->unique()
-                    ->values()
-                    ->toArray();
-
-                // Fetch job title IDs from the normalized titles
-                $jobTitleIds = JobTitle::whereIn(DB::raw('LOWER(name)'), $titles)->pluck('id')->toArray();
-
-                // Filter applicants by the job title IDs
-                $model->whereIn('applicants.job_title_id', $jobTitleIds)
-                    ->orderBy('notes_created_at', 'desc');
-
-                // Fetch all applicants without pagination
-                $applicants = $model->get(); // No pagination here, we are getting all the results
-
-                // Map the results into the desired format
-                $finalResults = $applicants->map(function ($item) use ($sale_id) {
-                    return [
-                        'date' => $item->notes_created_at ? Carbon::parse($item->notes_created_at)->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'job_title' => strtoupper($item->job_title_name), // Correct field
-                        'job_category' => strtoupper($item->job_category_name), // Correct field
-                        'job_type' => strtoupper($item->job_type),
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'applicant_phone' => $item->applicant_phone,
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                        'applicant_landline' => $item->applicant_landline,
-                        'applicant_experience' => $item->applicant_experience,
-                        'applicant_source' => $item->job_source_name ? strtoupper($item->job_source_name) : '',
-                        'have_nursing_home_experience' =>
-                        $item->have_nursing_home_experience == 1
-                            ? 'Yes'
-                            : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
-
-                        'applicant_notes' => htmlspecialchars($item->notes_details),
-                        'status' => (function () use ($item, $sale_id) {
-                            // Default
-                            $status_value = 'Open';
-
-                            // Highest priority: paid / closed
-                            if ($item->paid_status === 'close') {
-                                return 'Paid';
-                            }
-
-                            foreach ($item->cv_notes as $note) {
-
-                                if ($note->sale_id != $sale_id) {
-                                    continue;
-                                }
-
-                                // 1 = sent
-                                if ($note->status == 1) {
-                                    return 'Sent';
-                                }
-
-                                // 2 = paid
-                                if ($note->status == 2) {
-                                    return 'Paid';
-                                }
-
-                                // 0 = reject for this job
-                                if ($note->status == 0) {
-                                    return 'Reject Job';
-                                }
-                            }
-
-                            return ucwords($status_value);
-                        })(),
-
-                    ];
-                });
-
-                // Return the final result without pagination
-                return $finalResults;
-
-            case 'allRejected':
-                $radius = 15; // Default radius of 10 km if not provided
-
-                // Get all active sales locations
-                $salesLocationsQuery = Sale::select('id', 'job_title_id', 'lat', 'lng', 'sale_postcode', 'job_source_id')
-                    ->where('status', 1)
-                    ->where('is_on_hold', 0)
-                    ->whereNotNull('lat')
-                    ->whereNotNull('lng');
-
-                if (count($sourceIds) > 0) {
-                    $salesLocationsQuery->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('job_source_id', $sourceIds)
-                            ->orWhereNull('job_source_id');
-                    });
-                }
-
-                $salesLocations = $salesLocationsQuery->get();
-
-                // Build the main query
-                $latestNotes = DB::table('crm_notes as cn1')
-                    ->select('cn1.*')
-                    ->join(DB::raw('(SELECT MAX(id) as id FROM crm_notes GROUP BY applicant_id, sale_id) as cn2'), 'cn1.id', '=', 'cn2.id');
-
-                $latestHistory = DB::table('history as h1')
-                    ->select('h1.*')
-                    ->join(DB::raw('(SELECT MAX(id) as id FROM history GROUP BY applicant_id, sale_id) as h2'), 'h1.id', '=', 'h2.id');
-
-                $query = Applicant::query()
-                    ->with(['jobTitle', 'jobCategory', 'jobSource'])
-                    ->select([
-                        'applicants.id',
-                        'crm_notes.created_at as crm_notes_created',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_phone_secondary',
-                        'applicants.applicant_landline',
-                        'job_categories.name as job_category',
-                        'applicants.job_type as job_type',
-                        'job_titles.name as job_title',
-                        'job_sources.name as job_source',
-                        'history.sub_stage as sub_stage',
-                        'applicants.applicant_experience',
-                        'crm_notes.details',
-                        DB::raw(
-                            '
-                            CASE 
-                                WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
-                                WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
-                                WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
-                                WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
-                                ELSE "Unknown Status"
-                            END AS sub_stage'
-                        )
-                    ])
-                    ->joinSub($latestNotes, 'crm_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'crm_notes.applicant_id');
-                    })
-                    ->joinSub($latestHistory, 'history', function ($join) {
-                        $join->on('applicants.id', '=', 'history.applicant_id')
-                            ->on('crm_notes.sale_id', '=', 'history.sale_id');
-                    })
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->whereIn('history.sub_stage', [
-                        'crm_interview_not_attended',
-                        'crm_request_reject',
-                        'crm_reject',
-                        'crm_start_date_hold',
-                        'crm_start_date_hold_save'
-                    ])
-                    ->whereIn('crm_notes.moved_tab_to', [
-                        'interview_not_attended',
-                        'request_reject',
-                        'cv_sent_reject',
-                        'start_date_hold',
-                        'start_date_hold_save'
-                    ])
-                    ->where([
-                        'applicants.status' => 1,
-                        'history.status' => 1,
-                        'applicants.is_in_nurse_home' => 0,
-                        'applicants.is_blocked' => 0,
-                        'applicants.is_callback_enable' => 0,
-                        'applicants.is_no_job' => 0
-                    ])
-                    ->whereNull('applicants.deleted_at');
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                if ($salesLocations->isNotEmpty()) {
-                    $query->where(function ($query) use ($salesLocations, $radius) {
-                        foreach ($salesLocations as $sale) {
-                            // Distance-based matching
-                            $query->orWhereRaw(
-                                "
-                                    (6371 * ACOS(
-                                        COS(RADIANS(?)) * COS(RADIANS(applicants.lat)) * 
-                                        COS(RADIANS(applicants.lng) - RADIANS(?)) + 
-                                        SIN(RADIANS(?)) * SIN(RADIANS(applicants.lat))
-                                    )) <= ?",
-                                [$sale->lat, $sale->lng, $sale->lat, $radius]
-                            );
-                            // Optional: Add postcode matching
-                            if ($sale->sale_postcode) {
-                                $query->orWhere('applicants.applicant_postcode', $sale->sale_postcode);
-                            }
-                        }
-                    });
-                }
-
-                return $query->get()->map(function ($item) {
-                    return [
-                        'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'applicant_phone' => $item->applicant_phone,
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                        'applicant_landline' => $item->applicant_landline,
-                        'job_category' => ucwords($item->job_category),
-                        'job_type' => ucwords($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                        'job_source' => ucwords($item->job_source),
-                        'rejection_type' => ucwords($item->sub_stage),
-                        'experience' => $item->applicant_experience,
-                        'note' => $item->details,
-                    ];
-                });
-
-            case 'allBlocked':
-                // Build the main query
-                $query = Applicant::query()
-                    ->select([
-                        'applicants.id',
-                        'applicants.updated_at',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_phone_secondary',
-                        'applicants.applicant_landline',
-                        'job_categories.name as job_category',
-                        'applicants.job_type as job_type',
-                        'job_titles.name as job_title',
-                        'job_sources.name as job_source',
-                        'applicants.applicant_experience',
-                        'applicants.applicant_notes',
-                    ])
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
-                    ->with([
-                        'cv_notes' => function ($query) {
-                            $query->select('status', 'applicant_id', 'sale_id', 'user_id')
-                                ->with(['user:id,name'])->latest();
-                        }
-                    ])
-                    ->whereNull('applicants_pivot_sales.applicant_id')
-                    ->where([
-                        'applicants.status' => 1,
-                        'applicants.is_blocked' => 1,
-                    ])
-                    ->whereNull('applicants.deleted_at');
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                $query->get()->map(function ($item) {
-                    return [
-                        'date' => $item->updated_at ? Carbon::parse($item->updated_at)->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'applicant_phone' => $item->applicant_phone,
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                        'applicant_landline' => $item->applicant_landline,
-                        'job_category' => strtoupper($item->job_category),
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                        'job_source' => strtoupper($item->job_source),
-                        'status' => 'Blocked',
-                        'experience' => $item->applicant_experience,
-                        'notes' => $item->applicant_notes ?? 'N/A',
-                    ];
-                });
-
-                return $query;
-            case 'allPaid':
-                // Build the main query
-                $query = Applicant::query()
-                    ->select([
-                        'applicants.id',
-                        'crm_notes.created_at as crm_notes_created',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_phone_secondary',
-                        'applicants.applicant_landline',
-                        'job_categories.name as job_category',
-                        'applicants.job_type as job_type',
-                        'job_titles.name as job_title',
-                        'job_sources.name as job_source',
-                        'crm_notes.moved_tab_to',
-                        'crm_notes.details',
-                        'applicants.applicant_experience'
-                    ])
-                    ->where('applicants.is_no_job', 0)
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->join('crm_notes', 'applicants.id', '=', 'crm_notes.applicant_id')
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->with([
-                        'cv_notes' => function ($query) {
-                            $query->select('status', 'applicant_id', 'sale_id', 'user_id')
-                                ->with(['user:id,name'])->latest();
-                        }
-                    ])
-                    ->whereIn('applicants.paid_status', ['open', 'pending'])
-                    ->whereIn('crm_notes.moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'])
-                    ->whereIn('crm_notes.id', function ($query) {
-                        $query->select(DB::raw('MAX(id) FROM crm_notes'))
-                            ->whereIn('moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'])
-                            ->where('applicants.id', '=', DB::raw('applicant_id'));
-                    });
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-                $query->get()->map(function ($item) {
-                    return [
-                        'date' => $item->crm_notes_created ? Carbon::parse($item->crm_notes_created)->format('d M Y, h:i A') : 'N/A',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email,
-                        'applicant_email_secondary' => $item->applicant_email_secondary,
-                        'applicant_postcode' => strtoupper($item->applicant_postcode),
-                        'applicant_phone' => $item->applicant_phone,
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary,
-                        'applicant_landline' => $item->applicant_landline,
-                        'job_category' => strtoupper($item->job_category),
-                        'job_type' => strtoupper($item->job_type),
-                        'job_title' => strtoupper($item->job_title),
-                        'job_source' => strtoupper($item->job_source),
-                        'status' => strtoupper($item->moved_tab_to),
-                        'experience' => $item->applicant_experience,
-                        'notes' => $item->details
-                    ];
-                });
-
-                return $query;
-
-            case 'allNoJob':
-                // Subquery for the latest module_notes per applicant
-                $latestNotesSub = DB::table('module_notes as mn')
-                    ->select([
-                        'mn.id',
-                        'mn.module_noteable_id',
-                        'mn.user_id',
-                        'mn.details',
-                        'mn.created_at', //Alias created_at
-                    ])
-                    ->join(
-                        DB::raw('(
-                            SELECT MAX(id) AS id
-                            FROM module_notes
-                            WHERE module_noteable_type = "Horsefly\\\\Applicant"
-                            GROUP BY module_noteable_id
-                        ) latest'),
-                        'latest.id',
-                        '=',
-                        'mn.id'
-                    )
-                    ->where('mn.module_noteable_type', 'Horsefly\\Applicant');
-
-                // Main query
-                $query = Applicant::query()
-                    ->select([
-                        'applicants.id',
-                        'applicants.applicant_name',
-                        'applicants.applicant_email',
-                        'applicants.applicant_email_secondary',
-                        'applicants.applicant_postcode',
-                        'applicants.applicant_phone',
-                        'applicants.applicant_phone_secondary',
-                        'applicants.applicant_landline',
-                        'applicants.job_type',
-                        'applicants.applicant_experience',
-                        'job_titles.name as job_title_name',
-                        'job_categories.name as job_category_name',
-                        'job_sources.name as job_source_name',
-                        'users.name as user_name',
-                        'module_notes.details as module_notes_details',
-                        'module_notes.created_at as note_created_at', // ✅ use the alias from subquery
-                    ])
-                    ->where('applicants.is_no_job', 1)
-                    ->where('applicants.status', 1)
-                    ->where('applicants.is_blocked', 0)
-                    ->whereNull('applicants.deleted_at')
-                    ->joinSub($latestNotesSub, 'module_notes', function ($join) {
-                        $join->on('applicants.id', '=', 'module_notes.module_noteable_id');
-                    })
-                    ->leftJoin('users', 'module_notes.user_id', '=', 'users.id')
-                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                    ->distinct();
-
-                if (count($sourceIds) > 0) {
-                    $query->where(function ($q) use ($sourceIds) {
-                        $q->whereNotIn('applicants.job_source_id', $sourceIds)
-                            ->orWhereNull('applicants.job_source_id');
-                    });
-                }
-
-                $query->get()->map(function ($item) {
-                    return [
-                        'date' => $item->note_created_at
-                            ? Carbon::parse($item->note_created_at)->format('d M Y, h:i A')
-                            : 'N/A',
-                        'user' => $item->user_name ?? '-',
-                        'applicant_name' => ucwords(strtolower($item->applicant_name)),
-                        'applicant_email' => $item->applicant_email ?: '-',
-                        'applicant_email_secondary' => $item->applicant_email_secondary ?: '-',
-                        'applicant_postcode' => strtoupper($item->applicant_postcode ?? '-'),
-                        'applicant_phone' => $item->applicant_phone ?: '-',
-                        'applicant_phone_secondary' => $item->applicant_phone_secondary ?: '-',
-                        'applicant_landline' => $item->applicant_landline ?: '-',
-                        'job_category' => strtoupper($item->job_category_name ?? '-'),
-                        'job_type' => strtoupper($item->job_type ?? '-'),
-                        'job_title' => strtoupper($item->job_title_name ?? '-'),
-                        'job_source' => strtoupper($item->job_source_name ?? '-'),
-                        'experience' => $item->applicant_experience ?: '-',
-                        'notes' => $item->module_notes_details ?: '-',
-                    ];
-                });
-
-                return $query;
-
-            default:
-                return collect(); // Return empty collection instead of null
-        }
+        return collect($rows);
     }
 
     public function headings(): array
@@ -723,7 +58,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             case 'all':
                 return ['Created At', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Experience', 'Notes'];
             case 'withinRadius':
-                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Status'];
+                return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Job Title', 'Job Category', 'Job Type', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Experience', 'Job Source', 'Nursing Home Experience', 'Notes', 'Applicant Status', 'CV Status'];
             case 'allRejected':
                 return ['Date', 'Applicant Name', 'Email (Primary)', 'Email (Secondary)', 'Postcode', 'Phone (Primary)', 'Phone (Secondary)', 'Landline', 'Job Category', 'Job Type', 'Job Title', 'Job Source', 'Rejection Type', 'Experience', 'Notes'];
             case 'allBlocked':
@@ -735,5 +70,818 @@ class ApplicantsExport implements FromCollection, WithHeadings
             default:
                 return [];
         }
+    }
+
+    public function streamCsv($handle): void
+    {
+        set_time_limit(0);
+        ignore_user_abort(true);
+        DB::disableQueryLog();
+
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, $this->headings());
+
+        foreach ($this->exportCursor() as $item) {
+            $row = $this->mapRow($item);
+            foreach ($row as $index => $value) {
+                if ($value === null) {
+                    $row[$index] = '';
+                }
+            }
+            fputcsv($handle, $row);
+        }
+    }
+
+    public function streamWithinRadiusCsv($handle): void
+    {
+        $this->streamCsv($handle);
+    }
+
+    private function exportCursor()
+    {
+        $query = $this->buildQuery($this->hiddenJobSourceIds());
+
+        if ($query === null) {
+            return [];
+        }
+
+        return $query->toBase()->cursor();
+    }
+
+    private function hiddenJobSourceIds(): array
+    {
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        if (Gate::allows('show-private-data') || count($hidePrivateData) === 0) {
+            return [];
+        }
+
+        return JobSource::where('is_active', 1)
+            ->where(function ($q) use ($hidePrivateData) {
+                foreach ($hidePrivateData as $hideName) {
+                    $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                }
+            })
+            ->pluck('id')
+            ->all();
+    }
+
+    private function applyHiddenSources($query, array $sourceIds)
+    {
+        if ($sourceIds === []) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($sourceIds) {
+            $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                ->orWhereNull('applicants.job_source_id');
+        });
+    }
+
+    private function applyApplicantListFilters($query, bool $applyStatus = true)
+    {
+        if ($applyStatus) {
+            $statusFilter = strtolower(trim(preg_replace('/\s+/', ' ', (string) ($this->filters['status_filter'] ?? ''))));
+            if (in_array($statusFilter, ['', 'all'], true)) {
+                $query->where('applicants.status', 1);
+            } else {
+                switch ($statusFilter) {
+                    case 'crm active':
+                        $query->where(function ($q) {
+                            $q->where('applicants.is_cv_in_quality_clear', 1)
+                                ->orWhere('applicants.is_interview_confirm', 1)
+                                ->orWhere('applicants.is_interview_attend', 1)
+                                ->orWhere('applicants.is_in_crm_request', 1)
+                                ->orWhere('applicants.is_crm_request_confirm', 1)
+                                ->orWhere('applicants.is_crm_interview_attended', '<>', 0)
+                                ->orWhere('applicants.is_in_crm_start_date', 1)
+                                ->orWhere('applicants.is_in_crm_invoice', 1)
+                                ->orWhere('applicants.is_in_crm_invoice_sent', 1)
+                                ->orWhere('applicants.is_in_crm_start_date_hold', 1)
+                                ->orWhere('applicants.is_in_crm_paid', 1);
+                        })
+                            ->where('applicants.is_blocked', false)
+                            ->whereExists(function ($sub) {
+                                $sub->select(DB::raw(1))
+                                    ->from('history')
+                                    ->whereRaw('history.applicant_id = applicants.id')
+                                    ->where('history.stage', 'crm')
+                                    ->limit(1);
+                            });
+                        break;
+
+                    case 'blocked':
+                        $query->where('applicants.is_blocked', true)
+                            ->where('applicants.is_no_job', false)
+                            ->where('applicants.is_circuit_busy', false)
+                            ->where('applicants.is_temp_not_interested', false);
+                        break;
+
+                    case 'circuit busy':
+                        $query->where('applicants.is_blocked', false)
+                            ->where('applicants.is_no_job', false)
+                            ->where('applicants.is_circuit_busy', true)
+                            ->where('applicants.is_temp_not_interested', false);
+                        break;
+
+                    case 'not interested':
+                        $query->where('applicants.is_no_job', false)
+                            ->where('applicants.is_blocked', false)
+                            ->where('applicants.is_circuit_busy', false)
+                            ->where('applicants.is_temp_not_interested', true);
+                        break;
+
+                    case 'no job':
+                        $query->where('applicants.is_blocked', false)
+                            ->where('applicants.is_circuit_busy', false)
+                            ->where('applicants.is_no_job', true)
+                            ->where('applicants.is_temp_not_interested', false);
+                        break;
+
+                    default:
+                        $query->where('applicants.status', 1);
+                        break;
+                }
+            }
+        }
+
+        $typeFilter = strtolower(trim((string) ($this->filters['type_filter'] ?? '')));
+        if (in_array($typeFilter, ['specialist', 'regular'], true)) {
+            $query->where('applicants.job_type', $typeFilter);
+        }
+
+        $categoryIds = $this->arrayFilterIds($this->filters['category_filter'] ?? null);
+        if ($categoryIds !== []) {
+            $query->whereIn('applicants.job_category_id', $categoryIds);
+        }
+
+        $titleIds = $this->arrayFilterIds($this->filters['title_filters'] ?? $this->filters['title_filter'] ?? null);
+        if ($titleIds !== []) {
+            $query->whereIn('applicants.job_title_id', $titleIds);
+        }
+
+        $sourceIds = $this->arrayFilterIds($this->filters['source_filter'] ?? null);
+        if ($sourceIds !== []) {
+            $query->whereIn('applicants.job_source_id', $sourceIds);
+        }
+
+        $search = trim((string) ($this->filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('applicants.applicant_name', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_email', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_phone', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$search}%")
+                    ->orWhere('applicants.applicant_landline', 'LIKE', "%{$search}%")
+                    ->orWhere('job_titles.name', 'LIKE', "%{$search}%")
+                    ->orWhere('job_categories.name', 'LIKE', "%{$search}%");
+            });
+        }
+
+        return $query;
+    }
+
+    private function latestRowsSubquery(string $table, string $groupColumn, ?string $typeColumn = null, ?string $typeValue = null)
+    {
+        $latestIds = DB::table($table)->selectRaw('MAX(id)');
+        if ($typeColumn !== null) {
+            $latestIds->where($typeColumn, $typeValue);
+        }
+        $latestIds->groupBy($groupColumn);
+
+        $query = DB::table($table)->whereIn('id', $latestIds);
+        if ($typeColumn !== null) {
+            $query->where($typeColumn, $typeValue);
+        }
+
+        return $query;
+    }
+
+    private function buildQuery(array $sourceIds)
+    {
+        switch ($this->type) {
+            case 'emails':
+                $emailsQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'applicants.applicant_name',
+                            'applicants.applicant_email',
+                            'applicants.applicant_email_secondary',
+                            'applicants.job_type',
+                            'applicants.created_at',
+                            'job_categories.name as job_category',
+                            'job_titles.name as job_title',
+                        ])
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->whereNull('applicants.deleted_at'),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($emailsQuery);
+
+            case 'noLatLong':
+                $noLatLongQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'applicants.applicant_name',
+                            'applicants.applicant_postcode',
+                            'applicants.lat',
+                            'applicants.lng',
+                            'job_categories.name as job_category',
+                            'applicants.job_type',
+                            'job_titles.name as job_title',
+                            'applicants.created_at',
+                        ])
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->where(function ($q) {
+                            $q->whereNull('applicants.lat')
+                                ->orWhere('applicants.lat', '')
+                                ->orWhere('applicants.lat', '0')
+                                ->orWhere('applicants.lat', 0);
+                        })
+                        ->where(function ($q) {
+                            $q->whereNull('applicants.lng')
+                                ->orWhere('applicants.lng', '')
+                                ->orWhere('applicants.lng', '0')
+                                ->orWhere('applicants.lng', 0);
+                        })
+                        ->whereNull('applicants.deleted_at'),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($noLatLongQuery);
+
+            case 'all':
+                $latestNotes = $this->latestRowsSubquery('applicant_notes', 'applicant_id')
+                    ->select('applicant_id', 'details');
+
+                $allQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'applicants.applicant_name',
+                            'applicants.applicant_email',
+                            'applicants.applicant_email_secondary',
+                            'applicants.applicant_postcode',
+                            'applicants.applicant_phone',
+                            'applicants.applicant_phone_secondary',
+                            'applicants.applicant_landline',
+                            'applicants.applicant_experience',
+                            'applicants.applicant_notes',
+                            'latest_applicant_notes.details as note_details',
+                            'applicants.created_at',
+                            'job_categories.name as job_category',
+                            'applicants.job_type',
+                            'job_titles.name as job_title',
+                        ])
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->leftJoinSub($latestNotes, 'latest_applicant_notes', function ($join) {
+                            $join->on('applicants.id', '=', 'latest_applicant_notes.applicant_id');
+                        })
+                        ->whereNull('applicants.deleted_at'),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($allQuery);
+
+            case 'withinRadius':
+                return $this->buildWithinRadiusQuery($sourceIds);
+
+            case 'allRejected':
+                return $this->applyApplicantListFilters($this->buildAllRejectedQuery($sourceIds), false);
+
+            case 'allBlocked':
+                $blockedQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'applicants.updated_at',
+                            'applicants.applicant_name',
+                            'applicants.applicant_email',
+                            'applicants.applicant_email_secondary',
+                            'applicants.applicant_postcode',
+                            'applicants.applicant_phone',
+                            'applicants.applicant_phone_secondary',
+                            'applicants.applicant_landline',
+                            'job_categories.name as job_category',
+                            'applicants.job_type as job_type',
+                            'job_titles.name as job_title',
+                            'job_sources.name as job_source',
+                            'applicants.applicant_experience',
+                            'applicants.applicant_notes',
+                        ])
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                        ->whereNotExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('applicants_pivot_sales')
+                                ->whereColumn('applicants_pivot_sales.applicant_id', 'applicants.id');
+                        })
+                        ->where('applicants.status', 1)
+                        ->where('applicants.is_blocked', 1)
+                        ->whereNull('applicants.deleted_at'),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($blockedQuery, false);
+
+            case 'allPaid':
+                $paidTabs = ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'];
+                $latestCrmIds = DB::table('crm_notes')
+                    ->selectRaw('MAX(id)')
+                    ->whereIn('moved_tab_to', $paidTabs)
+                    ->groupBy('applicant_id');
+                $latestCrm = DB::table('crm_notes')
+                    ->select('applicant_id', 'details', 'created_at', 'moved_tab_to')
+                    ->whereIn('moved_tab_to', $paidTabs)
+                    ->whereIn('id', $latestCrmIds);
+
+                $paidQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'crm_notes.created_at as crm_notes_created',
+                            'applicants.applicant_name',
+                            'applicants.applicant_email',
+                            'applicants.applicant_email_secondary',
+                            'applicants.applicant_postcode',
+                            'applicants.applicant_phone',
+                            'applicants.applicant_phone_secondary',
+                            'applicants.applicant_landline',
+                            'job_categories.name as job_category',
+                            'applicants.job_type as job_type',
+                            'job_titles.name as job_title',
+                            'job_sources.name as job_source',
+                            'crm_notes.moved_tab_to',
+                            'crm_notes.details',
+                            'applicants.applicant_experience',
+                        ])
+                        ->joinSub($latestCrm, 'crm_notes', function ($join) {
+                            $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+                        })
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                        ->where('applicants.is_no_job', 0)
+                        ->where('applicants.status', 1)
+                        ->where('applicants.is_blocked', 0)
+                        ->whereNull('applicants.deleted_at')
+                        ->whereIn('applicants.paid_status', ['open', 'pending'])
+                        ->whereIn('crm_notes.moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date']),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($paidQuery, false);
+
+            case 'allNoJob':
+                $latestNotes = $this->latestRowsSubquery('module_notes', 'module_noteable_id', 'module_noteable_type', Applicant::class)
+                    ->select([
+                        'module_noteable_id',
+                        'user_id',
+                        'details',
+                        'created_at',
+                    ]);
+
+                $noJobQuery = $this->applyHiddenSources(
+                    Applicant::query()
+                        ->select([
+                            'applicants.id',
+                            'applicants.applicant_name',
+                            'applicants.applicant_email',
+                            'applicants.applicant_email_secondary',
+                            'applicants.applicant_postcode',
+                            'applicants.applicant_phone',
+                            'applicants.applicant_phone_secondary',
+                            'applicants.applicant_landline',
+                            'applicants.job_type',
+                            'applicants.applicant_experience',
+                            'job_titles.name as job_title_name',
+                            'job_categories.name as job_category_name',
+                            'job_sources.name as job_source_name',
+                            'users.name as user_name',
+                            'module_notes.details as module_notes_details',
+                            'module_notes.created_at as note_created_at',
+                        ])
+                        ->joinSub($latestNotes, 'module_notes', function ($join) {
+                            $join->on('applicants.id', '=', 'module_notes.module_noteable_id');
+                        })
+                        ->leftJoin('users', 'module_notes.user_id', '=', 'users.id')
+                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                        ->where('applicants.is_no_job', 1)
+                        ->where('applicants.status', 1)
+                        ->where('applicants.is_blocked', 0)
+                        ->whereNull('applicants.deleted_at'),
+                    $sourceIds
+                );
+
+                return $this->applyApplicantListFilters($noJobQuery, false);
+
+            default:
+                return null;
+        }
+    }
+
+    private function buildAllRejectedQuery(array $sourceIds)
+    {
+        $radius = 15;
+
+        $latestNotes = DB::table('crm_notes')
+            ->select('id', 'applicant_id', 'sale_id', 'details', 'created_at', 'moved_tab_to')
+            ->whereIn('id', function ($q) {
+                $q->select(DB::raw('MAX(id)'))
+                    ->from('crm_notes')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        $latestHistory = DB::table('history')
+            ->select('id', 'applicant_id', 'sale_id', 'sub_stage', 'status')
+            ->whereIn('id', function ($q) {
+                $q->select(DB::raw('MAX(id)'))
+                    ->from('history')
+                    ->groupBy('applicant_id', 'sale_id');
+            });
+
+        $query = Applicant::query()
+            ->select([
+                'applicants.id',
+                'crm_notes.created_at as crm_notes_created',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_postcode',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline',
+                'job_categories.name as job_category',
+                'applicants.job_type as job_type',
+                'job_titles.name as job_title',
+                'job_sources.name as job_source',
+                'applicants.applicant_experience',
+                'crm_notes.details',
+                DB::raw('CASE
+                    WHEN history.sub_stage = "crm_reject" THEN "Rejected CV"
+                    WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
+                    WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
+                    WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
+                    ELSE "Unknown Status"
+                END AS sub_stage'),
+            ])
+            ->joinSub($latestNotes, 'crm_notes', function ($join) {
+                $join->on('applicants.id', '=', 'crm_notes.applicant_id');
+            })
+            ->joinSub($latestHistory, 'history', function ($join) {
+                $join->on('applicants.id', '=', 'history.applicant_id')
+                    ->on('crm_notes.sale_id', '=', 'history.sale_id');
+            })
+            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->whereIn('history.sub_stage', [
+                'crm_interview_not_attended',
+                'crm_request_reject',
+                'crm_reject',
+                'crm_start_date_hold',
+                'crm_start_date_hold_save',
+            ])
+            ->whereIn('crm_notes.moved_tab_to', [
+                'interview_not_attended',
+                'request_reject',
+                'cv_sent_reject',
+                'start_date_hold',
+                'start_date_hold_save',
+            ])
+            ->where([
+                'applicants.status' => 1,
+                'history.status' => 1,
+                'applicants.is_in_nurse_home' => 0,
+                'applicants.is_blocked' => 0,
+                'applicants.is_callback_enable' => 0,
+                'applicants.is_no_job' => 0,
+            ])
+            ->whereNull('applicants.deleted_at')
+            ->whereExists(function ($sub) use ($sourceIds, $radius) {
+                $sub->select(DB::raw(1))
+                    ->from('sales')
+                    ->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 0)
+                    ->whereNotNull('sales.lat')
+                    ->whereNotNull('sales.lng')
+                    ->where(function ($inner) use ($radius) {
+                        $latDelta = $radius / 111.32;
+                        $lngDelta = $radius / 70;
+                        $inner->whereColumn('sales.sale_postcode', 'applicants.applicant_postcode')
+                            ->orWhereRaw(
+                                'ABS(applicants.lat - sales.lat) <= ?
+                                 AND ABS(applicants.lng - sales.lng) <= ?
+                                 AND (6371 * ACOS(LEAST(1, GREATEST(-1,
+                                    COS(RADIANS(sales.lat)) * COS(RADIANS(applicants.lat)) *
+                                    COS(RADIANS(applicants.lng) - RADIANS(sales.lng)) +
+                                    SIN(RADIANS(sales.lat)) * SIN(RADIANS(applicants.lat))
+                                 )))) <= ?',
+                                [$latDelta, $lngDelta, $radius]
+                            );
+                    });
+
+                if (count($sourceIds) > 0) {
+                    $sub->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('sales.job_source_id', $sourceIds)
+                            ->orWhereNull('sales.job_source_id');
+                    });
+                }
+            });
+
+        return $this->applyHiddenSources($query, $sourceIds);
+    }
+
+    private function buildWithinRadiusQuery(array $sourceIds)
+    {
+        $sale = $this->model_type::find($this->model_id);
+        $lat = (float) $sale->lat;
+        $lng = (float) $sale->lng;
+        $saleId = (int) $this->model_id;
+        $radius = (float) ($this->radius ?? 15);
+
+        if (empty($this->filters['category_id']) && !empty($sale->job_category_id)) {
+            $this->filters['category_id'] = $sale->job_category_id;
+        }
+
+        $latestModuleNotes = $this->latestRowsSubquery('module_notes', 'module_noteable_id', 'module_noteable_type', Applicant::class)
+            ->select('module_noteable_id', 'details', 'created_at');
+
+        $latestApplicantNotes = $this->latestRowsSubquery('applicant_notes', 'applicant_id')
+            ->select('applicant_id', 'details', 'created_at');
+
+        $cvForSale = DB::table('cv_notes')
+            ->select([
+                'applicant_id',
+                DB::raw('MAX(CASE WHEN status = 1 THEN 1 ELSE 0 END) as has_sent'),
+                DB::raw('MAX(CASE WHEN status = 2 THEN 1 ELSE 0 END) as has_paid'),
+                DB::raw('MAX(CASE WHEN status = 0 THEN 1 ELSE 0 END) as has_reject'),
+            ])
+            ->where('sale_id', $saleId)
+            ->groupBy('applicant_id');
+
+        $cvOtherSent = DB::table('cv_notes')
+            ->select('applicant_id')
+            ->where('sale_id', '!=', $saleId)
+            ->where('status', 1)
+            ->groupBy('applicant_id');
+
+        $noJobHistory = DB::table('history')
+            ->select('applicant_id')
+            ->where('sale_id', $saleId)
+            ->whereIn('sub_stage', ['quality_cleared_no_job', 'crm_no_job_request'])
+            ->groupBy('applicant_id');
+
+        $pivotForSale = DB::table('applicants_pivot_sales')
+            ->select('applicant_id')
+            ->where('sale_id', $saleId)
+            ->groupBy('applicant_id');
+
+        $query = Applicant::query()
+            ->select([
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_postcode',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline',
+                'applicants.applicant_experience',
+                'applicants.job_type',
+                'applicants.have_nursing_home_experience',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
+                DB::raw('COALESCE(latest_module_notes.details, latest_applicant_notes.details) AS notes_details'),
+                DB::raw('COALESCE(latest_module_notes.created_at, latest_applicant_notes.created_at, applicants.updated_at) AS notes_created_at'),
+                DB::raw("CASE
+                    WHEN applicants.have_nursing_home_experience = 1 THEN 'Have Nursing Home Experience'
+                    WHEN applicants.is_blocked = 1 THEN 'Blocked'
+                    WHEN applicants.is_no_job = 1 OR no_job_history.applicant_id IS NOT NULL THEN 'No Job'
+                    WHEN applicants.is_callback_enable = 1 THEN 'Callback'
+                    WHEN applicants.is_temp_not_interested = 1 OR pivot_for_sale.applicant_id IS NOT NULL THEN 'Not Interested'
+                    ELSE 'Interested'
+                END AS applicant_status"),
+                DB::raw("CASE
+                    WHEN applicants.paid_status = 'close' THEN 'Paid'
+                    WHEN cv_for_sale.has_sent = 1 THEN 'Sent'
+                    WHEN cv_for_sale.has_paid = 1 THEN 'Paid'
+                    WHEN cv_for_sale.has_reject = 1 THEN 'Reject Job'
+                    WHEN cv_other_sent.applicant_id IS NOT NULL THEN 'CRM Active'
+                    ELSE 'Open'
+                END AS cv_status"),
+            ])
+            ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->leftJoinSub($latestModuleNotes, 'latest_module_notes', function ($join) {
+                $join->on('applicants.id', '=', 'latest_module_notes.module_noteable_id');
+            })
+            ->leftJoinSub($latestApplicantNotes, 'latest_applicant_notes', function ($join) {
+                $join->on('applicants.id', '=', 'latest_applicant_notes.applicant_id');
+            })
+            ->leftJoinSub($cvForSale, 'cv_for_sale', function ($join) {
+                $join->on('applicants.id', '=', 'cv_for_sale.applicant_id');
+            })
+            ->leftJoinSub($cvOtherSent, 'cv_other_sent', function ($join) {
+                $join->on('applicants.id', '=', 'cv_other_sent.applicant_id');
+            })
+            ->leftJoinSub($noJobHistory, 'no_job_history', function ($join) {
+                $join->on('applicants.id', '=', 'no_job_history.applicant_id');
+            })
+            ->leftJoinSub($pivotForSale, 'pivot_for_sale', function ($join) {
+                $join->on('applicants.id', '=', 'pivot_for_sale.applicant_id');
+            })
+            ->where('applicants.status', 1)
+            ->whereNull('applicants.deleted_at')
+            ->where('applicants.is_in_nurse_home', 0)
+            ->whereNotNull('applicants.lat')
+            ->whereNotNull('applicants.lng');
+
+        $this->applyRadiusDistanceFilter($query, $lat, $lng, $radius);
+        $this->applyHiddenSources($query, $sourceIds);
+        $this->applyRadiusApplicantFilters($query, $saleId, $this->filters);
+
+        return $query->orderByRaw('notes_created_at DESC');
+    }
+
+    private function mapRow(object $item): array
+    {
+        switch ($this->type) {
+            case 'emails':
+                return [
+                    $this->formatDate($item->created_at),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->job_category),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                ];
+
+            case 'noLatLong':
+                return [
+                    $this->formatDate($item->created_at),
+                    $this->titleCase($item->applicant_name),
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->lat,
+                    $item->lng,
+                    strtoupper((string) $item->job_category),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                ];
+
+            case 'all':
+                return [
+                    $this->formatDate($item->created_at),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->applicant_phone,
+                    $item->applicant_phone_secondary,
+                    $item->applicant_landline,
+                    strtoupper((string) $item->job_category),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                    $item->applicant_experience,
+                    $item->note_details ?? $item->applicant_notes,
+                ];
+
+            case 'withinRadius':
+                $notes = preg_replace('/\s+/u', ' ', strip_tags((string) ($item->notes_details ?? ''))) ?? '';
+
+                return [
+                    $this->formatDate($item->notes_created_at),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->job_title_name),
+                    strtoupper((string) $item->job_category_name),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->applicant_phone,
+                    $item->applicant_phone_secondary,
+                    $item->applicant_landline,
+                    $item->applicant_experience,
+                    $item->job_source_name ? strtoupper($item->job_source_name) : '',
+                    $item->have_nursing_home_experience == 1
+                        ? 'Yes'
+                        : ($item->have_nursing_home_experience == 0 ? 'No' : 'NULL'),
+                    $notes,
+                    $item->applicant_status,
+                    $item->cv_status,
+                ];
+
+            case 'allRejected':
+                return [
+                    $this->formatDate($item->crm_notes_created),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->applicant_phone,
+                    $item->applicant_phone_secondary,
+                    $item->applicant_landline,
+                    ucwords((string) $item->job_category),
+                    ucwords((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                    ucwords((string) $item->job_source),
+                    ucwords((string) $item->sub_stage),
+                    $item->applicant_experience,
+                    $item->details,
+                ];
+
+            case 'allBlocked':
+                return [
+                    $this->formatDate($item->updated_at),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->applicant_phone,
+                    $item->applicant_phone_secondary,
+                    $item->applicant_landline,
+                    strtoupper((string) $item->job_category),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                    strtoupper((string) $item->job_source),
+                    'Blocked',
+                    $item->applicant_experience,
+                    $item->applicant_notes ?? 'N/A',
+                ];
+
+            case 'allPaid':
+                return [
+                    $this->formatDate($item->crm_notes_created),
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email,
+                    $item->applicant_email_secondary,
+                    strtoupper((string) $item->applicant_postcode),
+                    $item->applicant_phone,
+                    $item->applicant_phone_secondary,
+                    $item->applicant_landline,
+                    strtoupper((string) $item->job_category),
+                    strtoupper((string) $item->job_type),
+                    strtoupper((string) $item->job_title),
+                    strtoupper((string) $item->job_source),
+                    strtoupper((string) $item->moved_tab_to),
+                    $item->applicant_experience,
+                    $item->details,
+                ];
+
+            case 'allNoJob':
+                return [
+                    $this->formatDate($item->note_created_at),
+                    $item->user_name ?? '-',
+                    $this->titleCase($item->applicant_name),
+                    $item->applicant_email ?: '-',
+                    $item->applicant_email_secondary ?: '-',
+                    strtoupper((string) ($item->applicant_postcode ?? '-')),
+                    $item->applicant_phone ?: '-',
+                    $item->applicant_phone_secondary ?: '-',
+                    $item->applicant_landline ?: '-',
+                    strtoupper((string) ($item->job_category_name ?? '-')),
+                    strtoupper((string) ($item->job_type ?? '-')),
+                    strtoupper((string) ($item->job_title_name ?? '-')),
+                    strtoupper((string) ($item->job_source_name ?? '-')),
+                    $item->applicant_experience ?: '-',
+                    $item->module_notes_details ?: '-',
+                ];
+
+            default:
+                return [];
+        }
+    }
+
+    private function formatDate($value): string
+    {
+        if ($value === null || $value === '') {
+            return 'N/A';
+        }
+
+        $timestamp = strtotime((string) $value);
+
+        return $timestamp ? date('d M Y, h:i A', $timestamp) : 'N/A';
+    }
+
+    private function titleCase($value): string
+    {
+        return ucwords(strtolower((string) $value));
     }
 }
