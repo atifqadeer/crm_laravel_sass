@@ -53,8 +53,6 @@
     }
 }
 
-
-
 .dropdown-toggle-split {
 
     &::after,
@@ -67,7 +65,6 @@
         margin-right: 0;
     }
 }
-
 
 .dropdown-menu {
     box-shadow: var(--#{$prefix}box-shadow-sm);
@@ -134,4 +131,14 @@
     .dropdown-mega-menu-lg {
         width: 26rem;
     }
+}
+
+.filter-dropdowns .tab-filter.active {
+    background-color: var(--bs-gray-300);
+    font-weight: 600;
+}
+
+.dropdown-item:hover{
+    background-color: var(--bs-gray-300);
+    font-weight: 500;
 }
