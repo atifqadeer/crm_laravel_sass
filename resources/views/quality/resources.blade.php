@@ -73,11 +73,6 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
-                                            <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox"
-                                                    value="" id="all-categories" data-category-id="">
-                                                <label class="form-check-label" for="all-categories">All Categories</label>
-                                            </div>
 
                                             @foreach ($jobCategories as $category)
                                                 <div class="form-check">
@@ -129,16 +124,13 @@
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="titleList">
-                                            <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox"
-                                                    value="" id="all-titles" data-title-id="">
-                                                <label class="form-check-label" for="all-titles">All Titles</label>
-                                            </div>
                                             @foreach ($jobTitles as $title)
                                                 <div class="form-check">
                                                     <input class="form-check-input title-filter" type="checkbox"
                                                         value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                        data-title-id="{{ $title->id }}">
+                                                        data-title-id="{{ $title->id }}"
+                                                        data-category-id="{{ $title->job_category_id }}"
+                                                        data-type="{{ $title->type }}">
                                                     <label class="form-check-label"
                                                         for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
                                                 </div>
@@ -170,11 +162,6 @@
                                         </div>
                                         <!-- Scrollable checkbox list -->
                                         <div id="sourceList">
-                                            <div class="form-check">
-                                                <input class="form-check-input source-filter" type="checkbox"
-                                                    value="" id="all-sources" data-source-id="">
-                                                <label class="form-check-label" for="all-sources">All Sources</label>
-                                            </div>
 
                                             @foreach ($jobSources as $source)
                                                 <div class="form-check">
@@ -201,7 +188,7 @@
             <div class="card">
                 <div class="card-body p-3">
                     <!-- Columns Visibility Dropdown — moved via JS (initComplete) into the same
-                                                                                         flex row as DataTables' own "Show X entries" length control below. -->
+                             flex row as DataTables' own "Show X entries" length control below. -->
                     <div id="columnsToolbar" class="dropdown d-inline">
                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
                             id="dropdownMenuColumns" data-bs-toggle="dropdown" aria-expanded="false">
@@ -494,7 +481,9 @@
                         d.category_filter =
                             currentCategoryFilters; // Send the current filter value as a parameter
                         d.title_filter =
-                            currentTitleFilters; // Send the current filter value as a parameter
+                            (typeof window.getVisibleListingTitleIds === 'function' ? window
+                                .getVisibleListingTitleIds() : currentTitleFilters
+                                ); // Send the current filter value as a parameter
                         d.source_filter =
                             currentSourceFilters; // Send the current filter value as a parameter
 
@@ -835,7 +824,6 @@
                 table.search('').draw();
             });
 
-            // Status filter dropdown handler
             // Status filter dropdown handler
             $('.status-filter').on('click', function() {
                 currentFilter = ($(this).attr('data-status') || $(this).text()).toString().toLowerCase();
@@ -1203,7 +1191,7 @@
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label" aria-hidden="true">' +
-                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Quality Notes History</h5>' +
@@ -1280,7 +1268,7 @@
             });
         }
 
-        // Function to show the manager details modal
+        /** Function to show the manager details modal */
         function viewManagerDetails(id) {
             const unitId = parseInt(id, 10) || 0;
             if (unitId <= 0) {
@@ -1292,47 +1280,48 @@
                 return;
             }
 
-            const modalId = 'viewManagerDetailsModal' + unitId;
-            window.managerDetailsModalID = modalId;
+            const modalID = 'viewManagerDetailsModal-' + unitId;
+            window.managerDetailsModalID = modalID;
 
-            // Add modal only once
-            if ($('#' + modalId).length === 0) {
-                $('body').append(
-                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
-                    'Label">' +
-                    '<div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">' +
-                    '<div class="modal-content">' +
-                    '<div class="modal-header">' +
-                    '<h5 class="modal-title" id="' + modalId + 'Label">Manager Details</h5>' +
-                    '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                    '</div>' +
-                    '<div class="modal-body text-start">' +
-                    '<div class="text-center py-4">' +
-                    '<div class="spinner-border text-primary" role="status">' +
-                    '<span class="visually-hidden">Loading...</span>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="modal-footer">' +
-                    '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>'
-                );
+            // Create modal if it doesn't exist
+            if ($('#' + modalID).length === 0) {
+                $('body').append(`
+                    <div class="modal fade" id="${modalID}" tabindex="-1" aria-labelledby="viewManagerDetailsModalLabel-${unitId}">
+                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="viewManagerDetailsModalLabel-${unitId}">Manager Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body modal-body-text-left">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Reset to loading state when reopening an existing modal
+                $('#' + modalID + ' .modal-body').html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `);
             }
 
-            // Show the modal and keep loader visible until data is loaded
-            $('#' + modalId).modal('show');
-            $('#' + modalId + ' .modal-body').html(
-                '<div class="text-center py-4">' +
-                '<div class="spinner-border text-dark" role="status">' +
-                '<span class="visually-hidden">Loading...</span>' +
-                '</div>' +
-                '</div>'
-            );
+            // Show modal immediately with loading state
+            $('#' + modalID).modal('show');
 
-            // AJAX request to fetch manager details
+            // Make AJAX call
             $.ajax({
                 url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
@@ -1351,13 +1340,15 @@
                         message = xhr.responseJSON.message;
                     }
 
-                    $('#' + modalId + ' .modal-body').html(
+                    $('#' + modalID + ' .modal-body').html(
                         '<p class="text-danger">' + message + '</p>'
                     );
                 }
             });
         }
 
+        // Contact filter radios (All / Kingsburry / Others) are only for users
+        // who can see private data — same Gate used by getModuleContacts().
         const canShowPrivateData = @json(auth()->user()?->can('show-private-data') ?? false);
 
         $(document).on('change', 'input[name="contact_filter"]', function() {
@@ -1369,11 +1360,13 @@
 
         function renderContacts(filterType) {
             var contacts = window.managerContacts || [];
-            var modalId = window.managerDetailsModalID;
-            if (!modalId) {
+            var modalID = window.managerDetailsModalID;
+            if (!modalID) {
                 return;
             }
 
+            // Without show-private-data permission, always show the full (already
+            // server-filtered) list and never render the contact_filter radios.
             if (!canShowPrivateData) {
                 filterType = 'all';
             }
@@ -1389,7 +1382,7 @@
                         </label>
 
                         <label class="me-3">
-                            <input type="radio" name="contact_filter" value="kingsbury" ${filterType === 'kingsbury' ? 'checked' : ''}>
+                            <input type="radio" name="contact_filter" value="kingsburry" ${filterType === 'kingsburry' ? 'checked' : ''}>
                             Kingsburry
                         </label>
 
@@ -1413,14 +1406,18 @@
                     var note = contact.contact_note || '';
 
                     if (canShowPrivateData) {
+                        // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
+                        // Do NOT use === '%hayaibu%' — % is SQL syntax, not a JS string match.
                         var sourceName = (contact.job_source_name ||
                             (contact.job_source && contact.job_source.name) ||
                             '').toString().toLowerCase().trim();
+
                         var isHayaibuSource = contact.is_hayaibu_source === true ||
                             contact.is_hayaibu_source === 1 ||
                             sourceName.indexOf('hayaibu') !== -1;
 
-                        if (filterType === 'kingsbury' && isHayaibuSource) {
+                        // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
+                        if (filterType === 'kingsburry' && isHayaibuSource) {
                             return;
                         }
 
@@ -1442,7 +1439,7 @@
                 });
             }
 
-            $('#' + modalId + ' .modal-body').html(contactHtml);
+            $('#' + modalID + ' .modal-body').html(contactHtml);
         }
 
         document.addEventListener('click', function(e) {
