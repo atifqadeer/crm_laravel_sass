@@ -73,7 +73,6 @@
                                     <div class="invalid-feedback">Please select a job source</div>
                                 </div>
                             </div>
-
                             <div class="col-lg-3">
                                 <div class="mb-3">
                                     <label for="applicant_name" class="form-label">Name</label>
@@ -494,57 +493,79 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            const jobTitle = document.getElementById('job_title');
-            const jobCategory = document.getElementById('job_category');
-            const jobType = document.getElementById('job_type');
+            const $jobTitle = $('#job_title');
+            const $jobCategory = $('#job_category');
+            const $jobType = $('#job_type');
 
-            if (!jobTitle || !jobCategory || !jobType) {
+            if (!$jobTitle.length || !$jobCategory.length || !$jobType.length) {
                 console.warn("One or more elements are missing: job_title, job_category, or job_type.");
                 return;
             }
 
-            // Set the selected job title ID for use after fetching job titles
-            const selectedJobTitleId = '{{ old('job_title_id', $applicant->job_title_id) }}';
-            jobTitle.setAttribute('data-selected-job-title-id', selectedJobTitleId);
+            // Only used to restore the applicant's existing job title on first page load
+            const initialJobTitleId = '{{ old('job_title_id', $applicant->job_title_id) }}';
+            let isInitialLoad = true;
 
-            function fetchJobTitles() {
-                const categoryId = jobCategory.value;
-                const type = jobType.value;
+            // Guards against an older, slower response overwriting a newer one
+            let currentRequestToken = 0;
 
-                if (categoryId && type) {
-                    fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            jobTitle.innerHTML = '<option value="">Choose a Job Title</option>';
-                            data.forEach(title => {
-                                const option = document.createElement('option');
-                                option.value = title.id;
-                                option.textContent = title.name.toUpperCase();
-                                jobTitle.appendChild(option);
-                            });
-
-                            // Pre-select the job title if one is already selected
-                            const selectedJobTitleId = jobTitle.getAttribute('data-selected-job-title-id');
-                            if (selectedJobTitleId) {
-                                const selectedOption = jobTitle.querySelector(
-                                    `option[value="${selectedJobTitleId}"]`);
-                                if (selectedOption) {
-                                    selectedOption.selected = true;
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching job titles:', error);
-                        });
-                }
+            function resetJobTitleSelect(placeholderText = 'Choose a Job Title') {
+                $jobTitle.html(`<option value="">${placeholderText}</option>`);
+                $jobTitle.val('').trigger('change.select2'); // refresh Select2 display only, no reload loop
             }
 
-            // Add event listeners to dynamically load job titles when category/type change
-            jobCategory.addEventListener('change', fetchJobTitles);
-            jobType.addEventListener('change', fetchJobTitles);
+            function fetchJobTitles() {
+                const categoryId = $jobCategory.val();
+                const type = $jobType.val();
 
-            // Pre-select the job title on page load
-            fetchJobTitles();
+                if (!categoryId || !type) {
+                    resetJobTitleSelect();
+                    return;
+                }
+
+                const requestToken = ++currentRequestToken;
+
+                resetJobTitleSelect('Loading...');
+                $jobTitle.prop('disabled', true).trigger('change.select2');
+
+                fetch(`/getJobTitlesByCategory?job_category_id=${categoryId}&job_type=${type}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Ignore this response if a newer request has already fired
+                        if (requestToken !== currentRequestToken) return;
+
+                        $jobTitle.html('<option value="">Choose a Job Title</option>');
+                        data.forEach(title => {
+                            $jobTitle.append(
+                                $('<option>', {
+                                    value: title.id,
+                                    text: title.name.toUpperCase()
+                                })
+                            );
+                        });
+
+                        // Only restore the applicant's original title on the very first load -
+                        // not after the user deliberately changes category/type
+                        if (isInitialLoad && initialJobTitleId) {
+                            $jobTitle.val(initialJobTitleId);
+                        }
+                        isInitialLoad = false;
+
+                        $jobTitle.prop('disabled', false).trigger('change'); // sync Select2's visible widget
+                    })
+                    .catch(error => {
+                        if (requestToken !== currentRequestToken) return;
+                        console.error('Error fetching job titles:', error);
+                        resetJobTitleSelect();
+                        $jobTitle.prop('disabled', false).trigger('change.select2');
+                    });
+            }
+
+            // Bind through jQuery so Select2-triggered changes are actually caught
+            $jobCategory.on('change', fetchJobTitles);
+            $jobType.on('change', fetchJobTitles);
+
+            fetchJobTitles(); // initial load
         });
 
         $(document).ready(function() {
