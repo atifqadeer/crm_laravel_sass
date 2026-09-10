@@ -27,7 +27,8 @@ class RegionController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:region-resource-index')->only(['resourcesIndex', 'getApplicantsByRegions']);
+        $this->middleware('permission:region-sale-index')->only(['salesIndex', 'getSalesByRegions']);
     }
     public function resourcesIndex()
     {

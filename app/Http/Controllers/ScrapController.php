@@ -34,6 +34,34 @@ class ScrapController extends Controller
 {
     use Geocode, SendEmails;
 
+    public function __construct()
+    {
+        $this->middleware('permission:scrap-index')->only([
+            'importIndex',
+            'importJobs',
+            'officeIndex',
+            'unitIndex',
+            'salesIndex',
+            'getScrappedOffices',
+            'getScrappedUnits',
+            'getScrappedSales',
+            'scrappedOfficeDestroy',
+            'scrappedUnitDestroy',
+            'scrappedSaleDestroy',
+            'scrappedOfficeRestore',
+            'scrappedUnitRestore',
+            'scrappedSaleRestore',
+            'scrappedSaleApprove',
+            'scrappedUnitApprove',
+            'scrappedOfficeApprove',
+            'getSaleEmails',
+            'getBulkEmailTemplate',
+            'getBulkOfficesEmailTemplate',
+            'sendEmailToOffices',
+            'sendBulkEmailsToOffices',
+        ]);
+    }
+
     public function importIndex()
     {
         return response()->json([

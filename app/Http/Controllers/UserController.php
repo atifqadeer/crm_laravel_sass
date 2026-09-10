@@ -25,7 +25,15 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:administrator-user-index')->only(['index', 'getUsers']);
+        $this->middleware('permission:administrator-user-create')->only(['create', 'store']);
+        $this->middleware('permission:administrator-user-edit')->only(['edit', 'update']);
+        $this->middleware('permission:administrator-user-view')->only(['show', 'userDetails']);
+        $this->middleware('permission:administrator-user-delete')->only(['destroy']);
+        $this->middleware('permission:administrator-user-export')->only(['export']);
+        $this->middleware('permission:administrator-user-change-status')->only(['changeUserStatus']);
+        $this->middleware('permission:administrator-user-activity-log')->only(['activityLogIndex', 'getUserActivityLogs']);
+        $this->middleware('permission:report-user-login')->only(['userLogin', 'getUsersLoginReport', 'userLoginHistoryIndex', 'getUserLoginHistory']);
     }
     /**
      * Display a listing of the applicants.
@@ -329,12 +337,11 @@ class UserController extends Controller
                         $rows .= "
                         <div class='mb-3 text-start'>
                             <strong>{$label}</strong><br>
-                            <span class='text-danger'>Old: {$format($key, $oldVal)}</span><br>
-                            <span class='text-success'>New: {$format($key, $newVal)}</span>
+                            <span class='text-danger'>Old: {$format($key,$oldVal)}</span><br>
+                            <span class='text-success'>New: {$format($key,$newVal)}</span>
                         </div>
                     ";
                     }
-
                 } elseif (!empty($changes) && is_array($changes)) {
 
                     $rows .= '<h5><strong>Changes</strong></h5>';
@@ -346,11 +353,10 @@ class UserController extends Controller
                         $rows .= "
                         <div class='mb-2 text-start'>
                             <strong>{$label}</strong><br>
-                            {$format($key, $val)}
+                            {$format($key,$val)}
                         </div>
                     ";
                     }
-
                 } else {
 
                     $rows .= '<h5><strong>Details</strong></h5>';
@@ -362,7 +368,7 @@ class UserController extends Controller
                         $rows .= "
                         <div class='mb-2 text-start'>
                             <strong>{$label}</strong><br>
-                            {$format($key, $val)}
+                            {$format($key,$val)}
                         </div>
                     ";
                     }

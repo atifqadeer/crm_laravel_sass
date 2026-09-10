@@ -18,7 +18,11 @@ class IPAddressController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:administrator-ip-address-index')->only(['index', 'getIPs', 'show']);
+        $this->middleware('permission:administrator-ip-address-create')->only(['store']);
+        $this->middleware('permission:administrator-ip-address-edit')->only(['update']);
+        $this->middleware('permission:administrator-ip-address-delete')->only(['destroy']);
+        $this->middleware('permission:administrator-ip-address-export')->only(['export']);
     }
     /**
      * Display a listing of the applicants.
@@ -155,7 +159,7 @@ class IPAddressController extends Controller
                                         )">Edit</a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="deleteIpAddress('. $ip->id .'); return false;">Delete</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="deleteIpAddress(' . $ip->id . '); return false;">Delete</a>
                                     </li>
                                 </ul>
                             </div>';
@@ -232,7 +236,7 @@ class IPAddressController extends Controller
     public function export(Request $request)
     {
         $type = $request->query('type', 'all'); // Default to 'all' if not provided
-        
+
         return Excel::download(new IPAddressExport($type), "ip_address_{$type}.csv");
     }
 }

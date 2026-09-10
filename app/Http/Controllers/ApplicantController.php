@@ -65,7 +65,7 @@ class ApplicantController extends Controller
         $this->middleware('permission:applicant-edit')->only(['edit', 'update']);
         $this->middleware('permission:applicant-view')->only(['show', 'availableJobsIndex', 'availableNoJobsIndex', 'getAvailableJobs', 'getAvailableNoJobs']);
         $this->middleware('permission:applicant-delete')->only(['destroy', 'changeStatus']);
-        $this->middleware('permission:applicant-export')->only(['export']);
+        $this->middleware('permission:applicant-export,applicant-export-from-sale-page')->only(['export']);
         $this->middleware('permission:region-export')->only(['regionalApplicatsExport']);
         $this->middleware('permission:applicant-download-resume')->only(['downloadCv']);
         $this->middleware('permission:applicant-upload-resume')->only(['uploadCv']);

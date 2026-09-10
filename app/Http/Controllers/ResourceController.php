@@ -39,7 +39,22 @@ class ResourceController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:resource-direct-index')->only(['directIndex', 'getResourcesDirectSales']);
+        $this->middleware('permission:resource-indirect-index')->only(['indirectIndex', 'getResourcesIndirectApplicants']);
+        $this->middleware('permission:resource-rejected-index')->only(['rejectedApplicantsIndex', 'getResourcesRejectedApplicants']);
+        $this->middleware('permission:resource-blocked-index')->only(['blockedApplicantsIndex', 'getResourcesBlockedApplicants']);
+        $this->middleware('permission:resource-crm-paid-index')->only(['crmPaidIndex', 'getResourcesPaidApplicants']);
+        $this->middleware('permission:resource-no-job-index')->only(['noJobIndex', 'getResourcesNoJobApplicants']);
+        $this->middleware('permission:resource-not-interested-index')->only(['notInterestedIndex', 'getResourcesNotInterestedApplicants']);
+        $this->middleware('permission:resource-category-index')->only(['categoryWiseApplicantIndex', 'getResourcesCategoryWised']);
+        $this->middleware('permission:resource-blocked-mark-unblock')->only(['revertBlockedApplicant']);
+        $this->middleware('permission:resource-no-job-revert-btn')->only(['revertNoJobApplicant']);
+        $this->middleware('permission:resource-not-interested-revert')->only(['revertNotInterestedApplicant']);
+        $this->middleware('permission:resource-indirect-add-updated-data-btn')->only(['markAsNursingHomeExp']);
+        $this->middleware('permission:resource-category-create-nursing-home-btn')->only(['markAsNoNursingHomeExp']);
+        $this->middleware('permission:resource-direct-send-email-btn')->only(['exportDirectApplicantsEmails']);
+        $this->middleware('permission:resource-indirect-view-notes-history,resource-rejected-view-notes-history,resource-blocked-view-notes-history,resource-no-job-view-notes-history,resource-not-interested-view-notes-history,resource-category-view-notes-history,resource-crm-paid-view-notes-history')->only(['getApplicantHistorybyStatus']);
+        $this->middleware('permission:resource-category-add-note,resource-indirect-add-note')->only(['markApplicantNotInterestedOnSale', 'markApplicantCallback']);
     }
     public function directIndex()
     {

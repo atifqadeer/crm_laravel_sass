@@ -28,7 +28,42 @@ class SettingController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:administrator-setting-index')->only([
+            'index',
+            'create',
+            'store',
+            'edit',
+            'update',
+            'destroy',
+            'show',
+            'getSettings',
+            'saveSmtpSettings',
+            'saveGeneralSettings',
+            'saveGoogleSettings',
+            'saveNotificationSettings',
+            'saveSmsSettings',
+            'saveProfileSettings',
+            'deleteSmtp',
+            'saveDialingSettings',
+            'saveScraperSettings',
+            'runScraperActor',
+            'deleteScraperActor',
+        ]);
+        $this->middleware('permission:administrator-job-category-index')->only(['jobCategoriesIndex', 'getJobCategories']);
+        $this->middleware('permission:administrator-job-category-create')->only(['jobCategoriesStore']);
+        $this->middleware('permission:administrator-job-category-edit')->only(['jobCategoriesUpdate']);
+        $this->middleware('permission:administrator-job-title-index')->only(['jobTitlesIndex', 'getJobTitles', 'getJobTitlesList']);
+        $this->middleware('permission:administrator-job-title-create')->only(['jobTitlesStore']);
+        $this->middleware('permission:administrator-job-title-edit')->only(['jobTitlesUpdate']);
+        $this->middleware('permission:administrator-job-source-index')->only(['jobSourceIndex', 'getJobSources']);
+        $this->middleware('permission:administrator-job-source-create')->only(['jobSourceStore']);
+        $this->middleware('permission:administrator-job-source-edit')->only(['jobSourceUpdate']);
+        $this->middleware('permission:administrator-email-template-index')->only(['emailTemplatesIndex', 'getEmailTemplates', 'emailEditTemplate']);
+        $this->middleware('permission:administrator-email-template-create')->only(['emailTemplatesStore']);
+        $this->middleware('permission:administrator-email-template-edit')->only(['emailTemplatesUpdate']);
+        $this->middleware('permission:administrator-sms-template-index')->only(['smsTemplatesIndex', 'getSmsTemplates', 'smsEditTemplate']);
+        $this->middleware('permission:administrator-sms-template-create')->only(['smsTemplatesStore']);
+        $this->middleware('permission:administrator-sms-template-edit')->only(['smsTemplatesUpdate']);
     }
     /**
      * Display a listing of the applicants.

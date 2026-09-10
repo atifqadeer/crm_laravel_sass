@@ -31,8 +31,16 @@ class UnitController extends Controller
 
     public function __construct()
     {
-        //
+        $this->middleware('permission:unit-index')->only(['index', 'getUnits']);
+        $this->middleware('permission:unit-create')->only(['create', 'store']);
+        $this->middleware('permission:unit-edit')->only(['edit', 'update']);
+        $this->middleware('permission:unit-view')->only(['show', 'unitDetails']);
+        $this->middleware('permission:unit-delete')->only(['destroy']);
+        $this->middleware('permission:unit-export')->only(['export']);
+        $this->middleware('permission:unit-add-note')->only(['storeUnitShortNotes']);
+        $this->middleware('permission:unit-change-status')->only(['changeUnitStatus']);
     }
+
     /**
      * Display a listing of the applicants.
      *

@@ -17,7 +17,13 @@ class RoleController extends Controller
 {
     public function __construct()
     {
-        //
+        $this->middleware('permission:administrator-role-index')->only(['index', 'getRoles', 'show']);
+        $this->middleware('permission:administrator-role-create')->only(['create', 'store']);
+        $this->middleware('permission:administrator-role-edit')->only(['edit', 'update', 'view']);
+        $this->middleware('permission:administrator-role-delete')->only(['destroy']);
+        $this->middleware('permission:administrator-permission-index')->only(['permissionIndex', 'getPermissions']);
+        $this->middleware('permission:administrator-permission-create')->only(['permissionStore']);
+        $this->middleware('permission:administrator-permission-edit')->only(['permissionUpdate']);
     }
     /**
      * Display a listing of the applicants.

@@ -45,6 +45,16 @@ class ImportController extends Controller
 {
     public $timestamps = false;  // Disables automatic timestamps
 
+    public function __construct()
+    {
+        $this->middleware('permission:applicant-import,office-import,unit-import,sale-import,administrator-user-import')->only(['importIndex']);
+        $this->middleware('permission:office-import')->only(['officesImport']);
+        $this->middleware('permission:unit-import')->only(['unitsImport']);
+        $this->middleware('permission:applicant-import')->only(['applicantsImport', 'applicantsProcessFile']);
+        $this->middleware('permission:sale-import')->only(['salesImport']);
+        $this->middleware('permission:administrator-user-import')->only(['usersImport']);
+    }
+
     public function importIndex()
     {
         return view('settings.import');
@@ -730,12 +740,12 @@ class ImportController extends Controller
 
                                 // Create or update Unit
                                 Unit::withoutTimestamps(function () use ($row) {
-                                        Unit::updateOrCreate(
-                                            ['id' => $row['id']],   // Match on ID
-                                            $row                    // Update rest of the fields
-                                        );
+                                    Unit::updateOrCreate(
+                                        ['id' => $row['id']],   // Match on ID
+                                        $row                    // Update rest of the fields
+                                    );
                                 });
-                                
+
 
                                 // Optional: remove old contacts for this office to avoid duplicates
                                 DB::table('contacts')
@@ -2732,7 +2742,7 @@ class ImportController extends Controller
         $csv->setHeaderOffset(0);
 
         // Normalize headers
-        $headers = array_map(fn ($h) => strtolower(trim($h)), $csv->getHeader());
+        $headers = array_map(fn($h) => strtolower(trim($h)), $csv->getHeader());
         foreach (['id', 'created_at', 'updated_at'] as $req) {
             if (!in_array($req, $headers, true)) {
                 @unlink($filePath);
@@ -2754,14 +2764,30 @@ class ImportController extends Controller
             }
 
             $formats = [
-                'Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d',
-                'm/d/Y H:i:s', 'm/d/Y H:i', 'm/d/Y',
-                'd/m/Y H:i:s', 'd/m/Y H:i', 'd/m/Y',
-                'd-m-Y H:i:s', 'd-m-Y H:i', 'd-m-Y',
-                'Y/m/d H:i:s', 'Y/m/d H:i', 'Y/m/d',
-                'm-d-Y H:i:s', 'm-d-Y H:i', 'm-d-Y',
-                'Y.m.d H:i:s', 'Y.m.d H:i', 'Y.m.d',
-                'd.m.Y H:i:s', 'd.m.Y H:i', 'd.m.Y',
+                'Y-m-d H:i:s',
+                'Y-m-d H:i',
+                'Y-m-d',
+                'm/d/Y H:i:s',
+                'm/d/Y H:i',
+                'm/d/Y',
+                'd/m/Y H:i:s',
+                'd/m/Y H:i',
+                'd/m/Y',
+                'd-m-Y H:i:s',
+                'd-m-Y H:i',
+                'd-m-Y',
+                'Y/m/d H:i:s',
+                'Y/m/d H:i',
+                'Y/m/d',
+                'm-d-Y H:i:s',
+                'm-d-Y H:i',
+                'm-d-Y',
+                'Y.m.d H:i:s',
+                'Y.m.d H:i',
+                'Y.m.d',
+                'd.m.Y H:i:s',
+                'd.m.Y H:i',
+                'd.m.Y',
             ];
 
             foreach ($formats as $fmt) {
@@ -4449,7 +4475,7 @@ class ImportController extends Controller
                 Audit::withoutTimestamps(function () use ($chunk) {
                     Audit::insert($chunk);
                 });
-                
+
                 $successfulRows += count($chunk);
             } catch (\Throwable $e) {
                 $failedRows[] = ['row' => 'batch', 'error' => $e->getMessage()];

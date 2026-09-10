@@ -36,7 +36,18 @@ use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
-    public function __construct() {}
+    public function __construct()
+    {
+        $this->middleware('permission:dashboard')->only(['index']);
+        $this->middleware('permission:dashboard-top-stats')->only(['getCounts']);
+        $this->middleware('permission:dashboard-users')->only(['getUsersForDashboard']);
+        $this->middleware('permission:dashboard-users-stats')->only(['getUserStatistics', 'getUserStatisticsDetail']);
+        $this->middleware('permission:dashboard-sales-weekly-analytics')->only(['getWeeklySales']);
+        $this->middleware('permission:dashboard-sales-analytics-chart')->only(['getSalesAnalytic']);
+        $this->middleware('permission:dashboard-weekly-analytics,dashboard-monthly-analytics,dashboard-yearly-analytics,dashboard-daily-analytics,dashboard-agents-stats,dashboard-agents-chart')
+            ->only(['getStats', 'getStatisticsDetails', 'getChartData', 'getStatusDetails', 'statisticsReportIndex', 'getStatisticsApplicants']);
+    }
+
     public function index()
     {
         $user = Auth::user();
