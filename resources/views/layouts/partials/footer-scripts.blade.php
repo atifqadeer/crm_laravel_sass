@@ -1,3 +1,4 @@
+@include('partials.scripts.listing-title-filters')
 @yield('script')
 @vite(['resources/js/app.js', 'resources/js/layout.js'])
 <script>
