@@ -9083,10 +9083,11 @@ class CrmController extends Controller
                 'applicant_id' => $applicant_id,
                 'sale_id' => $sale_id,
                 'moved_tab_to' => 'cleared',
-                // 'status' => 1
-            ])
-                ->delete();
-            // ->update(['status' => 0]);
+                'status' => 1
+            ])->update([
+                'status' => 0,
+                'updated_at' => DB::raw('updated_at')
+            ]);
 
             $quality_notes = new QualityNotes();
             $quality_notes->applicant_id = $applicant_id;
